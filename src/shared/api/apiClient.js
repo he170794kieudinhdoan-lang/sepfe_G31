@@ -8,8 +8,17 @@ export const apiClient = axios.create({
     },
 });
 
+apiClient.interceptors.request.use((config) => {
+    console.log('API Request:', config.method.toUpperCase(), config.baseURL, config.url);
+    return config;
+});
+
 apiClient.interceptors.response.use(
-    (response) => response.data,
+    (response) => {
+        // Unwraps the standard { statusCode, message, data } response structure
+        // from the NestJS ResponseInterceptor
+        return response.data?.data !== undefined ? response.data.data : response.data;
+    },
     (error) => {
         return Promise.reject(error);
     }

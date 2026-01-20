@@ -1,10 +1,10 @@
-
 import { createBrowserRouter } from 'react-router-dom';
 import { MainLayout } from '@/shared/components/Layout';
 
 import { LoginRoute } from '@/features/auth';
 import { ProductsRoute } from '@/features/products';
 import { JobsPage } from '@/features/jobs';
+import { UsersDemo } from '@/features/users';
 
 export const router = createBrowserRouter([
     {
@@ -18,6 +18,10 @@ export const router = createBrowserRouter([
             {
                 path: 'app/products',
                 element: <ProductsRoute />,
+            },
+            {
+                path: 'demo/users',
+                element: <UsersDemo />,
             },
         ],
     },
