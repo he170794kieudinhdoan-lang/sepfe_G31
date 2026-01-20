@@ -1,5 +1,4 @@
-zzZ<<<<<<< HEAD
-# JobHunt App - React Template
+# Worklink - React Template
 
 This is a modern React web application built with **Vite**, **Tailwind CSS**, and **React Router**. It follows a **Feature-Based Architecture** to ensure scalability and maintainability.
 
@@ -97,6 +96,3 @@ npm run preview
 2.  Commit your changes (`git commit -m 'Add some amazing feature'`).
 3.  Push to the branch (`git push origin feature/amazing-feature`).
 4.  Open a Pull Request.
-=======
-# sepfe_G31
->>>>>>> 07709c82a4a35930ebf0b83f1ebea260cfa9e1c1
