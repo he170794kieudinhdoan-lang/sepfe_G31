@@ -5,9 +5,8 @@ This is a modern React web application built with **Vite**, **Tailwind CSS**, an
 ## 🚀 Tech Stack
 
 - **Core:** React 19, Vite 7
-- **Styling:** Tailwind CSS v4, Tailwind Merge, CLSX, Tailwind Animate
-- **Routing:** React Router DOM v7
-- **State Management:** React Query (TanStack Query) v5
+- **Styling:** Tailwind CSS
+- **State Management:** React Query (TanStack Query)
 - **Forms:** React Hook Form + Zod Validation
 - **Utilities:** Axios, Lucide React (Icons), Radix UI Primitives
 
