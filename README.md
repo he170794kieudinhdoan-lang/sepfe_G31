@@ -8,7 +8,7 @@ This is a modern React web application built with **Vite**, **Tailwind CSS**, an
 - **Styling:** Tailwind CSS
 - **State Management:** React Query (TanStack Query)
 - **Forms:** React Hook Form + Zod Validation
-- **Utilities:** Axios, Lucide React (Icons), Radix UI Primitives
+- **Utilities:** Axios, Lucide React (Icons)
 
 ## 📂 Project Structure
 
