@@ -34,3 +34,29 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+package-lock.json
+
+# IDEs
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+
+# pnpm
+pnpm-debug.log*
+
+# caches and build tool artifacts
+/.cache
+/.parcel-cache
+/.vite
+.eslintcache
+
+# general logs
+*.log
+
+# local env files (keep example files committed)
+.env.local
+.env.*.local
+.env*
