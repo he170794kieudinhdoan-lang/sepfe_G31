@@ -106,57 +106,81 @@ const JobCardSkeleton = () => (
 /** Job Card cho Search Results */
 const SearchJobCard = ({ job }) => {
     return (
-        <Card className="group p-0 rounded-2xl overflow-hidden border-0 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 bg-white">
-            {/* Gradient Top Bar */}
-            <div className="h-1.5 bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400" />
+        <Card className="group w-full bg-white rounded-2xl overflow-hidden hover:cursor-pointer">
+
 
             <div className="p-5">
-                {/* Header */}
-                <div className="flex items-start gap-3 mb-3">
-                    <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber-100 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                        <Building2 className="h-5 w-5 text-amber-600" />
+
+                {/* HEADER */}
+                <div className="flex items-start gap-3 mb-4">
+                    <div className="h-12 w-24 rounded-xl 
+                        flex items-center justify-center 
+                        shrink-0 
+                        transition-transform p-4">
+
+                        {/* <Building2 className="h-5 w-5 text-yellow-600" /> */}
+                        <img src={job.company.logoUrl} alt="" />
                     </div>
+
                     <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-[15px] leading-snug line-clamp-2 group-hover:text-amber-700 transition-colors">
+                        <h3 className="font-semibold text-gray-800 
+          leading-snug line-clamp-2 
+          group-hover:text-yellow-600 
+          transition-colors
+          cursor-pointer">
                             {job.title}
                         </h3>
+
                         {job.company && (
-                            <p className="text-sm text-muted-foreground mt-0.5 truncate">
-                                {job.company.name || 'Công ty'}
+                            <p className="text-sm text-gray-500 mt-1 truncate">
+                                {job.company.name || "Công ty"}
                             </p>
                         )}
                     </div>
                 </div>
 
-                {/* Info Chips */}
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                    <Badge variant="secondary" className="gap-1 text-xs font-medium rounded-lg px-2.5 py-1 bg-emerald-50 text-emerald-700 border-0">
+                {/* BADGES */}
+                <div className="flex flex-wrap gap-2 mb-4">
+
+                    <Badge className="flex items-center gap-1 text-xs font-medium 
+        px-3 py-1  bg-gray-100 text-gray-700 ">
                         <Wallet className="h-3 w-3" />
                         {formatSalary(job.salaryMin, job.salaryMax)}
                     </Badge>
+
                     {job.province && (
-                        <Badge variant="secondary" className="gap-1 text-xs font-medium rounded-lg px-2.5 py-1 bg-blue-50 text-blue-700 border-0">
-                            <MapPin className="h-3 w-3" />
+                        <Badge className="flex items-center gap-1 text-xs font-medium 
+          px-3 py-1 rounded-lg 
+          bg-gray-100 text-gray-700 
+          border border-gray-200">
+                            <MapPin className="h-3 w-3 text-yellow-600" />
                             {job.province}
                         </Badge>
                     )}
-                    <Badge variant="secondary" className="gap-1 text-xs font-medium rounded-lg px-2.5 py-1 bg-purple-50 text-purple-700 border-0">
-                        <Timer className="h-3 w-3" />
+
+                    <Badge className="flex items-center gap-1 text-xs font-medium 
+        px-3 py-1 rounded-lg 
+        bg-gray-100 text-gray-700 
+        border border-gray-200">
+                        <Timer className="h-3 w-3 text-yellow-600" />
                         {shiftLabel(job.workingShift)}
                     </Badge>
+
                 </div>
 
-                {/* Extra info */}
-                <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
+                {/* EXTRA INFO */}
+                <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
+
                     {job.genderRequirement && (
                         <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3" />
+                            <Users className="h-3 w-3 text-yellow-600" />
                             {genderLabel(job.genderRequirement)}
                         </span>
                     )}
+
                     {(job.ageMin || job.ageMax) && (
                         <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
+                            <Calendar className="h-3 w-3 text-yellow-600" />
                             {job.ageMin && job.ageMax
                                 ? `${job.ageMin}-${job.ageMax} tuổi`
                                 : job.ageMin
@@ -164,25 +188,35 @@ const SearchJobCard = ({ job }) => {
                                     : `Đến ${job.ageMax} tuổi`}
                         </span>
                     )}
+
                     {job.quantity > 0 && (
                         <span className="flex items-center gap-1">
-                            <Briefcase className="h-3 w-3" />
+                            <Briefcase className="h-3 w-3 text-yellow-600" />
                             {job.quantity} vị trí
                         </span>
                     )}
+
                 </div>
 
-                {/* CTA */}
-                <Button
-                    variant="outline"
+                {/* CTA BUTTON */}
+                {/* <Button
                     size="sm"
-                    className="w-full rounded-xl font-medium border-amber-200 text-amber-700 hover:bg-amber-50 hover:border-amber-300 transition-colors"
+                    className="w-full rounded-xl 
+        bg-yellow-500 hover:bg-yellow-600 
+        text-white font-semibold 
+        transition-colors"
                     asChild
                 >
-                    <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
-                </Button>
+                    <Link to={`/job/${job.id}`}>
+                        Xem chi tiết
+                    </Link>
+                </Button> */}
+
             </div>
         </Card>
+
+
+
     );
 };
 
@@ -279,12 +313,10 @@ export const JobSearchPage = () => {
     const totalPages = meta.totalPage || 1;
     const total = meta.total || 0;
 
-    // Reset page khi filter thay đổi
     useEffect(() => {
         setPage(1);
     }, [debouncedKeyword, province, workingShift, occupationId, companyId, genderRequirement, salaryRange, sortBy]);
 
-    // Active filters for chips
     const activeFilters = [];
     if (workingShift) activeFilters.push({ key: 'workingShift', label: `Ca: ${shiftLabel(workingShift)}`, clear: () => setWorkingShift('') });
     if (genderRequirement) activeFilters.push({ key: 'gender', label: `Giới tính: ${genderLabel(genderRequirement)}`, clear: () => setGenderRequirement('') });
@@ -321,7 +353,7 @@ export const JobSearchPage = () => {
                             key={s.value}
                             onClick={() => setWorkingShift(workingShift === s.value ? '' : s.value)}
                             className={`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 border ${workingShift === s.value
-                                ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200'
+                                ? 'bg-yellow-400 text-white border-yellow-400 shadow-md shadow-amber-200'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:bg-amber-50'
                                 }`}
                         >
@@ -374,7 +406,7 @@ export const JobSearchPage = () => {
             </div>
 
             {/* Ngành nghề (nhập ID) */}
-            <div>
+            {/* <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
                     <Briefcase className="h-3.5 w-3.5" /> Ngành nghề (ID)
                 </label>
@@ -386,10 +418,10 @@ export const JobSearchPage = () => {
                     onChange={(e) => setOccupationId(e.target.value)}
                     className="rounded-xl border-gray-200 focus:border-amber-400 focus:ring-amber-200"
                 />
-            </div>
+            </div> */}
 
             {/* Công ty (nhập ID) */}
-            <div>
+            {/* <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
                     <Building2 className="h-3.5 w-3.5" /> Công ty (ID)
                 </label>
@@ -401,7 +433,8 @@ export const JobSearchPage = () => {
                     onChange={(e) => setCompanyId(e.target.value)}
                     className="rounded-xl border-gray-200 focus:border-amber-400 focus:ring-amber-200"
                 />
-            </div>
+            </div> */}
+
 
             {/* Khu vực */}
             <div>
@@ -447,7 +480,7 @@ export const JobSearchPage = () => {
 
         return (
             <div className="flex items-center justify-center gap-1.5 mt-8">
-                <Button
+                <Button2
                     variant="outline"
                     size="sm"
                     className="rounded-xl"
@@ -455,7 +488,7 @@ export const JobSearchPage = () => {
                     onClick={() => setPage(page - 1)}
                 >
                     <ChevronLeft className="h-4 w-4" />
-                </Button>
+                </Button2>
                 {start > 1 && (
                     <>
                         <Button variant={page === 1 ? 'default' : 'outline'} size="sm" className="rounded-xl min-w-[36px]" onClick={() => setPage(1)}>1</Button>
@@ -463,7 +496,7 @@ export const JobSearchPage = () => {
                     </>
                 )}
                 {pages.map((p) => (
-                    <Button
+                    <Button2
                         key={p}
                         variant={page === p ? 'default' : 'outline'}
                         size="sm"
@@ -471,15 +504,17 @@ export const JobSearchPage = () => {
                         onClick={() => setPage(p)}
                     >
                         {p}
-                    </Button>
+                    </Button2>
                 ))}
                 {end < totalPages && (
                     <>
                         {end < totalPages - 1 && <span className="px-1 text-muted-foreground">…</span>}
-                        <Button variant={page === totalPages ? 'default' : 'outline'} size="sm" className="rounded-xl min-w-[36px]" onClick={() => setPage(totalPages)}>{totalPages}</Button>
+                        <Button2 variant={page === totalPages ? 'default' : 'outline'} size="sm"
+                            className="rounded-xl min-w-[36px]" onClick={() => setPage(totalPages)}>{totalPages}
+                        </Button2>
                     </>
                 )}
-                <Button
+                <Button2
                     variant="outline"
                     size="sm"
                     className="rounded-xl"
@@ -487,7 +522,7 @@ export const JobSearchPage = () => {
                     onClick={() => setPage(page + 1)}
                 >
                     <ChevronRight className="h-4 w-4" />
-                </Button>
+                </Button2>
             </div>
         );
     };
@@ -574,7 +609,7 @@ export const JobSearchPage = () => {
                             ))}
                         </select> */}
 
-                        <Select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                        <Select value={sortBy} onValueChange={(e) => setSortBy(e)}>
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue placeholder="Theme" />
                             </SelectTrigger>
@@ -610,14 +645,14 @@ export const JobSearchPage = () => {
                     <main className="flex-1 min-w-0">
                         {/* Loading indicator */}
                         {isFetching && !isLoading && (
-                            <div className="flex items-center gap-2 mb-4 text-sm text-amber-600 animate-pulse">
+                            <div className="flex items-center gap-2 mb-4 text-sm text-yellow-400 animate-pulse">
                                 <div className="h-2 w-2 rounded-full bg-amber-500 animate-bounce" />
                                 Đang tải...
                             </div>
                         )}
 
                         {isLoading ? (
-                            <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                            <div className="grid  gap-4">
                                 {Array.from({ length: 6 }).map((_, i) => (
                                     <JobCardSkeleton key={i} />
                                 ))}
@@ -637,7 +672,7 @@ export const JobSearchPage = () => {
                             />
                         ) : (
                             <>
-                                <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                <div className="grid gap-4">
                                     {jobs.map((job) => (
                                         <SearchJobCard key={job.id} job={job} />
                                     ))}
