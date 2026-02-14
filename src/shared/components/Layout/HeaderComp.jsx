@@ -11,6 +11,19 @@ const TASKBAR_LINKS = [
   { to: '/terms', label: 'Điều khoản' },
 ];
 
+{/* <div className="flex-1 max-w-2xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2">
+<Search className="h-4 w-4 text-muted-foreground shrink-0" />
+<Input
+  value={search}
+  onChange={(e) => setSearch(e.target.value)}
+  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+  placeholder="Tìm theo tên việc/công ty/khu vực"
+  className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-9"
+/>
+<Button size="sm" className="rounded-lg shrink-0" onClick={handleSearch}>
+  Tìm kiếm
+</Button>
+</div> */}
 export const Header = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
@@ -23,17 +36,17 @@ export const Header = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 pb-2">
         <div className="flex items-center gap-4 h-16">
           <Link
             to="/"
             className="text-2xl font-extrabold text-primary shrink-0 flex items-center gap-2"
           >
-            <img src="/logo_01.png" alt="WorkLink" className="h-9 w-auto" />
-            <span>WorkLink</span>
+            <img src="/logo_01.png" alt="WorkLink" className="h-15 w-auto" />
+            {/* <span>WorkLink</span> */}
           </Link>
 
-          <div className="flex-1 max-w-2xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2">
+          {/* <div className="flex-1 max-w-2xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2">
             <Search className="h-4 w-4 text-muted-foreground shrink-0" />
             <Input
               value={search}
@@ -45,18 +58,29 @@ export const Header = () => {
             <Button size="sm" className="rounded-lg shrink-0" onClick={handleSearch}>
               Tìm kiếm
             </Button>
-          </div>
+          </div> */}
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
             <Button variant="ghost" size="icon" className="rounded-full" asChild>
               <Link to="/notifications"><Bell className="h-5 w-5" /></Link>
             </Button>
             <Button variant="ghost" size="icon" className="rounded-full" asChild>
               <Link to="/chat"><MessageCircle className="h-5 w-5" /></Link>
             </Button>
+            <nav className="flex items-center gap-1 border-t border-gray-100 py-2">
+          {TASKBAR_LINKS.map(({ to, label }) => (
+            <Link
+              key={to}
+              to={to}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary/10 hover:text-foreground transition"
+            >
+              {label}
+            </Link>
+          ))}
+        </nav>
 
             {isLoggedIn ? (
-              <div className="relative">
+              <div className="relative flex">
                 <button
                   onClick={() => setAvatarOpen(!avatarOpen)}
                   className="flex items-center gap-2 rounded-full shadow-sm bg-gray-50 px-3 py-2 hover:bg-gray-100"
@@ -81,7 +105,8 @@ export const Header = () => {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
+              <div className=''> 
+                <div className="flex items-center">
                 <Button variant="ghost" className="rounded-xl" asChild>
                   <Link to="/auth/login">Đăng nhập</Link>
                 </Button>
@@ -89,11 +114,12 @@ export const Header = () => {
                   <Link to="/auth/register">Đăng ký</Link>
                 </Button>
               </div>
+              </div>
             )}
           </div>
         </div>
 
-        <nav className="flex items-center gap-1 border-t border-gray-100 py-2">
+        {/* <nav className="flex items-center gap-1 border-t border-gray-100 py-2">
           {TASKBAR_LINKS.map(({ to, label }) => (
             <Link
               key={to}
@@ -103,7 +129,7 @@ export const Header = () => {
               {label}
             </Link>
           ))}
-        </nav>
+        </nav> */}
       </div>
     </header>
   );

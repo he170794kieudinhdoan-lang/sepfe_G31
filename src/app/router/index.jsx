@@ -13,6 +13,7 @@ import {
 import { HomePage } from '@/pages/HomePage';
 import { JobDetailPage } from '@/pages/JobDetailPage';
 import { JobListPage } from '@/pages/JobListPage';
+import { JobSearchPage } from '@/pages/JobSearchPage';
 import { WishlistPage } from '@/pages/WishlistPage';
 import { NotificationPage } from '@/pages/NotificationPage';
 import { ChatPage } from '@/pages/ChatPage';
@@ -32,6 +33,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'jobs', element: <JobListPage /> },
+      { path: 'search', element: <JobSearchPage /> },
       { path: 'job/:id', element: <JobDetailPage /> },
       { path: 'wishlist', element: <WishlistPage /> },
       { path: 'notifications', element: <NotificationPage /> },
