@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -8,29 +8,97 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { CompanyService } from '@/shared/api/company.service';
+
 
 export const CompanyRegisterPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [form, setForm] = useState({
     name: '',
+    taxCode: '',
     address: '',
     description: '',
-    license: '',
-    contact: '',
+    website: '',
+    logoUrl: null,
+    businessLicenseUrl: null,
   });
-  const [isEdit] = useState(false);
-  const [pending] = useState(false);
 
-  const handleSubmit = (e) => {
+  const [isEdit, setIsEdit] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        const data = await CompanyService.getMyCompany();
+        console.log('Company data:', data);
+        setForm({
+          name: data.name ?? '',
+          taxCode: data.taxCode ?? '',
+          address: data.address ?? '',
+          description: data.description ?? '',
+          website: data.website ?? '',
+          logoUrl: null,
+          businessLicenseUrl: null,
+        });
+
+        setIsEdit(false);
+        setPending(data.status === 'PENDING');
+      } catch (error) {
+        // Chưa có company → đăng ký mới
+        setIsEdit(false);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCompany();
+  }, []);
+
+  const handleSubmit = async (e) => {
+    console.log('Submitting form:', form);
     e.preventDefault();
     if (!form.name?.trim() || !form.address?.trim()) {
       toast(MSG.MSG08, 'error');
       return;
     }
-    toast('Gửi đăng ký thành công. Trạng thái: Pending.');
-    navigate('/employer');
+    const fd = new FormData();
+
+    fd.append('name', form.name);
+    fd.append('taxCode', form.taxCode);
+    fd.append('address', form.address);
+    fd.append('description', form.description);
+    fd.append('website', form.website);
+
+    if (form.logoUrl) {
+      fd.append('logo', form.logoUrl);
+    }
+
+    if (form.businessLicenseUrl) {
+      fd.append('businessLicense', form.businessLicenseUrl);
+    }
+    try {
+      if (isEdit) {
+        await CompanyService.updateCompany(form);
+        toast('Cập nhật thông tin công ty thành công');
+      } else {
+        await CompanyService.createCompany(form);
+        toast('Gửi đăng ký công ty thành công');
+      }
+
+      navigate('/employer');
+    } catch (error) {
+      toast(MSG.MSG36, 'error');
+    }
   };
+  if (loading) {
+    return (
+      <div className="p-8 text-center text-sm text-muted-foreground">
+        Đang tải dữ liệu công ty...
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-full py-6">
@@ -51,6 +119,10 @@ export const CompanyRegisterPage = () => {
               <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Tên công ty" className="rounded-xl mt-1" />
             </div>
             <div>
+              <Label>Mã số thuế *</Label>
+              <Input value={form.taxCode} onChange={(e) => setForm({ ...form, taxCode: e.target.value })} placeholder="Mã số thuế" className="rounded-xl mt-1" />
+            </div>
+            <div>
               <Label>Địa chỉ *</Label>
               <Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} placeholder="Địa chỉ" className="rounded-xl mt-1" />
             </div>
@@ -59,20 +131,32 @@ export const CompanyRegisterPage = () => {
               <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Giới thiệu công ty" className="w-full rounded-xl border-0 shadow-sm bg-gray-50 p-3 mt-1 min-h-[100px]" />
             </div>
             <div>
-              <Label>Giấy phép / Mã số thuế</Label>
-              <Input value={form.license} onChange={(e) => setForm({ ...form, license: e.target.value })} placeholder="Mã số" className="rounded-xl mt-1" />
+              <Label>Trang web công ty *</Label>
+              <Input value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} placeholder="Trang web công ty" className="rounded-xl mt-1" />
             </div>
             <div>
-              <Label>Liên hệ</Label>
-              <Input value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} placeholder="Email / SĐT" className="rounded-xl mt-1" />
+              <Label>Logo công ty *</Label>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  setForm({ ...form, logoFile: e.target.files?.[0] })
+                }
+                className="rounded-xl mt-1"
+              />
             </div>
             <div>
-              <Label>Upload tài liệu (placeholder)</Label>
-              <div className="mt-1 rounded-xl border-2 border-dashed border-gray-200 p-6 text-center text-sm text-muted-foreground">
-                Kéo thả file hoặc click để chọn
-              </div>
+              <Label>Giấy phép kinh doanh *</Label>
+              <Input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) =>
+                  setForm({ ...form, businessLicenseFile: e.target.files?.[0] })
+                }
+                className="rounded-xl mt-1"
+              />
             </div>
-            <Button type="submit" className="rounded-xl w-full">Gửi</Button>
+            <Button type="submit" className="rounded-xl w-full">{isEdit ? 'Cập nhật' : 'Gửi'}</Button>
           </form>
         </Card>
       </div>

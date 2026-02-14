@@ -24,6 +24,7 @@ import { TermsPage } from '@/pages/TermsPage';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import { ManagerDashboard } from '@/pages/ManagerDashboard';
 import { EmployerDashboard } from '@/pages/EmployerDashboard';
+import { EmployerLayout } from '@/shared/components/Layout/EmployerLayout';
 
 export const router = createBrowserRouter([
   {
@@ -38,7 +39,7 @@ export const router = createBrowserRouter([
       { path: 'chat', element: <ChatPage /> },
       { path: 'companies', element: <CompanyListPage /> },
       { path: 'company/:id', element: <CompanyDetailPage /> },
-      { path: 'company/register', element: <CompanyRegisterPage /> },
+
       { path: 'profile', element: <UserProfilePage /> },
       { path: 'profile/:id', element: <UserProfilePage /> },
       { path: 'terms', element: <TermsPage /> },
@@ -56,6 +57,14 @@ export const router = createBrowserRouter([
     path: '/employer',
     element: <EmployerDashboard />,
   },
+  {
+    path: '/company',
+    element: <EmployerLayout />,
+    children: [
+      { path: 'register', element: <CompanyRegisterPage /> },
+    ]
+  },
+
   { path: '/auth/login', element: <LoginChoose /> },
   { path: '/auth/login/worker', element: <LoginWorker /> },
   { path: '/auth/login/employer', element: <LoginEmployer /> },
