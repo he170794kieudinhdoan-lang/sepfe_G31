@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Search, MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -106,6 +106,15 @@ function SearchBarPopover({
   setSearchMode,
   featuredJobs,
 }) {
+
+
+  const nav = useNavigate();
+  const handleSearch = () => {
+    if (keyword.trim() === '') {
+      return
+    }
+    nav(`/search?query=${encodeURIComponent(keyword.trim())}`)
+  }
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <div className="flex-1 max-w-5xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2 relative m-auto my-5">
@@ -113,18 +122,23 @@ function SearchBarPopover({
 
         <PopoverTrigger asChild>
           <div className="flex-1 min-w-0 ">
-          <Input
-            value={keyword}
-            onChange={(e) => setKeyword(e.target.value)}
-            // onFocus={() => setOpen(true)}
-            // onClick={() => setOpen(true)}
-            placeholder="Tìm theo tên việc/công ty/khu vực"
-            className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-9 flex-1 min-w-0"
-          />
+            <Input
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+              // onFocus={() => setOpen(true)}
+              // onClick={() => setOpen(true)}
+              placeholder="Tìm theo tên việc/công ty/khu vực"
+              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-9 flex-1 min-w-0"
+            />
           </div>
         </PopoverTrigger>
 
-        <Button2 size="sm" className="rounded-lg shrink-0 border" onClick={() => setOpen(false)}>
+        <Button2 size="sm" className="rounded-lg shrink-0 border" onClick={() => { setOpen(false); handleSearch() }}>
           Tìm kiếm
         </Button2>
       </div>
@@ -151,12 +165,12 @@ function SearchBarPopover({
                 <RadioGroupItem value="company" id="sm-company" />
                 <Label htmlFor="sm-company">Tên công ty</Label>
               </div> */}
-{/* 
+              {/* 
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="both" id="sm-both" />
                 <Label htmlFor="sm-both">Cả hai</Label>
               </div> */}
-                    </RadioGroup>
+            </RadioGroup>
           </div>
         </div>
 
@@ -292,7 +306,7 @@ export function HomePage() {
       </section>
 
       {/* FEATURED */}
-      <section id="jobs" className="container mx-auto px-6 py-12 space-y-6">
+      <section id="jobs" className="container mx-auto px-6 py-12 space-y-6 max-w-7xl">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Job nổi bật</h2>
         </div>
@@ -305,7 +319,7 @@ export function HomePage() {
       </section>
 
       {/* REGULAR */}
-      <section className="container mx-auto px-6 pb-16 space-y-6">
+      <section className="container mx-auto px-6 pb-16 space-y-6 max-w-7xl">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <h2 className="text-2xl font-bold">Danh sách job thường</h2>
 

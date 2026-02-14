@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EmptyState } from '@/shared/components/EmptyState';
+import { Heart } from "lucide-react";
 import {
     Search,
     MapPin,
@@ -25,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Button2 } from '@/components/ui/button_2';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { HeartIcon } from 'lucide-react';
 
 // ========================
 // CONSTANTS
@@ -105,113 +107,135 @@ const JobCardSkeleton = () => (
 
 /** Job Card cho Search Results */
 const SearchJobCard = ({ job }) => {
+
+    const [displayMoreButton, setDisplayMoreButton] = useState(false);
     return (
-        <Card className="group w-full bg-white rounded-2xl overflow-hidden hover:cursor-pointer">
+        <Card className="group w-full bg-white rounded-2xl overflow-hidden hover:cursor-pointer"
+            onMouseEnter={() => setDisplayMoreButton(true)}
+            onMouseLeave={() => setDisplayMoreButton(false)}>
+            <div className="flex">
+                <div className="p-5 flex-[7]">
 
-
-            <div className="p-5">
-
-                {/* HEADER */}
-                <div className="flex items-start gap-3 mb-4">
-                    <div className="h-12 w-24 rounded-xl 
+                    {/* HEADER */}
+                    <div className="flex items-start gap-3 mb-4">
+                        <div className="h-12 w-32 rounded-xl 
                         flex items-center justify-center 
                         shrink-0 
                         transition-transform p-4">
 
-                        {/* <Building2 className="h-5 w-5 text-yellow-600" /> */}
-                        <img src={job.company.logoUrl} alt="" />
+                            {/* <Building2 className="h-5 w-5 text-yellow-600" /> */}
+                            <img src={job.company.logoUrl} alt="" />
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-800 
+                           leading-snug line-clamp-2 
+                           group-hover:text-yellow-600 
+                           transition-colors
+                           cursor-pointer">
+                                {job.title}
+                            </h3>
+
+                            {job.company && (
+                                <p className="text-sm text-gray-500 mt-1 truncate">
+                                    {job.company.name || "Công ty"}
+                                </p>
+                            )}
+                        </div>
                     </div>
 
-                    <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold text-gray-800 
-          leading-snug line-clamp-2 
-          group-hover:text-yellow-600 
-          transition-colors
-          cursor-pointer">
-                            {job.title}
-                        </h3>
+                    <div className='flex items-center mt-8'>
+                        {/* BADGES */}
+                        <div className="flex flex-wrap gap-2 mb-4">
 
-                        {job.company && (
-                            <p className="text-sm text-gray-500 mt-1 truncate">
-                                {job.company.name || "Công ty"}
-                            </p>
+                            <Badge className="flex items-center gap-1 text-xs font-medium 
+                          px-3 py-1  bg-gray-100 text-gray-700 ">
+                                <Wallet className="h-3 w-3" />
+                                {formatSalary(job.salaryMin, job.salaryMax)}
+                            </Badge>
+
+                            {job.province && (
+                                <Badge className="flex items-center gap-1 text-xs font-medium 
+                                px-3 py-1 rounded-lg 
+                                bg-gray-100 text-gray-700 
+                                border border-gray-200">
+                                    <MapPin className="h-3 w-3 text-yellow-600" />
+                                    {job.province}
+                                </Badge>
+                            )}
+
+                            <Badge className="flex items-center gap-1 text-xs font-medium 
+                        px-3 py-1 rounded-lg 
+                        bg-gray-100 text-gray-700 
+                        border border-gray-200">
+                                <Timer className="h-3 w-3 text-yellow-600" />
+                                {shiftLabel(job.workingShift)}
+                            </Badge>
+
+
+                        </div>
+                        {/* EXTRA INFO */}
+                        <div className="flex gap-4 text-xs text-gray-500 mb-4">
+                            <div>
+                                {/* {job.genderRequirement && (
+                                <span className="flex items-center gap-1">
+                                    <Users className="h-3 w-3 text-yellow-600" />
+                                    {genderLabel(job.genderRequirement)}
+                                </span>
+                            )} */}
+                            </div>
+                            {(job.ageMin || job.ageMax) && (
+                                <span className="flex items-center gap-1">
+                                    <Calendar className="h-3 w-3 text-yellow-600" />
+                                    {job.ageMin && job.ageMax
+                                        ? `${job.ageMin}-${job.ageMax} tuổi`
+                                        : job.ageMin
+                                            ? `Từ ${job.ageMin} tuổi`
+                                            : `Đến ${job.ageMax} tuổi`}
+                                </span>
+                            )}
+
+                            {job.quantity > 0 && (
+                                <span className="flex items-center gap-1">
+                                    <Briefcase className="h-3 w-3 text-yellow-600" />
+                                    {job.quantity} vị trí
+                                </span>
+                            )}
+                        </div>
+
+                    </div>
+
+
+                </div>
+                <div className="flex w-full flex-[2] items-end mb-5 gap-3">
+
+                    {displayMoreButton && (
+                        <div>
+                            <Button2
+                                size="icon"
+                                className="rounded-full
+                                text-white"
+                                title='Thêm vào danh sách yêu thích'
+
+                            >
+                                <HeartIcon width={20} height={20} />
+                            </Button2>
+                        </div>
+                    )}
+                    <div>
+                        {displayMoreButton && (
+                            <Button2
+                                size="sm"
+                                className="flex items-center gap-1 animate-in
+                                text-white"
+                                title='Ứng tuyển'
+                            >
+                                {/* <Briefcase className="h-3 w-3" /> */}
+                                Ứng tuyển
+                            </Button2>
                         )}
                     </div>
                 </div>
-
-                {/* BADGES */}
-                <div className="flex flex-wrap gap-2 mb-4">
-
-                    <Badge className="flex items-center gap-1 text-xs font-medium 
-        px-3 py-1  bg-gray-100 text-gray-700 ">
-                        <Wallet className="h-3 w-3" />
-                        {formatSalary(job.salaryMin, job.salaryMax)}
-                    </Badge>
-
-                    {job.province && (
-                        <Badge className="flex items-center gap-1 text-xs font-medium 
-          px-3 py-1 rounded-lg 
-          bg-gray-100 text-gray-700 
-          border border-gray-200">
-                            <MapPin className="h-3 w-3 text-yellow-600" />
-                            {job.province}
-                        </Badge>
-                    )}
-
-                    <Badge className="flex items-center gap-1 text-xs font-medium 
-        px-3 py-1 rounded-lg 
-        bg-gray-100 text-gray-700 
-        border border-gray-200">
-                        <Timer className="h-3 w-3 text-yellow-600" />
-                        {shiftLabel(job.workingShift)}
-                    </Badge>
-
-                </div>
-
-                {/* EXTRA INFO */}
-                <div className="flex items-center gap-4 text-xs text-gray-500 mb-4">
-
-                    {job.genderRequirement && (
-                        <span className="flex items-center gap-1">
-                            <Users className="h-3 w-3 text-yellow-600" />
-                            {genderLabel(job.genderRequirement)}
-                        </span>
-                    )}
-
-                    {(job.ageMin || job.ageMax) && (
-                        <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3 text-yellow-600" />
-                            {job.ageMin && job.ageMax
-                                ? `${job.ageMin}-${job.ageMax} tuổi`
-                                : job.ageMin
-                                    ? `Từ ${job.ageMin} tuổi`
-                                    : `Đến ${job.ageMax} tuổi`}
-                        </span>
-                    )}
-
-                    {job.quantity > 0 && (
-                        <span className="flex items-center gap-1">
-                            <Briefcase className="h-3 w-3 text-yellow-600" />
-                            {job.quantity} vị trí
-                        </span>
-                    )}
-
-                </div>
-
-                {/* CTA BUTTON */}
-                {/* <Button
-                    size="sm"
-                    className="w-full rounded-xl 
-        bg-yellow-500 hover:bg-yellow-600 
-        text-white font-semibold 
-        transition-colors"
-                    asChild
-                >
-                    <Link to={`/job/${job.id}`}>
-                        Xem chi tiết
-                    </Link>
-                </Button> */}
-
             </div>
         </Card>
 
@@ -241,7 +265,7 @@ export const JobSearchPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Init state from URL params
-    const [keyword, setKeyword] = useState(searchParams.get('keyword') || '');
+    const [keyword, setKeyword] = useState(searchParams.get('query') || '');
     const [province, setProvince] = useState(searchParams.get('province') || '');
     const [workingShift, setWorkingShift] = useState(searchParams.get('workingShift') || '');
     const [occupationId, setOccupationId] = useState(searchParams.get('occupationId') || '');
@@ -253,6 +277,7 @@ export const JobSearchPage = () => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const limit = 12;
 
+
     // Debounced keyword
     const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
     useEffect(() => {
@@ -261,6 +286,7 @@ export const JobSearchPage = () => {
     }, [keyword]);
 
     // Build API filters
+
     const buildFilters = useCallback(() => {
         const filters = {
             page,
@@ -558,7 +584,7 @@ export const JobSearchPage = () => {
                                     type="text"
                                     placeholder="Tìm theo tên việc, mô tả..."
                                     value={keyword}
-                                    onChange={(e) => setKeyword(e.target.value)}
+                                    onChange={(e) => { setKeyword(e.target.value) }}
                                     className="border-0 shadow-none focus-visible:ring-0 text-base bg-transparent"
                                 />
                             </div>
@@ -571,11 +597,10 @@ export const JobSearchPage = () => {
                     </div>
                 </div>
             </div>
-
             {/* Active Filters + Sort */}
-            <div className="container mx-auto px-4">
+            <div className="container mx-auto px-4 max-w-6xl">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap ">
                         {activeFilters.length > 0 && (
                             <>
                                 {activeFilters.map((f) => (
@@ -583,13 +608,11 @@ export const JobSearchPage = () => {
                                 ))}
                             </>
                         )}
-                        {!isLoading && (
-                            <span className="text-xs text-muted-foreground">
-                                {total > 0 ? `${total} kết quả` : ''}
-                            </span>
-                        )}
+
                     </div>
 
+
+                    {/* on mobile */}
                     <div className="flex items-center gap-2 mt-3">
                         <Button
                             variant="outline"
@@ -609,6 +632,9 @@ export const JobSearchPage = () => {
                             ))}
                         </select> */}
 
+
+                    </div>
+                    <div className='w-full max-w-6xl my-5 flex justify-end m-auto pr-10'>
                         <Select value={sortBy} onValueChange={(e) => setSortBy(e)}>
                             <SelectTrigger className="w-[180px]">
                                 <SelectValue placeholder="Theme" />
@@ -626,10 +652,17 @@ export const JobSearchPage = () => {
             </div>
 
             {/* Main Layout */}
-            <div className="container mx-auto px-4 pb-12">
+            <div className="container mx-auto px-4 pb-12 max-w-6xl">
                 <div className="flex gap-6">
                     {/* Sidebar - Desktop */}
                     <aside className="hidden lg:block w-72 shrink-0">
+                        <div className='mb-2'>
+                            {!isLoading && (
+                                <span className="text-xs text-muted-foreground">
+                                    <h4 className='text-lg font-bold'>{total > 0 ? `${total} kết quả` : ''}</h4>
+                                </span>
+                            )}
+                        </div>
                         <div className="sticky top-24">
                             <Card className="p-5 rounded-2xl shadow-sm border-0 bg-white/80 backdrop-blur-sm">
                                 <h3 className="font-bold text-sm mb-4 flex items-center gap-2 text-gray-800">
@@ -682,6 +715,7 @@ export const JobSearchPage = () => {
                         )}
                     </main>
                 </div>
+
             </div>
 
             {/* Mobile Filter Drawer */}
