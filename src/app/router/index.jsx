@@ -13,16 +13,17 @@ import {
 import { HomePage } from '@/pages/HomePage';
 import { JobDetailPage } from '@/pages/JobDetailPage';
 import { JobListPage } from '@/pages/JobListPage';
+import { JobSearchPage } from '@/pages/JobSearchPage';
 import { WishlistPage } from '@/pages/WishlistPage';
 import { NotificationPage } from '@/pages/NotificationPage';
 import { ChatPage } from '@/pages/ChatPage';
-import { CompanyListPage } from '@/pages/CompanyListPage';
-import { CompanyDetailPage } from '@/pages/CompanyDetailPage';
-import { CompanyRegisterPage } from '@/pages/CompanyRegisterPage';
+import { CompanyListPage } from '@/features/companies/components/CompanyListPage';
+import { CompanyDetailPage } from '@/features/companies/components/CompanyDetailPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
 import { TermsPage } from '@/pages/TermsPage';
 import { AdminDashboard } from '@/pages/AdminDashboard';
-import { ManagerDashboard } from '@/pages/ManagerDashboard';
+import { ManagerDashboard } from '@/features/companies/router/ManagerDashboard';
+import { CompanyApplicantPage } from '@/features/companies/components/CompanyApplicantPage';
 import { EmployerDashboard } from '@/pages/EmployerDashboard';
 
 export const router = createBrowserRouter([
@@ -32,13 +33,13 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: 'jobs', element: <JobListPage /> },
+      { path: 'search', element: <JobSearchPage /> },
       { path: 'job/:id', element: <JobDetailPage /> },
       { path: 'wishlist', element: <WishlistPage /> },
       { path: 'notifications', element: <NotificationPage /> },
       { path: 'chat', element: <ChatPage /> },
       { path: 'companies', element: <CompanyListPage /> },
       { path: 'company/:id', element: <CompanyDetailPage /> },
-      { path: 'company/register', element: <CompanyRegisterPage /> },
       { path: 'profile', element: <UserProfilePage /> },
       { path: 'profile/:id', element: <UserProfilePage /> },
       { path: 'terms', element: <TermsPage /> },
@@ -51,6 +52,10 @@ export const router = createBrowserRouter([
   {
     path: '/manager',
     element: <ManagerDashboard />,
+  },
+  {
+    path: '/manager/applicants',
+    element: <CompanyApplicantPage />,
   },
   {
     path: '/employer',
