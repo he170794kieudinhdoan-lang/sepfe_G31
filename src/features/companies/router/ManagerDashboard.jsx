@@ -27,6 +27,8 @@ import {
   AlertTriangle,
   Briefcase,
 } from 'lucide-react';
+import { useGetCompanies, useGetCompaniesById } from '../api/useGetCompanies';
+import { useEffect } from 'react';
 
 // ========================
 // MENU
@@ -171,8 +173,8 @@ const CompanyDetail = ({ company, onBack }) => {
     { label: 'Trạng thái', value: company.status, icon: Shield, isStatus: true },
     { label: 'Chủ sở hữu', value: `${company.ownerName} (ID: ${company.ownerId})`, icon: Users },
     { label: 'Email chủ sở hữu', value: company.ownerEmail, icon: Mail },
-    { label: 'Ngày tạo', value: company.createdAt, icon: Calendar },
-    { label: 'Cập nhật', value: company.updatedAt, icon: Calendar },
+    { label: 'Ngày tạo', value: new Date(company.createdAt).toLocaleString('vi-VN'), icon: Calendar },
+    { label: 'Cập nhật', value: new Date(company.updatedAt).toLocaleString('vi-VN'), icon: Calendar },
   ];
 
   return (
@@ -206,14 +208,14 @@ const CompanyDetail = ({ company, onBack }) => {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="p-4 rounded-xl shadow-sm border-0">
+        {/* <Card className="p-4 rounded-xl shadow-sm border-0">
           <p className="text-xs text-muted-foreground">Tổng tin tuyển dụng</p>
           <p className="text-2xl font-bold mt-1">{company.totalJobs}</p>
         </Card>
         <Card className="p-4 rounded-xl shadow-sm border-0">
           <p className="text-xs text-muted-foreground">Tổng đơn ứng tuyển</p>
           <p className="text-2xl font-bold mt-1">{company.totalApplications}</p>
-        </Card>
+        </Card> */}
         <Card className="p-4 rounded-xl shadow-sm border-0">
           <p className="text-xs text-muted-foreground">Giấy phép KD</p>
           <p className="text-sm font-medium mt-1">
@@ -313,6 +315,7 @@ export const ManagerDashboard = () => {
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
 
+
   // Reports state
   const [selectedReport, setSelectedReport] = useState(null);
   const [disableJobConfirm, setDisableJobConfirm] = useState(false);
@@ -330,19 +333,16 @@ export const ManagerDashboard = () => {
 
   // Review reports
   const [selectedReviewReport, setSelectedReviewReport] = useState(null);
-
   const reports = MOCK_REPORTS;
   const reviewReports = MOCK_REVIEW_REPORTS;
   const pendingCompanies = MOCK_PENDING_COMPANIES;
 
+  const { data: companyDetail, isLoading: companyDetailIsLoading } = useGetCompaniesById(selectedCompanyId)
+  const { data, isLoading } = useGetCompanies();
+  console.log(data)
   // Company filtering
-  const filteredCompanies = MOCK_COMPANIES.filter((c) => {
-    const matchName = !companyFilter || c.name.toLowerCase().includes(companyFilter.toLowerCase());
-    const matchStatus = !companyStatusFilter || c.status === companyStatusFilter;
-    return matchName && matchStatus;
-  });
+  const filteredCompanies = data;
 
-  const selectedCompany = MOCK_COMPANIES.find((c) => c.id === selectedCompanyId) || null;
 
   const jobSnapshot = selectedReport
     ? { title: selectedReport.jobTitle, company: 'LogiFast', salary: '10-12 triệu', shifts: 'Ca đêm', location: 'TP.HCM', description: 'Mô tả ngắn...', status: 'Active' }
@@ -428,8 +428,8 @@ export const ManagerDashboard = () => {
         {/* ==================== COMPANIES ==================== */}
         {active === 'companies' && (
           <div className="space-y-6">
-            {selectedCompany ? (
-              <CompanyDetail company={selectedCompany} onBack={() => setSelectedCompanyId(null)} />
+            {companyDetail ? (
+              <CompanyDetail company={companyDetail} onBack={() => setSelectedCompanyId(null)} />
             ) : (
               <>
                 <div className="flex items-center justify-between flex-wrap gap-3">
@@ -504,7 +504,7 @@ export const ManagerDashboard = () => {
                             <p className="text-xs text-muted-foreground">{c.ownerEmail}</p>
                           </td>
                           <td>{getStatusBadge(c.status)}</td>
-                          <td className="text-muted-foreground">{c.createdAt}</td>
+                          <td className="text-muted-foreground">{new Date(c.createdAt).toLocaleString("vi-VN")}</td>
                           <td>
                             <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setSelectedCompanyId(c.id)}>
                               <Eye className="h-3.5 w-3.5 mr-1" /> Xem
@@ -658,7 +658,7 @@ export const ManagerDashboard = () => {
                 <dl className="space-y-2 text-sm">
                   <div><dt className="text-muted-foreground">Tên công ty</dt><dd className="font-medium">{selectedApproval.companyName}</dd></div>
                   <div><dt className="text-muted-foreground">Chủ sở hữu</dt><dd>{selectedApproval.owner}</dd></div>
-                  <div><dt className="text-muted-foreground">Ngày nộp</dt><dd>{selectedApproval.submittedDate}</dd></div>
+                  <div><dt className="text-muted-foreground">Ngày nộp</dt><dd>{new Date(selectedApproval.submittedDate).toLocaleString("vi-VN")}</dd></div>
                 </dl>
                 <div className="mt-4 h-24 rounded-xl border bg-gray-50 flex items-center justify-center text-muted-foreground text-sm">
                   Khu vực xem tài liệu (preview placeholder)

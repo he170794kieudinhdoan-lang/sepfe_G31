@@ -215,7 +215,7 @@ const SearchJobCard = ({ job }) => {
                                 size="icon"
                                 className="rounded-full
                                 text-white"
-                                title='Thêm vào danh sách yêu thích'
+                                title='Thêm vào danh sách yêu thich'
 
                             >
                                 <HeartIcon width={20} height={20} />
@@ -699,10 +699,10 @@ export const JobSearchPage = () => {
                                 </Button>
                             </Card>
                         ) : jobs.length === 0 ? (
-                            <EmptyState
-                                title="Không tìm thấy việc làm"
-                                description="Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm."
-                            />
+                            <div>
+                                <h3 className="text-lg font-semibold text-center">Không tìm thấy việc làm</h3>
+                                <p className="text-sm text-muted-foreground text-center">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.</p>
+                            </div>
                         ) : (
                             <>
                                 <div className="grid gap-4">
