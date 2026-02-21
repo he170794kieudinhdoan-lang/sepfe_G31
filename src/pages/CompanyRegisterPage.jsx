@@ -11,7 +11,7 @@ import { Link } from 'react-router-dom';
 import { CompanyService } from '@/shared/api/company.service';
 
 
-export const CompanyRegisterPage = () => {
+export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [form, setForm] = useState({
@@ -20,10 +20,9 @@ export const CompanyRegisterPage = () => {
     address: '',
     description: '',
     website: '',
-    logoUrl: null,
-    businessLicenseUrl: null,
+    logoFile: null,
+    businessLicenseFile: null,
   });
-
   const [isEdit, setIsEdit] = useState(false);
   const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -32,18 +31,17 @@ export const CompanyRegisterPage = () => {
     const fetchCompany = async () => {
       try {
         const data = await CompanyService.getMyCompany();
-        console.log('Company data:', data);
         setForm({
           name: data.name ?? '',
           taxCode: data.taxCode ?? '',
           address: data.address ?? '',
           description: data.description ?? '',
           website: data.website ?? '',
-          logoUrl: null,
-          businessLicenseUrl: null,
+          logoFile: null,
+          businessLicenseFile: null,
         });
 
-        setIsEdit(false);
+        setIsEdit(true);
         setPending(data.status === 'PENDING');
       } catch (error) {
         // Chưa có company → đăng ký mới
@@ -70,25 +68,27 @@ export const CompanyRegisterPage = () => {
     fd.append('address', form.address);
     fd.append('description', form.description);
     fd.append('website', form.website);
+    if (form.logoFile) fd.append('logo', form.logoFile);
+    if (form.businessLicenseFile) fd.append('businessLicense', form.businessLicenseFile);
 
-    if (form.logoUrl) {
-      fd.append('logo', form.logoUrl);
-    }
-
-    if (form.businessLicenseUrl) {
-      fd.append('businessLicense', form.businessLicenseUrl);
+    for (const [k, v] of fd.entries()) {
+      console.log('FD:', k, v);
     }
     try {
       if (isEdit) {
-        await CompanyService.updateCompany(form);
+        await CompanyService.updateCompany(fd);
         toast('Cập nhật thông tin công ty thành công');
       } else {
-        await CompanyService.createCompany(form);
+        await CompanyService.createCompany(fd);
         toast('Gửi đăng ký công ty thành công');
       }
-
-      navigate('/employer');
+      if (isModal && onSuccess) {
+        onSuccess();
+      } else {
+        navigate('/employer');
+      }
     } catch (error) {
+      console.error(error?.response?.status, error?.response?.data || error.message);
       toast(MSG.MSG36, 'error');
     }
   };
@@ -101,11 +101,18 @@ export const CompanyRegisterPage = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-full py-6">
-      <div className="container mx-auto px-4 max-w-2xl">
-        <Link to="/employer" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6">
-          <ArrowLeft className="h-4 w-4" /> Quay lại
-        </Link>
+    <div className="space-y-4">
+      <div className="mx-auto px-4 max-w-2xl">
+        {isModal && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="flex items-center gap-2 mb-4 text-sm text-gray-600 hover:text-black"
+          >
+            <ArrowLeft size={18} />
+            Quay lại
+          </button>
+        )}
         <h1 className="text-2xl font-bold mb-6">{isEdit ? 'Chỉnh sửa công ty' : 'Đăng ký công ty'}</h1>
         {pending && (
           <Card className="p-4 rounded-xl bg-amber-50 border-0 mb-6">

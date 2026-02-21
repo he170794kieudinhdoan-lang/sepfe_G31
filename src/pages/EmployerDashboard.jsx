@@ -9,6 +9,7 @@ import { Modal } from '@/shared/components/Modal';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
+import { CompanyRegisterPage } from '@/pages/CompanyRegisterPage';
 
 const EMPLOYER_MENU = [
   { key: 'overview', label: 'Tổng quan' },
@@ -37,6 +38,7 @@ const MOCK_APPLICANTS = [
 export const EmployerDashboard = () => {
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
   const [jobModalOpen, setJobModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -103,8 +105,8 @@ export const EmployerDashboard = () => {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <h2 className="text-xl font-semibold">Tổng quan</h2>
             <div className="flex gap-2">
-              <Button variant="outline" className="rounded-xl" asChild>
-                <Link to="/company/register">Đăng ký / Chỉnh sửa công ty</Link>
+              <Button variant="outline" className="rounded-xl" onClick={() => setCompanyModalOpen(true)}>
+                Đăng ký / Chỉnh sửa công ty
               </Button>
               <Button className="rounded-xl" onClick={() => { setActive('jobs'); openCreateJob(); }}>
                 Tạo tin tuyển dụng
@@ -263,6 +265,18 @@ export const EmployerDashboard = () => {
           </Card>
         </div>
       )}
+
+      <Modal
+        open={companyModalOpen}
+        onClose={() => setCompanyModalOpen(false)}
+        variant="custom"
+      >
+        <CompanyRegisterPage
+          isModal
+          onSuccess={() => setCompanyModalOpen(false)}
+          onBack={() => setCompanyModalOpen(false)}
+        />
+      </Modal>
 
       <Modal open={jobModalOpen} title={editingJob ? 'Chỉnh sửa tin' : 'Tạo tin tuyển dụng'} onClose={() => setJobModalOpen(false)} onConfirm={handleSaveJob} confirmLabel="Lưu">
         <div className="space-y-4">

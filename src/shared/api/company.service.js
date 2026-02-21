@@ -1,18 +1,12 @@
 import { apiClient } from './apiClient';
 
 export const CompanyService = {
-    // Lấy company của user đang đăng nhập
-    getMyCompany() {
-        return apiClient.get('/companies/me');
-    },
+    createCompany: (formData) =>
+        apiClient.post('/company/create', formData),
 
-    // Tạo company mới
-    createCompany(data) {
-        return apiClient.post('/companies', data);
-    },
+    updateCompany: (formData) =>
+        apiClient.put('/company/update', formData),
 
-    // Cập nhật company
-    updateCompany(data) {
-        return apiClient.put('/companies/me', data);
-    },
+    getMyCompany: () =>
+        apiClient.get('/company/me'),
 };
