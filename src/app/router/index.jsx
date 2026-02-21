@@ -1,9 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { MainLayout } from '@/shared/components/Layout';
 import {
-  LoginChoose,
-  LoginWorker,
-  LoginEmployer,
+  Login,
   RegisterChoose,
   RegisterWorker,
   RegisterEmployer,
@@ -61,9 +59,7 @@ export const router = createBrowserRouter([
     path: '/employer',
     element: <EmployerDashboard />,
   },
-  { path: '/auth/login', element: <LoginChoose /> },
-  { path: '/auth/login/worker', element: <LoginWorker /> },
-  { path: '/auth/login/employer', element: <LoginEmployer /> },
+  { path: '/auth/login', element: <Login /> },
   { path: '/auth/register', element: <RegisterChoose /> },
   { path: '/auth/register/worker', element: <RegisterWorker /> },
   { path: '/auth/register/employer', element: <RegisterEmployer /> },
@@ -72,10 +68,10 @@ export const router = createBrowserRouter([
   {
     path: '*',
     element: (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">404</h1>
-          <p className="text-muted-foreground">Trang không tồn tại.</p>
+      <div className='min-h-screen flex items-center justify-center'>
+        <div className='text-center'>
+          <h1 className='text-2xl font-bold'>404</h1>
+          <p className='text-muted-foreground'>Trang không tồn tại.</p>
         </div>
       </div>
     ),

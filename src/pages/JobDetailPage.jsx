@@ -39,7 +39,7 @@ export const JobDetailPage = () => {
   if (!job) {
     return (
       <div className="container mx-auto px-6 py-16 text-center">
-        <h1 className="text-2xl font-bold text-destructive">{MSG.MSG22}</h1>
+        <h1 className="text-2xl font-bold text-destructive">{MSG.MSG_JOB_NOT_FOUND}</h1>
         <Button className="mt-4 rounded-xl" asChild>
           <Link to="/">Về trang chủ</Link>
         </Button>
@@ -49,23 +49,23 @@ export const JobDetailPage = () => {
 
   const handleApply = () => {
     if (!applyNote.trim() || !applyConfirm) {
-      toast(MSG.MSG08, 'error');
+      toast(MSG.MSG_REQUIRED_APPLY_FIELDS, 'error');
       return;
     }
     setApplyOpen(false);
-    toast(MSG.MSG25);
+    toast(MSG.MSG_JOB_SAVE_SUCCESS);
   };
 
   const handleReport = () => {
     if (hasReported) {
-      toast(MSG.MSG31, 'error');
+      toast(MSG.MSG_REPORT_ALREADY_SENT, 'error');
       setReportOpen(false);
       return;
     }
     setReportOpen(false);
     setReportReason('');
     setReportNote('');
-    toast(MSG.MSG32);
+    toast(MSG.MSG_REPORT_SUCCESS);
   };
 
   return (
@@ -124,9 +124,8 @@ export const JobDetailPage = () => {
                 <button
                   key={key}
                   onClick={() => setActiveTab(key)}
-                  className={`px-4 py-2 text-sm font-medium rounded-lg transition ${
-                    activeTab === key ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:bg-white/50'
-                  }`}
+                  className={`px-4 py-2 text-sm font-medium rounded-lg transition ${activeTab === key ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground hover:bg-white/50'
+                    }`}
                 >
                   {label}
                 </button>
@@ -189,7 +188,7 @@ export const JobDetailPage = () => {
                     <Button
                       variant="outline"
                       className="w-full mt-2 rounded-xl"
-                      onClick={() => {}}
+                      onClick={() => { }}
                     >
                       Thêm vào Wishlist
                     </Button>
@@ -202,7 +201,7 @@ export const JobDetailPage = () => {
                     </Button>
                   </>
                 )}
-                {hasApplied && <p className="text-sm text-muted-foreground mt-2">{MSG.MSG27}</p>}
+                {hasApplied && <p className="text-sm text-muted-foreground mt-2">{MSG.MSG_JOB_ALREADY_APPLIED}</p>}
               </Card>
             </div>
           </div>

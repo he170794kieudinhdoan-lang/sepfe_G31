@@ -128,7 +128,7 @@ export const AdminDashboard = () => {
                     </Card>
 
                     {users.length === 0 ? (
-                        <EmptyState title={MSG.MSG10} description="Danh sách người dùng đang trống." />
+                        <EmptyState title={MSG.MSG_USER_LIST_EMPTY} description="Danh sách người dùng đang trống." />
                     ) : (
                         <Card className="p-4">
                             <table className="w-full text-sm">
@@ -245,7 +245,7 @@ export const AdminDashboard = () => {
                         )}
                     </Card>
                     {false && (
-                        <EmptyState title={MSG.MSG66} description="Chưa có dữ liệu hệ thống." />
+                        <EmptyState title={MSG.MSG_STATS_EMPTY} description="Chưa có dữ liệu hệ thống." />
                     )}
                 </div>
             )}
@@ -311,7 +311,7 @@ export const AdminDashboard = () => {
                 onClose={() => setSectorToDelete(null)}
                 onConfirm={() => {
                     if (sectorToDelete?.id === 2) {
-                        toast(MSG.MSG42, "error")
+                        toast(MSG.MSG_INDUSTRY_IN_USE, "error")
                     }
                     setSectorToDelete(null)
                 }}

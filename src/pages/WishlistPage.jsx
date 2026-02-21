@@ -26,7 +26,7 @@ export const WishlistPage = () => {
       <div className="bg-gray-50 min-h-full py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-6">Việc làm đã lưu</h1>
-          <EmptyState title="Chưa có việc làm nào được lưu" description={MSG.MSG30} actionLabel="Xem việc làm" />
+          <EmptyState title="Chưa có việc làm nào được lưu" description={MSG.MSG_WISHLIST_DELETE_FAIL} actionLabel="Xem việc làm" />
         </div>
       </div>
     );

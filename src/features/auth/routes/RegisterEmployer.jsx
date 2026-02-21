@@ -1,42 +1,199 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { useEffect } from 'react';
 import { AuthLayout } from '../components/AuthLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { ArrowLeft } from 'lucide-react';
+import { useLoginGoogle, useSignUp } from '../api/useAuth';
+import { loadGoogleClient } from '@/shared/utils/loadGoogleClient';
+import { clearTokens } from '@/shared/api/tokenService';
+
+const schema = z
+  .object({
+    fullName: z.string().min(3, 'Họ tên ít nhất 3 ký tự'),
+    email: z.string().email('Email không hợp lệ'),
+    password: z.string().min(8, 'Mật khẩu ít nhất 8 ký tự'),
+    confirmPassword: z.string(),
+    terms: z.boolean().refine((value) => value === true, {
+      message: 'Bạn phải đồng ý với điều khoản sử dụng',
+    }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Mật khẩu xác nhận không khớp',
+    path: ['confirmPassword'],
+  });
 
 export const RegisterEmployer = () => {
-  const handleGoogle = () => {
-    window.alert('Đăng ký nhà tuyển dụng bằng Google (mock). Sau khi tích hợp OAuth sẽ chuyển hướng.');
+  const { mutate: signUpMutate, isPending: isSigningUp } = useSignUp();
+  const { mutate: loginGoogle } = useLoginGoogle();
+
+  const {
+    register: formRegister,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      terms: false,
+    },
+  });
+
+  const onSubmit = (data) => {
+    signUpMutate({
+      fullName: data.fullName,
+      email: data.email,
+      password: data.password,
+      role: 'EMPLOYER',
+    });
   };
 
+  useEffect(() => {
+    const initGoogle = async () => {
+      try {
+        await loadGoogleClient();
+        const clientId = import.meta.env.VITE_AUTH_SOCIAL_GOOGLE_CLIENT_ID;
+        if (!clientId) return;
+
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: (response) => {
+            clearTokens();
+            if (response?.credential) {
+              loginGoogle({
+                googleToken: response.credential,
+                additionalData: { role: 'EMPLOYER' },
+              });
+            } else {
+              window.alert('Đăng nhập Google thất bại');
+            }
+          },
+        });
+
+        window.google.accounts.id.renderButton(document.getElementById('googleBtn'), {
+          theme: 'outline',
+          size: 'large',
+          width: '100%',
+          text: 'signin_with',
+          locale: 'vi',
+        });
+      } catch (error) {
+        console.error('Lỗi khởi tạo Google:', error);
+      }
+    };
+    initGoogle();
+  }, [loginGoogle]);
+
   return (
-    <AuthLayout
-      title="Đăng ký · Nhà tuyển dụng"
-      subtitle="Chỉ đăng ký bằng tài khoản Google"
-    >
-      <Card className="p-6 rounded-2xl shadow-sm border-0">
+    <AuthLayout title='Đăng ký · Nhà tuyển dụng' subtitle='Tạo tài khoản bằng form hoặc Google'>
+      <Card className='p-6 rounded-2xl shadow-sm border-0'>
         <Link
-          to="/auth/register"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+          to='/auth/register'
+          className='inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6'
         >
-          <ArrowLeft className="h-4 w-4" /> Quay lại chọn loại đăng ký
+          <ArrowLeft className='h-4 w-4' /> Quay lại chọn loại đăng ký
         </Link>
-        <p className="text-sm text-muted-foreground mb-6">
-          Nhà tuyển dụng chỉ có thể đăng ký qua Google để đảm bảo danh tính và quyền quản lý tin tuyển dụng.
+
+        <div className='w-full rounded-2xl'>
+          <div
+            id='googleBtn'
+            className='[&>div]:w-full [&>div>iframe]:w-full [&>div>iframe]:h-11 [&>div>iframe]:rounded-xl'
+          />
+        </div>
+
+        <div className='relative my-2'>
+          <div className='absolute inset-0 flex items-center'>
+            <span className='w-full border-t border-gray-200' />
+          </div>
+          <div className='relative flex justify-center text-xs'>
+            <span className='bg-card px-2 text-muted-foreground'>hoặc</span>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit(onSubmit)} className='space-y-5'>
+          <div className='space-y-2'>
+            <Label htmlFor='fullName'>Họ và tên</Label>
+            <Input
+              id='fullName'
+              type='text'
+              placeholder='Nhập họ và tên'
+              className='rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white'
+              {...formRegister('fullName')}
+            />
+            {errors.fullName && <p className='text-xs text-destructive'>{errors.fullName.message}</p>}
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor='email'>Email</Label>
+            <Input
+              id='email'
+              type='text'
+              placeholder='Nhập email'
+              className='rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white'
+              {...formRegister('email')}
+            />
+            {errors.email && <p className='text-xs text-destructive'>{errors.email.message}</p>}
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor='password'>Mật khẩu</Label>
+            <Input
+              id='password'
+              type='password'
+              placeholder='Ít nhất 8 ký tự'
+              className='rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white'
+              {...formRegister('password')}
+            />
+            {errors.password && <p className='text-xs text-destructive'>{errors.password.message}</p>}
+          </div>
+
+          <div className='space-y-2'>
+            <Label htmlFor='confirmPassword'>Xác nhận mật khẩu</Label>
+            <Input
+              id='confirmPassword'
+              type='password'
+              placeholder='Nhập lại mật khẩu'
+              className='rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white'
+              {...formRegister('confirmPassword')}
+            />
+            {errors.confirmPassword && (
+              <p className='text-xs text-destructive'>{errors.confirmPassword.message}</p>
+            )}
+          </div>
+
+          <div>
+            <div className='flex items-center text-sm text-muted-foreground'>
+              <Input type='checkbox' id='terms' className='mr-2 w-4 h-4' {...formRegister('terms')} />
+              <Label htmlFor='terms' className='text-sm text-muted-foreground'>
+                Tôi đã đọc và đồng ý với
+                <a href='/terms' className='text-blue-600 hover:underline px-1'>
+                  điều khoản sử dụng
+                </a>
+                của Work Link.
+              </Label>
+            </div>
+            {errors.terms && <p className='text-xs text-destructive mt-1'>{errors.terms.message}</p>}
+          </div>
+
+          <Button type='submit' disabled={isSigningUp} className='w-full rounded-xl h-11 font-medium'>
+            {isSigningUp ? 'Đang tạo tài khoản...' : 'Đăng ký'}
+          </Button>
+        </form>
+
+        <p className='text-center text-sm text-muted-foreground mt-6'>
+          Đã có tài khoản?{' '}
+          <Link to='/auth/login' className='text-primary font-medium hover:underline'>
+            Đăng nhập ngay
+          </Link>
         </p>
-        <Button
-          type="button"
-          className="w-full rounded-xl h-12 font-medium text-base"
-          onClick={handleGoogle}
-        >
-          <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-          Đăng ký bằng Google
-        </Button>
       </Card>
     </AuthLayout>
   );
