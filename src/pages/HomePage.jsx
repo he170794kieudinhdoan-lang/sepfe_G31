@@ -264,8 +264,6 @@ export function HomePage() {
       {/* HERO */}
       <section className="relative overflow-hidden bg-[url('/banner.jpg')]">
         <div className="absolute inset-0 bg-black/20" />
-        {isError && <ErrorToast message={MSG.MSG_JOB_FEATURED_EMPTY} />}
-
         <SearchBarPopover
           keyword={keyword}
           setKeyword={setKeyword}

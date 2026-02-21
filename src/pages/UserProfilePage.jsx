@@ -149,13 +149,9 @@ export const UserProfilePage = () => {
                   <button
                     key={item.key}
                     onClick={() => setActive(item.key)}
-<<<<<<< HEAD
-                    className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium ${active === item.key ? 'bg-primary/10 text-foreground' : 'text-muted-foreground hover:bg-gray-100'
-=======
                     className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium ${active === item.key
                       ? 'bg-primary/10 text-foreground'
                       : 'text-muted-foreground hover:bg-gray-100'
->>>>>>> d683366 (FEAT: ui and fetch login, logout, register, forgetpassword)
                       }`}
                   >
                     {item.label}
