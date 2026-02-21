@@ -17,7 +17,7 @@ export const RegisterChoose = () => {
     {
       key: 'employer',
       title: 'Đăng ký làm nhà tuyển dụng',
-      description: 'Chỉ đăng ký bằng tài khoản Google',
+      description: 'Tạo tài khoản bằng email, mật khẩu hoặc Google',
       icon: Building2,
       path: '/auth/register/employer',
     },

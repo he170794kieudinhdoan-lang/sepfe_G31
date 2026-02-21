@@ -264,7 +264,6 @@ export function HomePage() {
       {/* HERO */}
       <section className="relative overflow-hidden bg-[url('/banner.jpg')]">
         <div className="absolute inset-0 bg-black/20" />
-
         <SearchBarPopover
           keyword={keyword}
           setKeyword={setKeyword}
@@ -301,12 +300,12 @@ export function HomePage() {
                 fallbackClassName="w-full h-full bg-gradient-to-br from-amber-100 to-amber-50"
               />
             </div>
-          </div>
-        </div>
-      </section>
+          </div >
+        </div >
+      </section >
 
       {/* FEATURED */}
-      <section id="jobs" className="container mx-auto px-6 py-12 space-y-6 max-w-7xl">
+      < section id="jobs" className="container mx-auto px-6 py-12 space-y-6 max-w-7xl" >
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Job nổi bật</h2>
         </div>
@@ -316,10 +315,10 @@ export function HomePage() {
             <JobCard key={job.id} job={job} featured />
           ))}
         </div>
-      </section>
+      </section >
 
       {/* REGULAR */}
-      <section className="container mx-auto px-6 pb-16 space-y-6 max-w-7xl">
+      < section className="container mx-auto px-6 pb-16 space-y-6 max-w-7xl" >
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <h2 className="text-2xl font-bold">Danh sách job thường</h2>
 
@@ -355,41 +354,43 @@ export function HomePage() {
         </div>
 
         {/* AI recommend block */}
-        {isWorker && (
-          <Card className="p-6 rounded-xl border-0 shadow-sm bg-white/90">
-            {isProfileComplete ? (
-              <>
+        {
+          isWorker && (
+            <Card className="p-6 rounded-xl border-0 shadow-sm bg-white/90">
+              {isProfileComplete ? (
+                <>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">Gợi ý phù hợp cho bạn (AI)</h3>
+                      <p className="text-sm text-muted-foreground">Dựa trên hồ sơ và khu vực bạn quan tâm.</p>
+                    </div>
+                    <Button variant="outline" className="rounded-xl">
+                      Lọc thêm
+                    </Button>
+                  </div>
+                  <div className="mt-6 grid md:grid-cols-2 gap-4">
+                    {recommendedJobs.map((job) => (
+                      <JobCard key={job.id} job={job} aiSuggest />
+                    ))}
+                  </div>
+                </>
+              ) : (
                 <div className="flex items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-lg font-semibold">Gợi ý phù hợp cho bạn (AI)</h3>
-                    <p className="text-sm text-muted-foreground">Dựa trên hồ sơ và khu vực bạn quan tâm.</p>
+                    <h3 className="text-lg font-semibold">Hoàn thiện hồ sơ để nhận gợi ý</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Cập nhật kỹ năng và kinh nghiệm để AI gợi ý chính xác hơn.
+                    </p>
                   </div>
-                  <Button variant="outline" className="rounded-xl">
-                    Lọc thêm
+                  <Button className="rounded-xl" asChild>
+                    <Link to="/profile">Cập nhật hồ sơ</Link>
                   </Button>
                 </div>
-                <div className="mt-6 grid md:grid-cols-2 gap-4">
-                  {recommendedJobs.map((job) => (
-                    <JobCard key={job.id} job={job} aiSuggest />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold">Hoàn thiện hồ sơ để nhận gợi ý</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Cập nhật kỹ năng và kinh nghiệm để AI gợi ý chính xác hơn.
-                  </p>
-                </div>
-                <Button className="rounded-xl" asChild>
-                  <Link to="/profile">Cập nhật hồ sơ</Link>
-                </Button>
-              </div>
-            )}
-          </Card>
-        )}
-      </section>
-    </div>
+              )}
+            </Card>
+          )
+        }
+      </section >
+    </div >
   );
 }
