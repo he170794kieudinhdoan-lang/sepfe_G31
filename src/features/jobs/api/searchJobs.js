@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/apiClient';
+import { apiClient, apiClientCustom } from '@/shared/api/apiClient';
 
 /**
  * Search jobs via backend API
@@ -28,3 +28,11 @@ export const searchJobs = async (params = {}) => {
     const response = await apiClient.get('/job/search', { params: cleanParams });
     return response;
 };
+export const getProvinces = async () => {
+    const response = await apiClientCustom('https://production.cas.so/address-kit/latest/provinces').get();
+    return response;
+}
+export const getWards = async (wardsId) => {
+    const response = await apiClientCustom(`https://production.cas.so/address-kit/latest/provinces/${wardsId}/communes`).get();
+    return response;
+}

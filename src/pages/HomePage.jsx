@@ -14,8 +14,15 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
+<<<<<<< HEAD
 import { MOCK_JOBS, getFeaturedJobs, getRegularJobs, HERO_IMAGE } from '@/shared/data/mockJobs';
 import { Button2 } from '@/components/ui/button_2';
+=======
+import { MOCK_JOBS, getFeaturedJobs, getRegularJobs, HERO_IMAGE } from "@/shared/data/mockJobs";
+import { Button2 } from "@/components/ui/button_2";
+import { SearchIcon } from "lucide-react";
+import { useGetProvinces, useGetWards } from "@/features/jobs/api/useSearchJobs";
+>>>>>>> 880fdc3 (add manage page)
 
 const POPULAR_KEYWORDS = [
   'công nhân sản xuất',
@@ -57,9 +64,22 @@ function JobCard({ job, featured, aiSuggest }) {
           </div>
         </div>
 
+<<<<<<< HEAD
         <div className='mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground'>
           <div className='flex items-center gap-2'>
             <MapPin className='h-4 w-4 shrink-0' /> {job.location}
+=======
+        <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 shrink-0" /> {job.location}
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline"><MapPin className="h-4 w-4 shrink-0" /></Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-56">Nội dung A</PopoverContent>
+            </Popover>
+
+>>>>>>> 880fdc3 (add manage page)
           </div>
 
           <div className='flex items-center gap-2'>
@@ -106,14 +126,38 @@ function SearchBarPopover({
   searchMode,
   setSearchMode,
   featuredJobs,
+  province,
+  setProvince,
+  wards,
+  setWards,
+  setWardsName,
+  wardsName,
 }) {
+<<<<<<< HEAD
+=======
+
+
+  function normalizeLocationName(name) {
+    if (!name) return '';
+    return name
+      .replace(/^(Tỉnh|Thành phố|TP\.?|Tp\.?|tp\.?|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s*/i, "")
+      .trim();
+  }
+  const { data: provincess } = useGetProvinces();
+  const { data: wardss } = useGetWards(wards);
+>>>>>>> 880fdc3 (add manage page)
   const nav = useNavigate();
   const handleSearch = () => {
     if (keyword.trim() === '') {
       return;
     }
+<<<<<<< HEAD
     nav(`/search?query=${encodeURIComponent(keyword.trim())}`);
   };
+=======
+    nav('/search?query=' + encodeURIComponent(keyword.trim()) + '&province=' + normalizeLocationName(province) + '&district=' + normalizeLocationName(wardsName))
+  }
+>>>>>>> 880fdc3 (add manage page)
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <div className='flex-1 max-w-5xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2 relative m-auto my-5'>
@@ -136,6 +180,7 @@ function SearchBarPopover({
             />
           </div>
         </PopoverTrigger>
+<<<<<<< HEAD
 
         <Button2
           size='sm'
@@ -146,6 +191,53 @@ function SearchBarPopover({
           }}
         >
           Tìm kiếm
+=======
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button2 title="Tìm kiếm theo địa điểm bạn chọn" size="sm" className="rounded-lg shrink-0 border" onClick={() => { setOpen(false); handleSearch() }}>
+              <MapPin className="text-white" />
+            </Button2>
+          </PopoverTrigger>
+          <PopoverContent className="w-120">
+            <ScrollArea className="h-auto pr-3">
+              <div className="flex gap-2 w-full ">
+                <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-12rem)] w-[60%]">
+                  <h3 className="font-bold">Chọn Tỉnh/Thành Phố</h3>
+                  {provincess?.provinces?.map((k) => (
+                    <button
+                      key={k.code}
+                      className="w-full text-left rounded-xl px-3 py-2 hover:bg-muted text-sm"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setWards(k.code);
+                        setProvince(k.name);
+                      }}
+                    >
+                      {k.name}
+                    </button>
+                  ))}
+                </div>
+                <div className="space-y-1 overflow-y-auto max-h-[calc(100vh-12rem)] w-[40%]">
+                  <h3 className="font-bold">Chọn Phường/Xã </h3>
+                  {province !== '' && wardss?.communes?.map((k) => (
+                    <button
+                      key={k.code}
+                      className="w-full text-left rounded-xl px-3 py-2 hover:bg-muted text-sm"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setWardsName(k.name);
+                      }}>
+                      {k.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
+        <Button2 size="sm" className="rounded-lg shrink-0 border" onClick={() => { setOpen(false); handleSearch() }}>
+          <SearchIcon className="text-white" title="tìm kiếm theo từ khoá" />
+>>>>>>> 880fdc3 (add manage page)
         </Button2>
       </div>
 
@@ -155,6 +247,7 @@ function SearchBarPopover({
         sideOffset={10}
         className='w-[980px] max-h-[650px] p-0 rounded-2xl shadow-xl border bg-white'
         onOpenAutoFocus={(e) => e.preventDefault()}
+<<<<<<< HEAD
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <div className='px-5 py-4'>
@@ -162,11 +255,17 @@ function SearchBarPopover({
             {/* <div className="text-sm font-semibold">Tìm kiếm theo:</div> */}
 
             <RadioGroup value={searchMode} onValueChange={setSearchMode} className='flex gap-6'>
+=======
+        onCloseAutoFocus={(e) => e.preventDefault()}>
+        <div className="px-5 py-4">
+          <div className="flex items-center gap-4">
+            {/* <div className="text-sm font-semibold">Tìm kiếm theo:</div> */}
+            <RadioGroup value={searchMode} onValueChange={setSearchMode} className="flex gap-6">
+>>>>>>> 880fdc3 (add manage page)
               {/* <div className="flex items-center gap-2">
                 <RadioGroupItem value="job" id="sm-job" />
                 <Label htmlFor="sm-job">Tên việc làm</Label>
               </div>
-
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="company" id="sm-company" />
                 <Label htmlFor="sm-company">Tên công ty</Label>
@@ -195,7 +294,7 @@ function SearchBarPopover({
                     className='w-full text-left rounded-xl px-3 py-2 hover:bg-muted text-sm  cursor-pointer'
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
-                      setKeyword(k);
+                      setDistrict(k);
                       setOpen(false);
                     }}
                   >
@@ -242,8 +341,16 @@ export function HomePage() {
   const [page, setPage] = useState(1);
 
   const [openSuggest, setOpenSuggest] = useState(false);
+<<<<<<< HEAD
   const [keyword, setKeyword] = useState('');
   const [searchMode, setSearchMode] = useState('both'); // job | company | both
+=======
+  const [keyword, setKeyword] = useState("");
+  const [wards, setWards] = useState("");
+  const [province, setProvince] = useState("");
+  const [searchMode, setSearchMode] = useState("both");
+  const [wardsName, setWardsName] = useState("");
+>>>>>>> 880fdc3 (add manage page)
 
   // demo flags
   const isWorker = true;
@@ -278,6 +385,12 @@ export function HomePage() {
           searchMode={searchMode}
           setSearchMode={setSearchMode}
           featuredJobs={featuredJobs}
+          province={province}
+          setProvince={setProvince}
+          setWards={setWards}
+          wards={wards}
+          wardsName={wardsName}
+          setWardsName={setWardsName}
         />
 
         <div className='container mx-auto px-16 py-16 grid lg:grid-cols-2 gap-10 items-center relative'>
