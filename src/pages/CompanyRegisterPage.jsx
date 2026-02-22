@@ -58,7 +58,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     console.log('Submitting form:', form);
     e.preventDefault();
     if (!form.name?.trim() || !form.address?.trim()) {
-      toast(MSG.MSG08, 'error');
+      toast(MSG.MSG_REQUIRED_APPLY_FIELDS, 'error');
       return;
     }
     const fd = new FormData();

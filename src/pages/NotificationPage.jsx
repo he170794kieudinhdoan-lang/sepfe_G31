@@ -31,7 +31,7 @@ export const NotificationPage = () => {
       <div className="bg-gray-50 min-h-full py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-6">Thông báo</h1>
-          <EmptyState title={MSG.MSG65} description="Chưa có thông báo nào." />
+          <EmptyState title={MSG.MSG_NOTIFICATION_EMPTY} description="Chưa có thông báo nào." />
         </div>
       </div>
     );

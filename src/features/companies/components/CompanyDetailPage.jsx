@@ -101,7 +101,7 @@ export const CompanyDetailPage = () => {
               <Button size="sm" className="rounded-xl">Viết đánh giá</Button>
             </div>
             {reviews.length === 0 ? (
-              <EmptyState title={MSG.MSG56} description="Chưa có đánh giá nào." />
+              <EmptyState title={MSG.MSG_REVIEW_EMPTY} description="Chưa có đánh giá nào." />
             ) : (
               <div className="space-y-4">
                 {reviews.map((r) => (

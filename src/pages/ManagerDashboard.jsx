@@ -52,42 +52,42 @@ export const ManagerDashboard = () => {
   const [selectedReviewReport, setSelectedReviewReport] = useState(null);
   const jobSnapshot = selectedReport
     ? {
-        title: selectedReport.jobTitle,
-        company: 'LogiFast',
-        salary: '10-12 triệu',
-        shifts: 'Ca đêm',
-        location: 'TP.HCM',
-        description: 'Mô tả ngắn...',
-        status: 'Active',
-      }
+      title: selectedReport.jobTitle,
+      company: 'LogiFast',
+      salary: '10-12 triệu',
+      shifts: 'Ca đêm',
+      location: 'TP.HCM',
+      description: 'Mô tả ngắn...',
+      status: 'Active',
+    }
     : null;
 
   const handleDisableJob = () => {
     setDisableJobConfirm(false);
     setSelectedReport(null);
-    toast(MSG.MSG37);
+    toast(MSG.MSG_JOB_STATUS_UPDATE_SUCCESS);
   };
 
   const handleEnableJob = () => {
     setEnableJobConfirm(false);
-    toast(MSG.MSG37);
+    toast(MSG.MSG_JOB_STATUS_UPDATE_SUCCESS);
   };
 
   const handleResolve = () => {
     setSelectedReport(null);
-    toast(MSG.MSG37);
+    toast(MSG.MSG_JOB_STATUS_UPDATE_SUCCESS);
   };
 
   const handleApproveCompany = () => {
     setSelectedCompany(null);
     setApproveNote('');
-    toast(MSG.MSG55);
+    toast(MSG.MSG_COMPANY_APPROVE_SUCCESS);
   };
 
   const handleRejectCompany = () => {
     setSelectedCompany(null);
     setRejectNote('');
-    toast(MSG.MSG54, 'error');
+    toast(MSG.MSG_COMPANY_STATUS_UPDATE_FAIL, 'error');
   };
 
   return (
@@ -123,7 +123,7 @@ export const ManagerDashboard = () => {
           </Card>
 
           {reports.length === 0 ? (
-            <EmptyState title={MSG.MSG33} description="Chưa có báo cáo nào." />
+            <EmptyState title={MSG.MSG_REPORT_EMPTY} description="Chưa có báo cáo nào." />
           ) : selectedReport ? (
             <div className="grid lg:grid-cols-2 gap-6">
               <Card className="p-6 rounded-xl shadow-sm">
@@ -233,7 +233,7 @@ export const ManagerDashboard = () => {
       {active === 'companies' && (
         <div className="space-y-6">
           {companies.length === 0 ? (
-            <EmptyState title={MSG.MSG53} description="Chưa có đơn đăng ký công ty." />
+            <EmptyState title={MSG.MSG_COMPANY_REGISTER_EMPTY} description="Chưa có đơn đăng ký công ty." />
           ) : selectedCompany ? (
             <Card className="p-6 rounded-xl shadow-sm max-w-2xl">
               <h3 className="font-semibold mb-4">Thông tin công ty</h3>

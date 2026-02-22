@@ -54,7 +54,7 @@ export const CompanyListPage = () => {
         </div>
 
         {filtered.length === 0 ? (
-          <EmptyState title={MSG.MSG49} description="Thử thay đổi bộ lọc." />
+          <EmptyState title={MSG.MSG_COMPANY_NOT_FOUND} description="Thử thay đổi bộ lọc." />
         ) : (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((c) => (

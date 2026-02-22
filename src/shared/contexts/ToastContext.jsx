@@ -28,18 +28,19 @@ export const ToastProvider = ({ children }) => {
 };
 
 const ToastList = ({ toasts }) => (
-  <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2">
+  <div className="fixed top-5 right-5 z-[100] flex flex-col gap-3">
     {toasts.map((t) => (
       <div
         key={t.id}
-        className={`rounded-xl border px-4 py-3 shadow-lg min-w-[280px] max-w-sm text-sm font-medium ${
+        className={`flex items-start gap-3 rounded-2xl px-4 py-3 shadow-xl min-w-[300px] max-w-sm text-sm font-medium border backdrop-blur-md transition-all duration-300 animate-slideIn ${
           t.type === 'error'
-            ? 'bg-red-50 border-red-200 text-red-800'
-            : 'bg-white border-primary/30 text-foreground'
+            ? 'bg-red-500/10 border-red-500/30 text-red-600'
+            : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'
         }`}
       >
-        {t.message}
+        <div className="flex-1">{t.message}</div>
       </div>
     ))}
   </div>
 );
+

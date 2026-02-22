@@ -133,7 +133,7 @@ export const JobListPage = () => {
             </div>
 
             {filtered.length === 0 ? (
-              <EmptyState title={MSG.MSG22} description="Thử thay đổi bộ lọc hoặc từ khóa." />
+              <EmptyState title={MSG.MSG_JOB_NOT_FOUND} description="Thử thay đổi bộ lọc hoặc từ khóa." />
             ) : (
               <>
                 <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">

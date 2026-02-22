@@ -1,39 +1,48 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { AuthLayout } from '../components/AuthLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
-import { useToast } from '@/shared/contexts/ToastContext';
+import { useForgotPassword } from '../api/useAuth';
+import { MSG } from '@/shared/constants/messages';
+
+const schema = z.object({
+  email: z.string().email('Email không hợp lệ'),
+});
 
 export const ForgotPassword = () => {
-  const [email, setEmail] = useState('');
-  const [sent, setSent] = useState(false);
-  const [isPending, setIsPending] = useState(false);
-  const { toast } = useToast();
+  const { mutate: forgotPassword, isPending, isSuccess } = useForgotPassword();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-    setIsPending(true);
-    setTimeout(() => {
-      setIsPending(false);
-      setSent(true);
-      toast('Link đặt lại mật khẩu đã gửi đến email của bạn (mock).');
-    }, 1000);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: { email: '' },
+  });
+
+  const onSubmit = (data) => {
+    forgotPassword(data.email);
   };
 
-  if (sent) {
+  if (isSuccess) {
     return (
-      <AuthLayout title="Kiểm tra email" subtitle="Chúng tôi đã gửi link đặt lại mật khẩu.">
-        <Card className="p-6 rounded-2xl shadow-sm border-0">
-          <p className="text-sm text-muted-foreground mb-6">
+      <AuthLayout title='Kiểm tra email' subtitle={MSG.MSG_FORGOT_SUCCESS}>
+        <Card className='p-6 rounded-2xl shadow-sm border-0'>
+          <p className='text-sm text-muted-foreground mb-6'>
             Nếu không thấy email, hãy kiểm tra thư mục spam hoặc thử lại.
           </p>
-          <Link to="/auth/login">
-            <Button variant="outline" className="w-full rounded-xl">Quay lại đăng nhập</Button>
+          <Link to='/auth/login'>
+            <Button variant='outline' className='w-full rounded-xl'>
+              Quay lại đăng nhập
+            </Button>
           </Link>
         </Card>
       </AuthLayout>
@@ -41,28 +50,28 @@ export const ForgotPassword = () => {
   }
 
   return (
-    <AuthLayout title="Quên mật khẩu" subtitle="Nhập email hoặc tên đăng nhập để nhận link đặt lại">
-      <Card className="p-6 rounded-2xl shadow-sm border-0">
+    <AuthLayout title='Quên mật khẩu' subtitle='Nhập email để nhận link đặt lại mật khẩu'>
+      <Card className='p-6 rounded-2xl shadow-sm border-0'>
         <Link
-          to="/auth/login"
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
+          to='/auth/login'
+          className='inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6'
         >
-          <ArrowLeft className="h-4 w-4" /> Quay lại đăng nhập
+          <ArrowLeft className='h-4 w-4' /> Quay lại đăng nhập
         </Link>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email hoặc tên đăng nhập</Label>
+        <form onSubmit={handleSubmit(onSubmit)} className='space-y-5'>
+          <div className='space-y-2'>
+            <Label htmlFor='email'>Email</Label>
             <Input
-              id="email"
-              type="text"
-              placeholder="email@example.com hoặc username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white"
+              id='email'
+              type='email'
+              placeholder='email@example.com'
+              className='rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white'
+              {...register('email')}
             />
+            {errors.email && <p className='text-xs text-destructive'>{errors.email.message}</p>}
           </div>
-          <Button type="submit" disabled={isPending} className="w-full rounded-xl h-11 font-medium">
-            {isPending ? 'Đang gửi...' : 'Gửi link'}
+          <Button type='submit' disabled={isPending} className='w-full rounded-xl h-11 font-medium'>
+            {isPending ? 'Đang gửi...' : 'Gửi link đặt lại mật khẩu'}
           </Button>
         </form>
       </Card>

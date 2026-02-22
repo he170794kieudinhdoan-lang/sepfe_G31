@@ -1,2 +1,2 @@
-export * from './api/getUsers';
-export * from './components/UsersDemo';
+export * from './api/userApi';
+export * from './api/useUser';

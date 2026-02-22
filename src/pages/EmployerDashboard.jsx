@@ -67,16 +67,16 @@ export const EmployerDashboard = () => {
 
   const handleSaveJob = () => {
     if (!form.title?.trim()) {
-      toast(MSG.MSG23, 'error');
+      toast(MSG.MSG_REQUIRED_FIELDS, 'error');
       return;
     }
     setJobModalOpen(false);
-    toast(editingJob ? MSG.MSG25 : 'Đã tạo tin.');
+    toast(editingJob ? MSG.MSG_JOB_SAVE_SUCCESS : 'Đã tạo tin.');
   };
 
   const handleDeleteJob = () => {
     setDeleteConfirm(null);
-    toast(MSG.MSG26, 'error');
+    toast(MSG.MSG_JOB_DELETE_FAIL, 'error');
   };
 
   const handleBoostCheckout = () => {
@@ -86,7 +86,7 @@ export const EmployerDashboard = () => {
 
   const handleBoostCancel = () => {
     setBoostModalOpen(false);
-    toast(MSG.MSG46);
+    toast(MSG.MSG_PAYMENT_CANCELLED);
   };
 
   const handleExportApplicants = () => {
@@ -95,7 +95,7 @@ export const EmployerDashboard = () => {
 
   const handleSaveApplicantStatus = () => {
     if (!applicantStatus) return;
-    toast(MSG.MSG45, 'error');
+    toast(MSG.MSG_CANDIDATE_UPDATE_FAIL, 'error');
   };
 
   return (
@@ -206,7 +206,7 @@ export const EmployerDashboard = () => {
               <Button variant="outline" className="mt-4 rounded-xl" onClick={() => setApplicantDetail(null)}>Quay lại</Button>
             </Card>
           ) : applicants.length === 0 ? (
-            <EmptyState title={MSG.MSG44} description="Chưa có ứng viên nào." />
+            <EmptyState title={MSG.MSG_CANDIDATE_EMPTY} description="Chưa có ứng viên nào." />
           ) : (
             <Card className="p-4 rounded-xl shadow-sm overflow-x-auto">
               <table className="w-full text-sm">
