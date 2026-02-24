@@ -1,12 +1,54 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as userApi from './userApi';
 
 export const useGetUsers = (options = {}) => {
   return useQuery({
     queryKey: ['users', 'me'],
     queryFn: userApi.getUsers,
-    staleTime: 5 * 60 * 1000, // Cache 5 phút
+    staleTime: 5 * 60 * 1000,
     retry: 1,
     ...options,
+  });
+};
+
+export const useGetOccupations = () => {
+  return useQuery({
+    queryKey: ['occupations'],
+    queryFn: userApi.getOccupations,
+    staleTime: 10 * 60 * 1000,
+    retry: 1,
+  });
+};
+
+export const useGetWorkerProfile = (options = {}) => {
+  return useQuery({
+    queryKey: ['worker-profile'],
+    queryFn: userApi.getWorkerProfile,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+    ...options,
+  });
+};
+
+export const useCreateWorkerProfile = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: userApi.createWorkerProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['worker-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
+    },
+  });
+};
+
+//Chưa có api
+export const useUpdateWorkerProfile = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: userApi.updateWorkerProfile,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['worker-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
+    },
   });
 };
