@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -23,7 +23,8 @@ import {
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
 import { SHIFTS, GENDERS } from '@/shared/constants/enums';
-import { Briefcase, User, MapPin, Clock, DollarSign, Star, ChevronRight } from 'lucide-react';
+import { Briefcase, User, Clock, DollarSign, Star, ChevronRight, Loader2 } from 'lucide-react';
+import { useProvinces, formatProvinceName } from '@/shared/hooks/useProvinces';
 
 const schema = z.object({
   occupationId: z
@@ -72,6 +73,7 @@ export const WorkerProfileView = () => {
   const { data: occupationsData, isLoading: occupationsLoading } = useGetOccupations();
   const { data: workerProfile, isLoading: profileLoading } = useGetWorkerProfile({ enabled: true });
   const { mutate: updateProfile, isPending: isUpdating } = useUpdateWorkerProfile();
+  const { provinces, isLoading: provincesLoading } = useProvinces();
 
   const filteredOccupations = useMemo(() => {
     if (!occupationsData || !sectorId) return [];
@@ -100,7 +102,7 @@ export const WorkerProfileView = () => {
   });
 
   useEffect(() => {
-    if (!workerProfile || !occupationsData) return;
+    if (!workerProfile || !occupationsData || provinces.length === 0) return;
 
     const { occupation, ...rest } = workerProfile;
 
@@ -115,9 +117,9 @@ export const WorkerProfileView = () => {
       gender: rest.gender || '',
       birthYear: rest.birthYear || '',
       expectedSalary: rest.expectedSalary || '',
-      experienceYear: rest.experienceYear || '',
+      experienceYear: rest.experienceYear ?? '',
     });
-  }, [workerProfile, occupationsData, reset]);
+  }, [workerProfile, occupationsData, provinces, reset]);
 
   const handleSectorChange = (newSectorId) => {
     if (!newSectorId) return;
@@ -355,11 +357,10 @@ export const WorkerProfileView = () => {
                         <label
                           key={shift.value}
                           htmlFor={`shift-${shift.value}`}
-                          className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
-                            field.value === shift.value
-                              ? 'border-primary/20 bg-primary/20 text-primary/700'
-                              : 'border-gray-200 bg-gray-50/60 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
-                          }`}
+                          className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border cursor-pointer transition-all ${field.value === shift.value
+                            ? 'border-primary/20 bg-primary/20 text-primary/700'
+                            : 'border-gray-200 bg-gray-50/60 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
                         >
                           <RadioGroupItem
                             value={shift.value}
@@ -393,14 +394,19 @@ export const WorkerProfileView = () => {
                     render={({ field }) => {
                       const selectValue =
                         field.value != null &&
-                        field.value !== '' &&
-                        !Number.isNaN(Number(field.value))
+                          field.value !== '' &&
+                          !Number.isNaN(Number(field.value))
                           ? field.value.toString()
                           : '';
+
+                      console.log(selectValue)
                       return (
                         <Select
                           value={selectValue}
-                          onValueChange={(val) => field.onChange(parseInt(val, 10))}
+                          //onValueChange={(val) => field.onChange(parseInt(val, 10))}
+                          onValueChange={(val) => {
+                            if (val) field.onChange(parseInt(val, 10));
+                          }}
                         >
                           <SelectTrigger className='w-full !h-11 rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors'>
                             <SelectValue placeholder='Chọn số năm kinh nghiệm' />
@@ -444,23 +450,39 @@ export const WorkerProfileView = () => {
 
               {/* Province */}
               <div className='space-y-1.5'>
-                <Label htmlFor='province' className='text-sm font-medium text-gray-700'>
+                <Label className='text-sm font-medium text-gray-700'>
                   Địa điểm làm việc <RequiredMark />
                 </Label>
-                <div className='relative'>
-                  <MapPin
-                    size={15}
-                    className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-400'
-                  />
-                  <Input
-                    id='province'
-                    type='text'
-                    placeholder='VD: Hà Nội, TP.HCM, ...'
-                    className='h-11 rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors pl-9'
-                    {...register('province')}
-                  />
-                  <FieldError message={errors.province?.message} />
-                </div>
+                <Controller
+                  name='province'
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value || ''}
+                      onValueChange={(val) => {
+                        if (val) field.onChange(val);
+                      }}
+                    >
+                      <SelectTrigger className='w-full !h-11 rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors'>
+                        <SelectValue placeholder='Chọn tỉnh/thành' />
+                      </SelectTrigger>
+                      <SelectContent className='p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden'>
+                        <div className='max-h-60 overflow-y-auto py-1 px-1'>
+                          {provinces.map((p) => (
+                            <SelectItem
+                              key={p.code}
+                              value={p.name}
+                              className='rounded-lg text-sm cursor-pointer hover:bg-primary/10 focus:bg-primary/10 focus:text-foreground'
+                            >
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </div>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                <FieldError message={errors.province?.message} />
               </div>
             </div>
           </section>
@@ -474,28 +496,13 @@ export const WorkerProfileView = () => {
             >
               {isUpdating ? (
                 <>
-                  <svg className='animate-spin h-4 w-4' viewBox='0 0 24 24' fill='none'>
-                    <circle
-                      className='opacity-25'
-                      cx='12'
-                      cy='12'
-                      r='10'
-                      stroke='currentColor'
-                      strokeWidth='4'
-                    />
-                    <path
-                      className='opacity-75'
-                      fill='currentColor'
-                      d='M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z'
-                    />
-                  </svg>
+                  <Loader2 className='animate-spin h-4 w-4' />
                   Đang lưu...
                 </>
               ) : (
-                <>
+                <span>
                   Lưu thay đổi
-                  <ChevronRight size={16} />
-                </>
+                </span>
               )}
             </Button>
           </div>
@@ -504,3 +511,4 @@ export const WorkerProfileView = () => {
     </Card>
   );
 };
+//Bản 527

@@ -155,7 +155,7 @@ export const UserProfilePage = () => {
                   <button
                     key={item.key}
                     onClick={() => setActive(item.key)}
-                    className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium ${
+                    className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium cursor-pointer ${
                       active === item.key
                         ? 'bg-primary/10 text-foreground'
                         : 'text-muted-foreground hover:bg-gray-100'

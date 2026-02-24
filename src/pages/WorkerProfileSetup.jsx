@@ -20,6 +20,7 @@ import { useCreateWorkerProfile } from '@/features/users/api/useUser';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
 import { SHIFTS, GENDERS } from '@/shared/constants/enums';
+import { useProvinces } from '@/shared/hooks/useProvinces';
 
 const schema = z.object({
   occupationId: z
@@ -72,6 +73,7 @@ export const WorkerProfileSetup = () => {
 
   const { data: occupationsData, isLoading: occupationsLoading } = useGetOccupations();
   const { mutate: createProfile, isPending: isCreating } = useCreateWorkerProfile();
+  const { provinces, isLoading: provincesLoading } = useProvinces();
 
   const {
     register,
@@ -296,12 +298,35 @@ export const WorkerProfileSetup = () => {
                 <Label htmlFor='province' className='text-sm font-medium'>
                   Địa điểm làm việc
                 </Label>
-                <Input
-                  id='province'
-                  type='text'
-                  placeholder='VD: Hà Nội'
-                  className='h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors'
-                  {...register('province')}
+                <Controller
+                  name='province'
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? ''}
+                      onValueChange={(val) => field.onChange(val)}
+                      disabled={provincesLoading}
+                    >
+                      <SelectTrigger className='w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors'>
+                        <SelectValue
+                          placeholder={provincesLoading ? 'Đang tải...' : 'Chọn tỉnh/thành'}
+                        />
+                      </SelectTrigger>
+                      <SelectContent className='p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden'>
+                        <div className='max-h-60 overflow-y-auto py-1 px-1'>
+                          {provinces.map((p) => (
+                            <SelectItem
+                              key={p.code}
+                              value={p.name}
+                              className='rounded-lg text-sm cursor-pointer hover:bg-primary/10 focus:bg-primary/10 focus:text-foreground'
+                            >
+                              {p.name}
+                            </SelectItem>
+                          ))}
+                        </div>
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
               </div>
             </div>
