@@ -154,7 +154,7 @@ export const WorkerProfileView = () => {
   if (profileLoading) {
     return (
       <Card className='overflow-hidden rounded-2xl shadow-sm border-0'>
-        <div className='h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500' />
+        <div className='h-2 bg-primary' />
         <div className='p-8 space-y-6'>
           <div className='flex items-center gap-3 mb-2'>
             <Skeleton className='h-10 w-10 rounded-xl' />
@@ -191,12 +191,12 @@ export const WorkerProfileView = () => {
   return (
     <Card className='overflow-hidden rounded-2xl shadow-sm border border-gray-100'>
       {/* Top accent bar */}
-      <div className='h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500' />
+      <div className='h-1.5 bg-primary' />
 
       <div className='p-8'>
         {/* Header */}
         <div className='flex items-center gap-3 mb-8'>
-          <div className='flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-200'>
+          <div className='flex items-center justify-center w-11 h-11 rounded-xl bg-primary shadow-md'>
             <User size={20} className='text-white' />
           </div>
           <div>
@@ -470,7 +470,7 @@ export const WorkerProfileView = () => {
             <Button
               type='submit'
               disabled={isUpdating}
-              className='w-full h-12 rounded-xl font-semibold text-sm bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-md shadow-blue-200 transition-all flex items-center justify-center gap-2'
+              className='w-full h-12 rounded-xl font-semibold text-sm bg-primary  hover:opacity-90 shadow-md transition-all flex items-center justify-center gap-2'
             >
               {isUpdating ? (
                 <>
