@@ -52,12 +52,22 @@ export const Header = () => {
           </Link>
 
           <div className='flex items-center gap-2 shrink-0'>
-            <Button variant='ghost' size='icon' className='rounded-full' asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='rounded-full text-gray-700 hover:bg-primary/10 hover:text-foreground transition'
+              asChild
+            >
               <Link to='/notifications'>
                 <Bell className='h-5 w-5' />
               </Link>
             </Button>
-            <Button variant='ghost' size='icon' className='rounded-full' asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='rounded-full text-gray-700 hover:bg-primary/10 hover:text-foreground transition'
+              asChild
+            >
               <Link to='/chat'>
                 <MessageCircle className='h-5 w-5' />
               </Link>
@@ -83,7 +93,7 @@ export const Header = () => {
               <div className='relative'>
                 <button
                   onClick={() => setAvatarOpen(!avatarOpen)}
-                  className='flex items-center gap-2 rounded-full shadow-sm bg-gray-50 px-3 py-2 hover:bg-gray-100'
+                  className='flex items-center gap-2 rounded-full shadow-sm bg-gray-50 px-3 py-2 hover:bg-gray-100 cursor-pointer transition'
                 >
                   <div className='h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center'>
                     {user?.avatar ? (
@@ -104,7 +114,7 @@ export const Header = () => {
                 {avatarOpen && (
                   <>
                     <div className='fixed inset-0 z-40' onClick={() => setAvatarOpen(false)} />
-                    <div className='absolute right-0 top-full mt-1 w-56 rounded-xl bg-white py-2 shadow-lg border z-50'>
+                    <div className='absolute right-0 top-full mt-2 w-56 rounded-xl bg-white py-2 shadow-lg border z-50'>
                       <div className='px-4 py-2 border-b'>
                         <p className='text-sm font-semibold'>{user?.fullName || 'User'}</p>
                         <p className='text-xs text-muted-foreground'>{user?.email || ''}</p>
@@ -158,7 +168,7 @@ export const Header = () => {
 
                       <button
                         onClick={handleLogout}
-                        className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-red-600'
+                        className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-red-600 cursor-pointer transition'
                       >
                         Đăng xuất
                       </button>

@@ -173,8 +173,8 @@ export const WorkerProfileView = () => {
 
   const SectionHeading = ({ icon: Icon, title }) => (
     <div className='flex items-center gap-2 mb-4'>
-      <div className='flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600'>
-        <Icon size={16} />
+      <div className='flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20'>
+        <Icon size={16} className='text-primary' />
       </div>
       <h3 className='text-sm font-semibold text-gray-700 uppercase tracking-wide'>{title}</h3>
       <div className='flex-1 h-px bg-gray-100 ml-1' />
@@ -196,8 +196,8 @@ export const WorkerProfileView = () => {
       <div className='p-8'>
         {/* Header */}
         <div className='flex items-center gap-3 mb-8'>
-          <div className='flex items-center justify-center w-11 h-11 rounded-xl bg-primary shadow-md'>
-            <User size={20} className='text-white' />
+          <div className='flex items-center justify-center w-11 h-11 rounded-xl bg-primary/20 shadow-md'>
+            <User size={20} className='text-primary' />
           </div>
           <div>
             <h2 className='text-xl font-bold text-gray-800'>Hồ sơ lao động</h2>
@@ -357,7 +357,7 @@ export const WorkerProfileView = () => {
                           htmlFor={`shift-${shift.value}`}
                           className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border cursor-pointer transition-all ${
                             field.value === shift.value
-                              ? 'border-blue-500 bg-blue-50 text-blue-700'
+                              ? 'border-primary/20 bg-primary/20 text-primary/700'
                               : 'border-gray-200 bg-gray-50/60 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
                           }`}
                         >
@@ -369,7 +369,7 @@ export const WorkerProfileView = () => {
                           <Clock
                             size={14}
                             className={
-                              field.value === shift.value ? 'text-blue-500' : 'text-gray-400'
+                              field.value === shift.value ? 'text-primary' : 'text-gray-400'
                             }
                           />
                           <span className='text-sm font-medium'>{shift.label}</span>

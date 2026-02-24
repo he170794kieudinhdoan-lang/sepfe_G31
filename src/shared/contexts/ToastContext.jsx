@@ -28,7 +28,7 @@ export const ToastProvider = ({ children }) => {
 };
 
 const ToastList = ({ toasts }) => (
-  <div className="fixed top-5 right-5 z-[100] flex flex-col gap-3">
+  <div className='fixed top-18 right-5 z-[100] flex flex-col gap-3'>
     {toasts.map((t) => (
       <div
         key={t.id}
@@ -38,9 +38,8 @@ const ToastList = ({ toasts }) => (
             : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600'
         }`}
       >
-        <div className="flex-1">{t.message}</div>
+        <div className='flex-1'>{t.message}</div>
       </div>
     ))}
   </div>
 );
-
