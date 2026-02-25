@@ -1,40 +1,21 @@
-<<<<<<< HEAD
-import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin } from 'lucide-react';
-=======
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, MapPin, X, Check } from "lucide-react";
->>>>>>> 4f11fa3 (fix ui)
-
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
-
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-<<<<<<< HEAD
-import { MOCK_JOBS, getFeaturedJobs, getRegularJobs, HERO_IMAGE } from '@/shared/data/mockJobs';
-import { Button2 } from '@/components/ui/button_2';
-=======
 import { MOCK_JOBS, getFeaturedJobs, getRegularJobs, HERO_IMAGE } from "@/shared/data/mockJobs";
 import { Button2 } from "@/components/ui/button_2";
 import { SearchIcon } from "lucide-react";
-<<<<<<< HEAD
-import { useGetProvinces, useGetWards } from "@/features/jobs/api/useSearchJobs";
->>>>>>> 880fdc3 (add manage page)
-
-=======
 import { useGetProvinces, useGetWards, useSearchJobs } from "@/features/jobs/api/useSearchJobs";
 import Typewriter from "typewriter-effect";
->>>>>>> 4f11fa3 (fix ui)
 const POPULAR_KEYWORDS = [
   'công nhân sản xuất',
   'công nhân may mặc',
@@ -54,85 +35,6 @@ function JobCard({ job, featured, aiSuggest }) {
     : "Thỏa thuận";
 
   return (
-<<<<<<< HEAD
-    <Card className='p-0 shadow-sm hover:shadow-md transition rounded-xl overflow-hidden border-0'>
-      {!!job.imageUrl && (
-        <ImageWithFallback
-          src={job.imageUrl}
-          alt=''
-          className='w-full h-36 object-cover'
-          fallbackClassName='h-36 w-full bg-gradient-to-br from-amber-100 to-amber-50'
-        />
-      )}
-
-      <div className='p-5'>
-        <div className='flex items-start justify-between gap-3'>
-          <div>
-            <h3 className='text-lg font-semibold'>{job.title}</h3>
-            <p className='text-sm text-muted-foreground'>{job.company}</p>
-          </div>
-
-          <div className='flex gap-1 flex-wrap justify-end'>
-            {featured && (
-              <Badge className='bg-primary/20 text-primary rounded-lg border-0'>Nổi bật</Badge>
-            )}
-            {aiSuggest && (
-              <Badge className='bg-violet-100 text-violet-700 rounded-lg border-0'>
-                AI Suggest
-              </Badge>
-            )}
-          </div>
-        </div>
-
-<<<<<<< HEAD
-        <div className='mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground'>
-          <div className='flex items-center gap-2'>
-            <MapPin className='h-4 w-4 shrink-0' /> {job.location}
-=======
-        <div className="mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 shrink-0" /> {job.location}
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="outline"><MapPin className="h-4 w-4 shrink-0" /></Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56">Nội dung A</PopoverContent>
-            </Popover>
-
->>>>>>> 880fdc3 (add manage page)
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <span className='font-medium'>₫</span> {job.salary}
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <span className='font-medium'>⏱</span> {job.shift}
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <span className='inline-flex items-center rounded-lg bg-amber-100/80 px-2 py-0.5 text-xs font-medium text-amber-800'>
-              {job.status || 'Đang tuyển'}
-            </span>
-          </div>
-        </div>
-
-        {!!job.tags?.length && (
-          <div className='mt-4 flex flex-wrap gap-2'>
-            {job.tags.map((tag) => (
-              <span key={tag} className='text-xs rounded-full bg-gray-100 px-3 py-1'>
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className='mt-5 flex items-center justify-between'>
-          <Button variant='outline' className='rounded-xl' asChild>
-            <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
-          </Button>
-          <span className='text-xs text-muted-foreground'>{job.updated}</span>
-=======
     <Card className="group relative p-4 shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl border border-slate-100 bg-white">
       <div className="flex gap-4">
         {/* Logo Section */}
@@ -191,7 +93,6 @@ function JobCard({ job, featured, aiSuggest }) {
               ))}
             </div>
           )}
->>>>>>> 4f11fa3 (fix ui)
         </div>
       </div>
 
@@ -219,8 +120,6 @@ function SearchBarPopover({
   setWardsName,
   wardsName,
 }) {
-<<<<<<< HEAD
-=======
 
 
   function normalizeLocationName(name) {
@@ -231,19 +130,8 @@ function SearchBarPopover({
   }
   const { data: provincess } = useGetProvinces();
   const { data: wardss } = useGetWards(wards);
->>>>>>> 880fdc3 (add manage page)
   const nav = useNavigate();
   const handleSearch = () => {
-<<<<<<< HEAD
-    if (keyword.trim() === '') {
-      return;
-    }
-<<<<<<< HEAD
-    nav(`/search?query=${encodeURIComponent(keyword.trim())}`);
-  };
-=======
-    nav('/search?query=' + encodeURIComponent(keyword.trim()) + '&province=' + normalizeLocationName(province) + '&district=' + normalizeLocationName(wardsName))
-=======
     const trimmedKeyword = keyword.trim();
     if (trimmedKeyword === '' && !province && !wardsName) {
       return;
@@ -255,15 +143,9 @@ function SearchBarPopover({
     if (wardsName) params.append('district', normalizeLocationName(wardsName));
 
     nav(`/search?${params.toString()}`);
->>>>>>> 4f11fa3 (fix ui)
   }
->>>>>>> 880fdc3 (add manage page)
   return (
     <Popover open={open} onOpenChange={setOpen}>
-<<<<<<< HEAD
-      <div className='flex-1 max-w-5xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2 relative m-auto my-5'>
-        <Search className='h-4 w-4 text-muted-foreground shrink-0' />
-=======
       <div className="flex-1 max-w-5xl flex items-center gap-2 rounded-xl bg-gray-100/90 shadow-sm px-3 py-1.5 relative mx-auto my-5 border border-white/20 backdrop-blur-md">
         <Search className="h-4 w-4 text-slate-400 shrink-0" />
 
@@ -299,7 +181,6 @@ function SearchBarPopover({
             </Badge>
           )}
         </div>
->>>>>>> 4f11fa3 (fix ui)
 
         <PopoverTrigger asChild>
           <div className='flex-1 min-w-0 '>
@@ -318,18 +199,6 @@ function SearchBarPopover({
             />
           </div>
         </PopoverTrigger>
-<<<<<<< HEAD
-
-        <Button2
-          size='sm'
-          className='rounded-lg shrink-0 border'
-          onClick={() => {
-            setOpen(false);
-            handleSearch();
-          }}
-        >
-          Tìm kiếm
-=======
         <Popover>
           <PopoverTrigger asChild>
             <Button2 title="Chọn địa điểm" size="sm" className="rounded-lg shrink-0 border">
@@ -400,7 +269,6 @@ function SearchBarPopover({
         </Popover>
         <Button2 size="sm" className="rounded-lg shrink-0 border" onClick={() => { setOpen(false); handleSearch() }}>
           <SearchIcon className="text-white" title="tìm kiếm theo từ khoá" />
->>>>>>> 880fdc3 (add manage page)
         </Button2>
       </div>
 
@@ -410,7 +278,6 @@ function SearchBarPopover({
         sideOffset={10}
         className='w-[980px] max-h-[650px] p-0 rounded-2xl shadow-xl border bg-white'
         onOpenAutoFocus={(e) => e.preventDefault()}
-<<<<<<< HEAD
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <div className='px-5 py-4'>
@@ -418,13 +285,6 @@ function SearchBarPopover({
             {/* <div className="text-sm font-semibold">Tìm kiếm theo:</div> */}
 
             <RadioGroup value={searchMode} onValueChange={setSearchMode} className='flex gap-6'>
-=======
-        onCloseAutoFocus={(e) => e.preventDefault()}>
-        <div className="px-5 py-4">
-          <div className="flex items-center gap-4">
-            {/* <div className="text-sm font-semibold">Tìm kiếm theo:</div> */}
-            <RadioGroup value={searchMode} onValueChange={setSearchMode} className="flex gap-6">
->>>>>>> 880fdc3 (add manage page)
               {/* <div className="flex items-center gap-2">
                 <RadioGroupItem value="job" id="sm-job" />
                 <Label htmlFor="sm-job">Tên việc làm</Label>
@@ -504,20 +364,12 @@ export function HomePage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(5);
   const [openSuggest, setOpenSuggest] = useState(false);
-<<<<<<< HEAD
-  const [keyword, setKeyword] = useState('');
-  const [searchMode, setSearchMode] = useState('both'); // job | company | both
-=======
   const [keyword, setKeyword] = useState("");
   const [wards, setWards] = useState("");
   const [province, setProvince] = useState("");
   const [searchMode, setSearchMode] = useState("both");
   const [wardsName, setWardsName] = useState("");
-<<<<<<< HEAD
->>>>>>> 880fdc3 (add manage page)
-=======
   const [openId, setOpenId] = useState(null);
->>>>>>> 4f11fa3 (fix ui)
 
   // demo flags
   const isWorker = true;
@@ -545,11 +397,7 @@ export function HomePage() {
     <div className='bg-gray-50 min-h-full'>
       {/* HERO */}
       <section className="relative overflow-hidden bg-[url('/banner.jpg')]">
-<<<<<<< HEAD
-        <div className='absolute inset-0 bg-black/20' />
-=======
         <div className="absolute inset-0 bg-black/28" />
->>>>>>> 4f11fa3 (fix ui)
         <SearchBarPopover
           keyword={keyword}
           setKeyword={setKeyword}
@@ -566,16 +414,6 @@ export function HomePage() {
           setWardsName={setWardsName}
         />
 
-<<<<<<< HEAD
-        <div className='container mx-auto px-16 py-16 grid lg:grid-cols-2 gap-10 items-center relative'>
-          <div className='space-y-5'>
-            <Badge className='bg-white text-black border-primary/30 w-fit rounded-lg'>
-              Ứng tuyển nhanh trong 1 phút
-            </Badge>
-
-            <h1 className='text-4xl lg:text-5xl font-extrabold leading-tight text-white'>
-              Tìm việc nhanh – thông tin rõ ràng
-=======
         <div className="container mx-auto px-16 py-16 grid lg:grid-cols-2 gap-10 items-center relative">
           <div className="space-y-5">
             <Badge className="bg-white text-black border-primary/30 w-fit rounded-lg">
@@ -600,7 +438,6 @@ export function HomePage() {
 
 
 
->>>>>>> 4f11fa3 (fix ui)
             </h1>
 
             <p className='text-lg text-white/90'>Lương, ca làm, phụ cấp, địa điểm.</p>
@@ -624,95 +461,6 @@ export function HomePage() {
       </section>
 
       {/* FEATURED */}
-<<<<<<< HEAD
-      <section id='jobs' className='container mx-auto px-6 py-12 space-y-6 max-w-7xl'>
-        <div className='flex items-center justify-between'>
-          <h2 className='text-2xl font-bold'>Job nổi bật</h2>
-        </div>
-
-        <div className='grid md:grid-cols-2 xl:grid-cols-3 gap-6'>
-          {featuredJobs.map((job) => (
-            <JobCard key={job.id} job={job} featured />
-          ))}
-        </div>
-      </section>
-
-      {/* REGULAR */}
-      <section className='container mx-auto px-6 pb-16 space-y-6 max-w-7xl'>
-        <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
-          <h2 className='text-2xl font-bold'>Danh sách job thường</h2>
-
-          <div className='flex flex-wrap gap-2 items-center'>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className='rounded-xl px-4 py-2 text-sm bg-white shadow-sm'
-            >
-              <option value='newest'>Mới nhất</option>
-              <option value='salary'>Lương cao</option>
-            </select>
-          </div>
-        </div>
-
-        <div className='grid md:grid-cols-2 gap-6'>
-          {paginatedJobs.map((job) => (
-            <JobCard key={job.id} job={job} />
-          ))}
-        </div>
-
-        <div className='flex items-center justify-center gap-2'>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <Button
-              key={p}
-              variant={page === p ? 'default' : 'outline'}
-              className='rounded-xl h-9 w-9 p-0'
-              onClick={() => setPage(p)}
-            >
-              {p}
-            </Button>
-          ))}
-        </div>
-
-        {/* AI recommend block */}
-        {isWorker && (
-          <Card className='p-6 rounded-xl border-0 shadow-sm bg-white/90'>
-            {isProfileComplete ? (
-              <>
-                <div className='flex items-center justify-between gap-4'>
-                  <div>
-                    <h3 className='text-lg font-semibold'>Gợi ý phù hợp cho bạn (AI)</h3>
-                    <p className='text-sm text-muted-foreground'>
-                      Dựa trên hồ sơ và khu vực bạn quan tâm.
-                    </p>
-                  </div>
-                  <Button variant='outline' className='rounded-xl'>
-                    Lọc thêm
-                  </Button>
-                </div>
-                <div className='mt-6 grid md:grid-cols-2 gap-4'>
-                  {recommendedJobs.map((job) => (
-                    <JobCard key={job.id} job={job} aiSuggest />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className='flex items-center justify-between gap-4'>
-                <div>
-                  <h3 className='text-lg font-semibold'>Hoàn thiện hồ sơ để nhận gợi ý</h3>
-                  <p className='text-sm text-muted-foreground'>
-                    Cập nhật kỹ năng và kinh nghiệm để AI gợi ý chính xác hơn.
-                  </p>
-                </div>
-                <Button className='rounded-xl' asChild>
-                  <Link to='/profile'>Cập nhật hồ sơ</Link>
-                </Button>
-              </div>
-            )}
-          </Card>
-        )}
-      </section>
-    </div>
-=======
       < section id="jobs" className="container mx-auto px-6 py-12 space-y-6 max-w-7xl" >
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Những công việc mới nhất</h2>
@@ -784,6 +532,5 @@ export function HomePage() {
         </div>
       </section >
     </div >
->>>>>>> 4f11fa3 (fix ui)
   );
 }
