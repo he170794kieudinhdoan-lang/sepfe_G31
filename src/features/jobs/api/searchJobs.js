@@ -20,7 +20,7 @@ export const searchJobs = async (params = {}) => {
     // Loại bỏ các key có value undefined/null/''
     const cleanParams = {};
     Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null) {
             cleanParams[key] = value;
         }
     });

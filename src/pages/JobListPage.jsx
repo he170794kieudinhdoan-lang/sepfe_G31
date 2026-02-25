@@ -115,7 +115,7 @@ export const JobListPage = () => {
             </Card>
           </aside>
           <main className="flex-1 min-w-0">
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            {/* <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -130,7 +130,7 @@ export const JobListPage = () => {
                 <option value="newest">Mới nhất</option>
                 <option value="salary">Lương cao</option>
               </select>
-            </div>
+            </div> */}
 
             {filtered.length === 0 ? (
               <EmptyState title={MSG.MSG_JOB_NOT_FOUND} description="Thử thay đổi bộ lọc hoặc từ khóa." />
