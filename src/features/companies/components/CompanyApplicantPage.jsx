@@ -139,8 +139,8 @@ const ApplicantDetail = ({ applicant, job, onBack, onChangeStatus }) => {
             {/* Worker Info */}
             <Card className="p-6 rounded-2xl shadow-sm border-0 bg-white">
                 <div className="flex items-start gap-5 mb-6">
-                    <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-100 to-indigo-100 flex items-center justify-center shrink-0">
-                        <Users className="h-7 w-7 text-blue-600" />
+                    <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shrink-0">
+                        <Users className="h-7 w-7 text-white" />
                     </div>
                     <div className="flex-1">
                         <div className="flex items-start justify-between">

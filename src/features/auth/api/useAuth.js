@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MSG } from '@/shared/constants/messages';
 import * as authApi from './authApi';
-import { getUsers } from '@/features/users/api/userApi';
+import { getUsers, getWorkerProfile } from '@/features/users/api/userApi';
 
 export const useSignUp = () => {
   const { toast } = useToast();
@@ -21,6 +21,28 @@ export const useSignUp = () => {
       toast(message, 'error');
     },
   });
+};
+
+const navigateAfterLogin = async (navigate, roleType) => {
+  if (roleType === 'ADMIN') {
+    navigate('/admin');
+  } else if (roleType === 'EMPLOYER') {
+    navigate('/employer');
+  } else if (roleType === 'WORKER') {
+    try {
+      await getWorkerProfile();
+      navigate('/');
+    } catch (err) {
+      const status = err.response?.status;
+      if (status === 404 || status === 400) {
+        navigate('/worker/welcome');
+      } else {
+        navigate('/');
+      }
+    }
+  } else {
+    navigate('/');
+  }
 };
 
 export const useLogin = () => {
@@ -42,13 +64,7 @@ export const useLogin = () => {
         console.error('Failed to fetch user info after login:', err);
       }
 
-      if (roleType === 'ADMIN') {
-        navigate('/admin');
-      } else if (roleType === 'EMPLOYER') {
-        navigate('/employer');
-      } else {
-        navigate('/');
-      }
+      await navigateAfterLogin(navigate, roleType);
     },
     onError: (error) => {
       const message = error.response?.data?.message || MSG.MSG_LOGIN_ERROR;
@@ -77,11 +93,7 @@ export const useLoginGoogle = () => {
         console.error('Failed to fetch user info after Google login:', err);
       }
 
-      if (roleType === 'EMPLOYER') {
-        navigate('/employer');
-      } else {
-        navigate('/');
-      }
+      await navigateAfterLogin(navigate, roleType);
     },
     onError: (error) => {
       const message = error.response?.data?.message || MSG.MSG_LOGIN_ERROR;

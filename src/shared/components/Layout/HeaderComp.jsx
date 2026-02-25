@@ -13,7 +13,8 @@ const TASKBAR_LINKS = [
   { to: '/terms', label: 'Điều khoản' },
 ];
 
-{/* <div className="flex-1 max-w-2xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2">
+{
+  /* <div className="flex-1 max-w-2xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2">
 <Search className="h-4 w-4 text-muted-foreground shrink-0" />
 <Input
   value={search}
@@ -25,10 +26,10 @@ const TASKBAR_LINKS = [
 <Button size="sm" className="rounded-lg shrink-0" onClick={handleSearch}>
   Tìm kiếm
 </Button>
-</div> */}
+</div> */
+}
 export const Header = () => {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
   const [avatarOpen, setAvatarOpen] = useState(false);
   const { isAuthenticated, isLoading, user, logout } = useAuth();
 
@@ -36,10 +37,6 @@ export const Header = () => {
     await logout();
     setAvatarOpen(false);
     navigate('/auth/login');
-  };
-
-  const handleSearch = () => {
-    if (search.trim()) navigate(`/jobs?q=${encodeURIComponent(search.trim())}`);
   };
 
   return (
@@ -54,37 +51,33 @@ export const Header = () => {
             <span>WorkLink</span>
           </Link>
 
-          <div className='flex-1 max-w-2xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2'>
-            <Search className='h-4 w-4 text-muted-foreground shrink-0' />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder='Tìm theo tên việc/công ty/khu vực'
-              className='border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-9'
-            />
-            <Button size='sm' className='rounded-lg shrink-0' onClick={handleSearch}>
-              Tìm kiếm
-            </Button>
-          </div>
-
           <div className='flex items-center gap-2 shrink-0'>
-            <Button variant='ghost' size='icon' className='rounded-full' asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='rounded-full text-gray-700 hover:bg-primary/10 hover:text-foreground transition'
+              asChild
+            >
               <Link to='/notifications'>
                 <Bell className='h-5 w-5' />
               </Link>
             </Button>
-            <Button variant='ghost' size='icon' className='rounded-full' asChild>
+            <Button
+              variant='ghost'
+              size='icon'
+              className='rounded-full text-gray-700 hover:bg-primary/10 hover:text-foreground transition'
+              asChild
+            >
               <Link to='/chat'>
                 <MessageCircle className='h-5 w-5' />
               </Link>
             </Button>
-            <nav className="flex items-center gap-1 border-t border-gray-100 py-2">
+            <nav className='flex items-center gap-1 border-t border-gray-100 py-2'>
               {TASKBAR_LINKS.map(({ to, label }) => (
                 <Link
                   key={to}
                   to={to}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary/10 hover:text-foreground transition"
+                  className='px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary/10 hover:text-foreground transition'
                 >
                   {label}
                 </Link>
@@ -93,14 +86,14 @@ export const Header = () => {
 
             {isLoading ? (
               <div className='flex items-center gap-2'>
-                <Skeleton className="h-10 w-24 rounded-xl" />
-                <Skeleton className="h-10 w-24 rounded-xl" />
+                <Skeleton className='h-10 w-24 rounded-xl' />
+                <Skeleton className='h-10 w-24 rounded-xl' />
               </div>
             ) : isAuthenticated ? (
               <div className='relative'>
                 <button
                   onClick={() => setAvatarOpen(!avatarOpen)}
-                  className='flex items-center gap-2 rounded-full shadow-sm bg-gray-50 px-3 py-2 hover:bg-gray-100'
+                  className='flex items-center gap-2 rounded-full shadow-sm bg-gray-50 px-3 py-2 hover:bg-gray-100 cursor-pointer transition'
                 >
                   <div className='h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center'>
                     {user?.avatar ? (
@@ -121,7 +114,7 @@ export const Header = () => {
                 {avatarOpen && (
                   <>
                     <div className='fixed inset-0 z-40' onClick={() => setAvatarOpen(false)} />
-                    <div className='absolute right-0 top-full mt-1 w-56 rounded-xl bg-white py-2 shadow-lg border z-50'>
+                    <div className='absolute right-0 top-full mt-2 w-56 rounded-xl bg-white py-2 shadow-lg border z-50'>
                       <div className='px-4 py-2 border-b'>
                         <p className='text-sm font-semibold'>{user?.fullName || 'User'}</p>
                         <p className='text-xs text-muted-foreground'>{user?.email || ''}</p>
@@ -175,7 +168,7 @@ export const Header = () => {
 
                       <button
                         onClick={handleLogout}
-                        className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-red-600'
+                        className='w-full text-left px-4 py-2 text-sm hover:bg-gray-50 text-red-600 cursor-pointer transition'
                       >
                         Đăng xuất
                       </button>
@@ -195,18 +188,6 @@ export const Header = () => {
             )}
           </div>
         </div>
-
-        <nav className='flex items-center gap-1 border-t border-gray-100 py-2'>
-          {TASKBAR_LINKS.map(({ to, label }) => (
-            <Link
-              key={to}
-              to={to}
-              className='px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary/10 hover:text-foreground transition'
-            >
-              {label}
-            </Link>
-          ))}
-        </nav>
       </div>
     </header>
   );

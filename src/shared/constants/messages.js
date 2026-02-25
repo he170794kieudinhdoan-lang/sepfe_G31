@@ -23,6 +23,10 @@ export const MSG = {
   MSG_PROFILE_NO_PERMISSION: 'Bạn không có quyền xem hồ sơ này.',
   MSG_PROFILE_SAVE_SUCCESS: 'Lưu hồ sơ thành công!',
   MSG_PROFILE_REQUIRED: 'Vui lòng điền đầy đủ họ tên và email.',
+  MSG_WORKER_PROFILE_CREATE_SUCCESS: 'Tạo hồ sơ lao động thành công!',
+  MSG_WORKER_PROFILE_CREATE_ERROR: 'Tạo hồ sơ thất bại. Vui lòng thử lại.',
+  MSG_WORKER_PROFILE_UPDATE_SUCCESS: 'Cập nhật hồ sơ lao động thành công!',
+  MSG_WORKER_PROFILE_UPDATE_ERROR: 'Cập nhật hồ sơ thất bại. Vui lòng thử lại.',
 
   // --- Đổi mật khẩu ---
   MSG_CHANGE_PW_WRONG_CURRENT: 'Mật khẩu hiện tại không đúng.',
