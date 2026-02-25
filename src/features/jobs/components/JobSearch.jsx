@@ -3,6 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, MapPin } from 'lucide-react';
+import { SearchIcon } from 'lucide-react';
 
 export const JobSearch = () => {
     return (
@@ -45,12 +46,11 @@ export const JobSearch = () => {
                             <option>Vietnam</option>
                         </select>
                     </div>
-
+                    <SearchIcon />
                     <Button size="lg" className="rounded-full font-bold shadow-lg whitespace-nowrap">
                         Search Jobs
                     </Button>
                 </div>
-
                 <div className="mt-10 text-sm text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
                     <span>Popular Searches:</span>
                     <div className="flex gap-2 flex-wrap justify-center">

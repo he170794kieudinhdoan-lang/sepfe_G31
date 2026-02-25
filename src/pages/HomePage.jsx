@@ -1,22 +1,21 @@
-import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin } from 'lucide-react';
-
+import { useMemo, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, MapPin, X, Check } from "lucide-react";
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
-
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
-import { MOCK_JOBS, getFeaturedJobs, getRegularJobs, HERO_IMAGE } from '@/shared/data/mockJobs';
-import { Button2 } from '@/components/ui/button_2';
-
+import { MOCK_JOBS, getFeaturedJobs, getRegularJobs, HERO_IMAGE } from "@/shared/data/mockJobs";
+import { Button2 } from "@/components/ui/button_2";
+import { SearchIcon } from "lucide-react";
+import { useGetProvinces, useGetWards, useSearchJobs } from "@/features/jobs/api/useSearchJobs";
+import Typewriter from "typewriter-effect";
 const POPULAR_KEYWORDS = [
   'công nhân sản xuất',
   'công nhân may mặc',
@@ -27,73 +26,81 @@ const POPULAR_KEYWORDS = [
 ];
 
 function JobCard({ job, featured, aiSuggest }) {
+  const formattedSalary = job.salaryMax
+    ? new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
+      maximumFractionDigits: 0,
+    }).format(job.salaryMax)
+    : "Thỏa thuận";
+
   return (
-    <Card className='p-0 shadow-sm hover:shadow-md transition rounded-xl overflow-hidden border-0'>
-      {!!job.imageUrl && (
-        <ImageWithFallback
-          src={job.imageUrl}
-          alt=''
-          className='w-full h-36 object-cover'
-          fallbackClassName='h-36 w-full bg-gradient-to-br from-amber-100 to-amber-50'
-        />
-      )}
-
-      <div className='p-5'>
-        <div className='flex items-start justify-between gap-3'>
-          <div>
-            <h3 className='text-lg font-semibold'>{job.title}</h3>
-            <p className='text-sm text-muted-foreground'>{job.company}</p>
-          </div>
-
-          <div className='flex gap-1 flex-wrap justify-end'>
-            {featured && (
-              <Badge className='bg-primary/20 text-primary rounded-lg border-0'>Nổi bật</Badge>
-            )}
-            {aiSuggest && (
-              <Badge className='bg-violet-100 text-violet-700 rounded-lg border-0'>
-                AI Suggest
-              </Badge>
-            )}
-          </div>
+    <Card className="group relative p-4 shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl border border-slate-100 bg-white">
+      <div className="flex gap-4">
+        {/* Logo Section */}
+        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
+          <ImageWithFallback
+            src={job.company.logoUrl}
+            alt={job.company.name}
+            className="h-full w-full object-contain"
+            fallbackClassName="h-full w-full flex items-center justify-center text-[10px] text-slate-400 text-center p-1"
+          />
         </div>
 
-        <div className='mt-4 grid grid-cols-2 gap-3 text-sm text-muted-foreground'>
-          <div className='flex items-center gap-2'>
-            <MapPin className='h-4 w-4 shrink-0' /> {job.location}
+        {/* Content Section */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-yellow-700 transition-colors">
+                {job.title}
+              </h3>
+              <p className="text-xs font-medium text-slate-500 line-clamp-1 mt-0.5">
+                {job.company.name}
+              </p>
+            </div>
+
+            <div className="flex flex-col items-end gap-1 shrink-0">
+              {featured && (
+                <Badge className="bg-amber-50 text-yellow-600 hover:bg-amber-100 border-0 text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider">
+                  Mới
+                </Badge>
+              )}
+              {aiSuggest && (
+                <Badge className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-0 text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider">
+                  AI
+                </Badge>
+              )}
+            </div>
           </div>
 
-          <div className='flex items-center gap-2'>
-            <span className='font-medium'>₫</span> {job.salary}
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]">
+            <div className="flex items-center gap-1 font-semibold">
+              <span className="text-slate-500">Lên tới</span>
+              <span className="text-yellow-500 font-bold">{formattedSalary}</span>
+            </div>
+            <div className="flex items-center gap-1 text-slate-400">
+              <MapPin className="h-3 w-3" />
+              <span className="truncate max-w-[120px]">{job.province || job.address}</span>
+            </div>
           </div>
 
-          <div className='flex items-center gap-2'>
-            <span className='font-medium'>⏱</span> {job.shift}
-          </div>
-
-          <div className='flex items-center gap-2'>
-            <span className='inline-flex items-center rounded-lg bg-amber-100/80 px-2 py-0.5 text-xs font-medium text-amber-800'>
-              {job.status || 'Đang tuyển'}
-            </span>
-          </div>
-        </div>
-
-        {!!job.tags?.length && (
-          <div className='mt-4 flex flex-wrap gap-2'>
-            {job.tags.map((tag) => (
-              <span key={tag} className='text-xs rounded-full bg-gray-100 px-3 py-1'>
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className='mt-5 flex items-center justify-between'>
-          <Button variant='outline' className='rounded-xl' asChild>
-            <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
-          </Button>
-          <span className='text-xs text-muted-foreground'>{job.updated}</span>
+          {job.tags && job.tags.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1">
+              {job.tags.slice(0, 2).map((tag) => (
+                <span key={tag} className="text-[10px] bg-slate-50 text-slate-500 px-2 py-0.5 rounded-full border border-slate-100">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
+
+      <Link
+        to={`/job/${job.id}`}
+        className="absolute inset-0 z-10"
+        aria-label={`Xem chi tiết ${job.title}`}
+      />
     </Card>
   );
 }
@@ -106,18 +113,74 @@ function SearchBarPopover({
   searchMode,
   setSearchMode,
   featuredJobs,
+  province,
+  setProvince,
+  wards,
+  setWards,
+  setWardsName,
+  wardsName,
 }) {
+
+
+  function normalizeLocationName(name) {
+    if (!name) return '';
+    return name
+      .replace(/^(Tỉnh|Thành phố|TP\.?|Tp\.?|tp\.?|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s*/i, "")
+      .trim();
+  }
+  const { data: provincess } = useGetProvinces();
+  const { data: wardss } = useGetWards(wards);
   const nav = useNavigate();
   const handleSearch = () => {
-    if (keyword.trim() === '') {
+    const trimmedKeyword = keyword.trim();
+    if (trimmedKeyword === '' && !province && !wardsName) {
       return;
     }
-    nav(`/search?query=${encodeURIComponent(keyword.trim())}`);
-  };
+
+    const params = new URLSearchParams();
+    if (trimmedKeyword) params.append('query', trimmedKeyword);
+    if (province) params.append('province', normalizeLocationName(province));
+    if (wardsName) params.append('district', normalizeLocationName(wardsName));
+
+    nav(`/search?${params.toString()}`);
+  }
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <div className='flex-1 max-w-5xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2 relative m-auto my-5'>
-        <Search className='h-4 w-4 text-muted-foreground shrink-0' />
+      <div className="flex-1 max-w-5xl flex items-center gap-2 rounded-xl bg-gray-100/90 shadow-sm px-3 py-1.5 relative mx-auto my-5 border border-white/20 backdrop-blur-md">
+        <Search className="h-4 w-4 text-slate-400 shrink-0" />
+
+        <div className="flex items-center gap-1.5">
+          {province && (
+            <Badge variant="secondary" className="h-7 pl-2 pr-1 rounded-lg bg-white/40 text-slate-700 font-medium hover:bg-white/60 border-0 flex items-center gap-1">
+              {normalizeLocationName(province)}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setProvince('');
+                  setWards('');
+                  setWardsName('');
+                }}
+                className="p-0.5 hover:bg-slate-200 rounded-md transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+          {wardsName && (
+            <Badge variant="secondary" className="h-7 pl-2 pr-1 rounded-lg bg-white/40 text-slate-700 font-medium hover:bg-white/60 border-0 flex items-center gap-1">
+              {normalizeLocationName(wardsName)}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setWardsName('');
+                }}
+                className="p-0.5 hover:bg-slate-200 rounded-md transition-colors"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          )}
+        </div>
 
         <PopoverTrigger asChild>
           <div className='flex-1 min-w-0 '>
@@ -136,16 +199,76 @@ function SearchBarPopover({
             />
           </div>
         </PopoverTrigger>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button2 title="Chọn địa điểm" size="sm" className="rounded-lg shrink-0 border">
+              <MapPin className="text-white" />
+            </Button2>
+          </PopoverTrigger>
+          <PopoverContent className="w-[520px] p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl">
+            <div className="flex h-[400px]">
+              {/* Tỉnh / Thành phố */}
+              <div className="w-[55%] border-r border-slate-100 flex flex-col bg-white">
+                <div className="px-4 py-3 border-b border-slate-50">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Tỉnh / Thành phố</h4>
+                </div>
+                <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
+                  <div className="space-y-0.5">
+                    {provincess?.provinces?.map((k) => (
+                      <button
+                        key={k.code}
+                        className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-all flex items-center justify-between group
+                          ${province === k.name ? 'bg-amber-50 text-amber-700 font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => {
+                          setWards(k.code);
+                          setProvince(k.name);
+                        }}
+                      >
+                        <span className="truncate">{k.name}</span>
+                        {province === k.name && <Check className="h-3.5 w-3.5" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-        <Button2
-          size='sm'
-          className='rounded-lg shrink-0 border'
-          onClick={() => {
-            setOpen(false);
-            handleSearch();
-          }}
-        >
-          Tìm kiếm
+              {/* Phường / Xã */}
+              <div className="w-[45%] flex flex-col bg-slate-50/30">
+                <div className="px-4 py-3 border-b border-slate-100">
+                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Phường / Xã</h4>
+                </div>
+                <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
+                  {province ? (
+                    <div className="space-y-0.5">
+                      {wardss?.communes?.map((k) => (
+                        <button
+                          key={k.code}
+                          className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-all flex items-center justify-between
+                            ${wardsName === k.name ? 'bg-amber-50 text-amber-700 font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => setWardsName(k.name)}
+                        >
+                          <span className="truncate">{k.name}</span>
+                          {wardsName === k.name && <Check className="h-3.5 w-3.5" />}
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                      <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <MapPin className="h-5 w-5 text-slate-300" />
+                      </div>
+                      <p className="text-[11px] font-medium text-slate-400 leading-relaxed">Chọn Tỉnh/Thành phố<br />để xem khu vực chi tiết</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
+        <Button2 size="sm" className="rounded-lg shrink-0 border" onClick={() => { setOpen(false); handleSearch() }}>
+          <SearchIcon className="text-white" title="tìm kiếm theo từ khoá" />
         </Button2>
       </div>
 
@@ -166,7 +289,6 @@ function SearchBarPopover({
                 <RadioGroupItem value="job" id="sm-job" />
                 <Label htmlFor="sm-job">Tên việc làm</Label>
               </div>
-
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="company" id="sm-company" />
                 <Label htmlFor="sm-company">Tên công ty</Label>
@@ -195,7 +317,7 @@ function SearchBarPopover({
                     className='w-full text-left rounded-xl px-3 py-2 hover:bg-muted text-sm  cursor-pointer'
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
-                      setKeyword(k);
+                      setDistrict(k);
                       setOpen(false);
                     }}
                   >
@@ -240,15 +362,19 @@ function SearchBarPopover({
 export function HomePage() {
   const [sort, setSort] = useState('newest');
   const [page, setPage] = useState(1);
-
+  const [limit, setLimit] = useState(5);
   const [openSuggest, setOpenSuggest] = useState(false);
-  const [keyword, setKeyword] = useState('');
-  const [searchMode, setSearchMode] = useState('both'); // job | company | both
+  const [keyword, setKeyword] = useState("");
+  const [wards, setWards] = useState("");
+  const [province, setProvince] = useState("");
+  const [searchMode, setSearchMode] = useState("both");
+  const [wardsName, setWardsName] = useState("");
+  const [openId, setOpenId] = useState(null);
 
   // demo flags
   const isWorker = true;
   const isProfileComplete = false;
-
+  const { data: newestJobs, isloading } = useSearchJobs({ limit });
   const featuredJobs = useMemo(() => getFeaturedJobs(), []);
   const regularJobs = useMemo(() => {
     const list = getRegularJobs();
@@ -264,12 +390,14 @@ export function HomePage() {
   const perPage = 4;
   const totalPages = Math.max(1, Math.ceil(regularJobs.length / perPage));
   const paginatedJobs = regularJobs.slice((page - 1) * perPage, page * perPage);
-
+  function formatMoney(number) {
+    return number?.toLocaleString("vi-VN") + " đ"
+  }
   return (
     <div className='bg-gray-50 min-h-full'>
       {/* HERO */}
       <section className="relative overflow-hidden bg-[url('/banner.jpg')]">
-        <div className='absolute inset-0 bg-black/20' />
+        <div className="absolute inset-0 bg-black/28" />
         <SearchBarPopover
           keyword={keyword}
           setKeyword={setKeyword}
@@ -278,16 +406,38 @@ export function HomePage() {
           searchMode={searchMode}
           setSearchMode={setSearchMode}
           featuredJobs={featuredJobs}
+          province={province}
+          setProvince={setProvince}
+          setWards={setWards}
+          wards={wards}
+          wardsName={wardsName}
+          setWardsName={setWardsName}
         />
 
-        <div className='container mx-auto px-16 py-16 grid lg:grid-cols-2 gap-10 items-center relative'>
-          <div className='space-y-5'>
-            <Badge className='bg-white text-black border-primary/30 w-fit rounded-lg'>
-              Ứng tuyển nhanh trong 1 phút
+        <div className="container mx-auto px-16 py-16 grid lg:grid-cols-2 gap-10 items-center relative">
+          <div className="space-y-5">
+            <Badge className="bg-white text-black border-primary/30 w-fit rounded-lg">
+              Worklink - Nền tảng kết nối việc làm
             </Badge>
 
-            <h1 className='text-4xl lg:text-5xl font-extrabold leading-tight text-white'>
-              Tìm việc nhanh – thông tin rõ ràng
+            <h1 className="text-2xl lg:text-5xl font-bold leading-tight text-white ">
+              Tìm việc dễ dàng, thông tin rõ ràng, cơ hội tốt hơn cùng <span className="text-yellow-400 inline-block">
+                <Typewriter
+                  onInit={(typewriter) => {
+                    typewriter
+                      .typeString("WorkLink")
+                      .pauseFor(1000)
+                      .start();
+                  }}
+                  options={{
+                    cursor: '',
+                    loop: false,
+                  }}
+                />
+              </span>
+
+
+
             </h1>
 
             <p className='text-lg text-white/90'>Lương, ca làm, phụ cấp, địa điểm.</p>
@@ -311,92 +461,76 @@ export function HomePage() {
       </section>
 
       {/* FEATURED */}
-      <section id='jobs' className='container mx-auto px-6 py-12 space-y-6 max-w-7xl'>
-        <div className='flex items-center justify-between'>
-          <h2 className='text-2xl font-bold'>Job nổi bật</h2>
+      < section id="jobs" className="container mx-auto px-6 py-12 space-y-6 max-w-7xl" >
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Những công việc mới nhất</h2>
         </div>
 
-        <div className='grid md:grid-cols-2 xl:grid-cols-3 gap-6'>
-          {featuredJobs.map((job) => (
-            <JobCard key={job.id} job={job} featured />
-          ))}
-        </div>
-      </section>
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {newestJobs?.items?.map((job) => (
+            <Popover key={job.id} open={openId == job.id}>
+              <PopoverTrigger asChild>
+                <div onMouseEnter={() => setOpenId(job.id)}
+                  onMouseLeave={() => setOpenId(null)}>
+                  <JobCard key={job.id} job={job} featured />
+                </div>
+              </PopoverTrigger>
+              <PopoverContent className="w-[40vw] h-auto"
+                onMouseEnter={() => setOpenId(job.id)}
+                onMouseLeave={() => setOpenId(null)}>
+                <div >
+                  <div className="flex items-center gap-2 pb-5">
+                    <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
+                      <ImageWithFallback
+                        src={job.company.logoUrl}
+                        alt={job.company.name}
+                        className="h-full w-full object-contain"
+                        fallbackClassName="h-full w-full flex items-center justify-center text-[10px] text-slate-400 text-center p-1"
+                      />
+                    </div>
+                    <div className="flex-[7]">
+                      <div className="text-lg p-2 font-bold text-gray-600">{job.title}</div>
+                      <div className="text-sm ps-2">{job.company.name}</div>
+                    </div>
 
-      {/* REGULAR */}
-      <section className='container mx-auto px-6 pb-16 space-y-6 max-w-7xl'>
-        <div className='flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4'>
-          <h2 className='text-2xl font-bold'>Danh sách job thường</h2>
-
-          <div className='flex flex-wrap gap-2 items-center'>
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value)}
-              className='rounded-xl px-4 py-2 text-sm bg-white shadow-sm'
-            >
-              <option value='newest'>Mới nhất</option>
-              <option value='salary'>Lương cao</option>
-            </select>
-          </div>
-        </div>
-
-        <div className='grid md:grid-cols-2 gap-6'>
-          {paginatedJobs.map((job) => (
-            <JobCard key={job.id} job={job} />
-          ))}
-        </div>
-
-        <div className='flex items-center justify-center gap-2'>
-          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-            <Button
-              key={p}
-              variant={page === p ? 'default' : 'outline'}
-              className='rounded-xl h-9 w-9 p-0'
-              onClick={() => setPage(p)}
-            >
-              {p}
-            </Button>
-          ))}
-        </div>
-
-        {/* AI recommend block */}
-        {isWorker && (
-          <Card className='p-6 rounded-xl border-0 shadow-sm bg-white/90'>
-            {isProfileComplete ? (
-              <>
-                <div className='flex items-center justify-between gap-4'>
-                  <div>
-                    <h3 className='text-lg font-semibold'>Gợi ý phù hợp cho bạn (AI)</h3>
-                    <p className='text-sm text-muted-foreground'>
-                      Dựa trên hồ sơ và khu vực bạn quan tâm.
-                    </p>
                   </div>
-                  <Button variant='outline' className='rounded-xl'>
-                    Lọc thêm
-                  </Button>
+                  <div className="pb-5 flex gap-2">
+                    <Badge className="bg-white text-black border-primary/30 w-fit rounded-lg bg-yellow-200 text-gray-700">
+                      Số lượng {job.quantity}
+                    </Badge>
+                    <Badge className="bg-white text-black border-primary/30 w-fit rounded-lg bg-yellow-200 text-gray-700">
+                      {formatMoney(job.salaryMin)} - {formatMoney(job.salaryMax)} {job.salaryUnit}
+                    </Badge>
+                    {/* <Badge className="bg-white text-black border-primary/30 w-fit rounded-lg">
+                      {job.gender}
+                    </Badge> */}
+                  </div>
+                  <hr></hr>
+                  <div>
+                    <div className="pt-2">
+                      <h4 className="text-sm font-bold text-gray-500">Mô tả công việc</h4>
+                    </div>
+                    <div className="pt-2">
+                      <p className="text-sm">{job.description}</p>
+                    </div>
+                    <div className="pt-2">
+                      <h4 className="text-sm font-bold text-gray-500">Địa chỉ</h4>
+                    </div>
+                    <div className="pt-2">
+                      <p className="text-sm font-bold text-gray-600">{job.address} - {job.district} - {job.province}</p>
+                    </div>
+                  </div>
+                  <div className="pt-4">
+                    <Button2 className="rounded-xl px-6" asChild>
+                      <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
+                    </Button2>
+                  </div>
                 </div>
-                <div className='mt-6 grid md:grid-cols-2 gap-4'>
-                  {recommendedJobs.map((job) => (
-                    <JobCard key={job.id} job={job} aiSuggest />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className='flex items-center justify-between gap-4'>
-                <div>
-                  <h3 className='text-lg font-semibold'>Hoàn thiện hồ sơ để nhận gợi ý</h3>
-                  <p className='text-sm text-muted-foreground'>
-                    Cập nhật kỹ năng và kinh nghiệm để AI gợi ý chính xác hơn.
-                  </p>
-                </div>
-                <Button className='rounded-xl' asChild>
-                  <Link to='/profile'>Cập nhật hồ sơ</Link>
-                </Button>
-              </div>
-            )}
-          </Card>
-        )}
-      </section>
-    </div>
+              </PopoverContent>
+            </Popover>
+          ))}
+        </div>
+      </section >
+    </div >
   );
 }

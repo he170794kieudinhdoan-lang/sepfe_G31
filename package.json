@@ -25,6 +25,7 @@
     "react-router-dom": "^7.12.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "typewriter-effect": "^2.22.0",
     "zod": "^4.3.5"
   },
   "devDependencies": {

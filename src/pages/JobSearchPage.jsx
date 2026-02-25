@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useSearchJobs } from '@/features/jobs/api/useSearchJobs';
+import { useSearchJobs, useGetProvinces, useGetWards } from '@/features/jobs/api/useSearchJobs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -262,11 +262,20 @@ const FilterChip = ({ label, onRemove }) => (
 // ========================
 
 export const JobSearchPage = () => {
+    const normalizeLocationName = (name) => {
+        if (!name) return '';
+        return name
+            .replace(/^(Tỉnh|Thành phố|TP\.?|Tp\.?|tp\.?|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s*/i, '')
+            .trim();
+    };
+
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Init state from URL params
     const [keyword, setKeyword] = useState(searchParams.get('query') || '');
     const [province, setProvince] = useState(searchParams.get('province') || '');
+    const [district, setDistrict] = useState(searchParams.get('district') || '');
+    const [provinceCode, setProvinceCode] = useState('');
     const [workingShift, setWorkingShift] = useState(searchParams.get('workingShift') || '');
     const [occupationId, setOccupationId] = useState(searchParams.get('occupationId') || '');
     const [companyId, setCompanyId] = useState(searchParams.get('companyId') || '');
@@ -277,15 +286,16 @@ export const JobSearchPage = () => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const limit = 12;
 
+    const { data: provincesData } = useGetProvinces();
+    const { data: communesData } = useGetWards(provinceCode);
 
-    // Debounced keyword
+
     const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
     useEffect(() => {
-        const timer = setTimeout(() => setDebouncedKeyword(keyword), 400);
+        const timer = setTimeout(() => setDebouncedKeyword(keyword), 800);
         return () => clearTimeout(timer);
     }, [keyword]);
 
-    // Build API filters
 
     const buildFilters = useCallback(() => {
         const filters = {
@@ -295,13 +305,13 @@ export const JobSearchPage = () => {
         };
         if (debouncedKeyword) filters.keyword = debouncedKeyword;
         if (province) filters.province = province;
+        if (district) filters.district = district;
         if (workingShift) filters.workingShift = workingShift;
         if (occupationId) filters.occupationId = Number(occupationId);
         if (companyId) filters.companyId = Number(companyId);
         if (genderRequirement) filters.genderRequirement = genderRequirement;
-        // Salary range không gửi lên API (BE chưa hỗ trợ), filter tại FE
         return filters;
-    }, [debouncedKeyword, province, workingShift, occupationId, companyId, genderRequirement, sortBy, page]);
+    }, [debouncedKeyword, province, district, workingShift, occupationId, companyId, genderRequirement, sortBy, page]);
 
     const filters = buildFilters();
     const { data, isLoading, isError, isFetching } = useSearchJobs(filters);
@@ -330,7 +340,6 @@ export const JobSearchPage = () => {
             const jMax = job.salaryMax || Infinity;
             const fMin = salaryFilter.min || 0;
             const fMax = salaryFilter.max || Infinity;
-            // Overlap check
             return jMin <= fMax && jMax >= fMin;
         });
     }
@@ -341,19 +350,22 @@ export const JobSearchPage = () => {
 
     useEffect(() => {
         setPage(1);
-    }, [debouncedKeyword, province, workingShift, occupationId, companyId, genderRequirement, salaryRange, sortBy]);
+    }, [debouncedKeyword, province, district, workingShift, occupationId, companyId, genderRequirement, salaryRange, sortBy]);
 
     const activeFilters = [];
     if (workingShift) activeFilters.push({ key: 'workingShift', label: `Ca: ${shiftLabel(workingShift)}`, clear: () => setWorkingShift('') });
     if (genderRequirement) activeFilters.push({ key: 'gender', label: `Giới tính: ${genderLabel(genderRequirement)}`, clear: () => setGenderRequirement('') });
     if (occupationId) activeFilters.push({ key: 'occupation', label: `Ngành nghề: #${occupationId}`, clear: () => setOccupationId('') });
     if (companyId) activeFilters.push({ key: 'company', label: `Công ty: #${companyId}`, clear: () => setCompanyId('') });
-    if (province) activeFilters.push({ key: 'province', label: `Khu vực: ${province}`, clear: () => setProvince('') });
+    if (province) activeFilters.push({ key: 'province', label: `Khu vực: ${province}`, clear: () => { setProvince(''); setProvinceCode(''); setDistrict(''); } });
+    if (district) activeFilters.push({ key: 'district', label: `Phường/Xã: ${district}`, clear: () => setDistrict('') });
     if (salaryRange) activeFilters.push({ key: 'salary', label: `Lương: ${SALARY_RANGES.find((r) => r.value === salaryRange)?.label}`, clear: () => setSalaryRange('') });
 
     const clearAllFilters = () => {
         setKeyword('');
         setProvince('');
+        setDistrict('');
+        setProvinceCode('');
         setWorkingShift('');
         setOccupationId('');
         setCompanyId('');
@@ -462,19 +474,63 @@ export const JobSearchPage = () => {
             </div> */}
 
 
-            {/* Khu vực */}
+            {/* Khu vực - Tỉnh/Thành phố */}
             <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-                    <MapPin className="h-3.5 w-3.5" /> Khu vực
+                    <MapPin className="h-3.5 w-3.5" /> Tỉnh/Thành phố
                 </label>
-                <Input
-                    type="text"
-                    placeholder="VD: TP. Hồ Chí Minh"
-                    value={province}
-                    onChange={(e) => setProvince(e.target.value)}
-                    className="rounded-xl border-gray-200 focus:border-amber-400 focus:ring-amber-200"
-                />
+                <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-white">
+                    {provincesData?.provinces?.map((p) => (
+                        <button
+                            key={p.code}
+                            onClick={() => {
+                                const normalized = normalizeLocationName(p.name);
+                                if (province === normalized) {
+                                    setProvince('');
+                                    setProvinceCode('');
+                                    setDistrict('');
+                                } else {
+                                    setProvince(normalized);
+                                    setProvinceCode(p.code);
+                                    setDistrict('');
+                                }
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm transition-all duration-200 ${province === normalizeLocationName(p.name)
+                                ? 'bg-yellow-400 text-white font-medium'
+                                : 'text-gray-600 hover:bg-amber-50'
+                                }`}
+                        >
+                            {p.name}
+                        </button>
+                    ))}
+                </div>
             </div>
+
+            {/* Khu vực - Phường/Xã */}
+            {provinceCode && (
+                <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
+                        <MapPin className="h-3.5 w-3.5" /> Phường/Xã
+                    </label>
+                    <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-white">
+                        {communesData?.communes?.map((c) => (
+                            <button
+                                key={c.code}
+                                onClick={() => {
+                                    const normalized = normalizeLocationName(c.name);
+                                    setDistrict(district === normalized ? '' : normalized);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-sm transition-all duration-200 ${district === normalizeLocationName(c.name)
+                                    ? 'bg-yellow-400 text-white font-medium'
+                                    : 'text-gray-600 hover:bg-amber-50'
+                                    }`}
+                            >
+                                {c.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Clear All */}
             {activeFilters.length > 0 && (
@@ -588,11 +644,11 @@ export const JobSearchPage = () => {
                                     className="border-0 shadow-none focus-visible:ring-0 text-base bg-transparent"
                                 />
                             </div>
-                            <Button2
+                            {/* <Button2
                                 className="rounded-xl px-6 font-semibold shadow-lg shadow-amber-200/50"
                             >
                                 <Search className="h-4 w-4 mr-2" /> Tìm kiếm
-                            </Button2>
+                            </Button2> */}
                         </div>
                     </div>
                 </div>

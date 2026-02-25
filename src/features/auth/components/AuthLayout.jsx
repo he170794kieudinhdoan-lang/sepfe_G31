@@ -4,7 +4,7 @@ export const AuthLayout = ({ children, title, subtitle }) => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-amber-50/80 via-white to-yellow-50/50">
       <div className="flex-1 flex items-center justify-center p-6">
-        <div className="w-full max-w-lg">
+        <div className="w-full">
           <Link to="/" className="inline-flex items-center gap-2 text-xl font-bold text-primary mb-8">
             <img src="/logo_01.png" alt="WorkLink" className="h-8 w-auto" />
             WorkLink
