@@ -29,10 +29,10 @@ export const searchJobs = async (params = {}) => {
     return response;
 };
 export const getProvinces = async () => {
-    const response = await apiClientCustom('https://production.cas.so/address-kit/latest/provinces').get();
-    return response;
+    const response = await apiClientCustom('https://provinces.open-api.vn/api/p/').get();
+    return { provinces: response };
 }
 export const getWards = async (wardsId) => {
-    const response = await apiClientCustom(`https://production.cas.so/address-kit/latest/provinces/${wardsId}/communes`).get();
-    return response;
+    const response = await apiClientCustom(`https://provinces.open-api.vn/api/p/${wardsId}?depth=2`).get();
+    return { communes: response.districts };
 }
