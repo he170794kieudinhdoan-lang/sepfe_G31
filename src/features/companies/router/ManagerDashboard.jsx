@@ -112,7 +112,7 @@ export const ManagerDashboard = () => {
 
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => setIdCongTyDangXem(null)} className="text-slate-600 hover:bg-yellow-100 hover:text-yellow-800">
+        <Button variant="ghost" onClick={() => setIdCongTyDangXem(null)} className="text-slate-600 hover:bg-primary-muted hover:text-primary-muted-foreground">
           ← Quay lại danh sách
         </Button>
 
@@ -204,7 +204,7 @@ export const ManagerDashboard = () => {
             {chiTietCongTy.status === 'PENDING' && (
               <div className="space-y-3">
                 <Button
-                  className="w-full h-11 rounded-lg bg-yellow-100 hover:bg-yellow-200 text-yellow-900 font-semibold border border-yellow-200 shadow-none"
+                  className="w-full h-11 rounded-lg"
                   onClick={() => setMoModalDuyet(true)}
                 >
                   Chấp thuận đơn
@@ -297,7 +297,7 @@ export const ManagerDashboard = () => {
                           onClick={() => setIdCongTyDangXem(c.id)}
                           variant="outline"
                           size="sm"
-                          className="rounded-lg bg-yellow-50 border-yellow-200 text-yellow-800 hover:bg-yellow-100 hover:border-yellow-300 transition-colors"
+                          className="rounded-lg bg-primary-muted border-primary/20 text-primary-muted-foreground hover:bg-primary/10 hover:border-primary/30 transition-colors"
                         >
                           <Eye className="h-3.5 w-3.5 mr-1.5" /> Xem
                         </Button>

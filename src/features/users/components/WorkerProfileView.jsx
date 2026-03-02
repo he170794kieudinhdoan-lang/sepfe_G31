@@ -175,7 +175,7 @@ export const WorkerProfileView = () => {
 
   const SectionHeading = ({ icon: Icon, title }) => (
     <div className='flex items-center gap-2 mb-4'>
-      <div className='flex items-center justify-center w-8 h-8 rounded-lg bg-primary/20'>
+      <div className='flex items-center justify-center w-8 h-8 rounded-lg bg-primary-muted'>
         <Icon size={16} className='text-primary' />
       </div>
       <h3 className='text-sm font-semibold text-gray-700 uppercase tracking-wide'>{title}</h3>
@@ -198,7 +198,7 @@ export const WorkerProfileView = () => {
       <div className='p-8'>
         {/* Header */}
         <div className='flex items-center gap-3 mb-8'>
-          <div className='flex items-center justify-center w-11 h-11 rounded-xl bg-primary/20 shadow-md'>
+          <div className='flex items-center justify-center w-11 h-11 rounded-xl bg-primary-muted shadow-md'>
             <User size={20} className='text-primary' />
           </div>
           <div>
@@ -305,7 +305,7 @@ export const WorkerProfileView = () => {
                           <RadioGroupItem
                             value={gender.value}
                             id={`gender-${gender.value}`}
-                            className='text-blue-600'
+                            className='text-primary'
                           />
                           <span className='text-sm text-gray-600 group-hover:text-gray-800 transition-colors'>
                             {gender.label}
@@ -358,8 +358,8 @@ export const WorkerProfileView = () => {
                           key={shift.value}
                           htmlFor={`shift-${shift.value}`}
                           className={`flex items-center gap-2.5 px-4 py-3 rounded-xl border cursor-pointer transition-all ${field.value === shift.value
-                            ? 'border-primary/20 bg-primary/20 text-primary/700'
-                            : 'border-gray-200 bg-gray-50/60 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                            ? 'border-primary/20 bg-primary-muted text-primary'
+                            : 'border-gray-200 bg-gray-50/60 text-gray-600 hover:border-primary-hover/20 hover:bg-primary-muted/50'
                             }`}
                         >
                           <RadioGroupItem
@@ -472,7 +472,7 @@ export const WorkerProfileView = () => {
                             <SelectItem
                               key={p.code}
                               value={p.name}
-                              className='rounded-lg text-sm cursor-pointer hover:bg-primary/10 focus:bg-primary/10 focus:text-foreground'
+                              className='rounded-lg text-sm cursor-pointer hover:bg-primary-muted focus:bg-primary-muted focus:text-foreground'
                             >
                               {p.name}
                             </SelectItem>
@@ -492,7 +492,7 @@ export const WorkerProfileView = () => {
             <Button
               type='submit'
               disabled={isUpdating}
-              className='w-full h-12 rounded-xl font-semibold text-sm bg-primary  hover:opacity-90 shadow-md transition-all flex items-center justify-center gap-2'
+              className='w-full h-12 rounded-xl font-semibold text-sm bg-primary hover:bg-primary-hover active:bg-primary-active shadow-md transition-all flex items-center justify-center gap-2'
             >
               {isUpdating ? (
                 <>
