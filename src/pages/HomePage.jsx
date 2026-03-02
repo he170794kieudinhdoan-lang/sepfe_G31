@@ -13,7 +13,6 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from "@/components/ui/skeleton";
 import { MOCK_JOBS, getFeaturedJobs, getRegularJobs, HERO_IMAGE } from "@/shared/data/mockJobs";
-import { Button2 } from "@/components/ui/button_2";
 import { SearchIcon } from "lucide-react";
 import { useGetProvinces, useGetWards, useSearchJobs } from "@/features/jobs/api/useSearchJobs";
 import Typewriter from "typewriter-effect";
@@ -79,7 +78,7 @@ function JobCard({ job, featured, aiSuggest }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-yellow-700 transition-colors">
+              <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
                 {job.title}
               </h3>
               <p className="text-xs font-medium text-slate-500 line-clamp-1 mt-0.5">
@@ -89,7 +88,7 @@ function JobCard({ job, featured, aiSuggest }) {
 
             <div className="flex flex-col items-end gap-1 shrink-0">
               {featured && (
-                <Badge className="bg-amber-50 text-yellow-600 hover:bg-amber-100 border-0 text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider">
+                <Badge className="bg-primary-muted text-primary hover:bg-primary-hover/10 border-0 text-[10px] px-1.5 py-0 font-bold uppercase tracking-wider">
                   Mới
                 </Badge>
               )}
@@ -104,7 +103,7 @@ function JobCard({ job, featured, aiSuggest }) {
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]">
             <div className="flex items-center gap-1 font-semibold">
               <span className="text-slate-500">Lên tới</span>
-              <span className="text-yellow-500 font-bold">{formattedSalary}</span>
+              <span className="text-primary font-bold">{formattedSalary}</span>
             </div>
             <div className="flex items-center gap-1 text-slate-400">
               <MapPin className="h-3 w-3" />
@@ -115,7 +114,7 @@ function JobCard({ job, featured, aiSuggest }) {
           {job.tags && job.tags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {job.tags.slice(0, 2).map((tag) => (
-                <span key={tag} className="text-[11px] font-bold bg-yellow-100 text-yellow-700 px-2.5 py-0.5 rounded-lg border border-yellow-200/50">
+                <span key={tag} className="text-[11px] font-bold bg-primary-muted text-primary px-2.5 py-0.5 rounded-lg border border-primary/10">
                   {tag}
                 </span>
               ))}
@@ -174,7 +173,7 @@ function SearchBarPopover({
   }
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <div className="flex-1 max-w-5xl flex items-center gap-3 rounded-2xl bg-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.1)] px-4 py-2 relative mx-auto border border-slate-100 ring-4 ring-yellow-400/5 group hover:border-yellow-200 transition-all duration-300">
+      <div className="flex-1 max-w-5xl flex items-center gap-3 rounded-2xl bg-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.1)] px-4 py-2 relative mx-auto border border-slate-100 ring-4 ring-primary/5 group hover:border-primary-hover/20 transition-all duration-300">
         <Search className="h-4 w-4 text-slate-400 shrink-0" />
 
         <div className="flex items-center gap-1.5">
@@ -229,9 +228,9 @@ function SearchBarPopover({
         </PopoverTrigger>
         <Popover>
           <PopoverTrigger asChild>
-            <Button2 title="Chọn địa điểm" size="sm" className="rounded-lg shrink-0 border">
-              <MapPin className="text-white" />
-            </Button2>
+            <Button variant="outline" title="Chọn địa điểm" size="sm" className="rounded-lg shrink-0 border">
+              <MapPin className="text-primary" />
+            </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[520px] p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl">
             <div className="flex h-[400px]">
@@ -246,7 +245,7 @@ function SearchBarPopover({
                       <button
                         key={k.code}
                         className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-all flex items-center justify-between group
-                          ${province === k.name ? 'bg-amber-50 text-amber-700 font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
+                          ${province === k.name ? 'bg-primary-muted text-primary font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
                         onMouseDown={(e) => e.preventDefault()}
                         onClick={() => {
                           setWards(k.code);
@@ -273,7 +272,7 @@ function SearchBarPopover({
                         <button
                           key={k.code}
                           className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-all flex items-center justify-between
-                            ${wardsName === k.name ? 'bg-amber-50 text-amber-700 font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
+                            ${wardsName === k.name ? 'bg-primary-muted text-primary font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
                           onMouseDown={(e) => e.preventDefault()}
                           onClick={() => setWardsName(k.name)}
                         >
@@ -295,9 +294,9 @@ function SearchBarPopover({
             </div>
           </PopoverContent>
         </Popover>
-        <Button2 size="sm" className="rounded-lg shrink-0 border" onClick={() => { setOpen(false); handleSearch() }}>
+        <Button size="sm" className="rounded-lg shrink-0 border" onClick={() => { setOpen(false); handleSearch() }}>
           <SearchIcon className="text-white" title="tìm kiếm theo từ khoá" />
-        </Button2>
+        </Button>
       </div>
 
       <PopoverContent
@@ -426,8 +425,8 @@ export function HomePage() {
       {/* PROFESSIONAL YELLOW-THEMED HERO SECTION */}
       <section className="relative overflow-hidden bg-white pt-10 pb-20">
         {/* Subtle Decorative Background Elements */}
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-yellow-50/50 -skew-x-12 translate-x-1/4 pointer-events-none" />
-        <div className="absolute top-20 right-40 w-64 h-64 bg-yellow-400/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-primary-muted/20 -skew-x-12 translate-x-1/4 pointer-events-none" />
+        <div className="absolute top-20 right-40 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
         {/* Search Bar - Floating Style */}
         <div className="container mx-auto px-6 lg:px-16 relative z-20 mb-12">
@@ -451,15 +450,15 @@ export function HomePage() {
         <div className="container mx-auto px-6 lg:px-16 grid lg:grid-cols-2 gap-12 items-center relative z-10">
           {/* Left Content */}
           <div className="space-y-6">
-            <Badge className="bg-yellow-100 text-yellow-700 border-yellow-200 w-fit rounded-lg px-3 py-1 font-semibold uppercase tracking-wider text-[11px]">
+            <Badge className="bg-primary-muted text-primary border-primary/10 w-fit rounded-lg px-3 py-1 font-semibold uppercase tracking-wider text-[11px]">
               Worklink - Nền tảng kết nối việc làm
             </Badge>
 
             <h1 className="text-3xl lg:text-5xl font-extrabold leading-[1.2] text-slate-900">
-              Tìm việc <span className="text-yellow-500">dễ dàng</span>, <br />
-              thông tin <span className="text-yellow-500">rõ ràng</span>, <br />
+              Tìm việc <span className="text-primary">dễ dàng</span>, <br />
+              thông tin <span className="text-primary">rõ ràng</span>, <br />
               cơ hội tốt hơn cùng <br />
-              <span className="text-yellow-500 inline-block relative">
+              <span className="text-primary inline-block relative">
                 <Typewriter
                   onInit={(typewriter) => {
                     typewriter
@@ -473,35 +472,35 @@ export function HomePage() {
                     autoStart: true,
                   }}
                 />
-                <div className="absolute -bottom-1 left-0 w-full h-1.5 bg-yellow-400/30 rounded-full" />
+                <div className="absolute -bottom-1 left-0 w-full h-1.5 bg-primary/20 rounded-full" />
               </span>
             </h1>
 
             <div className="flex items-center gap-4 text-slate-600 font-medium text-lg">
               <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                 Lương
               </span>
               <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                 Ca làm
               </span>
               <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                 Phụ cấp
               </span>
               <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                 Địa điểm
               </span>
             </div>
 
             <div className="pt-4 flex items-center gap-4">
-              <Button2 size="lg" className="rounded-2xl px-8 h-14 text-base font-bold shadow-lg shadow-yellow-400/20 active:scale-95 transition-all" asChild>
+              <Button size="lg" className="rounded-2xl px-8 h-14 text-base font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all" asChild>
                 <Link to='#jobs' className="flex items-center gap-2">
                   Xem việc làm ngay
                 </Link>
-              </Button2>
+              </Button>
               <div className="flex -space-x-2">
                 {["https://media-public.canva.com/zntb4/MAF-Oczntb4/1/s.png",
                   "https://media-public.canva.com/dvcio/MAF-Oddvcio/1/s.png",
@@ -511,7 +510,7 @@ export function HomePage() {
                       <img src={i} alt="User" className="w-full h-full object-contain" />
                     </div>
                   ))}
-                <div className="w-12 h-12 rounded-full border-2 border-white bg-yellow-400 flex items-center justify-center text-[10px] font-bold shadow-sm">
+                <div className="w-12 h-12 rounded-full border-2 border-white bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-sm">
                   99+
                 </div>
               </div>
@@ -530,9 +529,9 @@ export function HomePage() {
             </div>
 
             {/* Decorative Floating Cards (Non-data specific) */}
-            <div className="absolute top-0 -right-4 z-20 bg-white p-4 rounded-2xl shadow-xl border border-yellow-50 animate-bounce duration-5000 hidden md:block">
+            <div className="absolute top-0 -right-4 z-20 bg-white p-4 rounded-2xl shadow-xl border border-primary-muted animate-bounce duration-5000 hidden md:block">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-yellow-400 flex items-center justify-center text-white">
+                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
                   <Check className="w-6 h-6" />
                 </div>
                 <div>
@@ -542,25 +541,25 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="absolute -bottom-6 -left-6 z-20 bg-white p-5 rounded-[2rem] shadow-xl border border-yellow-50 hidden md:block max-w-[220px]">
+            <div className="absolute -bottom-6 -left-6 z-20 bg-white p-5 rounded-[2rem] shadow-xl border border-primary-muted hidden md:block max-w-[220px]">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="text-[10px] font-black text-yellow-600 uppercase">Việc làm mới ⚡</div>
+                  <div className="text-[10px] font-black text-primary uppercase">Việc làm mới ⚡</div>
                 </div>
                 <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full w-2/3 bg-yellow-400 rounded-full" />
+                  <div className="h-full w-2/3 bg-primary rounded-full" />
                 </div>
                 <div className="text-xs font-bold text-slate-800 leading-tight">
                   Nhân viên vận hành - Logistics
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 text-[9px] border-0">12-15 triệu</Badge>
+                  <Badge variant="secondary" className="bg-primary-muted text-primary text-[9px] border-0">12-15 triệu</Badge>
                 </div>
               </div>
             </div>
 
             {/* Background Blob */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-yellow-400/10 rounded-full blur-[100px] -z-10" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 rounded-full blur-[100px] -z-10" />
           </div>
         </div>
       </section>
@@ -605,10 +604,10 @@ export function HomePage() {
 
                     </div>
                     <div className="pb-5 flex gap-2">
-                      <Badge className="bg-yellow-300 text-black border-none w-fit rounded-xl px-4 py-1.5 font-bold text-[13px] shadow-sm">
+                      <Badge className="bg-primary text-primary-foreground border-none w-fit rounded-xl px-4 py-1.5 font-bold text-[13px] shadow-sm">
                         Số lượng {job.quantity}
                       </Badge>
-                      <Badge className="bg-yellow-300 text-black border-none w-fit rounded-xl px-4 py-1.5 font-bold text-[13px] shadow-sm">
+                      <Badge className="bg-primary text-primary-foreground border-none w-fit rounded-xl px-4 py-1.5 font-bold text-[13px] shadow-sm">
                         {formatMoney(job.salaryMin)} - {formatMoney(job.salaryMax)} {job.salaryUnit}
                       </Badge>
                       {/* <Badge className="bg-white text-black border-primary/30 w-fit rounded-lg">
@@ -631,9 +630,9 @@ export function HomePage() {
                       </div>
                     </div>
                     <div className="pt-4">
-                      <Button2 className="rounded-xl px-6" asChild>
+                      <Button className="rounded-xl px-6" asChild>
                         <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
-                      </Button2>
+                      </Button>
                     </div>
                   </div>
                 </PopoverContent>
