@@ -8,6 +8,7 @@ export const DashboardLayout = ({
     menu,
     activeKey,
     onSelect,
+    topbarBell,
     children,
 }) => {
     return (
@@ -50,9 +51,11 @@ export const DashboardLayout = ({
                                         placeholder="Tìm nhanh"
                                     />
                                 </div>
-                                <Button variant="ghost" size="icon" className="rounded-full">
-                                    <Bell className="h-5 w-5" />
-                                </Button>
+                                {topbarBell || (
+                                    <Button variant="ghost" size="icon" className="rounded-full">
+                                        <Bell className="h-5 w-5" />
+                                    </Button>
+                                )}
                                 <Button variant="outline" className="rounded-full px-4">
                                     Admin <ChevronDown className="ml-2 h-4 w-4" />
                                 </Button>
