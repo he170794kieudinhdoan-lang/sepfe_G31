@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { Modal } from '@/shared/components/Modal';
+import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
 import {
@@ -320,6 +321,7 @@ export const ManagerDashboard = () => {
       menu={MENU_QUAN_LY}
       activeKey={tabHienTai}
       onSelect={(key) => { setTabHienTai(key); setIdCongTyDangXem(null); }}
+      topbarBell={<NotificationBellPopover />}
     >
       <div className="min-h-screen bg-slate-50/50 p-6">
         <div className="max-w-7xl mx-auto space-y-4">
