@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { MSG } from '@/shared/constants/messages';
 import { useJobDetail } from '@/features/jobs/api/useJobs';
@@ -12,9 +12,12 @@ import { CompanyInfo } from '@/features/jobs/components/CompanyInfo';
 import { JobDetailContent } from '@/features/jobs/components/JobDetailContent';
 import { Card } from '@/components/ui/card';
 import { Container } from '@/shared/components/Container';
+import { JobDetailSkeleton } from '@/features/jobs/components/JobDetailSkeleton';
+import { SearchX, ArrowLeft } from 'lucide-react';
 
 export const JobDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { data: job, isLoading, isError } = useJobDetail(id);
 
   // TODO: Khi integrate auth, thay bằng const { user } = useAuth();
@@ -27,24 +30,40 @@ export const JobDetailPage = () => {
   const [applyOpen, setApplyOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
 
-  if (!isLoading) {
-    return (
-      <Container className="py-16 flex justify-center">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
-      </Container>
-    );
+  if (isLoading) {
+    return <JobDetailSkeleton />;
   }
 
   if (isError || !job) {
     return (
-      <Container className="py-16 text-center">
-        <h1 className="text-2xl font-bold text-destructive">
+      <div className="min-h-[80vh] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+        <div className="h-24 w-24 rounded-full bg-destructive/10 flex items-center justify-center mb-6">
+          <SearchX className="h-12 w-12 text-destructive" />
+        </div>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-3">
           {MSG.MSG_JOB_NOT_FOUND}
         </h1>
-        <Button className="mt-4 rounded-xl" asChild>
-          <Link to="/">Về trang chủ</Link>
-        </Button>
-      </Container>
+        <p className="text-slate-500 max-w-md mb-8 leading-relaxed font-medium">
+          Rất tiếc, công việc bạn đang tìm kiếm không tồn tại hoặc đã hết hạn
+          tuyển dụng. Vui lòng quay lại trang danh sách để tìm các cơ hội khác.
+        </p>
+        <div className="flex gap-4">
+          <Button
+            variant="outline"
+            className="rounded-xl px-6 h-12 font-semibold transition-all hover:bg-slate-50"
+            onClick={() => navigate(-1)}
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Quay lại
+          </Button>
+          <Button
+            className="rounded-xl px-8 h-12 font-bold shadow-lg shadow-primary/25"
+            asChild
+          >
+            <Link to="/">Về trang chủ</Link>
+          </Button>
+        </div>
+      </div>
     );
   }
 
