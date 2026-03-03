@@ -47,7 +47,7 @@ export const Login = () => {
               id="username"
               type="text"
               placeholder="Nhập tên tài khoản hoặc email"
-              className="rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white"
+              className="rounded-xl border shadow-sm bg-card focus:bg-white transition-colors"
               {...register('username')}
             />
             {errors.username && (
@@ -63,7 +63,7 @@ export const Login = () => {
               id="password"
               type="password"
               placeholder="Nhập mật khẩu"
-              className="rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white"
+              className="rounded-xl border shadow-sm bg-card focus:bg-white transition-colors"
               {...register('password')}
             />
             {errors.password && (

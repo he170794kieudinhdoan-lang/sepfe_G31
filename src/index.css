@@ -41,7 +41,7 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
 
-  /* Animation */
+  /* Animation definitions */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
@@ -69,7 +69,7 @@
   Using OKLCH for consistent perception and better gradients.
 */
 :root {
-  /* Neutral Slate Background - Cleaner and more premium than yellow */
+  /* Neutral Slate Background */
   --background: 250 5% 98.5%;
   --foreground: 224 71% 4%;
 
@@ -79,7 +79,7 @@
   --popover: 0 0% 100%;
   --popover-foreground: 224 71% 4%;
 
-  /* Brand Primary: High-visibility Yellow/Amber */
+  /* Brand Primary: Premium Yellow/Amber */
   --primary: oklch(0.87 0.19 96);
   --primary-foreground: oklch(0.25 0.06 96);
   --primary-hover: oklch(0.83 0.18 96);
@@ -108,28 +108,20 @@
 .dark {
   --background: 224 71% 4%;
   --foreground: 210 40% 98%;
-
   --card: 224 71% 4%;
   --card-foreground: 210 40% 98%;
-
   --popover: 224 71% 4%;
   --popover-foreground: 210 40% 98%;
-
   --primary: oklch(0.929 0.013 255.508);
   --primary-foreground: 224 71% 4%;
-
   --secondary: 215 28% 17%;
   --secondary-foreground: 210 40% 98%;
-
   --muted: 215 28% 17%;
   --muted-foreground: 215 20% 65%;
-
   --accent: 215 28% 17%;
   --accent-foreground: 210 40% 98%;
-
   --destructive: 0 62% 30%;
   --destructive-foreground: 210 40% 98%;
-
   --border: 215 28% 17%;
   --input: 215 28% 17%;
   --ring: 216 12% 83%;
@@ -177,16 +169,31 @@
 }
 
 @layer components {
+  /* Using standard CSS for high performance and reliability */
   .glass {
-    @apply bg-white/80 backdrop-blur-md border-b border-white/20;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   }
 
   .card-premium {
-    @apply bg-card rounded-2xl shadow-sm border border-border/50 hover:shadow-md transition-all duration-300;
+    background-color: hsl(var(--card));
+    border-radius: 1rem;
+    box-shadow:
+      0 1px 3px 0 rgba(0, 0, 0, 0.1),
+      0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    border: 1px solid hsl(var(--border) / 0.5);
+    transition: all 0.3s ease;
   }
 
   .btn-primary {
-    @apply bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-active transition-colors rounded-xl px-4 py-2 font-bold;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+    border-radius: 0.75rem;
+    padding: 0.5rem 1rem;
+    font-weight: 700;
+    transition: background-color 0.2s ease;
   }
 }
 

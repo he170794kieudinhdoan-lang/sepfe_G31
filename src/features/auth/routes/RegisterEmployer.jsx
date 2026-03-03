@@ -131,7 +131,7 @@ export const RegisterEmployer = () => {
               id="fullName"
               type="text"
               placeholder="Nhập họ và tên"
-              className="rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white"
+              className="rounded-xl border shadow-sm bg-card focus:bg-white transition-colors"
               {...formRegister('fullName')}
             />
             {errors.fullName && (
@@ -147,7 +147,7 @@ export const RegisterEmployer = () => {
               id="email"
               type="text"
               placeholder="Nhập email"
-              className="rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white"
+              className="rounded-xl border shadow-sm bg-card focus:bg-white transition-colors"
               {...formRegister('email')}
             />
             {errors.email && (
@@ -161,7 +161,7 @@ export const RegisterEmployer = () => {
               id="password"
               type="password"
               placeholder="Ít nhất 8 ký tự"
-              className="rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white"
+              className="rounded-xl border shadow-sm bg-card focus:bg-white transition-colors"
               {...formRegister('password')}
             />
             {errors.password && (
@@ -177,7 +177,7 @@ export const RegisterEmployer = () => {
               id="confirmPassword"
               type="password"
               placeholder="Nhập lại mật khẩu"
-              className="rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white"
+              className="rounded-xl border shadow-sm bg-card focus:bg-white transition-colors"
               {...formRegister('confirmPassword')}
             />
             {errors.confirmPassword && (
@@ -195,7 +195,10 @@ export const RegisterEmployer = () => {
                 className="mr-2 w-4 h-4"
                 {...formRegister('terms')}
               />
-              <Label htmlFor="terms" className="text-sm text-muted-foreground">
+              <Label
+                htmlFor="terms"
+                className="text-sm text-muted-foreground gap-0"
+              >
                 Tôi đã đọc và đồng ý với
                 <a href="/terms" className="text-blue-600 hover:underline px-1">
                   điều khoản sử dụng
