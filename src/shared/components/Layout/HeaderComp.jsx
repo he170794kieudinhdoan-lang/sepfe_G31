@@ -32,9 +32,9 @@ import {
 import { useToast } from '@/shared/contexts/ToastContext';
 
 const TASKBAR_LINKS = [
-  { to: '/jobs', label: 'Việc làm' },
+  { to: '/search', label: 'Việc làm' },
   { to: '/companies', label: 'Công ty' },
-  { to: '/terms', label: 'Điều khoản' },
+  // { to: '/terms', label: 'Điều khoản' },
 ];
 
 {
