@@ -650,7 +650,7 @@ export function HomePage() {
               </div>
             </div>
 
-            <div className="absolute -bottom-6 -left-6 z-20 bg-white p-5 rounded-[2rem] shadow-xl border border-primary-muted hidden md:block max-w-[220px]">
+            <div className="absolute -bottom-6 -left-6 z-20 bg-white p-5 rounded-4xl shadow-xl border border-primary-muted hidden md:block max-w-[220px]">
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="text-[10px] font-black text-primary uppercase">
