@@ -6,14 +6,36 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import { Send, User } from 'lucide-react';
 
 const MOCK_CONVOS = [
-  { id: 1, name: 'LogiFast', last: 'Chào bạn, chúng tôi đã xem hồ sơ...', time: '10:30', unread: 2 },
-  { id: 2, name: 'Freshmart', last: 'Bạn có thể đến phỏng vấn vào thứ 6.', time: 'Hôm qua', unread: 0 },
+  {
+    id: 1,
+    name: 'LogiFast',
+    last: 'Chào bạn, chúng tôi đã xem hồ sơ...',
+    time: '10:30',
+    unread: 2,
+  },
+  {
+    id: 2,
+    name: 'Freshmart',
+    last: 'Bạn có thể đến phỏng vấn vào thứ 6.',
+    time: 'Hôm qua',
+    unread: 0,
+  },
 ];
 
 const MOCK_MESSAGES = [
-  { id: 1, from: 'them', text: 'Xin chào, tôi là HR bên LogiFast.', time: '10:28' },
+  {
+    id: 1,
+    from: 'them',
+    text: 'Xin chào, tôi là HR bên LogiFast.',
+    time: '10:28',
+  },
   { id: 2, from: 'me', text: 'Dạ em chào anh/chị.', time: '10:29' },
-  { id: 3, from: 'them', text: 'Chúng tôi đã xem hồ sơ của bạn. Bạn có thể đến phỏng vấn vào sáng thứ 6 không?', time: '10:30' },
+  {
+    id: 3,
+    from: 'them',
+    text: 'Chúng tôi đã xem hồ sơ của bạn. Bạn có thể đến phỏng vấn vào sáng thứ 6 không?',
+    time: '10:30',
+  },
   { id: 4, from: 'them', text: 'Đang soạn...', typing: true },
 ];
 
@@ -25,10 +47,32 @@ export const ChatPage = () => {
 
   const send = () => {
     if (!input.trim()) return;
-    setMessages((prev) => [...prev.filter((m) => !m.typing), { id: Date.now(), from: 'me', text: input.trim(), time: new Date().toLocaleTimeString('vi', { hour: '2-digit', minute: '2-digit' }) }]);
+    setMessages((prev) => [
+      ...prev.filter((m) => !m.typing),
+      {
+        id: Date.now(),
+        from: 'me',
+        text: input.trim(),
+        time: new Date().toLocaleTimeString('vi', {
+          hour: '2-digit',
+          minute: '2-digit',
+        }),
+      },
+    ]);
     setInput('');
     setTimeout(() => {
-      setMessages((prev) => [...prev, { id: Date.now() + 1, from: 'them', text: 'Cảm ơn bạn. Chúng tôi sẽ liên hệ sớm.', time: new Date().toLocaleTimeString('vi', { hour: '2-digit', minute: '2-digit' }) }]);
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: Date.now() + 1,
+          from: 'them',
+          text: 'Cảm ơn bạn. Chúng tôi sẽ liên hệ sớm.',
+          time: new Date().toLocaleTimeString('vi', {
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+        },
+      ]);
     }, 1500);
   };
 
@@ -53,9 +97,15 @@ export const ChatPage = () => {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <span className="font-medium truncate">{c.name}</span>
-                    {c.unread > 0 && <span className="text-xs bg-primary text-primary-foreground rounded-full px-2">{c.unread}</span>}
+                    {c.unread > 0 && (
+                      <span className="text-xs bg-primary text-primary-foreground rounded-full px-2">
+                        {c.unread}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-sm text-muted-foreground truncate">{c.last}</p>
+                  <p className="text-sm text-muted-foreground truncate">
+                    {c.last}
+                  </p>
                 </div>
               </button>
             ))}
@@ -68,14 +118,29 @@ export const ChatPage = () => {
                 <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
                   <User className="h-5 w-5 text-primary" />
                 </div>
-                <span className="font-semibold">{MOCK_CONVOS.find((c) => c.id === selected)?.name}</span>
+                <span className="font-semibold">
+                  {MOCK_CONVOS.find((c) => c.id === selected)?.name}
+                </span>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {messages.map((m) => (
-                  <div key={m.id} className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[75%] rounded-2xl px-4 py-2 ${m.from === 'me' ? 'bg-primary text-primary-foreground' : 'bg-gray-100'}`}>
-                      {m.typing ? <span className="italic text-muted-foreground">Đang soạn...</span> : <p className="text-sm">{m.text}</p>}
-                      {!m.typing && <p className="text-xs opacity-80 mt-1">{m.time}</p>}
+                  <div
+                    key={m.id}
+                    className={`flex ${m.from === 'me' ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div
+                      className={`max-w-[75%] rounded-2xl px-4 py-2 ${m.from === 'me' ? 'bg-primary text-primary-foreground' : 'bg-gray-100'}`}
+                    >
+                      {m.typing ? (
+                        <span className="italic text-muted-foreground">
+                          Đang soạn...
+                        </span>
+                      ) : (
+                        <p className="text-sm">{m.text}</p>
+                      )}
+                      {!m.typing && (
+                        <p className="text-xs opacity-80 mt-1">{m.time}</p>
+                      )}
                     </div>
                   </div>
                 ))}

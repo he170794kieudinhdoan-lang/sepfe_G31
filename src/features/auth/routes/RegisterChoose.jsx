@@ -40,7 +40,9 @@ export const RegisterChoose = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="font-semibold text-foreground">{title}</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {description}
+                  </p>
                 </div>
               </div>
             </Card>
@@ -49,7 +51,10 @@ export const RegisterChoose = () => {
       </div>
       <p className="text-center text-sm text-muted-foreground mt-8">
         Đã có tài khoản?{' '}
-        <Link to="/auth/login" className="font-medium text-primary hover:underline">
+        <Link
+          to="/auth/login"
+          className="font-medium text-primary hover:underline"
+        >
           Đăng nhập
         </Link>
       </p>

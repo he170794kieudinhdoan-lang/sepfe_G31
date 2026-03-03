@@ -53,14 +53,14 @@ export const UserProfilePage = () => {
 
   if (isLoading) {
     return (
-      <div className='bg-gray-50 min-h-full'>
-        <div className='container mx-auto px-6 py-8'>
-          <Card className='p-6 rounded-xl shadow-sm mb-8'>
-            <div className='flex items-center gap-4'>
-              <Skeleton className='h-16 w-16 rounded-full' />
-              <div className='space-y-2'>
-                <Skeleton className='h-5 w-40' />
-                <Skeleton className='h-4 w-24' />
+      <div className="bg-gray-50 min-h-full">
+        <div className="container mx-auto px-6 py-8">
+          <Card className="p-6 rounded-xl shadow-sm mb-8">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-16 w-16 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-24" />
               </div>
             </div>
           </Card>
@@ -71,10 +71,12 @@ export const UserProfilePage = () => {
 
   if (!user && isOwnProfile) {
     return (
-      <div className='container mx-auto px-6 py-16 text-center'>
-        <p className='text-muted-foreground'>Vui lòng đăng nhập để xem hồ sơ.</p>
-        <Button className='mt-4 rounded-xl' asChild>
-          <Link to='/auth/login'>Đăng nhập</Link>
+      <div className="container mx-auto px-6 py-16 text-center">
+        <p className="text-muted-foreground">
+          Vui lòng đăng nhập để xem hồ sơ.
+        </p>
+        <Button className="mt-4 rounded-xl" asChild>
+          <Link to="/auth/login">Đăng nhập</Link>
         </Button>
       </div>
     );
@@ -117,26 +119,28 @@ export const UserProfilePage = () => {
   };
 
   return (
-    <div className='bg-gray-50 min-h-full'>
-      <div className='container mx-auto px-6 py-8'>
+    <div className="bg-gray-50 min-h-full">
+      <div className="container mx-auto px-6 py-8">
         {/* Profile Header */}
-        <Card className='p-6 rounded-xl shadow-sm mb-8'>
-          <div className='flex items-center gap-4'>
-            <div className='h-16 w-16 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center shrink-0'>
+        <Card className="p-6 rounded-xl shadow-sm mb-8">
+          <div className="flex items-center gap-4">
+            <div className="h-16 w-16 rounded-full overflow-hidden bg-primary/20 flex items-center justify-center shrink-0">
               {profile?.avatar ? (
                 <img
                   src={profile.avatar}
                   alt={profile.fullName}
-                  className='w-full h-full object-cover'
+                  className="w-full h-full object-cover"
                 />
               ) : (
-                <User className='h-8 w-8 text-primary' />
+                <User className="h-8 w-8 text-primary" />
               )}
             </div>
             <div>
-              <h1 className='text-xl font-bold'>{profile?.fullName || 'Người dùng'}</h1>
+              <h1 className="text-xl font-bold">
+                {profile?.fullName || 'Người dùng'}
+              </h1>
               {profile?.roleType && (
-                <Badge className='rounded-lg mt-1'>
+                <Badge className="rounded-lg mt-1">
                   {ROLE_LABEL[profile.roleType] || profile.roleType}
                 </Badge>
               )}
@@ -144,12 +148,13 @@ export const UserProfilePage = () => {
           </div>
         </Card>
 
-        <div className='flex flex-col lg:flex-row gap-8'>
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar */}
-          <aside className='lg:w-56 shrink-0'>
-            <nav className='space-y-1'>
+          <aside className="lg:w-56 shrink-0">
+            <nav className="space-y-1">
               {MENU.map((item) => {
-                if (item.workerOnly && profile?.roleType !== 'WORKER') return null;
+                if (item.workerOnly && profile?.roleType !== 'WORKER')
+                  return null;
                 if (!isOwnProfile && item.key !== 'view') return null;
                 return (
                   <button
@@ -169,26 +174,28 @@ export const UserProfilePage = () => {
           </aside>
 
           {/* Main Content */}
-          <main className='flex-1 min-w-0'>
+          <main className="flex-1 min-w-0">
             {/* Thông tin cá nhân */}
             {active === 'view' && (
-              <Card className='p-6 rounded-xl shadow-sm'>
-                <h2 className='text-lg font-semibold mb-4'>Thông tin cá nhân</h2>
-                <dl className='grid gap-3 text-sm'>
+              <Card className="p-6 rounded-xl shadow-sm">
+                <h2 className="text-lg font-semibold mb-4">
+                  Thông tin cá nhân
+                </h2>
+                <dl className="grid gap-3 text-sm">
                   <div>
-                    <dt className='text-muted-foreground'>Họ tên</dt>
-                    <dd className='font-medium'>{profile?.fullName || '—'}</dd>
+                    <dt className="text-muted-foreground">Họ tên</dt>
+                    <dd className="font-medium">{profile?.fullName || '—'}</dd>
                   </div>
                   <div>
-                    <dt className='text-muted-foreground'>Email</dt>
+                    <dt className="text-muted-foreground">Email</dt>
                     <dd>{profile?.email || '—'}</dd>
                   </div>
                   <div>
-                    <dt className='text-muted-foreground'>Số điện thoại</dt>
+                    <dt className="text-muted-foreground">Số điện thoại</dt>
                     <dd>{profile?.phone || '—'}</dd>
                   </div>
                   <div>
-                    <dt className='text-muted-foreground'>Địa chỉ</dt>
+                    <dt className="text-muted-foreground">Địa chỉ</dt>
                     <dd>{profile?.address || '—'}</dd>
                   </div>
                 </dl>
@@ -196,47 +203,57 @@ export const UserProfilePage = () => {
             )}
 
             {/* Hồ sơ lao động */}
-            {active === 'worker-profile' && profile?.roleType === 'WORKER' && <WorkerProfileView />}
+            {active === 'worker-profile' && profile?.roleType === 'WORKER' && (
+              <WorkerProfileView />
+            )}
 
             {/* Chỉnh sửa hồ sơ */}
             {active === 'edit' && isOwnProfile && (
-              <Card className='p-6 rounded-xl shadow-sm'>
-                <h2 className='text-lg font-semibold mb-4'>Chỉnh sửa hồ sơ</h2>
-                <div className='space-y-4 max-w-sm'>
+              <Card className="p-6 rounded-xl shadow-sm">
+                <h2 className="text-lg font-semibold mb-4">Chỉnh sửa hồ sơ</h2>
+                <div className="space-y-4 max-w-sm">
                   <div>
-                    <label className='text-sm font-medium'>Họ tên</label>
+                    <label className="text-sm font-medium">Họ tên</label>
                     <Input
-                      className='mt-1 rounded-xl'
+                      className="mt-1 rounded-xl"
                       value={editForm.fullName || ''}
-                      onChange={(e) => setEditForm({ ...editForm, fullName: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, fullName: e.target.value })
+                      }
                     />
                   </div>
                   <div>
-                    <label className='text-sm font-medium'>Số điện thoại</label>
+                    <label className="text-sm font-medium">Số điện thoại</label>
                     <Input
-                      className='mt-1 rounded-xl'
+                      className="mt-1 rounded-xl"
                       value={editForm.phone || ''}
-                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, phone: e.target.value })
+                      }
                     />
                   </div>
                   <div>
-                    <label className='text-sm font-medium'>Email</label>
+                    <label className="text-sm font-medium">Email</label>
                     <Input
-                      className='mt-1 rounded-xl'
-                      type='email'
+                      className="mt-1 rounded-xl"
+                      type="email"
                       value={editForm.email || ''}
-                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, email: e.target.value })
+                      }
                     />
                   </div>
                   <div>
-                    <label className='text-sm font-medium'>Địa chỉ</label>
+                    <label className="text-sm font-medium">Địa chỉ</label>
                     <Input
-                      className='mt-1 rounded-xl'
+                      className="mt-1 rounded-xl"
                       value={editForm.address || ''}
-                      onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, address: e.target.value })
+                      }
                     />
                   </div>
-                  <Button className='rounded-xl' onClick={handleSaveProfile}>
+                  <Button className="rounded-xl" onClick={handleSaveProfile}>
                     Lưu thay đổi
                   </Button>
                 </div>
@@ -245,37 +262,45 @@ export const UserProfilePage = () => {
 
             {/* Đổi mật khẩu */}
             {active === 'password' && isOwnProfile && (
-              <Card className='p-6 rounded-xl shadow-sm'>
-                <h2 className='text-lg font-semibold mb-4'>Đổi mật khẩu</h2>
-                <div className='space-y-4 max-w-sm'>
+              <Card className="p-6 rounded-xl shadow-sm">
+                <h2 className="text-lg font-semibold mb-4">Đổi mật khẩu</h2>
+                <div className="space-y-4 max-w-sm">
                   <div>
-                    <label className='text-sm font-medium'>Mật khẩu hiện tại</label>
+                    <label className="text-sm font-medium">
+                      Mật khẩu hiện tại
+                    </label>
                     <Input
-                      className='mt-1 rounded-xl'
-                      type='password'
+                      className="mt-1 rounded-xl"
+                      type="password"
                       value={pw.current}
-                      onChange={(e) => setPw({ ...pw, current: e.target.value })}
+                      onChange={(e) =>
+                        setPw({ ...pw, current: e.target.value })
+                      }
                     />
                   </div>
                   <div>
-                    <label className='text-sm font-medium'>Mật khẩu mới</label>
+                    <label className="text-sm font-medium">Mật khẩu mới</label>
                     <Input
-                      className='mt-1 rounded-xl'
-                      type='password'
+                      className="mt-1 rounded-xl"
+                      type="password"
                       value={pw.new}
                       onChange={(e) => setPw({ ...pw, new: e.target.value })}
                     />
                   </div>
                   <div>
-                    <label className='text-sm font-medium'>Xác nhận mật khẩu mới</label>
+                    <label className="text-sm font-medium">
+                      Xác nhận mật khẩu mới
+                    </label>
                     <Input
-                      className='mt-1 rounded-xl'
-                      type='password'
+                      className="mt-1 rounded-xl"
+                      type="password"
                       value={pw.confirm}
-                      onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
+                      onChange={(e) =>
+                        setPw({ ...pw, confirm: e.target.value })
+                      }
                     />
                   </div>
-                  <Button className='rounded-xl' onClick={handleChangePassword}>
+                  <Button className="rounded-xl" onClick={handleChangePassword}>
                     Đổi mật khẩu
                   </Button>
                 </div>
@@ -284,23 +309,29 @@ export const UserProfilePage = () => {
 
             {/* Lịch sử ứng tuyển */}
             {active === 'history' && (
-              <Card className='p-6 rounded-xl shadow-sm'>
-                <h2 className='text-lg font-semibold mb-4'>Lịch sử ứng tuyển</h2>
-                <p className='text-muted-foreground text-sm'>Chưa có lịch sử ứng tuyển.</p>
+              <Card className="p-6 rounded-xl shadow-sm">
+                <h2 className="text-lg font-semibold mb-4">
+                  Lịch sử ứng tuyển
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Chưa có lịch sử ứng tuyển.
+                </p>
                 {/* TODO: fetch và hiển thị apply history từ API */}
               </Card>
             )}
 
             {/* Xóa tài khoản */}
             {active === 'delete' && isOwnProfile && (
-              <Card className='p-6 rounded-xl shadow-sm border-red-200 bg-red-50/50'>
-                <h2 className='text-lg font-semibold text-red-800 mb-2'>Xóa tài khoản</h2>
-                <p className='text-sm text-muted-foreground mb-4'>
+              <Card className="p-6 rounded-xl shadow-sm border-red-200 bg-red-50/50">
+                <h2 className="text-lg font-semibold text-red-800 mb-2">
+                  Xóa tài khoản
+                </h2>
+                <p className="text-sm text-muted-foreground mb-4">
                   Hành động này không thể hoàn tác.
                 </p>
                 <Button
-                  variant='destructive'
-                  className='rounded-xl'
+                  variant="destructive"
+                  className="rounded-xl"
                   onClick={() => setDeleteConfirmOpen(true)}
                 >
                   Xóa tài khoản
@@ -313,12 +344,12 @@ export const UserProfilePage = () => {
 
       <Modal
         open={deleteConfirmOpen}
-        title='Xác nhận xóa tài khoản'
-        description='Bạn chắc chắn muốn xóa tài khoản? Không thể khôi phục.'
+        title="Xác nhận xóa tài khoản"
+        description="Bạn chắc chắn muốn xóa tài khoản? Không thể khôi phục."
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={handleDeleteAccount}
-        confirmLabel='Xóa'
-        tone='danger'
+        confirmLabel="Xóa"
+        tone="danger"
       />
     </div>
   );

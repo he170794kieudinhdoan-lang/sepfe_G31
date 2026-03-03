@@ -27,7 +27,11 @@ import {
 } from 'lucide-react';
 import { CompanyService } from '@/features/companies/api/company.service';
 
-const getPlainTextFromHtml = (html = '') => html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+const getPlainTextFromHtml = (html = '') =>
+  html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 const normalizeAddressText = (value = '') =>
   value
     .toLowerCase()
@@ -39,12 +43,20 @@ const normalizeAddressText = (value = '') =>
     .trim();
 
 const stripProvincePrefix = (value = '') =>
-  normalizeAddressText(value).replace(/^(tinh|thanh pho|tp)\s+/, '').trim();
+  normalizeAddressText(value)
+    .replace(/^(tinh|thanh pho|tp)\s+/, '')
+    .trim();
 
 const stripWardPrefix = (value = '') =>
-  normalizeAddressText(value).replace(/^(xa|phuong|thi tran|tt)\s+/, '').trim();
+  normalizeAddressText(value)
+    .replace(/^(xa|phuong|thi tran|tt)\s+/, '')
+    .trim();
 
-const findBestRegionMatch = (parts, regions = [], normalizer = (v) => normalizeAddressText(v)) => {
+const findBestRegionMatch = (
+  parts,
+  regions = [],
+  normalizer = (v) => normalizeAddressText(v),
+) => {
   const normalizedRegions = regions.map((region) => ({
     ...region,
     normalizedName: normalizer(region.name),
@@ -57,11 +69,13 @@ const findBestRegionMatch = (parts, regions = [], normalizer = (v) => normalizeA
       (region) =>
         normalizedPart === region.normalizedName ||
         normalizedPart.includes(region.normalizedName) ||
-        region.normalizedName.includes(normalizedPart)
+        region.normalizedName.includes(normalizedPart),
     );
 
     if (candidates.length > 0) {
-      const bestMatch = candidates.sort((a, b) => b.normalizedName.length - a.normalizedName.length)[0];
+      const bestMatch = candidates.sort(
+        (a, b) => b.normalizedName.length - a.normalizedName.length,
+      )[0];
       return {
         item: bestMatch,
         index,
@@ -90,7 +104,6 @@ const EditorButton = ({ onClick, isActive, children, title }) => (
 );
 
 const CompanyDescriptionEditor = ({ value, onChange }) => {
-
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -130,7 +143,6 @@ const CompanyDescriptionEditor = ({ value, onChange }) => {
       editor.chain().focus().setImage({ src: url }).run();
     }
   };
-
 
   if (!editor) {
     return (
@@ -229,17 +241,19 @@ const CompanyDescriptionEditor = ({ value, onChange }) => {
 
         <div className="company-editor-divider" />
 
-        <EditorButton title="Chèn ảnh từ URL" onClick={insertImageByUrl} isActive={false}>
+        <EditorButton
+          title="Chèn ảnh từ URL"
+          onClick={insertImageByUrl}
+          isActive={false}
+        >
           <Link2 size={15} />
         </EditorButton>
-
       </div>
 
       <EditorContent editor={editor} />
     </div>
   );
 };
-
 
 export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const navigate = useNavigate();
@@ -276,8 +290,11 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   const buildFullAddress = (detail, wardCode, provinceCode) => {
-    const wardName = wards.find((item) => String(item.code) === String(wardCode))?.name || '';
-    const provinceName = provinces.find((item) => String(item.code) === String(provinceCode))?.name || '';
+    const wardName =
+      wards.find((item) => String(item.code) === String(wardCode))?.name || '';
+    const provinceName =
+      provinces.find((item) => String(item.code) === String(provinceCode))
+        ?.name || '';
 
     return [detail?.trim(), wardName, provinceName].filter(Boolean).join(', ');
   };
@@ -300,7 +317,8 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       form.description !== initialForm.description ||
       form.website !== initialForm.website;
 
-    const fileChanged = form.logoFile !== null || form.businessLicenseFile !== null;
+    const fileChanged =
+      form.logoFile !== null || form.businessLicenseFile !== null;
 
     return textChanged || fileChanged;
   };
@@ -374,7 +392,9 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     setLoadingWards(true);
     setLoadedWardProvinceCode('');
     try {
-      const response = await fetch(`https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`);
+      const response = await fetch(
+        `https://provinces.open-api.vn/api/v2/p/${provinceCode}?depth=2`,
+      );
       if (!response.ok) {
         throw new Error(`Failed to fetch wards: ${response.status}`);
       }
@@ -394,7 +414,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
           (district?.wards || []).map((ward) => ({
             ...ward,
             districtName: district.name,
-          }))
+          })),
         );
       }
 
@@ -419,10 +439,15 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   }, [selectedProvinceCode]);
 
   useEffect(() => {
-    if (!isEdit || addressHydrated || !form.address || provinces.length === 0) return;
+    if (!isEdit || addressHydrated || !form.address || provinces.length === 0)
+      return;
 
     const addressParts = splitAddressParts(form.address);
-    const provinceMatch = findBestRegionMatch(addressParts, provinces, stripProvincePrefix);
+    const provinceMatch = findBestRegionMatch(
+      addressParts,
+      provinces,
+      stripProvincePrefix,
+    );
 
     if (!provinceMatch) {
       setAddressDetail(form.address);
@@ -430,7 +455,9 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       return;
     }
 
-    const remainingParts = addressParts.filter((_, index) => index !== provinceMatch.index);
+    const remainingParts = addressParts.filter(
+      (_, index) => index !== provinceMatch.index,
+    );
     setSelectedProvinceCode(String(provinceMatch.item.code));
     setPendingAddressParse({
       remainingAddress: remainingParts.join(', '),
@@ -440,15 +467,27 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
   useEffect(() => {
     if (!pendingAddressParse) return;
-    if (selectedProvinceCode !== pendingAddressParse.provinceCode || loadingWards) return;
+    if (
+      selectedProvinceCode !== pendingAddressParse.provinceCode ||
+      loadingWards
+    )
+      return;
     if (loadedWardProvinceCode !== pendingAddressParse.provinceCode) return;
 
-    const remainingParts = splitAddressParts(pendingAddressParse.remainingAddress);
-    const wardMatch = findBestRegionMatch(remainingParts, wards, stripWardPrefix);
+    const remainingParts = splitAddressParts(
+      pendingAddressParse.remainingAddress,
+    );
+    const wardMatch = findBestRegionMatch(
+      remainingParts,
+      wards,
+      stripWardPrefix,
+    );
 
     if (wardMatch) {
       setSelectedWardCode(String(wardMatch.item.code));
-      const detailParts = remainingParts.filter((_, index) => index !== wardMatch.index);
+      const detailParts = remainingParts.filter(
+        (_, index) => index !== wardMatch.index,
+      );
       setAddressDetail(detailParts.join(', '));
     } else {
       setSelectedWardCode('');
@@ -457,7 +496,14 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
     setPendingAddressParse(null);
     setAddressHydrated(true);
-  }, [pendingAddressParse, selectedProvinceCode, wards, loadingWards, loadedWardProvinceCode, form.address]);
+  }, [
+    pendingAddressParse,
+    selectedProvinceCode,
+    wards,
+    loadingWards,
+    loadedWardProvinceCode,
+    form.address,
+  ]);
 
   const validateForm = (formData, inEditMode) => {
     const errors = [];
@@ -514,7 +560,11 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     }
 
     if (formData.businessLicenseFile) {
-      const allowedLicenseTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+      const allowedLicenseTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+      ];
       if (!allowedLicenseTypes.includes(formData.businessLicenseFile.type)) {
         errors.push('Giấy phép phải là PDF, JPG hoặc PNG');
       }
@@ -533,10 +583,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
           ))}
         </div>
       );
-      toast(
-        errorData,
-        'error'
-      );
+      toast(errorData, 'error');
       return false;
     }
 
@@ -549,7 +596,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     if (loadingSubmit) return; // chống double click
 
     if (isEdit && !isFormChanged()) {
-      toast("Không có thay đổi để cập nhật", "error");
+      toast('Không có thay đổi để cập nhật', 'error');
       return;
     }
 
@@ -562,7 +609,8 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     fd.append('description', form.description);
     fd.append('website', form.website);
     if (form.logoFile) fd.append('logo', form.logoFile);
-    if (form.businessLicenseFile) fd.append('businessLicense', form.businessLicenseFile);
+    if (form.businessLicenseFile)
+      fd.append('businessLicense', form.businessLicenseFile);
 
     try {
       setLoadingSubmit(true);
@@ -582,7 +630,10 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
         navigate('/employer');
       }
     } catch (error) {
-      console.error(error?.response?.status, error?.response?.data || error.message);
+      console.error(
+        error?.response?.status,
+        error?.response?.data || error.message,
+      );
       toast(MSG.MSG36, 'error');
     } finally {
       setLoadingSubmit(false);
@@ -612,18 +663,27 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       )}
 
       <div
-        className={`mx-auto w-full ${isModal ? 'max-w-5xl px-4 pb-4 md:px-8 md:pb-6' : 'max-w-4xl px-4 md:px-6'
-          }`}
+        className={`mx-auto w-full ${
+          isModal
+            ? 'max-w-5xl px-4 pb-4 md:px-8 md:pb-6'
+            : 'max-w-4xl px-4 md:px-6'
+        }`}
       >
-        <h1 className="mb-8 text-3xl font-bold tracking-tight">{isEdit ? 'Chỉnh sửa công ty' : 'Đăng ký công ty'}</h1>
+        <h1 className="mb-8 text-3xl font-bold tracking-tight">
+          {isEdit ? 'Chỉnh sửa công ty' : 'Đăng ký công ty'}
+        </h1>
 
         {pending && (
           <Card className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-            <p className="text-sm text-amber-800">Hồ sơ công ty đang chờ duyệt. Bạn có thể chỉnh sửa thông tin.</p>
+            <p className="text-sm text-amber-800">
+              Hồ sơ công ty đang chờ duyệt. Bạn có thể chỉnh sửa thông tin.
+            </p>
           </Card>
         )}
 
-        <Card className={`rounded-2xl border border-slate-200 p-6 shadow-md md:p-10 ${isModal ? 'mb-2' : ''}`}>
+        <Card
+          className={`rounded-2xl border border-slate-200 p-6 shadow-md md:p-10 ${isModal ? 'mb-2' : ''}`}
+        >
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
               <Label className="text-sm font-semibold">Tên công ty *</Label>
@@ -652,7 +712,11 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                 onChange={(e) => {
                   const nextDetail = e.target.value;
                   setAddressDetail(nextDetail);
-                  syncAddress(nextDetail, selectedWardCode, selectedProvinceCode);
+                  syncAddress(
+                    nextDetail,
+                    selectedWardCode,
+                    selectedProvinceCode,
+                  );
                 }}
                 placeholder="Số nhà, tên đường"
                 className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
@@ -670,7 +734,9 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                   className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50/40 px-3 text-sm"
                 >
                   <option value="">
-                    {loadingProvinces ? 'Đang tải Tỉnh/Thành phố...' : 'Chọn Tỉnh/Thành phố'}
+                    {loadingProvinces
+                      ? 'Đang tải Tỉnh/Thành phố...'
+                      : 'Chọn Tỉnh/Thành phố'}
                   </option>
                   {provinces.map((province) => (
                     <option key={province.code} value={province.code}>
@@ -684,7 +750,11 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                   onChange={(e) => {
                     const nextWardCode = e.target.value;
                     setSelectedWardCode(nextWardCode);
-                    syncAddress(addressDetail, nextWardCode, selectedProvinceCode);
+                    syncAddress(
+                      addressDetail,
+                      nextWardCode,
+                      selectedProvinceCode,
+                    );
                   }}
                   disabled={!selectedProvinceCode || loadingWards}
                   className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50/40 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
@@ -711,13 +781,17 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
               <div className="rounded-xl border border-slate-300 bg-slate-50/20 p-2">
                 <CompanyDescriptionEditor
                   value={form.description}
-                  onChange={(html) => setForm((prev) => ({ ...prev, description: html }))}
+                  onChange={(html) =>
+                    setForm((prev) => ({ ...prev, description: html }))
+                  }
                 />
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold">Trang web công ty *</Label>
+              <Label className="text-sm font-semibold">
+                Trang web công ty *
+              </Label>
               <Input
                 value={form.website}
                 onChange={(e) => setForm({ ...form, website: e.target.value })}
@@ -742,13 +816,19 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
               />
               {(logoPreview || logoUrl) && (
                 <div className="mt-3">
-                  <img src={logoPreview || logoUrl} alt="Company Logo" className="max-h-48 rounded-lg border object-contain" />
+                  <img
+                    src={logoPreview || logoUrl}
+                    alt="Company Logo"
+                    className="max-h-48 rounded-lg border object-contain"
+                  />
                 </div>
               )}
             </div>
 
             <div className="space-y-2">
-              <Label className="text-sm font-semibold">Giấy phép kinh doanh *</Label>
+              <Label className="text-sm font-semibold">
+                Giấy phép kinh doanh *
+              </Label>
               <Input
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
@@ -763,7 +843,12 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
               />
               {(licensePreview || licenseUrl) && (
                 <div className="mt-3">
-                  <a href={licensePreview || licenseUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                  <a
+                    href={licensePreview || licenseUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline"
+                  >
                     Xem giấy phép kinh doanh
                   </a>
                 </div>

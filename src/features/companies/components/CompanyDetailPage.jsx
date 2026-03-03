@@ -26,7 +26,9 @@ export const CompanyDetailPage = () => {
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <p className="text-destructive font-medium">Không tìm thấy công ty.</p>
-        <Button className="mt-4 rounded-xl" asChild><Link to="/companies">Về danh sách công ty</Link></Button>
+        <Button className="mt-4 rounded-xl" asChild>
+          <Link to="/companies">Về danh sách công ty</Link>
+        </Button>
       </div>
     );
   }
@@ -37,7 +39,11 @@ export const CompanyDetailPage = () => {
         <Card className="p-6 rounded-xl shadow-sm border-0 mb-6">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="h-20 w-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-              <img src={company.logoUrl} alt="" className="w-full h-full object-cover" />
+              <img
+                src={company.logoUrl}
+                alt=""
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="flex-1">
               <h1 className="text-2xl font-bold">{company.name}</h1>
@@ -46,9 +52,12 @@ export const CompanyDetailPage = () => {
               </p>
               <div className="flex items-center gap-2 mt-2">
                 <span className="flex items-center gap-1">
-                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" /> {company.rating}
+                  <Star className="h-4 w-4 fill-amber-400 text-amber-400" />{' '}
+                  {company.rating}
                 </span>
-                <Badge variant="secondary" className="rounded-lg">{company.sector}</Badge>
+                <Badge variant="secondary" className="rounded-lg">
+                  {company.sector}
+                </Badge>
               </div>
             </div>
           </div>
@@ -71,8 +80,14 @@ export const CompanyDetailPage = () => {
             <h3 className="font-semibold mb-4">Giới thiệu</h3>
             <p className="text-muted-foreground">{company.description}</p>
             <dl className="mt-4 space-y-2 text-sm">
-              <div><dt className="text-muted-foreground">Quy mô</dt><dd>{company.size} nhân viên</dd></div>
-              <div><dt className="text-muted-foreground">Ngành</dt><dd>{company.sector}</dd></div>
+              <div>
+                <dt className="text-muted-foreground">Quy mô</dt>
+                <dd>{company.size} nhân viên</dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Ngành</dt>
+                <dd>{company.sector}</dd>
+              </div>
             </dl>
           </Card>
         )}
@@ -80,13 +95,17 @@ export const CompanyDetailPage = () => {
         {activeTab === 'jobs' && (
           <div className="space-y-4">
             {jobs.length === 0 ? (
-              <Card className="p-6 rounded-xl border-0"><p className="text-muted-foreground">Chưa có tin tuyển dụng.</p></Card>
+              <Card className="p-6 rounded-xl border-0">
+                <p className="text-muted-foreground">Chưa có tin tuyển dụng.</p>
+              </Card>
             ) : (
               jobs.map((j) => (
                 <Link key={j.id} to={`/job/${j.id}`}>
                   <Card className="p-4 rounded-xl shadow-sm border-0 hover:shadow-md transition">
                     <h4 className="font-semibold">{j.title}</h4>
-                    <p className="text-sm text-muted-foreground">{j.salary} · {j.location}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {j.salary} · {j.location}
+                    </p>
                   </Card>
                 </Link>
               ))
@@ -98,24 +117,57 @@ export const CompanyDetailPage = () => {
           <Card className="p-6 rounded-xl shadow-sm border-0">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold">Đánh giá</h3>
-              <Button size="sm" className="rounded-xl">Viết đánh giá</Button>
+              <Button size="sm" className="rounded-xl">
+                Viết đánh giá
+              </Button>
             </div>
             {reviews.length === 0 ? (
-              <EmptyState title={MSG.MSG_REVIEW_EMPTY} description="Chưa có đánh giá nào." />
+              <EmptyState
+                title={MSG.MSG_REVIEW_EMPTY}
+                description="Chưa có đánh giá nào."
+              />
             ) : (
               <div className="space-y-4">
                 {reviews.map((r) => (
-                  <div key={r.id} className="border-b border-gray-100 pb-4 last:border-0">
+                  <div
+                    key={r.id}
+                    className="border-b border-gray-100 pb-4 last:border-0"
+                  >
                     <div className="flex items-center gap-2">
                       <span className="font-medium">{r.userName}</span>
-                      <span className="flex text-amber-400">{'★'.repeat(r.rating)}{'☆'.repeat(5 - r.rating)}</span>
-                      <span className="text-xs text-muted-foreground">{r.createdAt}</span>
+                      <span className="flex text-amber-400">
+                        {'★'.repeat(r.rating)}
+                        {'☆'.repeat(5 - r.rating)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {r.createdAt}
+                      </span>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">{r.content}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {r.content}
+                    </p>
                     <div className="flex gap-2 mt-2">
-                      <Button variant="ghost" size="sm" className="rounded-lg text-xs">Sửa</Button>
-                      <Button variant="ghost" size="sm" className="rounded-lg text-xs text-destructive">Xóa</Button>
-                      <Button variant="ghost" size="sm" className="rounded-lg text-xs">Báo cáo</Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-lg text-xs"
+                      >
+                        Sửa
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-lg text-xs text-destructive"
+                      >
+                        Xóa
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="rounded-lg text-xs"
+                      >
+                        Báo cáo
+                      </Button>
                     </div>
                   </div>
                 ))}

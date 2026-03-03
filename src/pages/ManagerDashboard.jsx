@@ -18,7 +18,16 @@ const MANAGER_MENU = [
 ];
 
 const MOCK_REVIEW_REPORTS = [
-  { id: 1, reviewId: 1, companyName: 'LogiFast', reporter: 'User X', reason: 'Nội dung xúc phạm', content: 'Review vi phạm...', createdAt: '2025-02-06', status: 'New' },
+  {
+    id: 1,
+    reviewId: 1,
+    companyName: 'LogiFast',
+    reporter: 'User X',
+    reason: 'Nội dung xúc phạm',
+    content: 'Review vi phạm...',
+    createdAt: '2025-02-06',
+    status: 'New',
+  },
 ];
 
 const MOCK_KPI = [
@@ -29,12 +38,32 @@ const MOCK_KPI = [
 ];
 
 const MOCK_REPORTS = [
-  { id: 1, jobTitle: 'Nhân viên kho vận ca đêm', reportingWorker: 'Nguyễn A', reason: 'Thông tin lương không đúng', created: '2025-02-06 10:00', status: 'New' },
-  { id: 2, jobTitle: 'Phục vụ nhà hàng', reportingWorker: 'Trần B', reason: 'Nội dung không phù hợp', created: '2025-02-05 14:30', status: 'In progress' },
+  {
+    id: 1,
+    jobTitle: 'Nhân viên kho vận ca đêm',
+    reportingWorker: 'Nguyễn A',
+    reason: 'Thông tin lương không đúng',
+    created: '2025-02-06 10:00',
+    status: 'New',
+  },
+  {
+    id: 2,
+    jobTitle: 'Phục vụ nhà hàng',
+    reportingWorker: 'Trần B',
+    reason: 'Nội dung không phù hợp',
+    created: '2025-02-05 14:30',
+    status: 'In progress',
+  },
 ];
 
 const MOCK_COMPANIES = [
-  { id: 1, companyName: 'Công ty TNHH ABC', owner: 'employer@mail.com', submittedDate: '2025-02-01', status: 'Pending' },
+  {
+    id: 1,
+    companyName: 'Công ty TNHH ABC',
+    owner: 'employer@mail.com',
+    submittedDate: '2025-02-01',
+    status: 'Pending',
+  },
 ];
 
 export const ManagerDashboard = () => {
@@ -53,14 +82,14 @@ export const ManagerDashboard = () => {
   const [selectedReviewReport, setSelectedReviewReport] = useState(null);
   const jobSnapshot = selectedReport
     ? {
-      title: selectedReport.jobTitle,
-      company: 'LogiFast',
-      salary: '10-12 triệu',
-      shifts: 'Ca đêm',
-      location: 'TP.HCM',
-      description: 'Mô tả ngắn...',
-      status: 'Active',
-    }
+        title: selectedReport.jobTitle,
+        company: 'LogiFast',
+        salary: '10-12 triệu',
+        shifts: 'Ca đêm',
+        location: 'TP.HCM',
+        description: 'Mô tả ngắn...',
+        status: 'Active',
+      }
     : null;
 
   const handleDisableJob = () => {
@@ -130,31 +159,79 @@ export const ManagerDashboard = () => {
           </Card>
 
           {reports.length === 0 ? (
-            <EmptyState title={MSG.MSG_REPORT_EMPTY} description="Chưa có báo cáo nào." />
+            <EmptyState
+              title={MSG.MSG_REPORT_EMPTY}
+              description="Chưa có báo cáo nào."
+            />
           ) : selectedReport ? (
             <div className="grid lg:grid-cols-2 gap-6">
               <Card className="p-6 rounded-xl shadow-sm">
                 <h3 className="font-semibold mb-4">Thông tin job</h3>
                 <dl className="space-y-2 text-sm">
-                  <div><dt className="text-muted-foreground">Tin tuyển dụng</dt><dd className="font-medium">{jobSnapshot?.title}</dd></div>
-                  <div><dt className="text-muted-foreground">Công ty</dt><dd>{jobSnapshot?.company}</dd></div>
-                  <div><dt className="text-muted-foreground">Lương</dt><dd>{jobSnapshot?.salary}</dd></div>
-                  <div><dt className="text-muted-foreground">Ca làm</dt><dd>{jobSnapshot?.shifts}</dd></div>
-                  <div><dt className="text-muted-foreground">Địa điểm</dt><dd>{jobSnapshot?.location}</dd></div>
-                  <div><dt className="text-muted-foreground">Trạng thái</dt><dd><Badge className="rounded-lg">{jobSnapshot?.status}</Badge></dd></div>
+                  <div>
+                    <dt className="text-muted-foreground">Tin tuyển dụng</dt>
+                    <dd className="font-medium">{jobSnapshot?.title}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Công ty</dt>
+                    <dd>{jobSnapshot?.company}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Lương</dt>
+                    <dd>{jobSnapshot?.salary}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Ca làm</dt>
+                    <dd>{jobSnapshot?.shifts}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Địa điểm</dt>
+                    <dd>{jobSnapshot?.location}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Trạng thái</dt>
+                    <dd>
+                      <Badge className="rounded-lg">
+                        {jobSnapshot?.status}
+                      </Badge>
+                    </dd>
+                  </div>
                 </dl>
               </Card>
               <Card className="p-6 rounded-xl shadow-sm">
                 <h3 className="font-semibold mb-4">Chi tiết báo cáo</h3>
                 <dl className="space-y-2 text-sm">
-                  <div><dt className="text-muted-foreground">Người báo cáo</dt><dd>{selectedReport.reportingWorker}</dd></div>
-                  <div><dt className="text-muted-foreground">Lý do</dt><dd>{selectedReport.reason}</dd></div>
-                  <div><dt className="text-muted-foreground">Thời gian</dt><dd>{selectedReport.created}</dd></div>
+                  <div>
+                    <dt className="text-muted-foreground">Người báo cáo</dt>
+                    <dd>{selectedReport.reportingWorker}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Lý do</dt>
+                    <dd>{selectedReport.reason}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-muted-foreground">Thời gian</dt>
+                    <dd>{selectedReport.created}</dd>
+                  </div>
                 </dl>
                 <div className="mt-6 flex flex-wrap gap-2">
-                  <Button variant="destructive" className="rounded-xl" onClick={() => setDisableJobConfirm(true)}>Vô hiệu hóa job</Button>
-                  <Button variant="outline" className="rounded-xl" onClick={() => setEnableJobConfirm(true)}>Bật lại job</Button>
-                  <Button className="rounded-xl" onClick={handleResolve}>Đánh dấu đã xử lý</Button>
+                  <Button
+                    variant="destructive"
+                    className="rounded-xl"
+                    onClick={() => setDisableJobConfirm(true)}
+                  >
+                    Vô hiệu hóa job
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={() => setEnableJobConfirm(true)}
+                  >
+                    Bật lại job
+                  </Button>
+                  <Button className="rounded-xl" onClick={handleResolve}>
+                    Đánh dấu đã xử lý
+                  </Button>
                 </div>
               </Card>
             </div>
@@ -178,9 +255,18 @@ export const ManagerDashboard = () => {
                       <td>{r.reportingWorker}</td>
                       <td>{r.reason}</td>
                       <td>{r.created}</td>
-                      <td><Badge className="rounded-lg">{r.status}</Badge></td>
                       <td>
-                        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setSelectedReport(r)}>Xem</Button>
+                        <Badge className="rounded-lg">{r.status}</Badge>
+                      </td>
+                      <td>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl"
+                          onClick={() => setSelectedReport(r)}
+                        >
+                          Xem
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -211,10 +297,20 @@ export const ManagerDashboard = () => {
                     <td className="py-3 font-medium">{r.companyName}</td>
                     <td>{r.reporter}</td>
                     <td>{r.reason}</td>
+
                     <td>{r.createdAt}</td>
-                    <td><Badge className="rounded-lg">{r.status}</Badge></td>
                     <td>
-                      <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setSelectedReviewReport(r)}>Xem</Button>
+                      <Badge className="rounded-lg">{r.status}</Badge>
+                    </td>
+                    <td>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl"
+                        onClick={() => setSelectedReviewReport(r)}
+                      >
+                        Xem
+                      </Button>
                     </td>
                   </tr>
                 ))}
@@ -225,12 +321,27 @@ export const ManagerDashboard = () => {
             <Card className="p-6 rounded-xl shadow-sm max-w-2xl">
               <h3 className="font-semibold mb-4">Chi tiết báo cáo đánh giá</h3>
               <dl className="space-y-2 text-sm">
-                <div><dt className="text-muted-foreground">Nội dung bị báo cáo</dt><dd>{selectedReviewReport.content}</dd></div>
-                <div><dt className="text-muted-foreground">Lý do</dt><dd>{selectedReviewReport.reason}</dd></div>
+                <div>
+                  <dt className="text-muted-foreground">Nội dung bị báo cáo</dt>
+                  <dd>{selectedReviewReport.content}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Lý do</dt>
+                  <dd>{selectedReviewReport.reason}</dd>
+                </div>
               </dl>
               <div className="mt-4 flex gap-2">
-                <Button variant="destructive" size="sm" className="rounded-xl">Xóa đánh giá</Button>
-                <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setSelectedReviewReport(null)}>Đóng</Button>
+                <Button variant="destructive" size="sm" className="rounded-xl">
+                  Xóa đánh giá
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="rounded-xl"
+                  onClick={() => setSelectedReviewReport(null)}
+                >
+                  Đóng
+                </Button>
               </div>
             </Card>
           )}
@@ -240,14 +351,26 @@ export const ManagerDashboard = () => {
       {active === 'companies' && (
         <div className="space-y-6">
           {companies.length === 0 ? (
-            <EmptyState title={MSG.MSG_COMPANY_REGISTER_EMPTY} description="Chưa có đơn đăng ký công ty." />
+            <EmptyState
+              title={MSG.MSG_COMPANY_REGISTER_EMPTY}
+              description="Chưa có đơn đăng ký công ty."
+            />
           ) : selectedCompany ? (
             <Card className="p-6 rounded-xl shadow-sm max-w-2xl">
               <h3 className="font-semibold mb-4">Thông tin công ty</h3>
               <dl className="space-y-2 text-sm">
-                <div><dt className="text-muted-foreground">Tên công ty</dt><dd className="font-medium">{selectedCompany.companyName}</dd></div>
-                <div><dt className="text-muted-foreground">Chủ sở hữu</dt><dd>{selectedCompany.owner}</dd></div>
-                <div><dt className="text-muted-foreground">Ngày nộp</dt><dd>{selectedCompany.submittedDate}</dd></div>
+                <div>
+                  <dt className="text-muted-foreground">Tên công ty</dt>
+                  <dd className="font-medium">{selectedCompany.companyName}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Chủ sở hữu</dt>
+                  <dd>{selectedCompany.owner}</dd>
+                </div>
+                <div>
+                  <dt className="text-muted-foreground">Ngày nộp</dt>
+                  <dd>{selectedCompany.submittedDate}</dd>
+                </div>
               </dl>
               <div className="mt-4 h-24 rounded-xl border bg-gray-50 flex items-center justify-center text-muted-foreground text-sm">
                 Khu vực xem tài liệu (preview placeholder)
@@ -255,17 +378,43 @@ export const ManagerDashboard = () => {
               <div className="mt-6 flex gap-4">
                 <div className="flex-1">
                   <label className="text-sm font-medium">Ghi chú (Duyệt)</label>
-                  <Input className="mt-1 rounded-xl" placeholder="Ghi chú..." value={approveNote} onChange={(e) => setApproveNote(e.target.value)} />
+                  <Input
+                    className="mt-1 rounded-xl"
+                    placeholder="Ghi chú..."
+                    value={approveNote}
+                    onChange={(e) => setApproveNote(e.target.value)}
+                  />
                 </div>
                 <div className="flex-1">
-                  <label className="text-sm font-medium">Ghi chú (Từ chối)</label>
-                  <Input className="mt-1 rounded-xl" placeholder="Ghi chú..." value={rejectNote} onChange={(e) => setRejectNote(e.target.value)} />
+                  <label className="text-sm font-medium">
+                    Ghi chú (Từ chối)
+                  </label>
+                  <Input
+                    className="mt-1 rounded-xl"
+                    placeholder="Ghi chú..."
+                    value={rejectNote}
+                    onChange={(e) => setRejectNote(e.target.value)}
+                  />
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
-                <Button className="rounded-xl" onClick={handleApproveCompany}>Approve</Button>
-                <Button variant="destructive" className="rounded-xl" onClick={handleRejectCompany}>Reject</Button>
-                <Button variant="outline" className="rounded-xl" onClick={() => setSelectedCompany(null)}>Quay lại</Button>
+                <Button className="rounded-xl" onClick={handleApproveCompany}>
+                  Approve
+                </Button>
+                <Button
+                  variant="destructive"
+                  className="rounded-xl"
+                  onClick={handleRejectCompany}
+                >
+                  Reject
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-xl"
+                  onClick={() => setSelectedCompany(null)}
+                >
+                  Quay lại
+                </Button>
               </div>
             </Card>
           ) : (
@@ -286,9 +435,18 @@ export const ManagerDashboard = () => {
                       <td className="py-3 font-medium">{c.companyName}</td>
                       <td>{c.owner}</td>
                       <td>{c.submittedDate}</td>
-                      <td><Badge className="rounded-lg">{c.status}</Badge></td>
                       <td>
-                        <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setSelectedCompany(c)}>Xem</Button>
+                        <Badge className="rounded-lg">{c.status}</Badge>
+                      </td>
+                      <td>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl"
+                          onClick={() => setSelectedCompany(c)}
+                        >
+                          Xem
+                        </Button>
                       </td>
                     </tr>
                   ))}
@@ -299,8 +457,23 @@ export const ManagerDashboard = () => {
         </div>
       )}
 
-      <Modal open={disableJobConfirm} title="Vô hiệu hóa job" description="Bạn chắc chắn muốn vô hiệu hóa tin tuyển dụng này?" onClose={() => setDisableJobConfirm(false)} onConfirm={handleDisableJob} confirmLabel="Vô hiệu hóa" tone="danger" />
-      <Modal open={enableJobConfirm} title="Bật lại job" description="Bạn chắc chắn muốn bật lại tin này?" onClose={() => setEnableJobConfirm(false)} onConfirm={handleEnableJob} confirmLabel="Bật lại" />
+      <Modal
+        open={disableJobConfirm}
+        title="Vô hiệu hóa job"
+        description="Bạn chắc chắn muốn vô hiệu hóa tin tuyển dụng này?"
+        onClose={() => setDisableJobConfirm(false)}
+        onConfirm={handleDisableJob}
+        confirmLabel="Vô hiệu hóa"
+        tone="danger"
+      />
+      <Modal
+        open={enableJobConfirm}
+        title="Bật lại job"
+        description="Bạn chắc chắn muốn bật lại tin này?"
+        onClose={() => setEnableJobConfirm(false)}
+        onConfirm={handleEnableJob}
+        confirmLabel="Bật lại"
+      />
     </DashboardLayout>
   );
-}
+};

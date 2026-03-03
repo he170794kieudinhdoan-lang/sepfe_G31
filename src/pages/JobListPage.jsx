@@ -9,6 +9,7 @@ import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { MOCK_JOBS } from '@/shared/data/mockJobs';
 import { MSG } from '@/shared/constants/messages';
 import { MapPin, Search, Timer, Wallet } from 'lucide-react';
+import { Container } from '@/shared/components/Container';
 
 const FILTERS = {
   location: ['TP.HCM', 'Hà Nội', 'Đà Nẵng', 'Bình Dương', 'Nha Trang'],
@@ -21,17 +22,33 @@ const FILTERS = {
 const JobCard = ({ job }) => (
   <Card className="p-0 shadow-sm hover:shadow-md transition rounded-xl overflow-hidden border-0">
     {job.imageUrl && (
-      <ImageWithFallback src={job.imageUrl} alt="" className="w-full h-32 object-cover" fallbackClassName="h-32 w-full bg-gradient-to-br from-amber-100 to-amber-50" />
+      <ImageWithFallback
+        src={job.imageUrl}
+        alt=""
+        className="w-full h-32 object-cover"
+        fallbackClassName="h-32 w-full bg-gradient-to-br from-amber-100 to-amber-50"
+      />
     )}
     <div className="p-4">
       <h3 className="font-semibold line-clamp-1">{job.title}</h3>
       <p className="text-sm text-muted-foreground">{job.company}</p>
       <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {job.location}</span>
-        <span className="flex items-center gap-1"><Wallet className="h-3 w-3" /> {job.salary}</span>
-        <span className="flex items-center gap-1"><Timer className="h-3 w-3" /> {job.shift}</span>
+        <span className="flex items-center gap-1">
+          <MapPin className="h-3 w-3" /> {job.location}
+        </span>
+        <span className="flex items-center gap-1">
+          <Wallet className="h-3 w-3" /> {job.salary}
+        </span>
+        <span className="flex items-center gap-1">
+          <Timer className="h-3 w-3" /> {job.shift}
+        </span>
       </div>
-      <Button variant="outline" size="sm" className="mt-3 rounded-xl w-full" asChild>
+      <Button
+        variant="outline"
+        size="sm"
+        className="mt-3 rounded-xl w-full"
+        asChild
+      >
         <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
       </Button>
     </div>
@@ -39,7 +56,12 @@ const JobCard = ({ job }) => (
 );
 
 export const JobListPage = () => {
-  const [search, setSearch] = useState(() => new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '').get('q') || '');
+  const [search, setSearch] = useState(
+    () =>
+      new URLSearchParams(
+        typeof window !== 'undefined' ? window.location.search : '',
+      ).get('q') || '',
+  );
   const [location, setLocation] = useState('');
   const [salary, setSalary] = useState('');
   const [shift, setShift] = useState('');
@@ -51,12 +73,25 @@ export const JobListPage = () => {
 
   const filtered = useMemo(() => {
     let list = [...MOCK_JOBS];
-    if (search) list = list.filter((j) => j.title.toLowerCase().includes(search.toLowerCase()) || j.company.toLowerCase().includes(search.toLowerCase()));
+    if (search)
+      list = list.filter(
+        (j) =>
+          j.title.toLowerCase().includes(search.toLowerCase()) ||
+          j.company.toLowerCase().includes(search.toLowerCase()),
+      );
     if (location) list = list.filter((j) => j.location === location);
-    if (salary) list = list.filter((j) => j.salary && j.salary.includes(salary.replace(' triệu', '').split('-')[0]?.trim() || ''));
+    if (salary)
+      list = list.filter(
+        (j) =>
+          j.salary &&
+          j.salary.includes(
+            salary.replace(' triệu', '').split('-')[0]?.trim() || '',
+          ),
+      );
     if (shift) list = list.filter((j) => j.shift === shift);
     if (sector) list = list.filter((j) => j.sector === sector);
-    if (sort === 'salary') list.sort((a, b) => (b.salary || '').localeCompare(a.salary || ''));
+    if (sort === 'salary')
+      list.sort((a, b) => (b.salary || '').localeCompare(a.salary || ''));
     return list;
   }, [search, location, salary, shift, sector, sort]);
 
@@ -67,38 +102,88 @@ export const JobListPage = () => {
   const FilterPanel = () => (
     <div className="space-y-4">
       <div>
-        <label className="text-sm font-medium text-muted-foreground">Khu vực</label>
-        <select value={location} onChange={(e) => setLocation(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm">
+        <label className="text-sm font-medium text-muted-foreground">
+          Khu vực
+        </label>
+        <select
+          value={location}
+          onChange={(e) => setLocation(e.target.value)}
+          className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm"
+        >
           <option value="">Tất cả</option>
-          {FILTERS.location.map((o) => <option key={o} value={o}>{o}</option>)}
+          {FILTERS.location.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
         </select>
       </div>
       <div>
-        <label className="text-sm font-medium text-muted-foreground">Mức lương</label>
-        <select value={salary} onChange={(e) => setSalary(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm">
+        <label className="text-sm font-medium text-muted-foreground">
+          Mức lương
+        </label>
+        <select
+          value={salary}
+          onChange={(e) => setSalary(e.target.value)}
+          className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm"
+        >
           <option value="">Tất cả</option>
-          {FILTERS.salary.map((o) => <option key={o} value={o}>{o}</option>)}
+          {FILTERS.salary.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
         </select>
       </div>
       <div>
-        <label className="text-sm font-medium text-muted-foreground">Ca làm</label>
-        <select value={shift} onChange={(e) => setShift(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm">
+        <label className="text-sm font-medium text-muted-foreground">
+          Ca làm
+        </label>
+        <select
+          value={shift}
+          onChange={(e) => setShift(e.target.value)}
+          className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm"
+        >
           <option value="">Tất cả</option>
-          {FILTERS.shift.map((o) => <option key={o} value={o}>{o}</option>)}
+          {FILTERS.shift.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
         </select>
       </div>
       <div>
-        <label className="text-sm font-medium text-muted-foreground">Ngành nghề</label>
-        <select value={sector} onChange={(e) => setSector(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm">
+        <label className="text-sm font-medium text-muted-foreground">
+          Ngành nghề
+        </label>
+        <select
+          value={sector}
+          onChange={(e) => setSector(e.target.value)}
+          className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm"
+        >
           <option value="">Tất cả</option>
-          {FILTERS.sector.map((o) => <option key={o} value={o}>{o}</option>)}
+          {FILTERS.sector.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
         </select>
       </div>
       <div>
-        <label className="text-sm font-medium text-muted-foreground">Loại hình</label>
-        <select value={jobType} onChange={(e) => setJobType(e.target.value)} className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm">
+        <label className="text-sm font-medium text-muted-foreground">
+          Loại hình
+        </label>
+        <select
+          value={jobType}
+          onChange={(e) => setJobType(e.target.value)}
+          className="mt-1 w-full rounded-xl bg-gray-50 shadow-sm text-sm"
+        >
           <option value="">Tất cả</option>
-          {FILTERS.jobType.map((o) => <option key={o} value={o}>{o}</option>)}
+          {FILTERS.jobType.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
         </select>
       </div>
     </div>
@@ -106,7 +191,7 @@ export const JobListPage = () => {
 
   return (
     <div className="bg-gray-50 min-h-full">
-      <div className="container mx-auto px-4 py-6">
+      <Container className="py-6">
         <div className="flex gap-6">
           <aside className="hidden lg:block w-64 shrink-0">
             <Card className="p-4 rounded-xl shadow-sm border-0 sticky top-24">
@@ -133,29 +218,53 @@ export const JobListPage = () => {
             </div> */}
 
             {filtered.length === 0 ? (
-              <EmptyState title={MSG.MSG_JOB_NOT_FOUND} description="Thử thay đổi bộ lọc hoặc từ khóa." />
+              <EmptyState
+                title={MSG.MSG_JOB_NOT_FOUND}
+                description="Thử thay đổi bộ lọc hoặc từ khóa."
+              />
             ) : (
               <>
                 <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                  {paginated.map((job) => <JobCard key={job.id} job={job} />)}
+                  {paginated.map((job) => (
+                    <JobCard key={job.id} job={job} />
+                  ))}
                 </div>
                 <div className="flex justify-center gap-2 mt-8">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                    <Button key={p} variant={page === p ? 'default' : 'outline'} size="sm" className="rounded-xl" onClick={() => setPage(p)}>{p}</Button>
-                  ))}
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                    (p) => (
+                      <Button
+                        key={p}
+                        variant={page === p ? 'default' : 'outline'}
+                        size="sm"
+                        className="rounded-xl"
+                        onClick={() => setPage(p)}
+                      >
+                        {p}
+                      </Button>
+                    ),
+                  )}
                 </div>
               </>
             )}
           </main>
         </div>
-      </div>
+      </Container>
       {drawerOpen && (
         <>
-          <div className="fixed inset-0 bg-black/30 z-40 lg:hidden" onClick={() => setDrawerOpen(false)} />
+          <div
+            className="fixed inset-0 bg-black/30 z-40 lg:hidden"
+            onClick={() => setDrawerOpen(false)}
+          />
           <div className="fixed left-0 top-0 bottom-0 w-72 bg-white p-4 z-50 shadow-xl lg:hidden overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Bộ lọc</h3>
-              <Button variant="ghost" size="sm" onClick={() => setDrawerOpen(false)}>Đóng</Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDrawerOpen(false)}
+              >
+                Đóng
+              </Button>
             </div>
             <FilterPanel />
           </div>
@@ -163,4 +272,4 @@ export const JobListPage = () => {
       )}
     </div>
   );
-}
+};

@@ -33,7 +33,10 @@ const schema = z.object({
   gender: z.string().optional(),
   birthYear: z.preprocess(
     (val) =>
-      val === '' || val === null || val === undefined || Number.isNaN(Number(val))
+      val === '' ||
+      val === null ||
+      val === undefined ||
+      Number.isNaN(Number(val))
         ? undefined
         : Number(val),
     z
@@ -44,7 +47,10 @@ const schema = z.object({
   ),
   expectedSalary: z.preprocess(
     (val) =>
-      val === '' || val === null || val === undefined || Number.isNaN(Number(val))
+      val === '' ||
+      val === null ||
+      val === undefined ||
+      Number.isNaN(Number(val))
         ? undefined
         : Number(val),
     z
@@ -55,7 +61,10 @@ const schema = z.object({
   ),
   experienceYear: z.preprocess(
     (val) =>
-      val === '' || val === null || val === undefined || Number.isNaN(Number(val))
+      val === '' ||
+      val === null ||
+      val === undefined ||
+      Number.isNaN(Number(val))
         ? undefined
         : Number(val),
     z
@@ -71,8 +80,10 @@ export const WorkerProfileSetup = () => {
   const { toast } = useToast();
   const [sectorId, setSectorId] = useState('');
 
-  const { data: occupationsData, isLoading: occupationsLoading } = useGetOccupations();
-  const { mutate: createProfile, isPending: isCreating } = useCreateWorkerProfile();
+  const { data: occupationsData, isLoading: occupationsLoading } =
+    useGetOccupations();
+  const { mutate: createProfile, isPending: isCreating } =
+    useCreateWorkerProfile();
   const { provinces, isLoading: provincesLoading } = useProvinces();
 
   const {
@@ -132,7 +143,8 @@ export const WorkerProfileSetup = () => {
         navigate('/');
       },
       onError: (error) => {
-        const message = error.response?.data?.message || MSG.MSG_WORKER_PROFILE_CREATE_ERROR;
+        const message =
+          error.response?.data?.message || MSG.MSG_WORKER_PROFILE_CREATE_ERROR;
         toast(message, 'error');
       },
     });
@@ -141,26 +153,33 @@ export const WorkerProfileSetup = () => {
   const isLoading = isCreating;
 
   return (
-    <div className='min-h-screen bg-gray-50 py-8 px-4'>
-      <div className='max-w-2xl mx-auto'>
-        <Card className='p-8 rounded-2xl shadow-sm border-0'>
-          <div className='mb-6'>
-            <h1 className='text-2xl font-bold'>Mô tả công việc mong muốn của bạn</h1>
-            <p className='text-muted-foreground mt-2'>
-              Chúng tôi sẽ gợi ý việc làm, cá nhân hoá trải nghiệm dựa trên mong muốn của bạn!
+    <div className="min-h-screen bg-gray-50 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        <Card className="p-8 rounded-2xl shadow-sm border-0">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold">
+              Mô tả công việc mong muốn của bạn
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Chúng tôi sẽ gợi ý việc làm, cá nhân hoá trải nghiệm dựa trên mong
+              muốn của bạn!
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className='space-y-6'>
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Sector Selection */}
-              <div className='space-y-2'>
-                <Label htmlFor='sector' className='text-sm font-medium'>
-                  Ngành nghề <span className='text-destructive'>*</span>
+              <div className="space-y-2">
+                <Label htmlFor="sector" className="text-sm font-medium">
+                  Ngành nghề <span className="text-destructive">*</span>
                 </Label>
-                <Select value={sectorId} onValueChange={setSectorId} disabled={occupationsLoading}>
-                  <SelectTrigger className='w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors'>
-                    <SelectValue placeholder='Chọn ngành nghề' />
+                <Select
+                  value={sectorId}
+                  onValueChange={setSectorId}
+                  disabled={occupationsLoading}
+                >
+                  <SelectTrigger className="w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
+                    <SelectValue placeholder="Chọn ngành nghề" />
                   </SelectTrigger>
                   <SelectContent>
                     {occupationsData?.map((sector) => (
@@ -171,17 +190,19 @@ export const WorkerProfileSetup = () => {
                   </SelectContent>
                 </Select>
                 {!sectorId && errors.occupationId && (
-                  <p className='text-xs text-destructive'>Vui lòng chọn ngành nghề trước</p>
+                  <p className="text-xs text-destructive">
+                    Vui lòng chọn ngành nghề trước
+                  </p>
                 )}
               </div>
 
               {/* Occupation Selection */}
-              <div className='space-y-2'>
-                <Label htmlFor='occupationId' className='text-sm font-medium'>
-                  Nghề cụ thể <span className='text-destructive'>*</span>
+              <div className="space-y-2">
+                <Label htmlFor="occupationId" className="text-sm font-medium">
+                  Nghề cụ thể <span className="text-destructive">*</span>
                 </Label>
                 <Controller
-                  name='occupationId'
+                  name="occupationId"
                   control={control}
                   render={({ field }) => {
                     const occupationValue =
@@ -197,12 +218,15 @@ export const WorkerProfileSetup = () => {
                         }}
                         disabled={!sectorId}
                       >
-                        <SelectTrigger className='w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors'>
-                          <SelectValue placeholder='Chọn nghề cụ thể' />
+                        <SelectTrigger className="w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
+                          <SelectValue placeholder="Chọn nghề cụ thể" />
                         </SelectTrigger>
                         <SelectContent>
                           {filteredOccupations.map((occupation) => (
-                            <SelectItem key={occupation.id} value={occupation.id.toString()}>
+                            <SelectItem
+                              key={occupation.id}
+                              value={occupation.id.toString()}
+                            >
                               {occupation.name}
                             </SelectItem>
                           ))}
@@ -212,17 +236,21 @@ export const WorkerProfileSetup = () => {
                   }}
                 />
                 {errors.occupationId && (
-                  <p className='text-xs text-destructive'>{errors.occupationId.message}</p>
+                  <p className="text-xs text-destructive">
+                    {errors.occupationId.message}
+                  </p>
                 )}
               </div>
             </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Experience Years */}
-              <div className='space-y-2'>
-                <Label className='text-sm font-medium'>Số năm kinh nghiệm</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">
+                  Số năm kinh nghiệm
+                </Label>
                 <Controller
-                  name='experienceYear'
+                  name="experienceYear"
                   control={control}
                   render={({ field }) => {
                     const selectValue =
@@ -234,72 +262,80 @@ export const WorkerProfileSetup = () => {
                     return (
                       <Select
                         value={selectValue}
-                        onValueChange={(val) => field.onChange(parseInt(val, 10))}
+                        onValueChange={(val) =>
+                          field.onChange(parseInt(val, 10))
+                        }
                       >
-                        <SelectTrigger className='w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors'>
-                          <SelectValue placeholder='Chọn số năm kinh nghiệm' />
+                        <SelectTrigger className="w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
+                          <SelectValue placeholder="Chọn số năm kinh nghiệm" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value='0'>Chưa có kinh nghiệm</SelectItem>
+                          <SelectItem value="0">Chưa có kinh nghiệm</SelectItem>
                           {[1, 2, 3, 4, 5].map((year) => (
                             <SelectItem key={year} value={year.toString()}>
                               {year} năm
                             </SelectItem>
                           ))}
-                          <SelectItem value='6'>Trên 5 năm</SelectItem>
+                          <SelectItem value="6">Trên 5 năm</SelectItem>
                         </SelectContent>
                       </Select>
                     );
                   }}
                 />
                 {errors.experienceYear && (
-                  <p className='text-xs text-destructive'>{errors.experienceYear.message}</p>
+                  <p className="text-xs text-destructive">
+                    {errors.experienceYear.message}
+                  </p>
                 )}
               </div>
 
               {/* Birth Year */}
-              <div className='space-y-2'>
-                <Label htmlFor='birthYear' className='text-sm font-medium'>
+              <div className="space-y-2">
+                <Label htmlFor="birthYear" className="text-sm font-medium">
                   Năm sinh
                 </Label>
                 <Input
-                  id='birthYear'
-                  type='number'
-                  placeholder='VD: 1990'
-                  className='h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors'
+                  id="birthYear"
+                  type="number"
+                  placeholder="VD: 1990"
+                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
                   {...register('birthYear', { valueAsNumber: true })}
                 />
                 {errors.birthYear && (
-                  <p className='text-xs text-destructive'>{errors.birthYear.message}</p>
+                  <p className="text-xs text-destructive">
+                    {errors.birthYear.message}
+                  </p>
                 )}
               </div>
             </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Expected Salary Min */}
-              <div className='space-y-2'>
-                <Label htmlFor='expectedSalary' className='text-sm font-medium'>
+              <div className="space-y-2">
+                <Label htmlFor="expectedSalary" className="text-sm font-medium">
                   Mức lương mong muốn
                 </Label>
                 <Input
-                  id='expectedSalary'
-                  type='number'
-                  placeholder='1,000,000'
-                  className='h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors'
+                  id="expectedSalary"
+                  type="number"
+                  placeholder="1,000,000"
+                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
                   {...register('expectedSalary', { valueAsNumber: true })}
                 />
                 {errors.expectedSalary && (
-                  <p className='text-xs text-destructive'>{errors.expectedSalary.message}</p>
+                  <p className="text-xs text-destructive">
+                    {errors.expectedSalary.message}
+                  </p>
                 )}
               </div>
 
               {/* Province */}
-              <div className='space-y-2'>
-                <Label htmlFor='province' className='text-sm font-medium'>
+              <div className="space-y-2">
+                <Label htmlFor="province" className="text-sm font-medium">
                   Địa điểm làm việc
                 </Label>
                 <Controller
-                  name='province'
+                  name="province"
                   control={control}
                   render={({ field }) => (
                     <Select
@@ -307,18 +343,20 @@ export const WorkerProfileSetup = () => {
                       onValueChange={(val) => field.onChange(val)}
                       disabled={provincesLoading}
                     >
-                      <SelectTrigger className='w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors'>
+                      <SelectTrigger className="w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
                         <SelectValue
-                          placeholder={provincesLoading ? 'Đang tải...' : 'Chọn tỉnh/thành'}
+                          placeholder={
+                            provincesLoading ? 'Đang tải...' : 'Chọn tỉnh/thành'
+                          }
                         />
                       </SelectTrigger>
-                      <SelectContent className='p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden'>
-                        <div className='max-h-60 overflow-y-auto py-1 px-1'>
+                      <SelectContent className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                        <div className="max-h-60 overflow-y-auto py-1 px-1">
                           {provinces.map((p) => (
                             <SelectItem
                               key={p.code}
                               value={p.name}
-                              className='rounded-lg text-sm cursor-pointer hover:bg-primary/10 focus:bg-primary/10 focus:text-foreground'
+                              className="rounded-lg text-sm cursor-pointer hover:bg-primary/10 focus:bg-primary/10 focus:text-foreground"
                             >
                               {p.name}
                             </SelectItem>
@@ -331,28 +369,33 @@ export const WorkerProfileSetup = () => {
               </div>
             </div>
 
-            <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Shift */}
-              <div className='space-y-3 pt-2'>
-                <Label className='text-sm font-medium'>Ca làm việc mong muốn</Label>
+              <div className="space-y-3 pt-2">
+                <Label className="text-sm font-medium">
+                  Ca làm việc mong muốn
+                </Label>
                 <Controller
-                  name='shift'
+                  name="shift"
                   control={control}
                   render={({ field }) => (
                     <RadioGroup
                       value={field.value}
                       onValueChange={field.onChange}
-                      className='grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 gap-4'
+                      className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 gap-4"
                     >
                       {SHIFTS.map((shift) => (
                         <div
                           key={shift.value}
-                          className='flex h-10 items-center space-x-2 bg-gray-50/50 px-3 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors'
+                          className="flex h-10 items-center space-x-2 bg-gray-50/50 px-3 rounded-xl border border-gray-100 hover:border-gray-200 transition-colors"
                         >
-                          <RadioGroupItem value={shift.value} id={shift.value} />
+                          <RadioGroupItem
+                            value={shift.value}
+                            id={shift.value}
+                          />
                           <Label
                             htmlFor={shift.value}
-                            className='font-normal cursor-pointer text-sm w-full'
+                            className="font-normal cursor-pointer text-sm w-full"
                           >
                             {shift.label}
                           </Label>
@@ -364,21 +407,30 @@ export const WorkerProfileSetup = () => {
               </div>
 
               {/* Gender */}
-              <div className='space-y-2'>
-                <Label className='text-sm font-medium'>Giới tính</Label>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Giới tính</Label>
                 <Controller
-                  name='gender'
+                  name="gender"
                   control={control}
                   render={({ field }) => (
                     <RadioGroup
                       value={field.value}
                       onValueChange={field.onChange}
-                      className='flex gap-6 h-11 items-center'
+                      className="flex gap-6 h-11 items-center"
                     >
                       {GENDERS.map((gender) => (
-                        <div key={gender.value} className='flex items-center space-x-2'>
-                          <RadioGroupItem value={gender.value} id={gender.value} />
-                          <Label htmlFor={gender.value} className='font-normal cursor-pointer'>
+                        <div
+                          key={gender.value}
+                          className="flex items-center space-x-2"
+                        >
+                          <RadioGroupItem
+                            value={gender.value}
+                            id={gender.value}
+                          />
+                          <Label
+                            htmlFor={gender.value}
+                            className="font-normal cursor-pointer"
+                          >
                             {gender.label}
                           </Label>
                         </div>
@@ -390,19 +442,19 @@ export const WorkerProfileSetup = () => {
             </div>
 
             {/* Submit Button */}
-            <div className='flex gap-4 '>
+            <div className="flex gap-4 ">
               <Button
-                type='submit'
+                type="submit"
                 disabled={isLoading}
-                className='flex-1 rounded-xl h-11 font-medium'
+                className="flex-1 rounded-xl h-11 font-medium"
               >
                 {isLoading ? 'Đang lưu...' : 'Hoàn tất thiết lập'}
               </Button>
               <Button
-                type='button'
-                variant='outline'
+                type="button"
+                variant="outline"
                 onClick={() => navigate('/')}
-                className='rounded-xl h-11'
+                className="rounded-xl h-11"
               >
                 Bỏ qua
               </Button>

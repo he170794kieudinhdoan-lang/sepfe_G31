@@ -11,7 +11,10 @@ import {
   useNotificationRealtime,
   useNotifications,
 } from '@/features/notifications';
-import { getUnreadCount, normalizeNotifications } from '@/features/notifications/utils/normalizeNotifications';
+import {
+  getUnreadCount,
+  normalizeNotifications,
+} from '@/features/notifications/utils/normalizeNotifications';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useToast } from '@/shared/contexts/ToastContext';
 
@@ -21,11 +24,17 @@ export const NotificationPage = () => {
   const userId = user?.userId || user?.id || user?._id;
   const NOTIFICATION_POLLING_MS = 15000;
 
-  const { isRealtimeSubscribed } = useNotificationRealtime({ enabled: isAuthenticated, userId });
+  const { isRealtimeSubscribed } = useNotificationRealtime({
+    enabled: isAuthenticated,
+    userId,
+  });
 
   const { data, isLoading, isError, refetch } = useNotifications({
     enabled: isAuthenticated,
-    refetchInterval: isAuthenticated && !isRealtimeSubscribed ? NOTIFICATION_POLLING_MS : false,
+    refetchInterval:
+      isAuthenticated && !isRealtimeSubscribed
+        ? NOTIFICATION_POLLING_MS
+        : false,
     refetchIntervalInBackground: true,
     refetchOnWindowFocus: true,
   });
@@ -40,7 +49,8 @@ export const NotificationPage = () => {
   const markRead = (id) => {
     markReadMutation.mutate(id, {
       onError: (error) => {
-        const message = error.response?.data?.message || 'Không thể đánh dấu đã đọc.';
+        const message =
+          error.response?.data?.message || 'Không thể đánh dấu đã đọc.';
         toast(message, 'error');
       },
     });
@@ -49,7 +59,8 @@ export const NotificationPage = () => {
   const markAllRead = () => {
     markAllReadMutation.mutate(undefined, {
       onError: (error) => {
-        const message = error.response?.data?.message || 'Không thể đánh dấu tất cả đã đọc.';
+        const message =
+          error.response?.data?.message || 'Không thể đánh dấu tất cả đã đọc.';
         toast(message, 'error');
       },
     });
@@ -58,7 +69,8 @@ export const NotificationPage = () => {
   const remove = (id) => {
     deleteMutation.mutate(id, {
       onError: (error) => {
-        const message = error.response?.data?.message || 'Không thể xoá thông báo.';
+        const message =
+          error.response?.data?.message || 'Không thể xoá thông báo.';
         toast(message, 'error');
       },
     });
@@ -91,7 +103,9 @@ export const NotificationPage = () => {
         <div className="container mx-auto px-4 max-w-2xl">
           <h1 className="text-2xl font-bold mb-6">Thông báo</h1>
           <Card className="p-6 text-center rounded-xl shadow-sm border-0">
-            <p className="text-sm text-muted-foreground mb-3">Không thể tải thông báo.</p>
+            <p className="text-sm text-muted-foreground mb-3">
+              Không thể tải thông báo.
+            </p>
             <Button onClick={() => refetch()}>Thử lại</Button>
           </Card>
         </div>
@@ -104,7 +118,10 @@ export const NotificationPage = () => {
       <div className="bg-gray-50 min-h-full py-12">
         <div className="container mx-auto px-4">
           <h1 className="text-2xl font-bold mb-6">Thông báo</h1>
-          <EmptyState title={MSG.MSG_NOTIFICATION_EMPTY} description="Chưa có thông báo nào." />
+          <EmptyState
+            title={MSG.MSG_NOTIFICATION_EMPTY}
+            description="Chưa có thông báo nào."
+          />
         </div>
       </div>
     );
@@ -132,10 +149,17 @@ export const NotificationPage = () => {
         </div>
         <div className="space-y-3">
           {items.map((n) => (
-            <Card key={n.id} className={`p-4 rounded-xl shadow-sm border-0 ${!n.read ? 'bg-primary/5' : ''}`}>
+            <Card
+              key={n.id}
+              className={`p-4 rounded-xl shadow-sm border-0 ${!n.read ? 'bg-primary/5' : ''}`}
+            >
               <div className="flex gap-3">
-                <div className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${!n.read ? 'bg-primary/20' : 'bg-gray-100'}`}>
-                  <Bell className={`h-5 w-5 ${!n.read ? 'text-primary' : 'text-muted-foreground'}`} />
+                <div
+                  className={`h-10 w-10 rounded-xl flex items-center justify-center shrink-0 ${!n.read ? 'bg-primary/20' : 'bg-gray-100'}`}
+                >
+                  <Bell
+                    className={`h-5 w-5 ${!n.read ? 'text-primary' : 'text-muted-foreground'}`}
+                  />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm">{n.content}</p>

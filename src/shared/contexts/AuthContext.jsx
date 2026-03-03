@@ -1,7 +1,17 @@
 import { useGetUsers } from '@/features/users/api/useUser';
 import { logoutUser } from '@/features/auth/api/authApi';
-import { getAccessToken, getRoleType, clearTokens } from '@/shared/api/tokenService';
-import { createContext, useState, useEffect, useContext, useCallback } from 'react';
+import {
+  getAccessToken,
+  getRoleType,
+  clearTokens,
+} from '@/shared/api/tokenService';
+import {
+  createContext,
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+} from 'react';
 
 const AuthContext = createContext(null);
 

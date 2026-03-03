@@ -33,6 +33,7 @@ src/
 ## 🛠️ Prerequisites
 
 Ensure you have the following installed:
+
 - **Node.js** (v18 or higher recommended)
 - **pnpm** (preferred) or npm/yarn
 
@@ -41,6 +42,7 @@ Ensure you have the following installed:
 1.  **Clone the repository** (if not already done).
 
 2.  **Install dependencies**:
+
     ```bash
     pnpm install
     # or
@@ -49,10 +51,11 @@ Ensure you have the following installed:
 
 3.  **Environment Configuration**:
     Copy the example environment file to create your local config:
+
     ```bash
     cp .env.example .env
     ```
-    
+
     Update `.env` with your actual values if needed:
     - `VITE_API_URL`: URL of your backend API.
     - `VITE_APP_TITLE`: Title of the application.
@@ -61,15 +64,18 @@ Ensure you have the following installed:
 
 **Development Mode:**
 Starts the local development server with Hot Module Replacement (HMR).
+
 ```bash
 pnpm dev
 # or
 npm run dev
 ```
+
 Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
 
 **Production Build:**
 Builds the app for production to the `dist` folder.
+
 ```bash
 pnpm build
 # or
@@ -78,6 +84,7 @@ npm run build
 
 **Preview Production Build:**
 Locally preview the production build.
+
 ```bash
 pnpm preview
 # or

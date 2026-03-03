@@ -14,7 +14,11 @@ export function ImageWithFallback({
   if (error || !src) {
     return (
       <div
-        className={cn('flex items-center justify-center', fallbackClassName, className)}
+        className={cn(
+          'flex items-center justify-center',
+          fallbackClassName,
+          className,
+        )}
         {...(props.style ? { style: props.style } : {})}
       >
         <div className="w-12 h-12 rounded-full bg-amber-200/50 flex items-center justify-center">
