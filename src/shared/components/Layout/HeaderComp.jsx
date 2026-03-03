@@ -124,12 +124,12 @@ export const Header = () => {
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between gap-4 h-16">
+        <div className="flex items-center justify-between gap-4 h-20 p-2 mx-6">
           <Link
             to="/"
             className="text-2xl font-extrabold text-primary shrink-0 flex items-center gap-2"
           >
-            <img src="/logo_01.png" alt="WorkLink" className="h-auto w-60" />
+            <img src="/logo_02.png" alt="WorkLink" className=" h-12 w-auto" />
           </Link>
           {/* 
           <div className='flex-1 max-w-2xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2'>

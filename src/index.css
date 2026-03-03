@@ -152,10 +152,10 @@
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
   }
 
-  ::selection {
+  /* ::selection {
     background-color: var(--primary-muted);
     color: var(--primary-foreground);
-  }
+  } */
 
   h1,
   h2,

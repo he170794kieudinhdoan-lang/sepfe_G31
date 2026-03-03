@@ -11,13 +11,12 @@ export const AuthLayout = ({ children, title, subtitle }) => {
       <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10 w-full animate-in fade-in duration-500">
         <div className="w-full mx-auto" style={{ maxWidth: '480px' }}>
           {/* Brand Logo - Centered */}
-          <div className="text-center mb-10">
+          <div className="text-center mb-4">
             <Link
               to="/"
               className="inline-flex items-center gap-3 text-3xl font-black text-primary hover:opacity-80 transition-all active:scale-95"
             >
-              <img src="/logo_01.png" alt="WorkLink" className="h-10 w-auto" />
-              <span>WorkLink</span>
+              <img src="/logo_02.png" alt="WorkLink" className="h-10 w-auto" />
             </Link>
           </div>
 
