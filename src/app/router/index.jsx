@@ -10,7 +10,6 @@ import {
 } from '@/features/auth';
 import { HomePage } from '@/pages/HomePage';
 import { JobDetailPage } from '@/pages/JobDetailPage';
-import { JobListPage } from '@/pages/JobListPage';
 import { JobSearchPage } from '@/pages/JobSearchPage';
 import { WishlistPage } from '@/pages/WishlistPage';
 import { NotificationPage } from '@/pages/NotificationPage';
@@ -34,7 +33,7 @@ export const router = createBrowserRouter([
     element: <MainLayout />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'jobs', element: <JobListPage /> },
+      // { path: 'jobs', element: <JobListPage /> },
       { path: 'search', element: <JobSearchPage /> },
       { path: 'job/:id', element: <JobDetailPage /> },
       { path: 'wishlist', element: <WishlistPage /> },

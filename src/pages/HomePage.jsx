@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, MapPin, X, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -12,16 +12,10 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
-import {
-  MOCK_JOBS,
-  getFeaturedJobs,
-  getRegularJobs,
-  HERO_IMAGE,
-} from '@/shared/data/mockJobs';
+import { JobCard } from '@/features/jobs/components/JobCard';
 import { SearchIcon } from 'lucide-react';
 import {
   useGetProvinces,
@@ -75,127 +69,127 @@ import {
 } from '@/features/jobs/api/useWishlist';
 import { toast } from 'sonner';
 
-function JobCard({ job, featured, aiSuggest }) {
-  const { user } = useAuth();
-  const { data } = useWishlist({}, { enabled: !!user });
-  const saveJobMutation = useSaveJob();
-  const unsaveJobMutation = useUnsaveJob();
+// function JobCard({ job, featured, aiSuggest }) {
+//   const { user } = useAuth();
+//   const { data } = useWishlist({}, { enabled: !!user });
+//   const saveJobMutation = useSaveJob();
+//   const unsaveJobMutation = useUnsaveJob();
 
-  const wishlist = data?.items || data || [];
-  const isSaved =
-    Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job.id);
-  const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
+//   const wishlist = data?.items || data || [];
+//   const isSaved =
+//     Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job.id);
+//   const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
 
-  const handleWishlistToggle = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
+//   const handleWishlistToggle = (e) => {
+//     e.preventDefault();
+//     e.stopPropagation();
 
-    if (!user) {
-      toast.error('Vui lòng đăng nhập để lưu việc làm');
-      return;
-    }
+//     if (!user) {
+//       toast.error('Vui lòng đăng nhập để lưu việc làm');
+//       return;
+//     }
 
-    if (isSaved) {
-      unsaveJobMutation.mutate(job.id);
-    } else {
-      saveJobMutation.mutate(job.id);
-    }
-  };
+//     if (isSaved) {
+//       unsaveJobMutation.mutate(job.id);
+//     } else {
+//       saveJobMutation.mutate(job.id);
+//     }
+//   };
 
-  const formattedSalary = job.salaryMax
-    ? new Intl.NumberFormat('vi-VN', {
-        style: 'currency',
-        currency: 'VND',
-        maximumFractionDigits: 0,
-      }).format(job.salaryMax)
-    : 'Thỏa thuận';
+//   const formattedSalary = job.salaryMax
+//     ? new Intl.NumberFormat('vi-VN', {
+//         style: 'currency',
+//         currency: 'VND',
+//         maximumFractionDigits: 0,
+//       }).format(job.salaryMax)
+//     : 'Thỏa thuận';
 
-  return (
-    <Card className="group relative p-4 shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl border border-slate-100 bg-white">
-      <div className="flex gap-4">
-        {/* Logo Section */}
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
-          <ImageWithFallback
-            src={job.company?.logoUrl}
-            alt={job.company?.name || 'Công ty'}
-            className="h-full w-full object-contain"
-            fallbackClassName="h-full w-full flex items-center justify-center text-[10px] text-slate-400 text-center p-1"
-          />
-        </div>
+//   return (
+//     <Card className="group relative p-4 shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl border border-slate-100 bg-white">
+//       <div className="flex gap-4">
+//         {/* Logo Section */}
+//         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
+//           <ImageWithFallback
+//             src={job.company?.logoUrl}
+//             alt={job.company?.name || 'Công ty'}
+//             className="h-full w-full object-contain"
+//             fallbackClassName="h-full w-full flex items-center justify-center text-[10px] text-slate-400 text-center p-1"
+//           />
+//         </div>
 
-        {/* Content Section */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
-                {job.title}
-              </h3>
-              <p className="text-xs font-medium text-slate-500 line-clamp-1 mt-0.5">
-                {job.company?.name || 'Công ty'}
-              </p>
-            </div>
+//         {/* Content Section */}
+//         <div className="flex-1 min-w-0">
+//           <div className="flex items-start justify-between gap-2">
+//             <div className="min-w-0">
+//               <h3 className="text-sm font-bold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors">
+//                 {job.title}
+//               </h3>
+//               <p className="text-xs font-medium text-slate-500 line-clamp-1 mt-0.5">
+//                 {job.company?.name || 'Công ty'}
+//               </p>
+//             </div>
 
-            <div className="flex flex-col items-end gap-1 shrink-0 z-20">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-8 w-8 rounded-full shadow-sm hover:shadow active:scale-95 transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : 'bg-white hover:bg-gray-50'}`}
-                title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
-                onClick={handleWishlistToggle}
-                disabled={isPending}
-              >
-                <Heart
-                  className={`h-4 w-4 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
-                />
-              </Button>
-            </div>
-          </div>
+//             <div className="flex flex-col items-end gap-1 shrink-0 z-20">
+//               <Button
+//                 variant="ghost"
+//                 size="icon"
+//                 className={`h-8 w-8 rounded-full shadow-sm hover:shadow active:scale-95 transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : 'bg-white hover:bg-gray-50'}`}
+//                 title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
+//                 onClick={handleWishlistToggle}
+//                 disabled={isPending}
+//               >
+//                 <Heart
+//                   className={`h-4 w-4 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
+//                 />
+//               </Button>
+//             </div>
+//           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]">
-            <div className="flex items-center gap-1 font-semibold">
-              <span className="text-slate-500">Lên tới</span>
-              <span className="text-primary font-bold">{formattedSalary}</span>
-            </div>
-            <div className="flex items-center gap-1 text-slate-400">
-              <MapPin className="h-3 w-3" />
-              <span className="truncate max-w-[120px]">
-                {job.province || job.address}
-              </span>
-            </div>
-          </div>
+//           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]">
+//             <div className="flex items-center gap-1 font-semibold">
+//               <span className="text-slate-500">Lên tới</span>
+//               <span className="text-primary font-bold">{formattedSalary}</span>
+//             </div>
+//             <div className="flex items-center gap-1 text-slate-400">
+//               <MapPin className="h-3 w-3" />
+//               <span className="truncate max-w-[120px]">
+//                 {job.province || job.address}
+//               </span>
+//             </div>
+//           </div>
 
-          {job.tags && job.tags.length > 0 && (
-            <>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {job.tags.slice(0, 2).map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-[11px] font-bold bg-primary-muted text-primary px-2.5 py-0.5 rounded-lg border border-primary/10"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
+//           {job.tags && job.tags.length > 0 && (
+//             <>
+//               <div className="mt-2 flex flex-wrap gap-1.5">
+//                 {job.tags.slice(0, 2).map((tag) => (
+//                   <span
+//                     key={tag}
+//                     className="text-[11px] font-bold bg-primary-muted text-primary px-2.5 py-0.5 rounded-lg border border-primary/10"
+//                   >
+//                     {tag}
+//                   </span>
+//                 ))}
+//               </div>
 
-              <div className="flex flex-col items-end gap-1">
-                {featured && (
-                  <Badge className="bg-primary-muted text-primary hover:bg-primary-hover/10 border-0 text-[10px] px-1.5 py-0 font-bold uppercase tracking-wider">
-                    Mới
-                  </Badge>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-      <Link
-        to={`/job/${job.id}`}
-        className="absolute inset-0 z-10"
-        aria-label={`Xem chi tiết ${job.title}`}
-      />
-    </Card>
-  );
-}
+//               <div className="flex flex-col items-end gap-1">
+//                 {featured && (
+//                   <Badge className="bg-primary-muted text-primary hover:bg-primary-hover/10 border-0 text-[10px] px-1.5 py-0 font-bold uppercase tracking-wider">
+//                     Mới
+//                   </Badge>
+//                 )}
+//               </div>
+//             </>
+//           )}
+//         </div>
+//       </div>
+//       <Link
+//         to={`/job/${job.id}`}
+//         className="absolute inset-0 z-10"
+//         aria-label={`Xem chi tiết ${job.title}`}
+//       />
+//     </Card>
+//   );
+// }
 
 function SearchBarPopover({
   keyword,
@@ -204,7 +198,7 @@ function SearchBarPopover({
   setOpen,
   searchMode,
   setSearchMode,
-  featuredJobs,
+  jobs,
   province,
   setProvince,
   wards,
@@ -465,7 +459,7 @@ function SearchBarPopover({
 
             <ScrollArea className="h-[340px] pr-3">
               <div className="space-y-2">
-                {featuredJobs.slice(0, 6).map((job) => (
+                {jobs?.slice(0, 6).map((job) => (
                   <Link
                     key={job.id}
                     to={`/job/${job.id}`}
@@ -475,7 +469,10 @@ function SearchBarPopover({
                   >
                     <div className="font-medium line-clamp-1">{job.title}</div>
                     <div className="text-sm text-muted-foreground line-clamp-1">
-                      {job.company} • {job.salary ?? 'Thỏa thuận'}
+                      {job.company?.name || job.companyName || job.company} •{' '}
+                      {job.salaryMax
+                        ? `${job.salaryMax.toLocaleString()} VND`
+                        : 'Thỏa thuận'}
                     </div>
                   </Link>
                 ))}
@@ -489,9 +486,7 @@ function SearchBarPopover({
 }
 
 export function HomePage() {
-  const [sort, setSort] = useState('newest');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(6);
+  const [limit] = useState(6);
   const [openSuggest, setOpenSuggest] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [wards, setWards] = useState('');
@@ -516,32 +511,15 @@ export function HomePage() {
     setOpenId(null);
   };
 
-  // demo flags
-  const isWorker = true;
-  const isProfileComplete = false;
   const { data: newestJobs, isLoading } = useSearchJobs({ limit });
-  const featuredJobs = useMemo(() => getFeaturedJobs(), []);
-  const regularJobs = useMemo(() => {
-    const list = getRegularJobs();
-    if (sort !== 'salary') return list;
-    return [...list].sort((a, b) => (b.salary > a.salary ? 1 : -1));
-  }, [sort]);
 
-  const recommendedJobs = useMemo(() => {
-    if (!isProfileComplete) return [];
-    return MOCK_JOBS.filter((j) => j.id !== 1).slice(0, 2);
-  }, [isProfileComplete]);
-
-  const perPage = 4;
-  const totalPages = Math.max(1, Math.ceil(regularJobs.length / perPage));
-  const paginatedJobs = regularJobs.slice((page - 1) * perPage, page * perPage);
   function formatMoney(number) {
     return number?.toLocaleString('vi-VN') + ' đ';
   }
   return (
-    <div className="bg-gray-50 min-h-full">
+    <div className="bg-background min-h-full">
       {/* PROFESSIONAL YELLOW-THEMED HERO SECTION */}
-      <section className="relative overflow-hidden bg-white pt-10 pb-20">
+      <section className="relative overflow-hidden bg-card pt-10 pb-20">
         {/* Subtle Decorative Background Elements */}
         <div className="absolute top-0 right-0 w-1/3 h-full bg-primary-muted/20 -skew-x-12 translate-x-1/4 pointer-events-none" />
         <div className="absolute top-20 right-40 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
@@ -554,7 +532,7 @@ export function HomePage() {
             setOpen={setOpenSuggest}
             searchMode={searchMode}
             setSearchMode={setSearchMode}
-            featuredJobs={featuredJobs}
+            jobs={newestJobs?.items}
             province={province}
             setProvince={setProvince}
             setWards={setWards}
@@ -703,7 +681,7 @@ export function HomePage() {
       </section>
 
       {/* FEATURED */}
-      <section id="jobs" className="py-12 bg-gray-50">
+      <section id="jobs" className="py-12 bg-background">
         <Container className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Những công việc mới nhất</h2>
@@ -823,6 +801,16 @@ export function HomePage() {
                             <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
                           </Button>
                         </div>
+                        <div className="pt-2">
+                          <p className="text-sm font-bold text-gray-600">
+                            {job.address} - {job.district} - {job.province}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="pt-4">
+                        <Button className="rounded-xl px-6" asChild>
+                          <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
+                        </Button>
                       </div>
                     </PopoverContent>
                   </Popover>

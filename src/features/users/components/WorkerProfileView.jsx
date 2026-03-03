@@ -210,7 +210,7 @@ export const WorkerProfileView = () => {
 
   const FieldError = ({ message }) =>
     message ? (
-      <p className="text-xs text-red-500 mt-1 flex items-center gap-1 mt-2">
+      <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
         {message}
       </p>
     ) : null;
@@ -249,7 +249,7 @@ export const WorkerProfileView = () => {
                   onValueChange={handleSectorChange}
                   disabled={occupationsLoading}
                 >
-                  <SelectTrigger className="w-full !h-11 rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
+                  <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
                     <SelectValue placeholder="Chọn ngành nghề" />
                   </SelectTrigger>
                   <SelectContent>
@@ -284,7 +284,7 @@ export const WorkerProfileView = () => {
                         }}
                         disabled={!sectorId}
                       >
-                        <SelectTrigger className="w-full !h-11 rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors disabled:opacity-50">
+                        <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors disabled:opacity-50">
                           <SelectValue placeholder="Chọn nghề cụ thể" />
                         </SelectTrigger>
                         <SelectContent>
@@ -444,7 +444,7 @@ export const WorkerProfileView = () => {
                             if (val) field.onChange(parseInt(val, 10));
                           }}
                         >
-                          <SelectTrigger className="w-full !h-11 rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
+                          <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
                             <SelectValue placeholder="Chọn số năm kinh nghiệm" />
                           </SelectTrigger>
                           <SelectContent>
@@ -504,7 +504,7 @@ export const WorkerProfileView = () => {
                         if (val) field.onChange(val);
                       }}
                     >
-                      <SelectTrigger className="w-full !h-11 rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
+                      <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
                         <SelectValue placeholder="Chọn tỉnh/thành" />
                       </SelectTrigger>
                       <SelectContent className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden">

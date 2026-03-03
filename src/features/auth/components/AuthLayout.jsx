@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export const AuthLayout = ({ children, title, subtitle }) => {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-primary-muted via-white to-primary-muted/20">
+    <div className="min-h-screen flex flex-col bg-linear-to-br from-primary-muted via-white to-primary-muted/20">
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full">
           <Link

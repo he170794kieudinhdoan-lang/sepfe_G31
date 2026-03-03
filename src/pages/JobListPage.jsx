@@ -190,7 +190,7 @@ export const JobListPage = () => {
   );
 
   return (
-    <div className="bg-gray-50 min-h-full">
+    <div className="bg-background min-h-full">
       <Container className="py-6">
         <div className="flex gap-6">
           <aside className="hidden lg:block w-64 shrink-0">
@@ -255,7 +255,7 @@ export const JobListPage = () => {
             className="fixed inset-0 bg-black/30 z-40 lg:hidden"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="fixed left-0 top-0 bottom-0 w-72 bg-white p-4 z-50 shadow-xl lg:hidden overflow-y-auto">
+          <div className="fixed left-0 top-0 bottom-0 w-72 bg-background min-h-screen p-4 z-50 shadow-xl lg:hidden overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold">Bộ lọc</h3>
               <Button

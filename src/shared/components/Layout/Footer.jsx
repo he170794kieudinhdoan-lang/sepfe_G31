@@ -18,7 +18,7 @@ export const Footer = () => {
           <div className="space-y-6">
             <Link
               to="/"
-              className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent"
+              className="text-2xl font-bold bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent"
             >
               WorkLink
             </Link>

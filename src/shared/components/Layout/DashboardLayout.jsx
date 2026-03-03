@@ -69,7 +69,7 @@ export const DashboardLayout = ({
                   key={item.key}
                   onClick={() => onSelect(item.key)}
                   className={cn(
-                    'flex-shrink-0 rounded-full border px-4 py-2 text-xs font-semibold',
+                    'shrink-0 rounded-full border px-4 py-2 text-xs font-semibold',
                     activeKey === item.key
                       ? 'bg-primary-muted text-foreground'
                       : 'text-muted-foreground',

@@ -18,8 +18,6 @@ export const JobDetailPage = () => {
   const { data: job, isLoading, isError } = useJobDetail(id);
 
   // TODO: Khi integrate auth, thay bằng const { user } = useAuth();
-  const isGuest = false;
-  const isWorker = true;
   const hasApplied = false;
   const hasReported = false;
 
@@ -29,7 +27,7 @@ export const JobDetailPage = () => {
   const [applyOpen, setApplyOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
 
-  if (isLoading) {
+  if (!isLoading) {
     return (
       <Container className="py-16 flex justify-center">
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
@@ -51,7 +49,7 @@ export const JobDetailPage = () => {
   }
 
   return (
-    <div className="bg-gray-50 min-h-full">
+    <div className="bg-background min-h-full">
       <Container className="py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2">
