@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyState } from "@/shared/components/EmptyState"
 import { Modal } from "@/shared/components/Modal"
 import { DashboardLayout } from "@/shared/components/Layout/DashboardLayout"
+import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover'
 import { useToast } from "@/shared/contexts/ToastContext"
 import { MSG } from "@/shared/constants/messages"
 
@@ -64,7 +65,13 @@ export const AdminDashboard = () => {
     ]
 
     return (
-        <DashboardLayout title="Admin Dashboard" menu={menu} activeKey={active} onSelect={setActive}>
+        <DashboardLayout
+            title="Admin Dashboard"
+            menu={menu}
+            activeKey={active}
+            onSelect={setActive}
+            topbarBell={<NotificationBellPopover />}
+        >
             {active === "overview" && (
                 <div className="space-y-6">
                     <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
