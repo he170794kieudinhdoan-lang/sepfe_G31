@@ -213,7 +213,7 @@ export const Header = () => {
             <Button
               variant='ghost'
               size='icon'
-              className='rounded-full text-gray-700 hover:bg-primary/10 hover:text-foreground transition'
+              className='rounded-full text-gray-700 hover:bg-primary-muted hover:text-foreground transition'
               asChild
             >
               <Link to='/chat'>
@@ -225,7 +225,7 @@ export const Header = () => {
                 <Link
                   key={to}
                   to={to}
-                  className='px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary/10 hover:text-foreground transition'
+                  className='px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary-muted hover:text-foreground transition'
                 >
                   {label}
                 </Link>
@@ -243,7 +243,7 @@ export const Header = () => {
                   onClick={() => setAvatarOpen(!avatarOpen)}
                   className='flex items-center gap-2 rounded-full shadow-sm bg-gray-50 px-3 py-2 hover:bg-gray-100 cursor-pointer transition'
                 >
-                  <div className='h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center'>
+                  <div className='h-8 w-8 rounded-full bg-primary-muted flex items-center justify-center'>
                     {user?.avatar ? (
                       <img
                         src={user.avatar}
@@ -267,7 +267,7 @@ export const Header = () => {
                         <p className='text-sm font-semibold'>{user?.fullName || 'User'}</p>
                         <p className='text-xs text-muted-foreground'>{user?.email || ''}</p>
                         {user?.roleType && (
-                          <span className='inline-block mt-1 px-2 py-0.5 rounded text-xs bg-primary/10 text-primary font-medium'>
+                          <span className='inline-block mt-1 px-2 py-0.5 rounded text-xs bg-primary-muted text-primary font-medium'>
                             {user.roleType === 'EMPLOYER'
                               ? 'Nhà tuyển dụng'
                               : user.roleType === 'ADMIN'

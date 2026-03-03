@@ -24,7 +24,7 @@ export const DashboardLayout = ({
                                 className={cn(
                                     "w-full flex items-center justify-between rounded-xl px-4 py-2 text-sm font-semibold transition",
                                     activeKey === item.key
-                                        ? "bg-primary/10 text-foreground"
+                                        ? "bg-primary-muted text-foreground"
                                         : "text-muted-foreground hover:bg-gray-100"
                                 )}
                             >
@@ -69,7 +69,7 @@ export const DashboardLayout = ({
                                     className={cn(
                                         "flex-shrink-0 rounded-full border px-4 py-2 text-xs font-semibold",
                                         activeKey === item.key
-                                            ? "bg-primary/10 text-foreground"
+                                            ? "bg-primary-muted text-foreground"
                                             : "text-muted-foreground"
                                     )}
                                 >
