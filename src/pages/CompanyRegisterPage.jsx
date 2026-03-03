@@ -171,7 +171,14 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
     /* ========= HIỂN THỊ TẤT CẢ LỖI ========= */
     if (errors.length > 0) {
-      errors.forEach((msg) => toast(msg, "error"));
+      toast(
+        <div>
+          {errors.map((msg, index) => (
+            <div key={index}>{msg}</div>
+          ))}
+        </div>,
+        "error"
+      );
       return false;
     }
 
