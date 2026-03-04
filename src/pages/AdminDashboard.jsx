@@ -91,6 +91,7 @@ export const AdminDashboard = () => {
                 <Badge variant="outline">Placeholder</Badge>
               </div>
               <div className="h-60 rounded-xl bg-linear-to-br from-primary/10 via-white to-primary-muted/30 border border-dashed flex items-center justify-center text-muted-foreground">
+                {' '}
                 Chart placeholder
               </div>
             </Card>
