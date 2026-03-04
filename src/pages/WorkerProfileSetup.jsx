@@ -178,7 +178,7 @@ export const WorkerProfileSetup = () => {
                   onValueChange={setSectorId}
                   disabled={occupationsLoading}
                 >
-                  <SelectTrigger className="w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
+                  <SelectTrigger className="w-full h-11! rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
                     <SelectValue placeholder="Chọn ngành nghề" />
                   </SelectTrigger>
                   <SelectContent>
@@ -218,7 +218,7 @@ export const WorkerProfileSetup = () => {
                         }}
                         disabled={!sectorId}
                       >
-                        <SelectTrigger className="w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
+                        <SelectTrigger className="w-full h-11! rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
                           <SelectValue placeholder="Chọn nghề cụ thể" />
                         </SelectTrigger>
                         <SelectContent>
@@ -266,7 +266,7 @@ export const WorkerProfileSetup = () => {
                           field.onChange(parseInt(val, 10))
                         }
                       >
-                        <SelectTrigger className="w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
+                        <SelectTrigger className="w-full h-11! rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
                           <SelectValue placeholder="Chọn số năm kinh nghiệm" />
                         </SelectTrigger>
                         <SelectContent>
@@ -343,7 +343,7 @@ export const WorkerProfileSetup = () => {
                       onValueChange={(val) => field.onChange(val)}
                       disabled={provincesLoading}
                     >
-                      <SelectTrigger className="w-full !h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
+                      <SelectTrigger className="w-full h-11! rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
                         <SelectValue
                           placeholder={
                             provincesLoading ? 'Đang tải...' : 'Chọn tỉnh/thành'
