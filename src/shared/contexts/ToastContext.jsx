@@ -4,12 +4,15 @@ const ToastContext = createContext(null);
 
 export const useToast = () => {
   const ctx = useContext(ToastContext);
-  if (!ctx) return { toast: () => {}, toasts: [] };
+  if (!ctx) return { toast: () => {}, clearToasts: () => {}, toasts: [] };
   return ctx;
 };
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const clearToasts = useCallback(() => {
+    setToasts([]);
+  }, []);
 
   const toast = useCallback((message, type = 'success') => {
     const id = Date.now();
@@ -20,7 +23,7 @@ export const ToastProvider = ({ children }) => {
   }, []);
 
   return (
-    <ToastContext.Provider value={{ toast, toasts }}>
+    <ToastContext.Provider value={{ toast, clearToasts, toasts }}>
       {children}
       <ToastList toasts={toasts} />
     </ToastContext.Provider>
