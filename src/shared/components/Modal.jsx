@@ -20,7 +20,7 @@ export const Modal = ({
             <div
                 className={cn(
                     "w-full rounded-2xl bg-white shadow-2xl border",
-                    variant === "confirm" ? "max-w-lg" : "max-w-3xl"
+                    variant === "confirm" ? "max-w-lg" : "max-w-6xl"
                 )}
             >
                 {/* Header chỉ hiển thị khi confirm */}
@@ -35,7 +35,7 @@ export const Modal = ({
                     </div>
                 )}
 
-                <div className={cn(variant === "confirm" ? "p-6 space-y-4" : "")}>
+                <div className={cn(variant === "confirm" ? "p-6 space-y-4" : "p-4 md:p-6")}>
                     {children}
 
                     {/* Footer chỉ hiển thị khi confirm */}

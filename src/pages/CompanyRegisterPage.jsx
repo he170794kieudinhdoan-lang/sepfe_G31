@@ -12,6 +12,7 @@ import { Underline } from '@tiptap/extension-underline';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Image } from '@tiptap/extension-image';
+import { Loader2 } from 'lucide-react';
 import {
   X,
   Bold,
@@ -296,6 +297,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const [loadedWardProvinceCode, setLoadedWardProvinceCode] = useState('');
   const [pendingAddressParse, setPendingAddressParse] = useState(null);
   const [addressHydrated, setAddressHydrated] = useState(false);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
 
   const buildFullAddress = (detail, wardCode, provinceCode) => {
     const wardName = wards.find((item) => String(item.code) === String(wardCode))?.name || '';
@@ -567,13 +569,17 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (loadingSubmit) return; // chống double click
+
     if (isEdit && !isFormChanged()) {
       toast("Không có thay đổi để cập nhật", "error");
       return;
     }
-    if (!validateForm(form, isEdit)) return;
-    const fd = new FormData();
 
+    if (!validateForm(form, isEdit)) return;
+
+    const fd = new FormData();
     fd.append('name', form.name);
     fd.append('taxCode', form.taxCode);
     fd.append('address', form.address);
@@ -583,6 +589,8 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     if (form.businessLicenseFile) fd.append('businessLicense', form.businessLicenseFile);
 
     try {
+      setLoadingSubmit(true);
+
       if (isEdit) {
         await CompanyService.updateCompany(companyId, fd);
         toast('Cập nhật thông tin công ty thành công');
@@ -591,6 +599,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
         await CompanyService.createCompany(fd);
         toast('Gửi đăng ký công ty thành công');
       }
+
       if (isModal && onSuccess) {
         onSuccess();
       } else {
@@ -599,6 +608,8 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     } catch (error) {
       console.error(error?.response?.status, error?.response?.data || error.message);
       toast(MSG.MSG36, 'error');
+    } finally {
+      setLoadingSubmit(false);
     }
   };
 
@@ -611,7 +622,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-6 ${isModal ? 'pb-6' : ''}`}>
       {isModal && (
         <div className="flex justify-end">
           <button
@@ -624,39 +635,42 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
         </div>
       )}
 
-      <div className="mx-auto max-w-2xl px-4">
-        <h1 className="mb-6 text-2xl font-bold">{isEdit ? 'Chỉnh sửa công ty' : 'Đăng ký công ty'}</h1>
+      <div
+        className={`mx-auto w-full ${isModal ? 'max-w-5xl px-4 pb-4 md:px-8 md:pb-6' : 'max-w-4xl px-4 md:px-6'
+          }`}
+      >
+        <h1 className="mb-8 text-3xl font-bold tracking-tight">{isEdit ? 'Chỉnh sửa công ty' : 'Đăng ký công ty'}</h1>
 
         {pending && (
-          <Card className="mb-6 rounded-xl border-0 bg-amber-50 p-4">
+          <Card className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
             <p className="text-sm text-amber-800">Hồ sơ công ty đang chờ duyệt. Bạn có thể chỉnh sửa thông tin.</p>
           </Card>
         )}
 
-        <Card className="rounded-xl border-0 p-6 shadow-sm">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <Label>Tên công ty *</Label>
+        <Card className={`rounded-2xl border border-slate-200 p-6 shadow-md md:p-10 ${isModal ? 'mb-2' : ''}`}>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Tên công ty *</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 placeholder="Tên công ty"
-                className="mt-1 rounded-xl"
+                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
               />
             </div>
 
-            <div>
-              <Label>Mã số thuế *</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Mã số thuế *</Label>
               <Input
                 value={form.taxCode}
                 onChange={(e) => setForm({ ...form, taxCode: e.target.value })}
                 placeholder="Mã số thuế"
-                className="mt-1 rounded-xl"
+                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
               />
             </div>
 
-            <div>
-              <Label>Địa chỉ *</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Địa chỉ *</Label>
               <Input
                 value={addressDetail}
                 onChange={(e) => {
@@ -665,9 +679,9 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                   syncAddress(nextDetail, selectedWardCode, selectedProvinceCode);
                 }}
                 placeholder="Số nhà, tên đường"
-                className="mt-1 rounded-xl"
+                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
               />
-              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <select
                   value={selectedProvinceCode}
                   onChange={(e) => {
@@ -677,7 +691,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                     setWards([]);
                     syncAddress(addressDetail, '', nextProvinceCode);
                   }}
-                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm"
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50/40 px-3 text-sm"
                 >
                   <option value="">
                     {loadingProvinces ? 'Đang tải Tỉnh/Thành phố...' : 'Chọn Tỉnh/Thành phố'}
@@ -697,7 +711,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                     syncAddress(addressDetail, nextWardCode, selectedProvinceCode);
                   }}
                   disabled={!selectedProvinceCode || loadingWards}
-                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50/40 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <option value="">
                     {!selectedProvinceCode
@@ -716,9 +730,9 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
               </div>
             </div>
 
-            <div>
-              <Label>Mô tả công ty *</Label>
-              <div className="mt-1">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Mô tả công ty *</Label>
+              <div className="rounded-xl border border-slate-300 bg-slate-50/20 p-2">
                 <CompanyDescriptionEditor
                   value={form.description}
                   onChange={(html) => setForm((prev) => ({ ...prev, description: html }))}
@@ -726,21 +740,22 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
               </div>
             </div>
 
-            <div>
-              <Label>Trang web công ty *</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Trang web công ty *</Label>
               <Input
                 value={form.website}
                 onChange={(e) => setForm({ ...form, website: e.target.value })}
                 placeholder="Trang web công ty"
-                className="mt-1 rounded-xl"
+                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
               />
             </div>
 
-            <div>
-              <Label>Logo công ty *</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Logo công ty *</Label>
               <Input
                 type="file"
                 accept="image/*"
+                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -756,11 +771,12 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
               )}
             </div>
 
-            <div>
-              <Label>Giấy phép kinh doanh *</Label>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Giấy phép kinh doanh *</Label>
               <Input
                 type="file"
                 accept=".pdf,.jpg,.jpeg,.png"
+                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) {
@@ -778,7 +794,14 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
               )}
             </div>
 
-            <Button type="submit" className="w-full rounded-xl">
+            <Button
+              type="submit"
+              disabled={loadingSubmit}
+              className="h-11 w-full rounded-xl text-sm font-semibold"
+            >
+              {loadingSubmit && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
               {isEdit ? 'Cập nhật' : 'Gửi'}
             </Button>
           </form>
