@@ -38,26 +38,24 @@ const LAST_UPDATED = '01/02/2026';
 
 export const TermsPage = () => {
   return (
-    <div className="bg-gray-50 min-h-full py-12">
-      <div className="container mx-auto px-6 max-w-3xl">
-        <h1 className="text-2xl font-bold mb-2">Điều khoản & điều kiện</h1>
-        <p className="text-sm text-muted-foreground mb-8">
-          Phiên bản {VERSION} · Cập nhật lần cuối: {LAST_UPDATED}
-        </p>
-        <div className="space-y-6">
-          {SECTIONS.map((section) => (
-            <Card
-              key={section.id}
-              id={section.id}
-              className="p-6 rounded-xl shadow-sm border-0 scroll-mt-24"
-            >
-              <h2 className="text-lg font-semibold mb-3">{section.title}</h2>
-              <p className="text-muted-foreground leading-relaxed">
-                {section.content}
-              </p>
-            </Card>
-          ))}
-        </div>
+    <div className="max-w-3xl mx-auto">
+      <h1 className="text-2xl font-bold mb-2">Điều khoản & điều kiện</h1>
+      <p className="text-sm text-muted-foreground mb-8">
+        Phiên bản {VERSION} · Cập nhật lần cuối: {LAST_UPDATED}
+      </p>
+      <div className="space-y-6">
+        {SECTIONS.map((section) => (
+          <Card
+            key={section.id}
+            id={section.id}
+            className="p-6 rounded-xl shadow-sm border-0 scroll-mt-24"
+          >
+            <h2 className="text-lg font-semibold mb-3">{section.title}</h2>
+            <p className="text-muted-foreground leading-relaxed">
+              {section.content}
+            </p>
+          </Card>
+        ))}
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom';
-import { MainLayout } from '@/shared/components/Layout';
+import { FullWidthLayout, MainLayout } from '@/shared/components/Layout';
 import {
   Login,
   RegisterChoose,
@@ -12,7 +12,6 @@ import { HomePage } from '@/pages/HomePage';
 import { JobDetailPage } from '@/pages/JobDetailPage';
 import { JobSearchPage } from '@/pages/JobSearchPage';
 import { WishlistPage } from '@/pages/WishlistPage';
-import { NotificationPage } from '@/pages/NotificationPage';
 import { ChatPage } from '@/pages/ChatPage';
 import { CompanyListPage } from '@/features/companies/components/CompanyListPage';
 import { CompanyDetailPage } from '@/features/companies/components/CompanyDetailPage';
@@ -30,15 +29,19 @@ import { EditJobPage } from '@/pages/EditJobPage';
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <MainLayout />,
+    element: <FullWidthLayout />,
     children: [
       { index: true, element: <HomePage /> },
-      // { path: 'jobs', element: <JobListPage /> },
       { path: 'search', element: <JobSearchPage /> },
+    ],
+  },
+  {
+    path: '/',
+    element: <MainLayout />,
+    children: [
+      { path: 'chat', element: <ChatPage /> },
       { path: 'job/:id', element: <JobDetailPage /> },
       { path: 'wishlist', element: <WishlistPage /> },
-      { path: 'notifications', element: <NotificationPage /> },
-      { path: 'chat', element: <ChatPage /> },
       { path: 'companies', element: <CompanyListPage /> },
       { path: 'company/:id', element: <CompanyDetailPage /> },
       { path: 'profile', element: <UserProfilePage /> },

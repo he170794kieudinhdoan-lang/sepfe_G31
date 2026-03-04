@@ -162,6 +162,11 @@ const CompanyDescriptionEditor = ({ value, onChange }) => {
           title="Đậm"
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive('bold')}
+          // <div className="bg-gray-50 min-h-full py-6">
+          //   <div className="max-w-2xl mx-auto">
+          //     <Link
+          //       to="/employer"
+          //       className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
         >
           <Bold size={15} />
         </EditorButton>

@@ -521,193 +521,195 @@ export function HomePage() {
       {/* PROFESSIONAL YELLOW-THEMED HERO SECTION */}
       <section className="relative overflow-hidden bg-card pt-10 pb-20">
         {/* Subtle Decorative Background Elements */}
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-primary-muted/20 -skew-x-12 translate-x-1/4 pointer-events-none" />
-        <div className="absolute top-20 right-40 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+        <Container>
+          <div className="absolute top-0 right-0 w-1/3 h-full bg-primary-muted/20 -skew-x-12 translate-x-1/4 pointer-events-none" />
+          <div className="absolute top-20 right-40 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
-        <Container className="relative z-20 mb-12">
-          <SearchBarPopover
-            keyword={keyword}
-            setKeyword={setKeyword}
-            open={openSuggest}
-            setOpen={setOpenSuggest}
-            searchMode={searchMode}
-            setSearchMode={setSearchMode}
-            jobs={newestJobs?.items}
-            province={province}
-            setProvince={setProvince}
-            setWards={setWards}
-            wards={wards}
-            wardsName={wardsName}
-            setWardsName={setWardsName}
-          />
-        </Container>
-
-        <Container className="grid lg:grid-cols-2 gap-12 items-center relative z-10">
-          {/* Left Content */}
-          <div className="space-y-6">
-            <Badge className="bg-primary-muted text-primary border-primary/10 w-fit rounded-lg px-3 py-1 font-semibold uppercase tracking-wider text-[11px]">
-              Worklink - Nền tảng kết nối việc làm
-            </Badge>
-
-            <h1 className="text-3xl lg:text-5xl font-extrabold leading-[1.2] text-slate-900">
-              Tìm việc <span className="text-primary">dễ dàng</span>, <br />
-              thông tin <span className="text-primary">rõ ràng</span>, <br />
-              cơ hội tốt hơn cùng <br />
-              <span className="text-primary inline-block relative">
-                <Typewriter
-                  onInit={(typewriter) => {
-                    typewriter.typeString('WorkLink').pauseFor(2000).start();
-                  }}
-                  options={{
-                    cursor: '',
-                    loop: false,
-                    autoStart: true,
-                  }}
-                />
-                <div className="absolute -bottom-1 left-0 w-full h-1.5 bg-primary/20 rounded-full" />
-              </span>
-            </h1>
-
-            <div className="flex items-center gap-4 text-slate-600 font-medium text-lg">
-              <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Lương
-              </span>
-              <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Ca làm
-              </span>
-              <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Phụ cấp
-              </span>
-              <span className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                Địa điểm
-              </span>
-            </div>
-
-            <div className="pt-4 flex items-center gap-4">
-              <Button
-                size="lg"
-                className="rounded-2xl px-8 h-14 text-base font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
-                asChild
-              >
-                <Link to="#jobs" className="flex items-center gap-2">
-                  Xem việc làm ngay
-                </Link>
-              </Button>
-              <div className="flex -space-x-2">
-                {[
-                  'https://media-public.canva.com/zntb4/MAF-Oczntb4/1/s.png',
-                  'https://media-public.canva.com/dvcio/MAF-Oddvcio/1/s.png',
-                  'https://media-public.canva.com/XgjrY/MAF-OIXgjrY/1/s.png',
-                  'https://media-public.canva.com/NnpPI/MAF-OWNnpPI/1/s.png',
-                ].map((i) => (
-                  <div
-                    key={i}
-                    className="w-12 h-12 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm"
-                  >
-                    <img
-                      src={i}
-                      alt="User"
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                ))}
-                <div className="w-12 h-12 rounded-full border-2 border-white bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-sm">
-                  99+
-                </div>
-              </div>
-            </div>
+          <div className="relative z-20 mb-12">
+            <SearchBarPopover
+              keyword={keyword}
+              setKeyword={setKeyword}
+              open={openSuggest}
+              setOpen={setOpenSuggest}
+              searchMode={searchMode}
+              setSearchMode={setSearchMode}
+              jobs={newestJobs?.items}
+              province={province}
+              setProvince={setProvince}
+              setWards={setWards}
+              wards={wards}
+              wardsName={wardsName}
+              setWardsName={setWardsName}
+            />
           </div>
 
-          {/* Right Visual Area */}
-          <div className="relative pt-10">
-            {/* Main Image Frame */}
-            <div className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white bg-white aspect-4/3">
-              <img
-                src="/hero_industrial.png"
-                alt="Tìm việc làm khu công nghiệp - WorkLink"
-                className="w-full h-full object-cover"
-              />
-            </div>
+          <div className="grid lg:grid-cols-2 gap-12 items-center relative z-10">
+            {/* Left Content */}
+            <div className="space-y-6">
+              <Badge className="bg-primary-muted text-primary border-primary/10 w-fit rounded-lg px-3 py-1 font-semibold uppercase tracking-wider text-[11px]">
+                Worklink - Nền tảng kết nối việc làm
+              </Badge>
 
-            {/* Decorative Floating Cards (Non-data specific) */}
-            <div className="absolute top-0 -right-4 z-20 bg-white p-4 rounded-2xl shadow-xl border border-primary-muted animate-bounce duration-5000 hidden md:block">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
-                  <Check className="w-6 h-6" />
-                </div>
-                <div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase">
-                    Tin cậy
-                  </div>
-                  <div className="text-sm font-bold text-slate-900">
-                    Thông tin xác thực
+              <h1 className="text-3xl lg:text-5xl font-extrabold leading-[1.2] text-slate-900">
+                Tìm việc <span className="text-primary">dễ dàng</span>, <br />
+                thông tin <span className="text-primary">rõ ràng</span>, <br />
+                cơ hội tốt hơn cùng <br />
+                <span className="text-primary inline-block relative">
+                  <Typewriter
+                    onInit={(typewriter) => {
+                      typewriter.typeString('WorkLink').pauseFor(2000).start();
+                    }}
+                    options={{
+                      cursor: '',
+                      loop: false,
+                      autoStart: true,
+                    }}
+                  />
+                  <div className="absolute -bottom-1 left-0 w-full h-1.5 bg-primary/20 rounded-full" />
+                </span>
+              </h1>
+
+              <div className="flex items-center gap-4 text-slate-600 font-medium text-lg">
+                <span className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Lương
+                </span>
+                <span className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Ca làm
+                </span>
+                <span className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Phụ cấp
+                </span>
+                <span className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                  Địa điểm
+                </span>
+              </div>
+
+              <div className="pt-4 flex items-center gap-4">
+                <Button
+                  size="lg"
+                  className="rounded-2xl px-8 h-14 text-base font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
+                  asChild
+                >
+                  <Link to="#jobs" className="flex items-center gap-2">
+                    Xem việc làm ngay
+                  </Link>
+                </Button>
+                <div className="flex -space-x-2">
+                  {[
+                    'https://media-public.canva.com/zntb4/MAF-Oczntb4/1/s.png',
+                    'https://media-public.canva.com/dvcio/MAF-Oddvcio/1/s.png',
+                    'https://media-public.canva.com/XgjrY/MAF-OIXgjrY/1/s.png',
+                    'https://media-public.canva.com/NnpPI/MAF-OWNnpPI/1/s.png',
+                  ].map((i) => (
+                    <div
+                      key={i}
+                      className="w-12 h-12 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm"
+                    >
+                      <img
+                        src={i}
+                        alt="User"
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                  ))}
+                  <div className="w-12 h-12 rounded-full border-2 border-white bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-sm">
+                    99+
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="absolute -bottom-6 -left-6 z-20 bg-white p-5 rounded-4xl shadow-xl border border-primary-muted hidden md:block max-w-[220px]">
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="text-[10px] font-black text-primary uppercase">
-                    Việc làm mới ⚡
+            {/* Right Visual Area */}
+            <div className="relative pt-10">
+              {/* Main Image Frame */}
+              <div className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white bg-white aspect-4/3">
+                <img
+                  src="/hero_industrial.png"
+                  alt="Tìm việc làm khu công nghiệp - WorkLink"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+
+              {/* Decorative Floating Cards (Non-data specific) */}
+              <div className="absolute top-0 -right-4 z-20 bg-white p-4 rounded-2xl shadow-xl border border-primary-muted animate-bounce duration-5000 hidden md:block">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
+                    <Check className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-bold text-slate-400 uppercase">
+                      Tin cậy
+                    </div>
+                    <div className="text-sm font-bold text-slate-900">
+                      Thông tin xác thực
+                    </div>
                   </div>
                 </div>
-                <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                  <div className="h-full w-2/3 bg-primary rounded-full" />
-                </div>
-                <div className="text-xs font-bold text-slate-800 leading-tight">
-                  Nhân viên vận hành - Logistics
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="secondary"
-                    className="bg-primary-muted text-primary text-[9px] border-0"
-                  >
-                    12-15 triệu
-                  </Badge>
+              </div>
+
+              <div className="absolute -bottom-6 -left-6 z-20 bg-white p-5 rounded-4xl shadow-xl border border-primary-muted hidden md:block max-w-[220px]">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-[10px] font-black text-primary uppercase">
+                      Việc làm mới ⚡
+                    </div>
+                  </div>
+                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full w-2/3 bg-primary rounded-full" />
+                  </div>
+                  <div className="text-xs font-bold text-slate-800 leading-tight">
+                    Nhân viên vận hành - Logistics
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="secondary"
+                      className="bg-primary-muted text-primary text-[9px] border-0"
+                    >
+                      12-15 triệu
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Background Blob */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 rounded-full blur-[100px] -z-10" />
+              {/* Background Blob */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 rounded-full blur-[100px] -z-10" />
+            </div>
           </div>
         </Container>
       </section>
 
       {/* FEATURED */}
       <section id="jobs" className="py-12 bg-background">
-        <Container className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Những công việc mới nhất</h2>
-          </div>
+        <Container>
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Những công việc mới nhất</h2>
+            </div>
 
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {isLoading
-              ? Array.from({ length: limit }).map((_, i) => (
-                  <JobCardSkeleton key={i} />
-                ))
-              : newestJobs?.items?.map((job) => (
-                  <Popover key={job.id} open={openId == job.id}>
-                    <PopoverTrigger asChild>
-                      <div
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {isLoading
+                ? Array.from({ length: limit }).map((_, i) => (
+                    <JobCardSkeleton key={i} />
+                  ))
+                : newestJobs?.items?.map((job) => (
+                    <Popover key={job.id} open={openId == job.id}>
+                      <PopoverTrigger asChild>
+                        <div
+                          onMouseEnter={() => handleMouseEnter(job.id)}
+                          onMouseLeave={handleMouseLeave}
+                        >
+                          <JobCard key={job.id} job={job} featured />
+                        </div>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        className="w-[40vw] h-auto"
                         onMouseEnter={() => handleMouseEnter(job.id)}
                         onMouseLeave={handleMouseLeave}
                       >
-                        <JobCard key={job.id} job={job} featured />
-                      </div>
-                    </PopoverTrigger>
-                    <PopoverContent
-                      className="w-[40vw] h-auto"
-                      onMouseEnter={() => handleMouseEnter(job.id)}
-                      onMouseLeave={handleMouseLeave}
-                    >
-                      <div>
                         <PopoverTrigger className="flex items-center gap-2 pb-5">
                           <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
                             <ImageWithFallback
@@ -801,20 +803,10 @@ export function HomePage() {
                             <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
                           </Button>
                         </div>
-                        <div className="pt-2">
-                          <p className="text-sm font-bold text-gray-600">
-                            {job.address} - {job.district} - {job.province}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="pt-4">
-                        <Button className="rounded-xl px-6" asChild>
-                          <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                ))}
+                      </PopoverContent>
+                    </Popover>
+                  ))}
+            </div>
           </div>
           <div className="mt-8 text-center pt-8">
             <Button

@@ -11,7 +11,7 @@ import { ReportJobModal } from '@/features/jobs/components/ReportJobModal';
 import { CompanyInfo } from '@/features/jobs/components/CompanyInfo';
 import { JobDetailContent } from '@/features/jobs/components/JobDetailContent';
 import { Card } from '@/components/ui/card';
-import { Container } from '@/shared/components/Container';
+
 import { JobDetailSkeleton } from '@/features/jobs/components/JobDetailSkeleton';
 import { SearchX, ArrowLeft } from 'lucide-react';
 
@@ -68,31 +68,29 @@ export const JobDetailPage = () => {
   }
 
   return (
-    <div className="bg-background min-h-full">
-      <Container className="py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
-            <JobDetailHeader job={job} onApply={() => setApplyOpen(true)} />
-          </div>
-
-          <div className="lg:col-span-1 lg:row-span-2">
-            <CompanyInfo company={job.company} />
-          </div>
-
-          <div className="lg:col-span-2">
-            <Card className="flex flex-col gap-6 border-0 p-8 shadow-sm rounded-xl">
-              <JobDetailContent
-                job={job}
-                onApply={() => setApplyOpen(true)}
-                onReport={() => setReportOpen(true)}
-              />
-
-              <h2 className="text-lg font-semibold ">Việc làm liên quan</h2>
-              <RelatedJobList jobs={relatedJobs} />
-            </Card>
-          </div>
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <JobDetailHeader job={job} onApply={() => setApplyOpen(true)} />
         </div>
-      </Container>
+
+        <div className="lg:col-span-1 lg:row-span-2">
+          <CompanyInfo company={job.company} />
+        </div>
+
+        <div className="lg:col-span-2">
+          <Card className="flex flex-col gap-6 border-0 p-8 shadow-sm rounded-xl">
+            <JobDetailContent
+              job={job}
+              onApply={() => setApplyOpen(true)}
+              onReport={() => setReportOpen(true)}
+            />
+
+            <h2 className="text-lg font-semibold ">Việc làm liên quan</h2>
+            <RelatedJobList jobs={relatedJobs} />
+          </Card>
+        </div>
+      </div>
 
       <ApplyJobModal open={applyOpen} onClose={() => setApplyOpen(false)} />
 
@@ -101,6 +99,6 @@ export const JobDetailPage = () => {
         onClose={() => setReportOpen(false)}
         hasReported={hasReported}
       />
-    </div>
+    </>
   );
 };

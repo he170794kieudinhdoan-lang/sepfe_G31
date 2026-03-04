@@ -27,7 +27,7 @@ import {
   Sparkles,
   RotateCcw,
 } from 'lucide-react';
-import { Container } from '@/shared/components/Container';
+
 import {
   Select,
   SelectContent,
@@ -38,6 +38,7 @@ import {
 } from '@/components/ui/select';
 import { HeartIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { Container } from '@/shared/components/Container';
 
 // ========================
 // CONSTANTS
@@ -775,7 +776,7 @@ export const JobSearchPage = () => {
           <div className="absolute -top-32 -right-32 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl" />
           <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
         </div>
-        <Container className="pt-8 pb-6 relative z-10">
+        <div className="pt-8 pb-6 relative z-10">
           <div className="text-center mb-6">
             <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 flex items-center justify-center gap-2">
               {/* <Sparkles className="h-6 w-6 text-yellow-500" /> */}
@@ -808,32 +809,40 @@ export const JobSearchPage = () => {
                             </Button2> */}
             </div>
           </div>
-        </Container>
+        </div>
       </div>
       {/* Active Filters + Sort */}
-      <Container className="max-w-6xl">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-2 flex-wrap ">
-            {activeFilters.length > 0 && (
-              <>
-                {activeFilters.map((f) => (
-                  <FilterChip key={f.key} label={f.label} onRemove={f.clear} />
-                ))}
-              </>
-            )}
-          </div>
+      <Container>
+        <div className="w-full">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-2 flex-wrap ">
+              {activeFilters.length > 0 && (
+                <>
+                  <span className="text-sm text-muted-foreground mr-2">
+                    Lọc theo:
+                  </span>
+                  {activeFilters.map((f) => (
+                    <FilterChip
+                      key={f.key}
+                      label={f.label}
+                      onRemove={f.clear}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
 
-          {/* on mobile */}
-          <div className="flex items-center gap-2 mt-3">
-            <Button
-              variant="outline"
-              size="sm"
-              className="rounded-xl lg:hidden"
-              onClick={() => setDrawerOpen(true)}
-            >
-              <SlidersHorizontal className="h-4 w-4 mr-1" /> Bộ lọc
-            </Button>
-            {/* <select
+            {/* on mobile */}
+            <div className="flex items-center gap-2 mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                className="rounded-xl lg:hidden"
+                onClick={() => setDrawerOpen(true)}
+              >
+                <SlidersHorizontal className="h-4 w-4 mr-1" /> Bộ lọc
+              </Button>
+              {/* <select
                             value={sortBy}
                             onChange={(e) => setSortBy(e.target.value)}
                             className="rounded-xl bg-white shadow-sm border border-gray-200 px-3 py-2 text-sm focus:border-yellow-400 focus:ring-1 focus:ring-amber-200 outline-none cursor-pointer"
@@ -842,106 +851,108 @@ export const JobSearchPage = () => {
                                 <option key={o.value} value={o.value}>{o.label}</option>
                             ))}
                         </select> */}
-          </div>
-          <div className="w-full max-w-6xl my-5 flex justify-end m-auto pr-10">
-            <Select value={sortBy} onValueChange={(e) => setSortBy(e)}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Theme" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {SORT_OPTIONS.map((o) => (
-                    <SelectItem key={o.value} value={o.value}>
-                      {o.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            </div>
+            <div className="w-full max-w-6xl my-5 flex justify-end m-auto pr-10">
+              <Select value={sortBy} onValueChange={(e) => setSortBy(e)}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Theme" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {SORT_OPTIONS.map((o) => (
+                      <SelectItem key={o.value} value={o.value}>
+                        {o.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
       </Container>
 
       {/* Main Layout */}
-      <Container className="pb-12 max-w-6xl">
-        <div className="flex gap-6">
-          {/* Sidebar - Desktop */}
-          <aside className="hidden lg:block w-72 shrink-0">
-            <div className="mb-2">
-              {!isLoading && (
-                <span className="text-xs text-muted-foreground">
-                  <h4 className="text-lg font-bold">
-                    {total > 0 ? `${total} kết quả` : ''}
-                  </h4>
-                </span>
-              )}
-            </div>
-            <div className="sticky top-24">
-              <Card className="p-5 rounded-2xl shadow-sm border-0 bg-white/80 backdrop-blur-sm">
-                <h3 className="font-bold text-sm mb-4 flex items-center gap-2 text-gray-800">
-                  <SlidersHorizontal className="h-4 w-4 text-primary" />
-                  Bộ lọc tìm kiếm
-                </h3>
-                <FilterPanel />
-              </Card>
-            </div>
-          </aside>
-
-          {/* Results */}
-          <main className="flex-1 min-w-0">
-            {/* Loading indicator */}
-            {isFetching && !isLoading && (
-              <div className="flex items-center gap-2 mb-4 text-sm text-primary animate-pulse">
-                <div className="h-2 w-2 rounded-full bg-primary animate-bounce" />
-                Đang tải...
+      <Container>
+        <div className="pb-12 w-full">
+          <div className="flex gap-6">
+            {/* Sidebar - Desktop */}
+            <aside className="hidden lg:block w-72 shrink-0">
+              <div className="mb-2">
+                {!isLoading && (
+                  <span className="text-xs text-muted-foreground">
+                    <h4 className="text-lg font-bold">
+                      {total > 0 ? `${total} kết quả` : ''}
+                    </h4>
+                  </span>
+                )}
               </div>
-            )}
-
-            {isLoading ? (
-              <div className="grid  gap-4">
-                {Array.from({ length: 6 }).map((_, i) => (
-                  <JobCardSkeleton key={i} />
-                ))}
+              <div className="sticky top-24">
+                <Card className="p-5 rounded-2xl shadow-sm border-0 bg-white/80 backdrop-blur-sm">
+                  <h3 className="font-bold text-sm mb-4 flex items-center gap-2 text-gray-800">
+                    <SlidersHorizontal className="h-4 w-4 text-primary" />
+                    Bộ lọc tìm kiếm
+                  </h3>
+                  <FilterPanel />
+                </Card>
               </div>
-            ) : isError ? (
-              <Card className="p-8 rounded-2xl text-center border-0 shadow-sm">
-                <div className="text-destructive text-lg font-semibold mb-2">
-                  Không thể tải dữ liệu
+            </aside>
+
+            {/* Results */}
+            <main className="flex-1 min-w-0">
+              {/* Loading indicator */}
+              {isFetching && !isLoading && (
+                <div className="flex items-center gap-2 mb-4 text-sm text-primary animate-pulse">
+                  <div className="h-2 w-2 rounded-full bg-primary animate-bounce" />
+                  Đang tải...
                 </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Vui lòng kiểm tra kết nối và thử lại.
-                </p>
-                <Button
-                  variant="outline"
-                  className="rounded-xl"
-                  onClick={() => window.location.reload()}
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" /> Thử lại
-                </Button>
-              </Card>
-            ) : jobs.length === 0 ? (
-              <div>
-                <h3 className="text-lg font-semibold text-center">
-                  Không tìm thấy việc làm
-                </h3>
-                <p className="text-sm text-muted-foreground text-center">
-                  Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.
-                </p>
-              </div>
-            ) : (
-              <>
-                <div className="grid gap-4">
-                  {jobs.map((job) => (
-                    <SearchJobCard key={job.id} job={job} />
+              )}
+
+              {isLoading ? (
+                <div className="grid  gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <JobCardSkeleton key={i} />
                   ))}
                 </div>
-                <Pagination />
-              </>
-            )}
-          </main>
+              ) : isError ? (
+                <Card className="p-8 rounded-2xl text-center border-0 shadow-sm">
+                  <div className="text-destructive text-lg font-semibold mb-2">
+                    Không thể tải dữ liệu
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Vui lòng kiểm tra kết nối và thử lại.
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={() => window.location.reload()}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" /> Thử lại
+                  </Button>
+                </Card>
+              ) : jobs.length === 0 ? (
+                <div>
+                  <h3 className="text-lg font-semibold text-center">
+                    Không tìm thấy việc làm
+                  </h3>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid gap-4">
+                    {jobs.map((job) => (
+                      <SearchJobCard key={job.id} job={job} />
+                    ))}
+                  </div>
+                  <Pagination />
+                </>
+              )}
+            </main>
+          </div>
         </div>
       </Container>
-
       {/* Mobile Filter Drawer */}
       {drawerOpen && (
         <>
