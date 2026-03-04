@@ -3,11 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Bell, MessageCircle, Search, ChevronDown, User } from 'lucide-react';
+import { Bell, MessageCircle, Search, ChevronDown, User, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
+  useDeleteNotification,
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
   useNotificationRealtime,
@@ -63,6 +64,7 @@ export const Header = () => {
   });
   const markReadMutation = useMarkNotificationRead();
   const markAllReadMutation = useMarkAllNotificationsRead();
+  const deleteMutation = useDeleteNotification();
 
   const notifications = normalizeNotifications(notificationData);
   const unreadCount = getUnreadCount(notifications);
@@ -87,6 +89,15 @@ export const Header = () => {
     markAllReadMutation.mutate(undefined, {
       onError: (error) => {
         const message = error.response?.data?.message || 'Không thể đánh dấu tất cả đã đọc.';
+        toast(message, 'error');
+      },
+    });
+  };
+
+  const handleDeleteNotification = (notificationId) => {
+    deleteMutation.mutate(notificationId, {
+      onError: (error) => {
+        const message = error.response?.data?.message || 'Không thể xoá thông báo.';
         toast(message, 'error');
       },
     });
@@ -127,25 +138,28 @@ export const Header = () => {
                 >
                   <Bell className='h-5 w-5' />
                   {unreadCount > 0 && (
-                    <span className='absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white' />
+                    <span className='absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white'>
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align='end' className='w-[360px] p-0 overflow-hidden rounded-xl'>
-                <div className='px-4 py-3 border-b bg-white'>
+              <PopoverContent align='end' className='w-95 p-0 overflow-hidden rounded-2xl border shadow-lg'>
+                <div className='px-4 py-3 border-b bg-linear-to-r from-white to-gray-50'>
                   <div className='flex items-center justify-between'>
                     <h3 className='text-sm font-semibold'>Thông báo</h3>
                     <span className='text-xs text-muted-foreground'>
                       {unreadCount > 0 ? `${unreadCount} chưa đọc` : 'Đã đọc hết'}
                     </span>
                   </div>
+                  <p className='text-[11px] text-muted-foreground mt-1'>Cập nhật mới nhất cho tài khoản của bạn</p>
                 </div>
 
-                <div className='max-h-[360px] overflow-y-auto bg-white'>
+                <div className='max-h-90 overflow-y-auto bg-white'>
                   {isNotificationLoading ? (
                     <div className='space-y-3 p-4'>
                       {Array.from({ length: 3 }).map((_, index) => (
-                        <div key={index} className='flex gap-3'>
+                        <div key={index} className='flex gap-3 p-2 rounded-xl border border-gray-100'>
                           <Skeleton className='h-9 w-9 rounded-lg shrink-0' />
                           <div className='flex-1 space-y-2'>
                             <Skeleton className='h-3.5 w-11/12' />
@@ -155,48 +169,66 @@ export const Header = () => {
                       ))}
                     </div>
                   ) : previewItems.length === 0 ? (
-                    <div className='px-4 py-8 text-center text-sm text-muted-foreground'>
-                      Chưa có thông báo nào.
+                    <div className='px-4 py-10 text-center'>
+                      <Bell className='h-8 w-8 mx-auto text-gray-300 mb-2' />
+                      <p className='text-sm text-muted-foreground'>Chưa có thông báo nào.</p>
                     </div>
                   ) : (
-                    <div className='divide-y'>
+                    <div className='p-2 space-y-2'>
                       {previewItems.map((item) => (
-                        <button
+                        <div
                           key={item.id}
-                          type='button'
                           className={cn(
-                            'w-full text-left px-4 py-3 transition hover:bg-gray-50 cursor-pointer',
-                            !item.read && 'bg-primary/5'
+                            'group rounded-xl border border-transparent transition',
+                            !item.read ? 'bg-primary/5 border-primary/15' : 'bg-white hover:bg-gray-50'
                           )}
-                          onClick={() => {
-                            if (!item.read) {
-                              handleMarkRead(item.id);
-                            }
-                            setNotificationOpen(false);
-                          }}
                         >
-                          <div className='flex items-start gap-3'>
-                            <div
-                              className={cn(
-                                'mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
-                                !item.read ? 'bg-primary/20' : 'bg-gray-100'
-                              )}
+                          <div className='flex items-start gap-2 p-3'>
+                            <button
+                              type='button'
+                              className='flex-1 text-left cursor-pointer'
+                              onClick={() => {
+                                if (!item.read) {
+                                  handleMarkRead(item.id);
+                                }
+                                setNotificationOpen(false);
+                              }}
                             >
-                              <Bell className={cn('h-4 w-4', !item.read ? 'text-primary' : 'text-gray-500')} />
-                            </div>
-                            <div className='min-w-0 flex-1'>
-                              <p className='text-sm leading-5 line-clamp-2'>{item.content}</p>
-                              <p className='mt-1 text-xs text-muted-foreground'>{item.time}</p>
-                            </div>
-                            {!item.read && <span className='mt-1 h-2 w-2 rounded-full bg-primary shrink-0' />}
+                              <div className='flex items-start gap-3'>
+                                <div
+                                  className={cn(
+                                    'mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
+                                    !item.read ? 'bg-primary/20' : 'bg-gray-100'
+                                  )}
+                                >
+                                  <Bell className={cn('h-4 w-4', !item.read ? 'text-primary' : 'text-gray-500')} />
+                                </div>
+                                <div className='min-w-0 flex-1'>
+                                  <p className='text-sm leading-5 line-clamp-2'>{item.content}</p>
+                                  <p className='mt-1 text-xs text-muted-foreground'>{item.time}</p>
+                                </div>
+                                {!item.read && <span className='mt-1 h-2 w-2 rounded-full bg-primary shrink-0' />}
+                              </div>
+                            </button>
+                            <Button
+                              variant='ghost'
+                              size='icon'
+                              className='h-8 w-8 shrink-0 text-muted-foreground hover:text-red-500 hover:bg-red-50'
+                              title='Xoá thông báo'
+                              disabled={deleteMutation.isPending}
+                              onClick={() => handleDeleteNotification(item.id)}
+                            >
+                              <Trash2 className='h-4 w-4' />
+                            </Button>
                           </div>
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
                 </div>
 
                 <div className='px-3 py-2 border-t bg-gray-50 flex items-center justify-between gap-2'>
+                  <span className='text-[11px] text-muted-foreground'>Bấm vào item để đánh dấu đã đọc</span>
                   <Button
                     variant='ghost'
                     size='sm'
@@ -254,7 +286,7 @@ export const Header = () => {
                       <User className='h-4 w-4 text-primary' />
                     )}
                   </div>
-                  <span className='text-sm font-medium max-w-[100px] truncate'>
+                  <span className='text-sm font-medium max-w-25 truncate'>
                     {user?.fullName || 'User'}
                   </span>
                   <ChevronDown className={cn('h-4 w-4 transition', avatarOpen && 'rotate-180')} />
