@@ -6,10 +6,14 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { Modal } from '@/shared/components/Modal';
+import { Outlet, NavLink } from "react-router-dom"
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
+import { useSearchJobs } from '@/features/jobs/useJobQueries';
+import { useDeleteJob } from '@/features/jobs/useJobMutation';
+import { Loader2, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 
 const EMPLOYER_MENU = [
   { key: 'overview', label: 'Tổng quan' },
@@ -50,7 +54,14 @@ export const EmployerDashboard = () => {
   });
 
   const applicants = MOCK_APPLICANTS;
-  const jobs = MOCK_JOBS;
+
+  // Real API integration
+  const companyId = 1; // Hardcode tạm
+  const [jobPage, setJobPage] = useState(1);
+  const { data: searchResult, isLoading: loadingJobs } = useSearchJobs({ companyId, allStatus: true, page: jobPage, limit: 10 });
+  const { mutate: deleteJob } = useDeleteJob();
+  const jobs = searchResult?.items || [];
+  const totalPages = searchResult?.meta?.totalPage || 1;
 
   const openCreateJob = () => {
     setEditingJob(null);
@@ -74,9 +85,13 @@ export const EmployerDashboard = () => {
   };
 
   const handleDeleteJob = () => {
-    setDeleteConfirm(null);
-    toast(MSG.MSG_JOB_DELETE_FAIL, 'error');
-  };
+    deleteJob({ companyId, jobId: deleteConfirm.id }, {
+      onSuccess: () => {
+        toast("Xóa tin tuyển dụng thành công", "success");
+        setDeleteConfirm(null);
+      }
+    });
+  }
 
   const handleBoostCheckout = () => {
     setBoostModalOpen(false);
@@ -105,6 +120,9 @@ export const EmployerDashboard = () => {
       onSelect={setActive}
       topbarBell={<NotificationBellPopover />}
     >
+      <div className="relative">
+        <Outlet />
+      </div>
       {active === 'overview' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between flex-wrap gap-2">
@@ -113,8 +131,8 @@ export const EmployerDashboard = () => {
               <Button variant="outline" className="rounded-xl" asChild>
                 <Link to="/company/register">Đăng ký / Chỉnh sửa công ty</Link>
               </Button>
-              <Button className="rounded-xl" onClick={() => { setActive('jobs'); openCreateJob(); }}>
-                Tạo tin tuyển dụng
+              <Button asChild>
+                <Link to="/employer/jobs/create">Tạo tin tuyển dụng</Link>
               </Button>
             </div>
           </div>
@@ -133,36 +151,106 @@ export const EmployerDashboard = () => {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Tin tuyển dụng</h2>
-            <Button className="rounded-xl" onClick={openCreateJob}>Tạo tin</Button>
+            <Button asChild>
+              <Link to="/employer/jobs/create">Tạo tin tuyển dụng</Link>
+            </Button>
           </div>
           <Card className="p-4 rounded-xl shadow-sm overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-muted-foreground border-b">
                 <tr>
-                  <th className="py-2">Job title</th>
-                  <th>Status</th>
-                  <th>Created</th>
+                  <th className="py-2">Tiêu đề công việc</th>
+                  <th>Trạng thái</th>
+                  <th>Số lượng</th>
+                  <th>Mức lương</th>
+                  <th>Ngày tạo</th>
+                  <th>Thời gian hết hạn bài viết</th>
                   <th>Boost</th>
-                  <th>Actions</th>
+                  <th>Hành động</th>
                 </tr>
               </thead>
               <tbody>
-                {jobs.map((job) => (
-                  <tr key={job.id} className="border-b last:border-b-0">
-                    <td className="py-3 font-medium">{job.title}</td>
-                    <td><Badge className="rounded-lg">{job.status}</Badge></td>
-                    <td>{job.created}</td>
-                    <td>{job.boosted ? <Badge variant="secondary" className="rounded-lg">Nổi bật đến {job.boostEnd}</Badge> : '-'}</td>
-                    <td className="py-2 flex flex-wrap gap-1">
-                      <Button variant="outline" size="sm" className="rounded-xl" onClick={() => openEditJob(job)}>Sửa</Button>
-                      <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setDeleteConfirm(job)}>Xóa</Button>
-                      {!job.boosted && <Button variant="outline" size="sm" className="rounded-xl" onClick={() => setBoostModalOpen(true)}>Nổi bật</Button>}
-                      <Button variant="outline" size="sm" className="rounded-xl">Xem ứng viên</Button>
+                {loadingJobs ? (
+                  <tr>
+                    <td colSpan="8" className="py-8 text-center text-muted-foreground">
+                      <Loader2 className="animate-spin mx-auto mb-2 text-primary" size={24} />
+                      Đang tải danh sách tin...
+                    </td>
+                  </tr>
+                ) : jobs.length === 0 ? (
+                  <tr>
+                    <td colSpan="8" className="py-8 text-center text-muted-foreground">
+                      Bạn chưa có tin tuyển dụng nào.
+                    </td>
+                  </tr>
+                ) : jobs.map((job) => (
+                  <tr key={job.id} className="border-b last:border-b-0 hover:bg-gray-50/50 transition-colors">
+                    <td className="py-4 font-medium">{job.title}</td>
+                    <td>
+                      <Badge className={`rounded-lg ${job.status === 'PUBLISHED' ? "bg-green-100 text-green-800 hover:bg-green-200" :
+                        job.status === 'WARNING' ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200" :
+                          job.status === 'EXPIRED' ? "bg-red-100 text-red-800 hover:bg-red-200" :
+                            job.status === 'REJECTED' ? "bg-red-100 text-red-800 hover:bg-red-200" :
+                              "bg-gray-100 text-gray-800"
+                        }`}>
+                        {job.status}
+                      </Badge>
+                    </td>
+                    <td>{job.quantity}</td>
+                    <td>
+                      {job.salaryMin && job.salaryMax
+                        ? `${(job.salaryMin / 1000000).toFixed(1)} - ${(job.salaryMax / 1000000).toFixed(1)} Tr`
+                        : job.salaryMin
+                          ? `Từ ${(job.salaryMin / 1000000).toFixed(1)} Tr`
+                          : job.salaryMax
+                            ? `Tối đa ${(job.salaryMax / 1000000).toFixed(1)} Tr`
+                            : 'Thoả thuận'}
+                    </td>
+                    <td>{new Date(job.createdAt).toLocaleDateString('vi-VN')}</td>
+                    <td>{job.expiredAt ? new Date(job.expiredAt).toLocaleDateString('vi-VN') : '-'}</td>
+                    <td>{job.boosted ? <Check className="text-green-600 w-5 h-5" /> : <X className="text-red-500 w-5 h-5" />}</td>
+                    <td className="py-2 flex flex-wrap gap-2 items-center">
+                      <Button variant="outline" size="sm" className="rounded-xl border-primary text-primary hover:bg-primary hover:text-white transition-colors" asChild>
+                        <Link to={`/employer/jobs/${job.id}/edit`}>Sửa</Link>
+                      </Button>
+                      <Button variant="outline" size="sm" className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors" onClick={() => setDeleteConfirm(job)}>
+                        Xóa
+                      </Button>
+                      <Button variant="outline" size="sm" className="rounded-xl border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors hidden sm:inline-flex">
+                        Xem ứng viên
+                      </Button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-end gap-2 mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setJobPage((p) => Math.max(1, p - 1))}
+                  disabled={jobPage === 1 || loadingJobs}
+                >
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Trước
+                </Button>
+                <span className="text-sm font-medium">
+                  Trang {jobPage} / {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setJobPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={jobPage === totalPages || loadingJobs}
+                >
+                  Sau
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
       )}
@@ -271,7 +359,7 @@ export const EmployerDashboard = () => {
         </div>
       )}
 
-      <Modal open={jobModalOpen} title={editingJob ? 'Chỉnh sửa tin' : 'Tạo tin tuyển dụng'} onClose={() => setJobModalOpen(false)} onConfirm={handleSaveJob} confirmLabel="Lưu">
+      {/* <Modal open={jobModalOpen} title={editingJob ? 'Chỉnh sửa tin' : 'Tạo tin tuyển dụng'} onClose={() => setJobModalOpen(false)} onConfirm={handleSaveJob} confirmLabel="Lưu">
         <div className="space-y-4">
           <div><label className="text-sm font-medium">Tiêu đề *</label><Input className="mt-1 rounded-xl" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} placeholder="Tiêu đề tin" /></div>
           <div><label className="text-sm font-medium">Mô tả</label><Input className="mt-1 rounded-xl" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></div>
@@ -281,7 +369,7 @@ export const EmployerDashboard = () => {
           <div><label className="text-sm font-medium">Số lượng</label><Input className="mt-1 rounded-xl" value={form.vacancies} onChange={(e) => setForm({ ...form, vacancies: e.target.value })} /></div>
           <div><label className="text-sm font-medium">Ngành nghề</label><Input className="mt-1 rounded-xl" value={form.sector} onChange={(e) => setForm({ ...form, sector: e.target.value })} /></div>
         </div>
-      </Modal>
+      </Modal> */}
 
       <Modal open={!!deleteConfirm} title="Xóa tin" description="Bạn chắc chắn muốn xóa tin tuyển dụng này?" onClose={() => setDeleteConfirm(null)} onConfirm={handleDeleteJob} confirmLabel="Xóa" tone="danger" />
 

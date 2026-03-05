@@ -17,7 +17,7 @@ export const updateWorkerProfile = async (body) => {
 };
 
 export const getOccupations = async () => {
-  return apiClient.get('/occupations');
+  return apiClient.get('/occupations/grouped-by-sector');
 };
 
 export const getOccupationsBySector = async (sectorId) => {

@@ -25,7 +25,8 @@ import { AdminDashboard } from '@/pages/AdminDashboard';
 import { ManagerDashboard } from '@/features/companies/router/ManagerDashboard';
 import { CompanyApplicantPage } from '@/features/companies/components/CompanyApplicantPage';
 import { EmployerDashboard } from '@/pages/EmployerDashboard';
-
+import { CreateJobPage } from '@/pages/CreateJobPage';
+import { EditJobPage } from '@/pages/EditJobPage';
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -60,6 +61,15 @@ export const router = createBrowserRouter([
   {
     path: '/employer',
     element: <EmployerDashboard />,
+    children: [
+      {
+        path: 'jobs',
+        children: [
+          { path: 'create', element: <CreateJobPage /> },
+          { path: ':jobId/edit', element: <EditJobPage /> },
+        ],
+      },
+    ],
   },
   { path: '/auth/login', element: <Login /> },
   { path: '/auth/register', element: <RegisterChoose /> },

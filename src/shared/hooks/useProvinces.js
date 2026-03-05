@@ -18,7 +18,7 @@ export const useProvinces = () => {
   useEffect(() => {
     let mounted = true;
     setIsLoading(true);
-    fetch(`${PROVINCES_API}/p`)
+    fetch(`${PROVINCES_API}/p/`)
       .then((res) => res.json())
       .then((data) => {
         if (!mounted) return;
