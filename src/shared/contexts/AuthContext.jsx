@@ -12,6 +12,7 @@ import {
   useContext,
   useCallback,
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 
 const AuthContext = createContext(null);
 
@@ -26,6 +27,7 @@ export const useAuth = () => {
 };
 
 export const AuthProvider = ({ children }) => {
+  const queryClient = useQueryClient();
   const [user, setUser] = useState(() => {
     const savedUser = localStorage.getItem('userInfo');
     return savedUser ? JSON.parse(savedUser) : null;
@@ -88,8 +90,9 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       clearTokens();
+      queryClient.removeQueries({ queryKey: ['users', 'me'] });
     }
-  }, []);
+  }, [queryClient]);
 
   const value = {
     user,

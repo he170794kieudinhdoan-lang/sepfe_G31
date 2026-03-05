@@ -1,6 +1,6 @@
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useToast } from '@/shared/contexts/ToastContext';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MSG } from '@/shared/constants/messages';
 import * as authApi from './authApi';
@@ -49,6 +49,7 @@ export const useLogin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loginSuccess } = useAuth();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: authApi.loginWithCredentials,
@@ -56,6 +57,8 @@ export const useLogin = () => {
       toast(MSG.MSG_LOGIN_SUCCESS);
 
       const roleType = data.tokens?.roleType || data.tokens?.role || '';
+
+      queryClient.removeQueries({ queryKey: ['users', 'me'] });
 
       try {
         const userData = await getUsers();
@@ -77,6 +80,7 @@ export const useLoginGoogle = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loginSuccess } = useAuth();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ googleToken, additionalData }) =>
@@ -85,6 +89,9 @@ export const useLoginGoogle = () => {
       toast(MSG.MSG_LOGIN_GOOGLE_SUCCESS);
 
       const roleType = data.tokens?.role || '';
+
+      // Xóa cache cũ trước khi fetch user mới
+      queryClient.removeQueries({ queryKey: ['users', 'me'] });
 
       try {
         const userData = await getUsers();
