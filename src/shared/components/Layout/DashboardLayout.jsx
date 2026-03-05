@@ -8,6 +8,7 @@ export const DashboardLayout = ({
     menu,
     activeKey,
     onSelect,
+    topbarBell,
     children,
 }) => {
     return (
@@ -23,7 +24,7 @@ export const DashboardLayout = ({
                                 className={cn(
                                     "w-full flex items-center justify-between rounded-xl px-4 py-2 text-sm font-semibold transition",
                                     activeKey === item.key
-                                        ? "bg-primary/10 text-foreground"
+                                        ? "bg-primary-muted text-foreground"
                                         : "text-muted-foreground hover:bg-gray-100"
                                 )}
                             >
@@ -50,9 +51,11 @@ export const DashboardLayout = ({
                                         placeholder="Tìm nhanh"
                                     />
                                 </div>
-                                <Button variant="ghost" size="icon" className="rounded-full">
-                                    <Bell className="h-5 w-5" />
-                                </Button>
+                                {topbarBell || (
+                                    <Button variant="ghost" size="icon" className="rounded-full">
+                                        <Bell className="h-5 w-5" />
+                                    </Button>
+                                )}
                                 <Button variant="outline" className="rounded-full px-4">
                                     Admin <ChevronDown className="ml-2 h-4 w-4" />
                                 </Button>
@@ -66,7 +69,7 @@ export const DashboardLayout = ({
                                     className={cn(
                                         "flex-shrink-0 rounded-full border px-4 py-2 text-xs font-semibold",
                                         activeKey === item.key
-                                            ? "bg-primary/10 text-foreground"
+                                            ? "bg-primary-muted text-foreground"
                                             : "text-muted-foreground"
                                     )}
                                 >

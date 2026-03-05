@@ -18,13 +18,16 @@ import { ChatPage } from '@/pages/ChatPage';
 import { CompanyListPage } from '@/features/companies/components/CompanyListPage';
 import { CompanyDetailPage } from '@/features/companies/components/CompanyDetailPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
+import { WorkerWelcome } from '@/pages/WorkerWelcome';
+import { WorkerProfileSetup } from '@/pages/WorkerProfileSetup';
 import { TermsPage } from '@/pages/TermsPage';
 import { AdminDashboard } from '@/pages/AdminDashboard';
 import { ManagerDashboard } from '@/features/companies/router/ManagerDashboard';
 import { CompanyApplicantPage } from '@/features/companies/components/CompanyApplicantPage';
 import { EmployerDashboard } from '@/pages/EmployerDashboard';
 import { EmployerLayout } from '@/shared/components/Layout/EmployerLayout';
-
+import { CreateJobPage } from '@/pages/CreateJobPage';
+import { EditJobPage } from '@/pages/EditJobPage';
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -59,6 +62,15 @@ export const router = createBrowserRouter([
   {
     path: '/employer',
     element: <EmployerDashboard />,
+    children: [
+      {
+        path: 'jobs',
+        children: [
+          { path: 'create', element: <CreateJobPage /> },
+          { path: ':jobId/edit', element: <EditJobPage /> },
+        ],
+      },
+    ],
   },
   { path: '/auth/login', element: <Login /> },
   { path: '/auth/register', element: <RegisterChoose /> },
@@ -66,6 +78,8 @@ export const router = createBrowserRouter([
   { path: '/auth/register/employer', element: <RegisterEmployer /> },
   { path: '/auth/forgot-password', element: <ForgotPassword /> },
   { path: '/auth/reset-password', element: <ResetPassword /> },
+  { path: '/worker/welcome', element: <WorkerWelcome /> },
+  { path: '/worker/setup-profile', element: <WorkerProfileSetup /> },
   {
     path: '*',
     element: (

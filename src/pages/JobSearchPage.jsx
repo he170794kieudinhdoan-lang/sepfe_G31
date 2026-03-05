@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useSearchJobs } from '@/features/jobs/api/useSearchJobs';
+import { useSearchJobs, useGetProvinces, useGetWards } from '@/features/jobs/api/useSearchJobs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -24,7 +24,6 @@ import {
     Sparkles,
     RotateCcw,
 } from 'lucide-react';
-import { Button2 } from '@/components/ui/button_2';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HeartIcon } from 'lucide-react';
 
@@ -130,7 +129,7 @@ const SearchJobCard = ({ job }) => {
                         <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-gray-800 
                            leading-snug line-clamp-2 
-                           group-hover:text-yellow-600 
+                           group-hover:text-primary 
                            transition-colors
                            cursor-pointer">
                                 {job.title}
@@ -159,7 +158,7 @@ const SearchJobCard = ({ job }) => {
                                 px-3 py-1 rounded-lg 
                                 bg-gray-100 text-gray-700 
                                 border border-gray-200">
-                                    <MapPin className="h-3 w-3 text-yellow-600" />
+                                    <MapPin className="h-3 w-3 text-primary" />
                                     {job.province}
                                 </Badge>
                             )}
@@ -168,7 +167,7 @@ const SearchJobCard = ({ job }) => {
                         px-3 py-1 rounded-lg 
                         bg-gray-100 text-gray-700 
                         border border-gray-200">
-                                <Timer className="h-3 w-3 text-yellow-600" />
+                                <Timer className="h-3 w-3 text-primary" />
                                 {shiftLabel(job.workingShift)}
                             </Badge>
 
@@ -186,7 +185,7 @@ const SearchJobCard = ({ job }) => {
                             </div>
                             {(job.ageMin || job.ageMax) && (
                                 <span className="flex items-center gap-1">
-                                    <Calendar className="h-3 w-3 text-yellow-600" />
+                                    <Calendar className="h-3 w-3 text-primary" />
                                     {job.ageMin && job.ageMax
                                         ? `${job.ageMin}-${job.ageMax} tuổi`
                                         : job.ageMin
@@ -197,7 +196,7 @@ const SearchJobCard = ({ job }) => {
 
                             {job.quantity > 0 && (
                                 <span className="flex items-center gap-1">
-                                    <Briefcase className="h-3 w-3 text-yellow-600" />
+                                    <Briefcase className="h-3 w-3 text-primary" />
                                     {job.quantity} vị trí
                                 </span>
                             )}
@@ -211,28 +210,25 @@ const SearchJobCard = ({ job }) => {
 
                     {displayMoreButton && (
                         <div>
-                            <Button2
+                            <Button
                                 size="icon"
-                                className="rounded-full
-                                text-white"
+                                className="rounded-full"
                                 title='Thêm vào danh sách yêu thich'
 
                             >
                                 <HeartIcon width={20} height={20} />
-                            </Button2>
+                            </Button>
                         </div>
                     )}
                     <div>
                         {displayMoreButton && (
-                            <Button2
+                            <Button
                                 size="sm"
-                                className="flex items-center gap-1 animate-in
-                                text-white"
+                                className="flex items-center gap-1 animate-in"
                                 title='Ứng tuyển'
                             >
-                                {/* <Briefcase className="h-3 w-3" /> */}
                                 Ứng tuyển
-                            </Button2>
+                            </Button>
                         )}
                     </div>
                 </div>
@@ -246,11 +242,11 @@ const SearchJobCard = ({ job }) => {
 
 /** Active Filter Chip */
 const FilterChip = ({ label, onRemove }) => (
-    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-800 rounded-full text-xs font-medium border border-amber-200 animate-in fade-in slide-in-from-left-1 duration-200">
+    <span className="inline-flex items-center gap-1 px-3 py-1.5 bg-primary-muted text-primary rounded-full text-xs font-medium border border-primary/10 animate-in fade-in slide-in-from-left-1 duration-200">
         {label}
         <button
             onClick={onRemove}
-            className="ml-0.5 p-0.5 rounded-full hover:bg-amber-200 transition-colors"
+            className="ml-0.5 p-0.5 rounded-full hover:bg-primary-hover/20 transition-colors"
         >
             <X className="h-3 w-3" />
         </button>
@@ -262,11 +258,20 @@ const FilterChip = ({ label, onRemove }) => (
 // ========================
 
 export const JobSearchPage = () => {
+    const normalizeLocationName = (name) => {
+        if (!name) return '';
+        return name
+            .replace(/^(Tỉnh|Thành phố|TP\.?|Tp\.?|tp\.?|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s*/i, '')
+            .trim();
+    };
+
     const [searchParams, setSearchParams] = useSearchParams();
 
     // Init state from URL params
     const [keyword, setKeyword] = useState(searchParams.get('query') || '');
     const [province, setProvince] = useState(searchParams.get('province') || '');
+    const [district, setDistrict] = useState(searchParams.get('district') || '');
+    const [provinceCode, setProvinceCode] = useState('');
     const [workingShift, setWorkingShift] = useState(searchParams.get('workingShift') || '');
     const [occupationId, setOccupationId] = useState(searchParams.get('occupationId') || '');
     const [companyId, setCompanyId] = useState(searchParams.get('companyId') || '');
@@ -277,15 +282,16 @@ export const JobSearchPage = () => {
     const [drawerOpen, setDrawerOpen] = useState(false);
     const limit = 12;
 
+    const { data: provincesData } = useGetProvinces();
+    const { data: communesData } = useGetWards(provinceCode);
 
-    // Debounced keyword
+
     const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
     useEffect(() => {
-        const timer = setTimeout(() => setDebouncedKeyword(keyword), 400);
+        const timer = setTimeout(() => setDebouncedKeyword(keyword), 800);
         return () => clearTimeout(timer);
     }, [keyword]);
 
-    // Build API filters
 
     const buildFilters = useCallback(() => {
         const filters = {
@@ -295,13 +301,13 @@ export const JobSearchPage = () => {
         };
         if (debouncedKeyword) filters.keyword = debouncedKeyword;
         if (province) filters.province = province;
+        if (district) filters.district = district;
         if (workingShift) filters.workingShift = workingShift;
         if (occupationId) filters.occupationId = Number(occupationId);
         if (companyId) filters.companyId = Number(companyId);
         if (genderRequirement) filters.genderRequirement = genderRequirement;
-        // Salary range không gửi lên API (BE chưa hỗ trợ), filter tại FE
         return filters;
-    }, [debouncedKeyword, province, workingShift, occupationId, companyId, genderRequirement, sortBy, page]);
+    }, [debouncedKeyword, province, district, workingShift, occupationId, companyId, genderRequirement, sortBy, page]);
 
     const filters = buildFilters();
     const { data, isLoading, isError, isFetching } = useSearchJobs(filters);
@@ -330,7 +336,6 @@ export const JobSearchPage = () => {
             const jMax = job.salaryMax || Infinity;
             const fMin = salaryFilter.min || 0;
             const fMax = salaryFilter.max || Infinity;
-            // Overlap check
             return jMin <= fMax && jMax >= fMin;
         });
     }
@@ -341,19 +346,22 @@ export const JobSearchPage = () => {
 
     useEffect(() => {
         setPage(1);
-    }, [debouncedKeyword, province, workingShift, occupationId, companyId, genderRequirement, salaryRange, sortBy]);
+    }, [debouncedKeyword, province, district, workingShift, occupationId, companyId, genderRequirement, salaryRange, sortBy]);
 
     const activeFilters = [];
     if (workingShift) activeFilters.push({ key: 'workingShift', label: `Ca: ${shiftLabel(workingShift)}`, clear: () => setWorkingShift('') });
     if (genderRequirement) activeFilters.push({ key: 'gender', label: `Giới tính: ${genderLabel(genderRequirement)}`, clear: () => setGenderRequirement('') });
     if (occupationId) activeFilters.push({ key: 'occupation', label: `Ngành nghề: #${occupationId}`, clear: () => setOccupationId('') });
     if (companyId) activeFilters.push({ key: 'company', label: `Công ty: #${companyId}`, clear: () => setCompanyId('') });
-    if (province) activeFilters.push({ key: 'province', label: `Khu vực: ${province}`, clear: () => setProvince('') });
+    if (province) activeFilters.push({ key: 'province', label: `Khu vực: ${province}`, clear: () => { setProvince(''); setProvinceCode(''); setDistrict(''); } });
+    if (district) activeFilters.push({ key: 'district', label: `Phường/Xã: ${district}`, clear: () => setDistrict('') });
     if (salaryRange) activeFilters.push({ key: 'salary', label: `Lương: ${SALARY_RANGES.find((r) => r.value === salaryRange)?.label}`, clear: () => setSalaryRange('') });
 
     const clearAllFilters = () => {
         setKeyword('');
         setProvince('');
+        setDistrict('');
+        setProvinceCode('');
         setWorkingShift('');
         setOccupationId('');
         setCompanyId('');
@@ -379,8 +387,8 @@ export const JobSearchPage = () => {
                             key={s.value}
                             onClick={() => setWorkingShift(workingShift === s.value ? '' : s.value)}
                             className={`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 border ${workingShift === s.value
-                                ? 'bg-yellow-400 text-white border-yellow-400 shadow-md shadow-amber-200'
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:bg-amber-50'
+                                ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-primary-hover hover:bg-primary-muted'
                                 }`}
                         >
                             {s.icon} {s.label}
@@ -400,8 +408,8 @@ export const JobSearchPage = () => {
                             key={r.value}
                             onClick={() => setSalaryRange(salaryRange === r.value ? '' : r.value)}
                             className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${salaryRange === r.value
-                                ? 'bg-yellow-400 text-white font-medium shadow-md shadow-amber-200'
-                                : 'text-gray-600 hover:bg-amber-50'
+                                ? 'bg-primary text-primary-foreground font-medium shadow-md shadow-primary/20'
+                                : 'text-gray-600 hover:bg-primary-muted'
                                 }`}
                         >
                             {r.label}
@@ -421,8 +429,8 @@ export const JobSearchPage = () => {
                             key={g.value}
                             onClick={() => setGenderRequirement(genderRequirement === g.value ? '' : g.value)}
                             className={`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 border ${genderRequirement === g.value
-                                ? 'bg-yellow-500 text-white border-yellow-500 shadow-md shadow-amber-200'
-                                : 'bg-white text-gray-600 border-gray-200 hover:border-amber-300 hover:bg-amber-50'
+                                ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
+                                : 'bg-white text-gray-600 border-gray-200 hover:border-primary-hover hover:bg-primary-muted'
                                 }`}
                         >
                             {g.label}
@@ -462,19 +470,63 @@ export const JobSearchPage = () => {
             </div> */}
 
 
-            {/* Khu vực */}
+            {/* Khu vực - Tỉnh/Thành phố */}
             <div>
                 <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-                    <MapPin className="h-3.5 w-3.5" /> Khu vực
+                    <MapPin className="h-3.5 w-3.5" /> Tỉnh/Thành phố
                 </label>
-                <Input
-                    type="text"
-                    placeholder="VD: TP. Hồ Chí Minh"
-                    value={province}
-                    onChange={(e) => setProvince(e.target.value)}
-                    className="rounded-xl border-gray-200 focus:border-amber-400 focus:ring-amber-200"
-                />
+                <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-white">
+                    {provincesData?.provinces?.map((p) => (
+                        <button
+                            key={p.code}
+                            onClick={() => {
+                                const normalized = normalizeLocationName(p.name);
+                                if (province === normalized) {
+                                    setProvince('');
+                                    setProvinceCode('');
+                                    setDistrict('');
+                                } else {
+                                    setProvince(normalized);
+                                    setProvinceCode(p.code);
+                                    setDistrict('');
+                                }
+                            }}
+                            className={`w-full text-left px-3 py-2 text-sm transition-all duration-200 ${province === normalizeLocationName(p.name)
+                                ? 'bg-primary text-primary-foreground font-medium'
+                                : 'text-gray-600 hover:bg-primary-muted'
+                                }`}
+                        >
+                            {p.name}
+                        </button>
+                    ))}
+                </div>
             </div>
+
+            {/* Khu vực - Phường/Xã */}
+            {provinceCode && (
+                <div>
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
+                        <MapPin className="h-3.5 w-3.5" /> Phường/Xã
+                    </label>
+                    <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-white">
+                        {communesData?.communes?.map((c) => (
+                            <button
+                                key={c.code}
+                                onClick={() => {
+                                    const normalized = normalizeLocationName(c.name);
+                                    setDistrict(district === normalized ? '' : normalized);
+                                }}
+                                className={`w-full text-left px-3 py-2 text-sm transition-all duration-200 ${district === normalizeLocationName(c.name)
+                                    ? 'bg-primary text-primary-foreground font-medium'
+                                    : 'text-gray-600 hover:bg-primary-muted'
+                                    }`}
+                            >
+                                {c.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Clear All */}
             {activeFilters.length > 0 && (
@@ -506,7 +558,7 @@ export const JobSearchPage = () => {
 
         return (
             <div className="flex items-center justify-center gap-1.5 mt-8">
-                <Button2
+                <Button
                     variant="outline"
                     size="sm"
                     className="rounded-xl"
@@ -514,7 +566,7 @@ export const JobSearchPage = () => {
                     onClick={() => setPage(page - 1)}
                 >
                     <ChevronLeft className="h-4 w-4" />
-                </Button2>
+                </Button>
                 {start > 1 && (
                     <>
                         <Button variant={page === 1 ? 'default' : 'outline'} size="sm" className="rounded-xl min-w-[36px]" onClick={() => setPage(1)}>1</Button>
@@ -522,25 +574,25 @@ export const JobSearchPage = () => {
                     </>
                 )}
                 {pages.map((p) => (
-                    <Button2
+                    <Button
                         key={p}
                         variant={page === p ? 'default' : 'outline'}
                         size="sm"
-                        className={`rounded-xl min-w-[36px] ${page === p ? 'shadow-md shadow-amber-200' : ''}`}
+                        className={`rounded-xl min-w-[36px] ${page === p ? 'shadow-md shadow-primary/20' : ''}`}
                         onClick={() => setPage(p)}
                     >
                         {p}
-                    </Button2>
+                    </Button>
                 ))}
                 {end < totalPages && (
                     <>
                         {end < totalPages - 1 && <span className="px-1 text-muted-foreground">…</span>}
-                        <Button2 variant={page === totalPages ? 'default' : 'outline'} size="sm"
+                        <Button variant={page === totalPages ? 'default' : 'outline'} size="sm"
                             className="rounded-xl min-w-[36px]" onClick={() => setPage(totalPages)}>{totalPages}
-                        </Button2>
+                        </Button>
                     </>
                 )}
-                <Button2
+                <Button
                     variant="outline"
                     size="sm"
                     className="rounded-xl"
@@ -548,7 +600,7 @@ export const JobSearchPage = () => {
                     onClick={() => setPage(page + 1)}
                 >
                     <ChevronRight className="h-4 w-4" />
-                </Button2>
+                </Button>
             </div>
         );
     };
@@ -561,8 +613,8 @@ export const JobSearchPage = () => {
             {/* Hero Search Bar */}
             <div className="relative overflow-hidden">
                 <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute -top-32 -right-32 w-[500px] h-[500px] bg-yellow-300/20 rounded-full blur-3xl" />
-                    <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-yellow-300/15 rounded-full blur-3xl" />
+                    <div className="absolute -top-32 -right-32 w-[500px] h-[500px] bg-primary/10 rounded-full blur-3xl" />
+                    <div className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-primary/5 rounded-full blur-3xl" />
                 </div>
                 <div className="container mx-auto px-4 pt-8 pb-6 relative z-10">
                     <div className="text-center mb-6">
@@ -577,9 +629,9 @@ export const JobSearchPage = () => {
 
                     {/* Search Bar */}
                     <div className="max-w-3xl mx-auto">
-                        <div className="bg-white rounded-2xl shadow-lg shadow-amber-100/50 border border-amber-100 p-2 flex items-center gap-2">
+                        <div className="bg-white rounded-2xl shadow-lg shadow-primary/5 border border-primary/10 p-2 flex items-center gap-2">
                             <div className="flex-1 flex items-center px-3">
-                                <Search className="h-5 w-5 text-yellow-400 mr-2 shrink-0" />
+                                <Search className="h-5 w-5 text-primary mr-2 shrink-0" />
                                 <Input
                                     type="text"
                                     placeholder="Tìm theo tên việc, mô tả..."
@@ -588,11 +640,11 @@ export const JobSearchPage = () => {
                                     className="border-0 shadow-none focus-visible:ring-0 text-base bg-transparent"
                                 />
                             </div>
-                            <Button2
+                            {/* <Button2
                                 className="rounded-xl px-6 font-semibold shadow-lg shadow-amber-200/50"
                             >
                                 <Search className="h-4 w-4 mr-2" /> Tìm kiếm
-                            </Button2>
+                            </Button2> */}
                         </div>
                     </div>
                 </div>
@@ -666,7 +718,7 @@ export const JobSearchPage = () => {
                         <div className="sticky top-24">
                             <Card className="p-5 rounded-2xl shadow-sm border-0 bg-white/80 backdrop-blur-sm">
                                 <h3 className="font-bold text-sm mb-4 flex items-center gap-2 text-gray-800">
-                                    <SlidersHorizontal className="h-4 w-4 text-yellow-400" />
+                                    <SlidersHorizontal className="h-4 w-4 text-primary" />
                                     Bộ lọc tìm kiếm
                                 </h3>
                                 <FilterPanel />
@@ -678,8 +730,8 @@ export const JobSearchPage = () => {
                     <main className="flex-1 min-w-0">
                         {/* Loading indicator */}
                         {isFetching && !isLoading && (
-                            <div className="flex items-center gap-2 mb-4 text-sm text-yellow-400 animate-pulse">
-                                <div className="h-2 w-2 rounded-full bg-amber-500 animate-bounce" />
+                            <div className="flex items-center gap-2 mb-4 text-sm text-primary animate-pulse">
+                                <div className="h-2 w-2 rounded-full bg-primary animate-bounce" />
                                 Đang tải...
                             </div>
                         )}

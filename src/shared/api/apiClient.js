@@ -78,3 +78,39 @@ apiClient.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+export const apiClientCustom = (baseURL) => {
+    const client = axios.create({
+        baseURL,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    });
+
+    client.interceptors.request.use((config) => {
+        const token = localStorage.getItem('accessToken');
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
+        console.log(
+            'API Request:',
+            config.method?.toUpperCase(),
+            config.baseURL,
+            config.url
+        );
+
+        return config;
+    });
+
+    client.interceptors.response.use(
+        (response) => {
+            return response.data?.data !== undefined
+                ? response.data.data
+                : response.data;
+        },
+        (error) => Promise.reject(error)
+    );
+
+    return client;
+};

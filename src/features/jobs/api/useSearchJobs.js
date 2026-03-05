@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { searchJobs } from './searchJobs';
+import { getProvinces, getWards, searchJobs } from './searchJobs';
 
 /**
  * React Query hook for job search with filters
@@ -16,3 +16,23 @@ export const useSearchJobs = (filters = {}, options = {}) => {
         ...options,
     });
 };
+
+export const useGetProvinces = () => {
+    return useQuery({
+        queryKey: ['provinces'],
+        queryFn: () => getProvinces(),
+        staleTime: 2 * 60 * 1000, // 2 phút
+        retry: 1,
+        keepPreviousData: true,
+    })
+}
+export const useGetWards = (wardsId) => {
+    return useQuery({
+        queryKey: ["wards", wardsId],
+        queryFn: () => getWards(wardsId),
+        enabled: !!wardsId,
+        staleTime: 2 * 60 * 1000, // 2 phút
+        retry: 1,
+        keepPreviousData: true,
+    })
+}

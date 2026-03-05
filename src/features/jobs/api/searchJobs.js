@@ -1,4 +1,4 @@
-import { apiClient } from '@/shared/api/apiClient';
+import { apiClient, apiClientCustom } from '@/shared/api/apiClient';
 
 /**
  * Search jobs via backend API
@@ -20,7 +20,7 @@ export const searchJobs = async (params = {}) => {
     // Loại bỏ các key có value undefined/null/''
     const cleanParams = {};
     Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && value !== '') {
+        if (value !== undefined && value !== null) {
             cleanParams[key] = value;
         }
     });
@@ -28,3 +28,11 @@ export const searchJobs = async (params = {}) => {
     const response = await apiClient.get('/job/search', { params: cleanParams });
     return response;
 };
+export const getProvinces = async () => {
+    const response = await apiClientCustom('https://provinces.open-api.vn/api/p/').get();
+    return { provinces: response };
+}
+export const getWards = async (wardsId) => {
+    const response = await apiClientCustom(`https://provinces.open-api.vn/api/p/${wardsId}?depth=2`).get();
+    return { communes: response.districts };
+}
