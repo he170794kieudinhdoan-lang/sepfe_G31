@@ -19,7 +19,6 @@ import {
   Italic,
   Underline as UnderlineIcon,
   Highlighter,
-  ImagePlus,
   Link2,
   AlignLeft,
   AlignCenter,
@@ -91,7 +90,6 @@ const EditorButton = ({ onClick, isActive, children, title }) => (
 );
 
 const CompanyDescriptionEditor = ({ value, onChange }) => {
-  const imageInputRef = useRef(null);
 
   const editor = useEditor({
     extensions: [
@@ -101,7 +99,6 @@ const CompanyDescriptionEditor = ({ value, onChange }) => {
       Underline,
       Highlight.configure({ multicolor: true }),
       Image.configure({
-        allowBase64: true,
         HTMLAttributes: { class: 'company-editor-image' },
       }),
       TextAlign.configure({
@@ -134,17 +131,6 @@ const CompanyDescriptionEditor = ({ value, onChange }) => {
     }
   };
 
-  const insertImageFromFile = (event) => {
-    const file = event.target.files?.[0];
-    if (!file || !editor) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      editor.chain().focus().setImage({ src: reader.result, alt: file.name }).run();
-      event.target.value = '';
-    };
-    reader.readAsDataURL(file);
-  };
 
   if (!editor) {
     return (
@@ -243,20 +229,10 @@ const CompanyDescriptionEditor = ({ value, onChange }) => {
 
         <div className="company-editor-divider" />
 
-        <EditorButton title="Chèn ảnh từ máy" onClick={() => imageInputRef.current?.click()} isActive={false}>
-          <ImagePlus size={15} />
-        </EditorButton>
         <EditorButton title="Chèn ảnh từ URL" onClick={insertImageByUrl} isActive={false}>
           <Link2 size={15} />
         </EditorButton>
 
-        <input
-          ref={imageInputRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={insertImageFromFile}
-        />
       </div>
 
       <EditorContent editor={editor} />
