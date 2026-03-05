@@ -3,16 +3,18 @@ import { getAccessToken, refreshTokens, clearTokens } from './tokenService';
 
 export const apiClient = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-    headers: {
-        'Content-Type': 'application/json',
-    },
 });
 
 apiClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`
+    const token = getAccessToken();
+    if (token && !config.headers.Authorization) {
+        config.headers.Authorization = `Bearer ${token}`;
     }
+
+    if (!(config.data instanceof FormData)) {
+        config.headers['Content-Type'] = 'application/json';
+    }
+
     return config;
 });
 

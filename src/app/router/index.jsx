@@ -25,6 +25,7 @@ import { AdminDashboard } from '@/pages/AdminDashboard';
 import { ManagerDashboard } from '@/features/companies/router/ManagerDashboard';
 import { CompanyApplicantPage } from '@/features/companies/components/CompanyApplicantPage';
 import { EmployerDashboard } from '@/pages/EmployerDashboard';
+import { EmployerLayout } from '@/shared/components/Layout/EmployerLayout';
 import { CreateJobPage } from '@/pages/CreateJobPage';
 import { EditJobPage } from '@/pages/EditJobPage';
 export const router = createBrowserRouter([

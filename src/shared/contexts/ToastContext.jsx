@@ -4,12 +4,15 @@ const ToastContext = createContext(null);
 
 export const useToast = () => {
   const ctx = useContext(ToastContext);
-  if (!ctx) return { toast: () => { }, toasts: [] };
+  if (!ctx) return { toast: () => { }, clearToasts: () => { }, toasts: [] };
   return ctx;
 };
 
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const clearToasts = useCallback(() => {
+    setToasts([]);
+  }, []);
 
   const toast = useCallback((message, type = 'success') => {
     const id = Date.now();
@@ -20,7 +23,7 @@ export const ToastProvider = ({ children }) => {
   }, []);
 
   return (
-    <ToastContext.Provider value={{ toast, toasts }}>
+    <ToastContext.Provider value={{ toast, clearToasts, toasts }}>
       {children}
       <ToastList toasts={toasts} />
     </ToastContext.Provider>
@@ -33,8 +36,8 @@ const ToastList = ({ toasts }) => (
       <div
         key={t.id}
         className={`flex items-start gap-3 rounded-2xl px-4 py-3 shadow-xl min-w-[300px] max-w-sm text-sm font-medium border transition-all duration-300 animate-slideIn ${t.type === 'error'
-            ? 'bg-red-600 border-red-700 text-white shadow-red-500/40'
-            : 'bg-emerald-600 border-emerald-700 text-white shadow-emerald-500/40'
+          ? 'bg-red-600 border-red-700 text-white shadow-red-500/40'
+          : 'bg-emerald-600 border-emerald-700 text-white shadow-emerald-500/40'
           }`}
       >
         <div className='flex-1 flex items-center gap-2'>
