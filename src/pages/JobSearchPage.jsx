@@ -104,10 +104,39 @@ const JobCardSkeleton = () => (
     </Card>
 );
 
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { useWishlist, useSaveJob, useUnsaveJob } from '@/features/jobs/api/useWishlist';
+import { toast } from 'sonner';
+
 /** Job Card cho Search Results */
 const SearchJobCard = ({ job }) => {
-
     const [displayMoreButton, setDisplayMoreButton] = useState(false);
+    const { user } = useAuth();
+
+    // Wishlist Logic
+    const { data } = useWishlist({}, { enabled: !!user });
+    const saveJobMutation = useSaveJob();
+    const unsaveJobMutation = useUnsaveJob();
+    const wishlist = data?.items || data || [];
+    const isSaved = Array.isArray(wishlist) && wishlist.some(item => item.jobId === job.id);
+    const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
+
+    const handleWishlistToggle = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (!user) {
+            toast.error("Vui lòng đăng nhập để lưu việc làm");
+            return;
+        }
+
+        if (isSaved) {
+            unsaveJobMutation.mutate(job.id);
+        } else {
+            saveJobMutation.mutate(job.id);
+        }
+    };
+
     return (
         <Card className="group w-full bg-white rounded-2xl overflow-hidden hover:cursor-pointer"
             onMouseEnter={() => setDisplayMoreButton(true)}
@@ -123,7 +152,7 @@ const SearchJobCard = ({ job }) => {
                         transition-transform p-4">
 
                             {/* <Building2 className="h-5 w-5 text-yellow-600" /> */}
-                            <img src={job.company.logoUrl} alt="" />
+                            <img src={job.company?.logoUrl} alt="" />
                         </div>
 
                         <div className="flex-1 min-w-0">
@@ -132,7 +161,7 @@ const SearchJobCard = ({ job }) => {
                            group-hover:text-primary 
                            transition-colors
                            cursor-pointer">
-                                {job.title}
+                                <Link to={`/job/${job.id}`}>{job.title}</Link>
                             </h3>
 
                             {job.company && (
@@ -208,35 +237,33 @@ const SearchJobCard = ({ job }) => {
                 </div>
                 <div className="flex w-full flex-[2] items-end mb-5 gap-3">
 
-                    {displayMoreButton && (
-                        <div>
-                            <Button
-                                size="icon"
-                                className="rounded-full"
-                                title='Thêm vào danh sách yêu thich'
-
-                            >
-                                <HeartIcon width={20} height={20} />
-                            </Button>
-                        </div>
-                    )}
+                    <div className={`transition-opacity duration-200 ${displayMoreButton || isSaved ? 'opacity-100' : 'opacity-0'}`}>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            className={`rounded-full shadow-sm hover:shadow active:scale-95 transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : ''}`}
+                            title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
+                            onClick={handleWishlistToggle}
+                            disabled={isPending}
+                        >
+                            <Heart className={`h-5 w-5 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`} />
+                        </Button>
+                    </div>
                     <div>
                         {displayMoreButton && (
                             <Button
                                 size="sm"
-                                className="flex items-center gap-1 animate-in"
+                                className="flex items-center gap-1 animate-in rounded-full"
                                 title='Ứng tuyển'
+                                asChild
                             >
-                                Ứng tuyển
+                                <Link to={`/job/${job.id}`}>Ứng tuyển</Link>
                             </Button>
                         )}
                     </div>
                 </div>
             </div>
         </Card>
-
-
-
     );
 };
 

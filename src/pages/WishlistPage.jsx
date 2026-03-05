@@ -132,7 +132,7 @@ export const WishlistPage = () => {
                       <Link to={`/job/${job.id}`}>Ứng tuyển</Link>
                     </Button>
                   </div>
-                  <Button variant="ghost" size="sm" className="rounded-full h-8 px-3 w-full sm:w-auto text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors" onClick={() => remove(job.id)} disabled={unsaveJobMutation.isPending} title="Bỏ lưu">
+                  <Button variant="ghost" size="sm" className="rounded-full h-8 px-3 w-full sm:w-auto text-gray-400 hover:bg-amber-50 hover:text-amber-500 transition-colors" onClick={() => remove(job.id)} disabled={unsaveJobMutation.isPending} title="Bỏ lưu">
                     {unsaveJobMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <span className="flex items-center gap-1.5 text-xs"><Trash2 className="h-3.5 w-3.5" /> <span className="sm:hidden">Xóa khỏi danh sách</span></span>}
                   </Button>
                 </div>
