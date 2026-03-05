@@ -4,6 +4,7 @@ import {
   getCompanyById,
   getCompaniesByStatus,
   reviewCompany,
+  searchCompany,
 } from './getCompanies';
 
 export const useGetCompanies = () => {
@@ -43,5 +44,12 @@ export const useReviewCompany = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
     },
+  });
+};
+
+export const useSearchCompanies = (params) => {
+  return useQuery({
+    queryKey: ['companies', 'search', params],
+    queryFn: () => searchCompany(params),
   });
 };

@@ -22,3 +22,8 @@ export const reviewCompany = async (id, { status, rejectionReason }) => {
   });
   return response;
 };
+
+export const searchCompany = async (params) => {
+  const response = await apiClient.get('/company/search', { params });
+  return response;
+};
