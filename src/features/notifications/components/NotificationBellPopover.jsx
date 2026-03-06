@@ -136,7 +136,7 @@ export const NotificationBellPopover = () => {
                                             size='icon'
                                             className='h-8 w-8 shrink-0 text-muted-foreground hover:text-red-500 hover:bg-red-50'
                                             title='Xoá thông báo'
-                                            disabled={deleteMutation.isPending}
+                                            disabled={deleteMutation.isLoading}
                                             onClick={() => handleDelete(item.id)}
                                         >
                                             <Trash2 className='h-4 w-4' />
@@ -154,7 +154,7 @@ export const NotificationBellPopover = () => {
                         variant='ghost'
                         size='sm'
                         className='text-xs'
-                        disabled={unreadCount === 0 || markAllReadMutation.isPending}
+                        disabled={unreadCount === 0 || markAllReadMutation.isLoading}
                         onClick={handleReadAll}
                     >
                         Đánh dấu tất cả đã đọc

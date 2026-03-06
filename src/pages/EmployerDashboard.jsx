@@ -156,6 +156,7 @@ export const EmployerDashboard = () => {
         if (isLocked && key !== 'overview') return;
         setActive(key);
       }}
+      topbarBell={<NotificationBellPopover />}
     >
       {active === 'overview' && (
         <div className="space-y-6">
