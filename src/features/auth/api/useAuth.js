@@ -65,6 +65,7 @@ export const useLogin = () => {
         loginSuccess(userData, roleType);
       } catch (err) {
         console.error('Failed to fetch user info after login:', err);
+        loginSuccess({}, roleType);
       }
 
       await navigateAfterLogin(navigate, roleType);
@@ -98,6 +99,7 @@ export const useLoginGoogle = () => {
         loginSuccess(userData, roleType);
       } catch (err) {
         console.error('Failed to fetch user info after Google login:', err);
+        loginSuccess({}, roleType);
       }
 
       await navigateAfterLogin(navigate, roleType);

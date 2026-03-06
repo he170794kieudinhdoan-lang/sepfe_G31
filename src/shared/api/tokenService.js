@@ -45,6 +45,8 @@ export const refreshTokens = async () => {
   const data = res.data?.data !== undefined ? res.data.data : res.data;
 
   if (data.accessToken) {
+    // Refresh endpoint chỉ trả về tokens mới, không trả role
+    // → không truyền role để tránh ghi đè roleType đã lưu
     setTokens({
       accessToken: data.accessToken,
       refreshToken: data.refreshToken,

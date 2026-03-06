@@ -34,7 +34,8 @@ export const AuthProvider = ({ children }) => {
   });
   const [isLoading, setIsLoading] = useState(() => !!getAccessToken());
 
-  const hasToken = !!getAccessToken();
+  // Bug 1 fix: hasToken là state, không phải biến tính toán từ localStorage
+  const [hasToken, setHasToken] = useState(!!getAccessToken());
 
   const {
     data: userData,
@@ -42,6 +43,8 @@ export const AuthProvider = ({ children }) => {
     error,
   } = useGetUsers({
     enabled: hasToken,
+    // Bug 2 fix: Không để React Query retry khi 401 — interceptor đã handle retry rồi
+    retry: false,
   });
 
   useEffect(() => {
@@ -56,10 +59,17 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
+    // Bug 4 fix: Chỉ xóa user khi lỗi 401 (unauthorized), không xóa khi 500/network error
     if (error) {
-      console.error('Failed to fetch user info:', error);
-      setUser(null);
-      localStorage.removeItem('userInfo');
+      const status = error.response?.status || error.status;
+      if (status === 401) {
+        console.error('Unauthorized — clearing user session:', error);
+        setUser(null);
+        localStorage.removeItem('userInfo');
+      } else {
+        console.error('Failed to fetch user info (non-auth error):', error);
+        // Giữ nguyên user từ localStorage cache, không xóa
+      }
       setIsLoading(false);
       return;
     }
@@ -76,9 +86,11 @@ export const AuthProvider = ({ children }) => {
     setIsLoading(false);
   }, [hasToken, isUsersLoading, userData, error]);
 
+  // Bug 1 fix: loginSuccess cập nhật hasToken state
   const loginSuccess = useCallback((userData, roleType) => {
     const userWithRole = { ...userData, roleType };
     setUser(userWithRole);
+    setHasToken(true);
     localStorage.setItem('userInfo', JSON.stringify(userWithRole));
   }, []);
 
@@ -89,9 +101,23 @@ export const AuthProvider = ({ children }) => {
       console.error('Logout API failed:', err);
     } finally {
       setUser(null);
+      setHasToken(false);
       clearTokens();
       queryClient.removeQueries({ queryKey: ['users', 'me'] });
     }
+  }, [queryClient]);
+
+  // Issue 4: Lắng nghe event force-logout từ interceptor khi refresh token fail
+  useEffect(() => {
+    const handleForceLogout = () => {
+      setUser(null);
+      setHasToken(false);
+      queryClient.removeQueries({ queryKey: ['users', 'me'] });
+    };
+
+    window.addEventListener('auth:force-logout', handleForceLogout);
+    return () =>
+      window.removeEventListener('auth:force-logout', handleForceLogout);
   }, [queryClient]);
 
   const value = {

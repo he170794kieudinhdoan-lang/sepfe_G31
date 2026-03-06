@@ -9,7 +9,6 @@ export const loginWithCredentials = async (data) => {
   const response = await apiClient.post('/user/login/credential', data);
 
   if (response.tokens) {
-    console.log(response.tokens);
     setTokens(response.tokens);
   }
 

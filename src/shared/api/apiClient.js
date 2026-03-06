@@ -8,10 +8,22 @@ export const apiClient = axios.create({
   },
 });
 
+const PUBLIC_ENDPOINTS = [
+  '/user/login',
+  '/user/sign-up',
+  '/user/forgot-password',
+  '/user/reset-password',
+];
+
+const isPublicEndpoint = (url) =>
+  PUBLIC_ENDPOINTS.some((path) => url?.includes(path));
+
 apiClient.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (!isPublicEndpoint(config.url)) {
+    const token = getAccessToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
   }
   return config;
 });
@@ -42,7 +54,8 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (
         originalRequest.url?.includes('/user/refresh') ||
-        originalRequest.url?.includes('/user/login')
+        originalRequest.url?.includes('/user/login') ||
+        originalRequest.url?.includes('/user/logout')
       ) {
         return Promise.reject(error);
       }
@@ -70,7 +83,7 @@ apiClient.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         clearTokens();
-        window.location.href = '/auth/login';
+        window.dispatchEvent(new Event('auth:force-logout'));
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
