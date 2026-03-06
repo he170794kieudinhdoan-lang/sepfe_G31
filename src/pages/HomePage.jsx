@@ -52,7 +52,37 @@ function JobCardSkeleton() {
   );
 }
 
+import { Heart } from "lucide-react";
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { useWishlist, useSaveJob, useUnsaveJob } from '@/features/jobs/api/useWishlist';
+import { toast } from 'sonner';
+
 function JobCard({ job, featured, aiSuggest }) {
+  const { user } = useAuth();
+  const { data } = useWishlist({}, { enabled: !!user });
+  const saveJobMutation = useSaveJob();
+  const unsaveJobMutation = useUnsaveJob();
+
+  const wishlist = data?.items || data || [];
+  const isSaved = Array.isArray(wishlist) && wishlist.some(item => item.jobId === job.id);
+  const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
+
+  const handleWishlistToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!user) {
+      toast.error("Vui lòng đăng nhập để lưu việc làm");
+      return;
+    }
+
+    if (isSaved) {
+      unsaveJobMutation.mutate(job.id);
+    } else {
+      saveJobMutation.mutate(job.id);
+    }
+  };
+
   const formattedSalary = job.salaryMax
     ? new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -67,8 +97,8 @@ function JobCard({ job, featured, aiSuggest }) {
         {/* Logo Section */}
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
           <ImageWithFallback
-            src={job.company.logoUrl}
-            alt={job.company.name}
+            src={job.company?.logoUrl}
+            alt={job.company?.name || "Công ty"}
             className="h-full w-full object-contain"
             fallbackClassName="h-full w-full flex items-center justify-center text-[10px] text-slate-400 text-center p-1"
           />
@@ -82,21 +112,21 @@ function JobCard({ job, featured, aiSuggest }) {
                 {job.title}
               </h3>
               <p className="text-xs font-medium text-slate-500 line-clamp-1 mt-0.5">
-                {job.company.name}
+                {job.company?.name || "Công ty"}
               </p>
             </div>
 
-            <div className="flex flex-col items-end gap-1 shrink-0">
-              {featured && (
-                <Badge className="bg-primary-muted text-primary hover:bg-primary-hover/10 border-0 text-[10px] px-1.5 py-0 font-bold uppercase tracking-wider">
-                  Mới
-                </Badge>
-              )}
-              {aiSuggest && (
-                <Badge className="bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border-0 text-[9px] px-1.5 py-0 font-bold uppercase tracking-wider">
-                  AI
-                </Badge>
-              )}
+            <div className="flex flex-col items-end gap-1 shrink-0 z-20">
+              <Button
+                variant="ghost"
+                size="icon"
+                className={`h-8 w-8 rounded-full shadow-sm hover:shadow active:scale-95 transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : 'bg-white hover:bg-gray-50'}`}
+                title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
+                onClick={handleWishlistToggle}
+                disabled={isPending}
+              >
+                <Heart className={`h-4 w-4 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`} />
+              </Button>
             </div>
           </div>
 
@@ -111,15 +141,23 @@ function JobCard({ job, featured, aiSuggest }) {
             </div>
           </div>
 
-          {job.tags && job.tags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {job.tags.slice(0, 2).map((tag) => (
+          <div className="flex justify-between items-end mt-2">
+            <div className="flex flex-wrap gap-1.5">
+              {job.tags && job.tags.length > 0 && job.tags.slice(0, 2).map((tag) => (
                 <span key={tag} className="text-[11px] font-bold bg-primary-muted text-primary px-2.5 py-0.5 rounded-lg border border-primary/10">
                   {tag}
                 </span>
               ))}
             </div>
-          )}
+
+            <div className="flex flex-col items-end gap-1">
+              {featured && (
+                <Badge className="bg-primary-muted text-primary hover:bg-primary-hover/10 border-0 text-[10px] px-1.5 py-0 font-bold uppercase tracking-wider">
+                  Mới
+                </Badge>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -397,6 +435,22 @@ export function HomePage() {
   const [searchMode, setSearchMode] = useState("both");
   const [wardsName, setWardsName] = useState("");
   const [openId, setOpenId] = useState(null);
+  const [hoverTimeout, setHoverTimeout] = useState(null);
+
+  const handleMouseEnter = (jobId) => {
+    const timeout = setTimeout(() => {
+      setOpenId(jobId);
+    }, 1000); // 1 second delay
+    setHoverTimeout(timeout);
+  };
+
+  const handleMouseLeave = () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+    setOpenId(null);
+  };
 
   // demo flags
   const isWorker = true;
@@ -579,14 +633,14 @@ export function HomePage() {
             newestJobs?.items?.map((job) => (
               <Popover key={job.id} open={openId == job.id}>
                 <PopoverTrigger asChild>
-                  <div onMouseEnter={() => setOpenId(job.id)}
-                    onMouseLeave={() => setOpenId(null)}>
+                  <div onMouseEnter={() => handleMouseEnter(job.id)}
+                    onMouseLeave={handleMouseLeave}>
                     <JobCard key={job.id} job={job} featured />
                   </div>
                 </PopoverTrigger>
                 <PopoverContent className="w-[40vw] h-auto"
-                  onMouseEnter={() => setOpenId(job.id)}
-                  onMouseLeave={() => setOpenId(null)}>
+                  onMouseEnter={() => handleMouseEnter(job.id)}
+                  onMouseLeave={handleMouseLeave}>
                   <div >
                     <div className="flex items-center gap-2 pb-5">
                       <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
@@ -638,6 +692,17 @@ export function HomePage() {
                 </PopoverContent>
               </Popover>
             )))}
+        </div>
+        <div className="mt-8 text-center pt-8">
+          <Button
+            variant="outline"
+            className="rounded-full px-8 bg-white hover:bg-primary/5 border-primary/30 text-primary font-semibold transition-all hover:scale-105 shadow-sm"
+            asChild
+          >
+            <Link to='/search'>
+              Xem tất cả <span className="ml-2 font-bold">&rarr;</span>
+            </Link>
+          </Button>
         </div>
       </section >
     </div >
