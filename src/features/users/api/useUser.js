@@ -41,13 +41,22 @@ export const useCreateWorkerProfile = () => {
   });
 };
 
-//Chưa có api
 export const useUpdateWorkerProfile = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: userApi.updateWorkerProfile,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['worker-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
+    },
+  });
+};
+
+export const useUpdateUserInfo = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: userApi.updateUserInfo,
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
     },
   });
