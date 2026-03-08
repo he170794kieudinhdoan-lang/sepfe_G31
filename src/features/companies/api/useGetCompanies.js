@@ -5,6 +5,9 @@ import {
   getCompaniesByStatus,
   reviewCompany,
   searchCompany,
+  updateCompany,
+  getMyCompany,
+  createCompany,
 } from './getCompanies';
 
 export const useGetCompanies = () => {
@@ -51,5 +54,52 @@ export const useSearchCompanies = (params) => {
   return useQuery({
     queryKey: ['companies', 'search', params],
     queryFn: () => searchCompany(params),
+  });
+};
+
+export const useGetMyCompany = () => {
+  return useQuery({
+    queryKey: ['my-company'],
+    queryFn: async () => {
+      try {
+        const response = await getMyCompany();
+        return response;
+      } catch (error) {
+        // 404 = chưa có công ty → trả null, không throw
+        if (error?.response?.status === 404) {
+          return null;
+        }
+        throw error;
+      }
+    },
+    retry: false, // không retry — 404 là trạng thái bình thường
+    staleTime: 5 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+};
+
+export const useCreateCompany = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (formData) => {
+      const response = await createCompany(formData);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-company']);
+    },
+  });
+};
+
+export const useUpdateCompany = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ companyId, formData }) => {
+      const response = await updateCompany(companyId, formData);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['my-company']);
+    },
   });
 };

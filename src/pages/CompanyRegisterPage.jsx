@@ -12,8 +12,10 @@ import { Underline } from '@tiptap/extension-underline';
 import { Highlight } from '@tiptap/extension-highlight';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Image } from '@tiptap/extension-image';
-import { Loader2 } from 'lucide-react';
 import {
+  Loader2,
+  Image as ImageIcon,
+  Check,
   X,
   Bold,
   Italic,
@@ -24,8 +26,19 @@ import {
   AlignCenter,
   AlignRight,
   AlignJustify,
+  Building2,
+  Globe,
+  MapPin,
+  FileText,
+  Upload,
+  FileUp,
+  Info,
 } from 'lucide-react';
-import { CompanyService } from '@/features/companies/api/company.service';
+import {
+  useGetMyCompany,
+  useCreateCompany,
+  useUpdateCompany,
+} from '@/features/companies/api/useGetCompanies';
 
 const getPlainTextFromHtml = (html = '') =>
   html
@@ -162,11 +175,6 @@ const CompanyDescriptionEditor = ({ value, onChange }) => {
           title="Đậm"
           onClick={() => editor.chain().focus().toggleBold().run()}
           isActive={editor.isActive('bold')}
-          // <div className="bg-gray-50 min-h-full py-6">
-          //   <div className="max-w-2xl mx-auto">
-          //     <Link
-          //       to="/employer"
-          //       className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
         >
           <Bold size={15} />
         </EditorButton>
@@ -263,6 +271,10 @@ const CompanyDescriptionEditor = ({ value, onChange }) => {
 export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const navigate = useNavigate();
   const { toast, clearToasts } = useToast();
+
+  const logoInputRef = useRef(null);
+  const licenseInputRef = useRef(null);
+
   const [form, setForm] = useState({
     name: '',
     taxCode: '',
@@ -279,7 +291,6 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const [logoPreview, setLogoPreview] = useState(null);
   const [licensePreview, setLicensePreview] = useState(null);
   const [isEdit, setIsEdit] = useState(false);
-  const [pending, setPending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [initialForm, setInitialForm] = useState(null);
   const [provinces, setProvinces] = useState([]);
@@ -293,6 +304,11 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const [pendingAddressParse, setPendingAddressParse] = useState(null);
   const [addressHydrated, setAddressHydrated] = useState(false);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
+
+  // ========== HOOKS ==========
+  const { data: myCompany, isLoading: isFetchingCompany } = useGetMyCompany();
+  const { mutateAsync: createCompanyMutate } = useCreateCompany();
+  const { mutateAsync: updateCompanyMutate } = useUpdateCompany();
 
   const buildFullAddress = (detail, wardCode, provinceCode) => {
     const wardName =
@@ -328,18 +344,22 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     return textChanged || fileChanged;
   };
 
-  const fetchCompany = async () => {
-    try {
-      const data = await CompanyService.getMyCompany();
+  useEffect(() => {
+    if (isFetchingCompany || myCompany === undefined) {
+      setLoading(isFetchingCompany);
+      return;
+    }
 
-      setCompanyId(data.id);
+    // Nếu có data công ty (kể cả data mảng null tuỳ API trả về)
+    if (myCompany && myCompany.id) {
+      setCompanyId(myCompany.id);
 
       const fetchedForm = {
-        name: data.name ?? '',
-        taxCode: data.taxCode ?? '',
-        address: data.address ?? '',
-        description: data.description ?? '',
-        website: data.website ?? '',
+        name: myCompany.name ?? '',
+        taxCode: myCompany.taxCode ?? '',
+        address: myCompany.address ?? '',
+        description: myCompany.description ?? '',
+        website: myCompany.website ?? '',
         logoFile: null,
         businessLicenseFile: null,
       };
@@ -354,21 +374,16 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       setPendingAddressParse(null);
       setAddressHydrated(false);
 
-      setLogoUrl(data.logoUrl ?? null);
-      setLicenseUrl(data.businessLicenseUrl ?? null);
+      setLogoUrl(myCompany.logoUrl ?? null);
+      setLicenseUrl(myCompany.businessLicenseUrl ?? null);
 
       setIsEdit(true);
-      setPending(data.status === 'PENDING');
-    } catch (error) {
+    } else {
       setIsEdit(false);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  useEffect(() => {
-    fetchCompany();
-  }, []);
+    setLoading(false);
+  }, [myCompany, isFetchingCompany]);
 
   const fetchProvinces = async () => {
     setLoadingProvinces(true);
@@ -621,11 +636,10 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       setLoadingSubmit(true);
 
       if (isEdit) {
-        await CompanyService.updateCompany(companyId, fd);
+        await updateCompanyMutate({ companyId, formData: fd });
         toast('Cập nhật thông tin công ty thành công');
-        await fetchCompany();
       } else {
-        await CompanyService.createCompany(fd);
+        await createCompanyMutate(fd);
         toast('Gửi đăng ký công ty thành công');
       }
 
@@ -647,7 +661,8 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-sm text-muted-foreground">
+      <div className="flex items-center justify-center py-24 text-sm text-muted-foreground">
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
         Đang tải dữ liệu công ty...
       </div>
     );
@@ -656,13 +671,13 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   return (
     <div className={`space-y-6 ${isModal ? 'pb-6' : ''}`}>
       {isModal && (
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2 pr-2">
           <button
             type="button"
             onClick={onBack}
-            className="rounded-full p-2 text-gray-600 hover:bg-gray-100 hover:text-black"
+            className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
           >
-            <X size={25} />
+            <X size={22} />
           </button>
         </div>
       )}
@@ -670,120 +685,217 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       <div
         className={`mx-auto w-full ${
           isModal
-            ? 'max-w-5xl px-4 pb-4 md:px-8 md:pb-6'
-            : 'max-w-4xl px-4 md:px-6'
+            ? 'max-w-4xl px-2 pb-4 md:px-6 md:pb-6'
+            : 'max-w-3xl px-4 md:px-6 py-8'
         }`}
       >
-        <h1 className="mb-8 text-3xl font-bold tracking-tight">
-          {isEdit ? 'Chỉnh sửa công ty' : 'Đăng ký công ty'}
-        </h1>
-
-        {pending && (
-          <Card className="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-5">
-            <p className="text-sm text-amber-800">
-              Hồ sơ công ty đang chờ duyệt. Bạn có thể chỉnh sửa thông tin.
-            </p>
-          </Card>
+        {!isModal && (
+          <div className="mb-8 flex items-start gap-4">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+              <Building2 className="text-primary" size={22} />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+                {isEdit ? 'Hồ sơ doanh nghiệp' : 'Đăng ký doanh nghiệp'}
+              </h1>
+              <p className="text-sm text-slate-500 mt-1">
+                {isEdit
+                  ? 'Cập nhật mặt tiền chuyên nghiệp để thu hút ứng viên.'
+                  : 'Hoàn thiện thông tin để bắt đầu hành trình chiêu mộ nhân tài.'}
+              </p>
+            </div>
+          </div>
         )}
 
-        <Card
-          className={`rounded-2xl border border-slate-200 p-6 shadow-md md:p-10 ${isModal ? 'mb-2' : ''}`}
-        >
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Tên công ty *</Label>
-              <Input
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Tên công ty"
-                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Mã số thuế *</Label>
-              <Input
-                value={form.taxCode}
-                onChange={(e) => setForm({ ...form, taxCode: e.target.value })}
-                placeholder="Mã số thuế"
-                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Địa chỉ *</Label>
-              <Input
-                value={addressDetail}
-                onChange={(e) => {
-                  const nextDetail = e.target.value;
-                  setAddressDetail(nextDetail);
-                  syncAddress(
-                    nextDetail,
-                    selectedWardCode,
-                    selectedProvinceCode,
-                  );
-                }}
-                placeholder="Số nhà, tên đường"
-                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
-              />
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <select
-                  value={selectedProvinceCode}
-                  onChange={(e) => {
-                    const nextProvinceCode = e.target.value;
-                    setSelectedProvinceCode(nextProvinceCode);
-                    setSelectedWardCode('');
-                    setWards([]);
-                    syncAddress(addressDetail, '', nextProvinceCode);
-                  }}
-                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50/40 px-3 text-sm"
-                >
-                  <option value="">
-                    {loadingProvinces
-                      ? 'Đang tải Tỉnh/Thành phố...'
-                      : 'Chọn Tỉnh/Thành phố'}
-                  </option>
-                  {provinces.map((province) => (
-                    <option key={province.code} value={province.code}>
-                      {province.name}
-                    </option>
-                  ))}
-                </select>
-
-                <select
-                  value={selectedWardCode}
-                  onChange={(e) => {
-                    const nextWardCode = e.target.value;
-                    setSelectedWardCode(nextWardCode);
-                    syncAddress(
-                      addressDetail,
-                      nextWardCode,
-                      selectedProvinceCode,
-                    );
-                  }}
-                  disabled={!selectedProvinceCode || loadingWards}
-                  className="h-11 w-full rounded-xl border border-slate-300 bg-slate-50/40 px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  <option value="">
-                    {!selectedProvinceCode
-                      ? 'Chọn Tỉnh/Thành phố trước'
-                      : loadingWards
-                        ? 'Đang tải Xã/Phường...'
-                        : 'Chọn Xã/Phường'}
-                  </option>
-                  {wards.map((ward) => (
-                    <option key={ward.code} value={ward.code}>
-                      {ward.name}
-                      {ward.districtName ? ` (${ward.districtName})` : ''}
-                    </option>
-                  ))}
-                </select>
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* ===== SECTION 1: Thông tin chung ===== */}
+          <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
+                <Info size={15} className="text-blue-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  Thông tin chung
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Thông tin cơ bản về pháp nhân doanh nghiệp
+                </p>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Mô tả công ty *</Label>
-              <div className="rounded-xl border border-slate-300 bg-slate-50/20 p-2">
+            <div className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-slate-700">
+                  Tên công ty <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="VD: Công ty CP Giải pháp Công nghệ ABC"
+                  className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-colors"
+                />
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Mã số thuế <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    value={form.taxCode}
+                    onChange={(e) =>
+                      setForm({ ...form, taxCode: e.target.value })
+                    }
+                    placeholder="0123456789"
+                    className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-colors"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Website <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Globe
+                      size={15}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
+                    />
+                    <Input
+                      value={form.website}
+                      onChange={(e) =>
+                        setForm({ ...form, website: e.target.value })
+                      }
+                      placeholder="company.vn"
+                      className="h-11 rounded-xl border-slate-200 bg-slate-50/50 pl-9 focus:bg-white transition-colors"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* ===== SECTION 2: Trụ sở hoạt động ===== */}
+          <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100">
+                <MapPin size={15} className="text-green-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  Trụ sở hoạt động
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Địa chỉ chính thức của doanh nghiệp
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-sm font-medium text-slate-700">
+                  Địa chỉ cụ thể <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  value={addressDetail}
+                  onChange={(e) => {
+                    const nextDetail = e.target.value;
+                    setAddressDetail(nextDetail);
+                    syncAddress(
+                      nextDetail,
+                      selectedWardCode,
+                      selectedProvinceCode,
+                    );
+                  }}
+                  placeholder="Số nhà, tên ngõ, tên đường..."
+                  className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-colors"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Tỉnh / Thành phố
+                  </Label>
+                  <select
+                    value={selectedProvinceCode}
+                    onChange={(e) => {
+                      const nextProvinceCode = e.target.value;
+                      setSelectedProvinceCode(nextProvinceCode);
+                      setSelectedWardCode('');
+                      setWards([]);
+                      syncAddress(addressDetail, '', nextProvinceCode);
+                    }}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-sm text-slate-700 outline-none transition-all focus:ring-2 focus:ring-primary/20 focus:bg-white"
+                  >
+                    <option value="">
+                      {loadingProvinces
+                        ? 'Đang tải...'
+                        : 'Chọn Tỉnh / Thành phố'}
+                    </option>
+                    {provinces.map((province) => (
+                      <option key={province.code} value={province.code}>
+                        {province.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-medium text-slate-700">
+                    Xã / Phường
+                  </Label>
+                  <select
+                    value={selectedWardCode}
+                    onChange={(e) => {
+                      const nextWardCode = e.target.value;
+                      setSelectedWardCode(nextWardCode);
+                      syncAddress(
+                        addressDetail,
+                        nextWardCode,
+                        selectedProvinceCode,
+                      );
+                    }}
+                    disabled={!selectedProvinceCode || loadingWards}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 text-sm text-slate-700 outline-none transition-all focus:ring-2 focus:ring-primary/20 focus:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    <option value="">
+                      {!selectedProvinceCode
+                        ? 'Chọn Tỉnh/TP trước'
+                        : loadingWards
+                          ? 'Đang tải...'
+                          : 'Chọn Xã / Phường'}
+                    </option>
+                    {wards.map((ward) => (
+                      <option key={ward.code} value={ward.code}>
+                        {ward.name}
+                        {ward.districtName ? ` (${ward.districtName})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* ===== SECTION 3: Giới thiệu ===== */}
+          <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
+                <FileText size={15} className="text-purple-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  Giới thiệu công ty <span className="text-red-500">*</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Mô tả về công ty để thu hút ứng viên tiềm năng
+                </p>
+              </div>
+            </div>
+
+            <div className="p-5">
+              <div className="rounded-xl border border-slate-200 overflow-hidden">
                 <CompanyDescriptionEditor
                   value={form.description}
                   onChange={(html) =>
@@ -792,86 +904,177 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                 />
               </div>
             </div>
+          </Card>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">
-                Trang web công ty *
-              </Label>
-              <Input
-                value={form.website}
-                onChange={(e) => setForm({ ...form, website: e.target.value })}
-                placeholder="Trang web công ty"
-                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
-              />
+          {/* ===== SECTION 4: Tài liệu & Hình ảnh ===== */}
+          <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
+            <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100">
+                <Upload size={15} className="text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  Tài liệu & Hình ảnh
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Logo và giấy phép kinh doanh của doanh nghiệp
+                </p>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">Logo công ty *</Label>
-              <Input
-                type="file"
-                accept="image/*"
-                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setForm({ ...form, logoFile: file });
-                    setLogoPreview(URL.createObjectURL(file));
-                  }
-                }}
-              />
-              {(logoPreview || logoUrl) && (
-                <div className="mt-3">
-                  <img
-                    src={logoPreview || logoUrl}
-                    alt="Company Logo"
-                    className="max-h-48 rounded-lg border object-contain"
-                  />
-                </div>
-              )}
-            </div>
+            <div className="p-5 grid md:grid-cols-2 gap-5">
+              {/* --- Logo Upload --- */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">
+                  Logo công ty{' '}
+                  {!isEdit && <span className="text-red-500">*</span>}
+                  {isEdit && (
+                    <span className="ml-1 text-xs font-normal text-slate-400">
+                      (tuỳ chọn)
+                    </span>
+                  )}
+                </Label>
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setForm({ ...form, logoFile: file });
+                      setLogoPreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  className="group relative w-full h-44 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 hover:border-primary/50 hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2 overflow-hidden"
+                >
+                  {logoPreview || logoUrl ? (
+                    <>
+                      <img
+                        src={logoPreview || logoUrl}
+                        alt="Logo preview"
+                        className="h-full w-full object-contain p-3"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover:opacity-100">
+                        <span className="rounded-lg bg-white/90 px-3 py-1.5 text-xs font-semibold text-slate-800">
+                          Thay đổi ảnh
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 transition-colors group-hover:bg-primary/10">
+                        <ImageIcon
+                          size={22}
+                          className="text-slate-400 transition-colors group-hover:text-primary"
+                        />
+                      </div>
+                      <p className="text-sm font-medium text-slate-500 transition-colors group-hover:text-primary">
+                        Nhấn để tải lên logo
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        JPG, PNG · Tối đa 2MB
+                      </p>
+                    </>
+                  )}
+                </button>
+              </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold">
-                Giấy phép kinh doanh *
-              </Label>
-              <Input
-                type="file"
-                accept=".pdf,.jpg,.jpeg,.png"
-                className="h-11 rounded-xl border-slate-300 bg-slate-50/40"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    setForm({ ...form, businessLicenseFile: file });
-                    setLicensePreview(URL.createObjectURL(file));
-                  }
-                }}
-              />
-              {(licensePreview || licenseUrl) && (
-                <div className="mt-3">
-                  <a
-                    href={licensePreview || licenseUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 underline"
-                  >
-                    Xem giấy phép kinh doanh
-                  </a>
-                </div>
-              )}
+              {/* --- License Upload --- */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-slate-700">
+                  Giấy phép kinh doanh{' '}
+                  {!isEdit && <span className="text-red-500">*</span>}
+                  {isEdit && (
+                    <span className="ml-1 text-xs font-normal text-slate-400">
+                      (tuỳ chọn)
+                    </span>
+                  )}
+                </Label>
+                <input
+                  ref={licenseInputRef}
+                  type="file"
+                  accept=".pdf,image/jpeg,image/png"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setForm({ ...form, businessLicenseFile: file });
+                      setLicensePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => licenseInputRef.current?.click()}
+                  className="group relative w-full h-44 rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/50 hover:border-primary/50 hover:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2"
+                >
+                  {licensePreview || licenseUrl ? (
+                    <div className="flex w-full flex-col items-center gap-2 px-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
+                        <Check size={22} className="text-green-600" />
+                      </div>
+                      <p className="w-full truncate text-center text-sm font-medium text-slate-700">
+                        {form.businessLicenseFile?.name ||
+                          'Giấy phép đã tải lên'}
+                      </p>
+                      <a
+                        href={licensePreview || licenseUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Xem tài liệu
+                      </a>
+                      <p className="text-xs text-slate-400 transition-colors group-hover:text-primary">
+                        Nhấn để thay thế
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 transition-colors group-hover:bg-primary/10">
+                        <FileUp
+                          size={22}
+                          className="text-slate-400 transition-colors group-hover:text-primary"
+                        />
+                      </div>
+                      <p className="text-sm font-medium text-slate-500 transition-colors group-hover:text-primary">
+                        Nhấn để tải lên giấy phép
+                      </p>
+                      <p className="text-xs text-slate-400">
+                        PDF, JPG, PNG · Tối đa 5MB
+                      </p>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
+          </Card>
 
-            <Button
-              type="submit"
-              disabled={loadingSubmit}
-              className="h-11 w-full rounded-xl text-sm font-semibold"
-            >
-              {loadingSubmit && (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              )}
-              {isEdit ? 'Cập nhật' : 'Gửi'}
-            </Button>
-          </form>
-        </Card>
+          {/* ===== SUBMIT ===== */}
+          <Button
+            type="submit"
+            disabled={loadingSubmit}
+            className="w-full h-12 rounded-xl text-base font-semibold shadow-sm hover:shadow-md transition-all gap-2"
+          >
+            {loadingSubmit ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin" />
+                Đang xử lý...
+              </>
+            ) : (
+              <>
+                <Check size={18} />
+                {isEdit ? 'Lưu cập nhật hồ sơ' : 'Hoàn tất đăng ký'}
+              </>
+            )}
+          </Button>
+        </form>
       </div>
     </div>
   );

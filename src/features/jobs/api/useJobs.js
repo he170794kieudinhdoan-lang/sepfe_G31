@@ -1,22 +1,124 @@
-import { useQuery } from '@tanstack/react-query';
-import { getJobs } from './getJobs';
-import { getJobDetail } from './jobApi';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  createJobApi,
+  updateJobApi,
+  deleteJobApi,
+  getJobDetail,
+  searchJobs,
+  getSectorsWithOccupations,
+  getOccupationsBySector,
+  getProvinces,
+  getWards,
+} from './jobApi';
 
-export const useJobs = () => {
+// ===== JOB DETAIL =====
+
+export const useJobDetail = (jobId) => {
   return useQuery({
-    queryKey: ['jobs'],
-    queryFn: getJobs,
+    queryKey: ['job-detail', jobId],
+    queryFn: () => getJobDetail(jobId),
+    enabled: !!jobId,
+  });
+};
+
+// ===== JOB SEARCH =====
+
+export const useSearchJobs = (filters = {}, options = {}) => {
+  return useQuery({
+    queryKey: ['job-search', filters],
+    queryFn: () => searchJobs(filters),
+    staleTime: 2 * 60 * 1000,
+    retry: 1,
+    keepPreviousData: true,
+    ...options,
+  });
+};
+
+// ===== JOB MUTATIONS =====
+
+const invalidateJobQueries = (queryClient) => {
+  queryClient.invalidateQueries({ queryKey: ['job-search'] });
+  queryClient.invalidateQueries({ queryKey: ['job-detail'] });
+  queryClient.invalidateQueries({ queryKey: ['employer-jobs'] });
+};
+
+export const useCreateJob = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload) =>
+      createJobApi({
+        companyId: 1, // hard code tạm
+        payload,
+      }),
+    onSuccess: () => {
+      invalidateJobQueries(queryClient);
+    },
+  });
+};
+
+export const useUpdateJob = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateJobApi,
+    onSuccess: () => {
+      invalidateJobQueries(queryClient);
+    },
+  });
+};
+
+export const useDeleteJob = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: deleteJobApi,
+    onSuccess: () => {
+      invalidateJobQueries(queryClient);
+    },
+    onError: (error) => {
+      console.error(error?.response?.data?.message || 'Delete job failed');
+    },
+  });
+};
+
+// ===== OCCUPATIONS =====
+
+export const useGetSectorsWithOccupations = () => {
+  return useQuery({
+    queryKey: ['sectors-with-occupations'],
+    queryFn: getSectorsWithOccupations,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 };
 
-export const useJobDetail = (jobId) => {
+export const useGetOccupationsBySector = (sectorId) => {
   return useQuery({
-    queryKey: ['jobDetail', jobId],
-    queryFn: () => getJobDetail(jobId),
-    enabled: !!jobId,
+    queryKey: ['occupations-by-sector', sectorId],
+    queryFn: () => getOccupationsBySector(sectorId),
+    enabled: !!sectorId,
     staleTime: 5 * 60 * 1000,
     retry: 1,
+  });
+};
+
+// ===== PROVINCES =====
+
+export const useGetProvinces = () => {
+  return useQuery({
+    queryKey: ['provinces'],
+    queryFn: getProvinces,
+    staleTime: 2 * 60 * 1000,
+    retry: 1,
+    keepPreviousData: true,
+  });
+};
+
+export const useGetWards = (wardsId) => {
+  return useQuery({
+    queryKey: ['wards', wardsId],
+    queryFn: () => getWards(wardsId),
+    enabled: !!wardsId,
+    staleTime: 2 * 60 * 1000,
+    retry: 1,
+    keepPreviousData: true,
   });
 };

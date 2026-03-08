@@ -27,3 +27,26 @@ export const searchCompany = async (params) => {
   const response = await apiClient.get('/company/search', { params });
   return response;
 };
+
+export const createCompany = async (formData) => {
+  const response = await apiClient.post('/company/create', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response;
+};
+
+export const updateCompany = async (companyId, formData) => {
+  const response = await apiClient.put(
+    `/company/update/${companyId}`,
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    },
+  );
+  return response;
+};
+
+export const getMyCompany = async () => {
+  const response = await apiClient.get('/company/owner');
+  return response;
+};

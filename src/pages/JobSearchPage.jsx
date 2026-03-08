@@ -4,7 +4,7 @@ import {
   useSearchJobs,
   useGetProvinces,
   useGetWards,
-} from '@/features/jobs/api/useSearchJobs';
+} from '@/features/jobs/api/useJobs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';

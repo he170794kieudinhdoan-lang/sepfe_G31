@@ -21,7 +21,7 @@ import {
   useGetProvinces,
   useGetWards,
   useSearchJobs,
-} from '@/features/jobs/api/useSearchJobs';
+} from '@/features/jobs/api/useJobs';
 import Typewriter from 'typewriter-effect';
 import { Container } from '@/shared/components/Container';
 const POPULAR_KEYWORDS = [
