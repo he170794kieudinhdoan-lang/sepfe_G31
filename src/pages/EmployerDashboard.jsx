@@ -369,7 +369,7 @@ export const EmployerDashboard = () => {
               {/* Welcome Banner */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 gap-6">
                 <div className="flex items-center gap-5">
-                  <div className="relative flex-shrink-0">
+                  <div className="relative shrink-0">
                     {company?.logoUrl ? (
                       <img
                         src={company.logoUrl}
@@ -450,7 +450,7 @@ export const EmployerDashboard = () => {
               {/* Status Alert */}
               {isRejected && (
                 <div className="flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
-                  <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-red-200">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-200">
                     <AlertCircle size={16} className="text-red-700" />
                   </div>
                   <div>
@@ -466,7 +466,7 @@ export const EmployerDashboard = () => {
               )}
               {isPending && (
                 <div className="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4">
-                  <div className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-amber-200">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-200">
                     <Clock size={16} className="text-amber-700" />
                   </div>
                   <div>
@@ -1013,7 +1013,7 @@ export const EmployerDashboard = () => {
                 </h3>
 
                 {/* Fake Chart Area */}
-                <div className="h-64 rounded-xl bg-gradient-to-br from-indigo-50 to-blue-50 border border-dashed border-blue-200 flex flex-col items-center justify-center text-blue-400">
+                <div className="h-64 rounded-xl bg-linear-to-br from-indigo-50 to-blue-50 border border-dashed border-blue-200 flex flex-col items-center justify-center text-blue-400">
                   <BarChart3 size={48} className="mb-2 opacity-50" />
                   <p className="font-medium text-sm">
                     Biểu đồ đang được cập nhật

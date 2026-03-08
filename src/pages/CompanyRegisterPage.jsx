@@ -691,7 +691,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       >
         {!isModal && (
           <div className="mb-8 flex items-start gap-4">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
               <Building2 className="text-primary" size={22} />
             </div>
             <div>
@@ -710,7 +710,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* ===== SECTION 1: Thông tin chung ===== */}
           <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+            <div className="flex items-center gap-3 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white px-5 py-4">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100">
                 <Info size={15} className="text-blue-600" />
               </div>
@@ -777,7 +777,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
           {/* ===== SECTION 2: Trụ sở hoạt động ===== */}
           <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+            <div className="flex items-center gap-3 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white px-5 py-4">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-100">
                 <MapPin size={15} className="text-green-600" />
               </div>
@@ -880,7 +880,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
           {/* ===== SECTION 3: Giới thiệu ===== */}
           <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+            <div className="flex items-center gap-3 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white px-5 py-4">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-100">
                 <FileText size={15} className="text-purple-600" />
               </div>
@@ -908,7 +908,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
           {/* ===== SECTION 4: Tài liệu & Hình ảnh ===== */}
           <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
-            <div className="flex items-center gap-3 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white px-5 py-4">
+            <div className="flex items-center gap-3 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white px-5 py-4">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-100">
                 <Upload size={15} className="text-orange-600" />
               </div>

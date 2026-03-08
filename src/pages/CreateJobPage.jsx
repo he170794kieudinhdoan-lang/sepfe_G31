@@ -363,7 +363,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
           <X className="w-5 h-5" />
         </Button>
         <div className="mb-10 text-center pt-2">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-linear-to-r from-primary to-blue-600 bg-clip-text text-transparent">
             Tạo tin tuyển dụng mới
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -811,7 +811,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                     >
                       <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 opacity-50 group-hover:opacity-100 transition-opacity" />
 
-                      <div className="flex justify-between items-start mb-5 block sm:hidden">
+                      <div className="flex justify-between items-start mb-5  sm:hidden">
                         <h3 className="font-medium text-sm text-gray-500">
                           Câu số {index + 1}
                         </h3>
@@ -827,7 +827,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-                        <div className="col-span-1 border border-gray-200 bg-gray-50 rounded-xl w-10 h-10 flex items-center justify-center font-bold text-gray-400 hidden sm:flex">
+                        <div className="col-span-1 border border-gray-200 bg-gray-50 rounded-xl w-10 h-10  items-center justify-center font-bold text-gray-400 hidden sm:flex">
                           {index + 1}
                         </div>
 
