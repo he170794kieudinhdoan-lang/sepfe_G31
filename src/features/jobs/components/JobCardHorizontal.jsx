@@ -23,7 +23,9 @@ export const JobCardHorizontal = ({ job }) => {
         )}
 
         <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-          <div className="flex justify-between items-start gap-2">
+          <div
+            className={`flex items-start gap-2 ${job.isBoosted ? 'justify-between' : 'justify-end'}`}
+          >
             {job.isBoosted && (
               <Badge
                 variant="default"
@@ -33,7 +35,7 @@ export const JobCardHorizontal = ({ job }) => {
                 NỔI BẬT
               </Badge>
             )}
-            <div className="text-sm font-bold text-primary">
+            <div className="text-sm font-bold text-primary ">
               {formatSalary(job.salaryMin, job.salaryMax, 'compact')}
             </div>
           </div>
