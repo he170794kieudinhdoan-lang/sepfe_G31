@@ -11,10 +11,15 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { MSG } from '@/shared/constants/messages';
 import { User, Loader2, Camera } from 'lucide-react';
 import { WorkerProfileView } from '@/features/users/components/WorkerProfileView';
-import { useUpdateUserInfo } from '@/features/users/api/useUser';
+import {
+  useUpdateUserInfo,
+  useChangePassword,
+  useDeleteAccount,
+} from '@/features/users/api/useUser';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/shared/utils/cropImage';
+import { clearTokens } from '@/shared/api/tokenService';
 import {
   Dialog,
   DialogContent,
@@ -56,9 +61,13 @@ export const UserProfilePage = () => {
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState(null);
 
+  const { mutate: changePassword, isPending: isChangingPassword } =
+    useChangePassword();
+  const { mutate: deleteAccount, isPending: isDeletingAccount } =
+    useDeleteAccount();
+
   const { mutate: updateProfile, isPending: isUpdatingProfile } =
     useUpdateUserInfo();
-
   const handleCropComplete = async () => {
     try {
       const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
@@ -161,15 +170,42 @@ export const UserProfilePage = () => {
       toast(MSG.MSG_CHANGE_PW_MISMATCH, 'error');
       return;
     }
-    // TODO: gọi API đổi mật khẩu
-    toast(MSG.MSG_CHANGE_PW_SUCCESS);
-    setPw({ current: '', new: '', confirm: '' });
+    changePassword(
+      {
+        oldPassword: pw.current,
+        newPassword: pw.new,
+        confirmPassword: pw.confirm,
+      },
+      {
+        onSuccess: () => {
+          toast(MSG.MSG_CHANGE_PW_SUCCESS, 'success');
+          setPw({ current: '', new: '', confirm: '' });
+          setActive('view');
+        },
+        onError: (err) => {
+          const msg =
+            err?.response?.data?.message || 'Có lỗi xảy ra khi đổi mật khẩu';
+          toast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
+        },
+      },
+    );
   };
 
   const handleDeleteAccount = () => {
-    setDeleteConfirmOpen(false);
-    // TODO: gọi API xóa tài khoản
-    toast(MSG.MSG_DELETE_SUCCESS, 'error');
+    deleteAccount(undefined, {
+      onSuccess: () => {
+        toast(MSG.MSG_DELETE_SUCCESS, 'success');
+        clearTokens();
+        // Cú trick nhỏ để văng auth state và về login page
+        window.dispatchEvent(new Event('auth:force-logout'));
+      },
+      onError: (err) => {
+        const msg =
+          err?.response?.data?.message || 'Có lỗi xảy ra khi xóa tài khoản';
+        toast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
+        setDeleteConfirmOpen(false);
+      },
+    });
   };
 
   return (
@@ -388,8 +424,15 @@ export const UserProfilePage = () => {
                     onChange={(e) => setPw({ ...pw, confirm: e.target.value })}
                   />
                 </div>
-                <Button className="rounded-xl" onClick={handleChangePassword}>
-                  Đổi mật khẩu
+                <Button
+                  className="rounded-xl w-full"
+                  onClick={handleChangePassword}
+                  disabled={isChangingPassword}
+                >
+                  {isChangingPassword ? (
+                    <Loader2 className="animate-spin mr-2 h-4 w-4" />
+                  ) : null}
+                  Xác nhận đổi mật khẩu
                 </Button>
               </div>
             </Card>
@@ -433,8 +476,9 @@ export const UserProfilePage = () => {
         description="Bạn chắc chắn muốn xóa tài khoản? Không thể khôi phục."
         onClose={() => setDeleteConfirmOpen(false)}
         onConfirm={handleDeleteAccount}
-        confirmLabel="Xóa"
+        confirmLabel={isDeletingAccount ? 'Đang xóa...' : 'Xóa'}
         tone="danger"
+        isPending={isDeletingAccount}
       />
 
       {/* --- Modal Cắt Ảnh --- */}

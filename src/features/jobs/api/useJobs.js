@@ -4,6 +4,7 @@ import {
   updateJobApi,
   deleteJobApi,
   getJobDetail,
+  getRelatedJobs,
   searchJobs,
   getSectorsWithOccupations,
   getOccupationsBySector,
@@ -17,6 +18,14 @@ export const useJobDetail = (jobId) => {
   return useQuery({
     queryKey: ['job-detail', jobId],
     queryFn: () => getJobDetail(jobId),
+    enabled: !!jobId,
+  });
+};
+
+export const useRelatedJobs = (jobId) => {
+  return useQuery({
+    queryKey: ['related-jobs', jobId],
+    queryFn: () => getRelatedJobs(jobId),
     enabled: !!jobId,
   });
 };

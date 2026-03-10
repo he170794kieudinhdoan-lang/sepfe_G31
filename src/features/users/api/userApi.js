@@ -24,6 +24,14 @@ export const updateWorkerProfile = async (body) => {
   return apiClient.put('/user/worker-profile', body);
 };
 
+export const deleteAccount = async () => {
+  return apiClient.put('/user/delete-account');
+};
+
+export const changePassword = async (data) => {
+  return apiClient.put('/user/change-password', data);
+};
+
 export const getOccupations = async () => {
   return apiClient.get('/occupations/grouped-by-sector');
 };

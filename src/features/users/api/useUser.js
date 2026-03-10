@@ -61,3 +61,15 @@ export const useUpdateUserInfo = () => {
     },
   });
 };
+
+export const useChangePassword = () => {
+  return useMutation({
+    mutationFn: userApi.changePassword,
+  });
+};
+
+export const useDeleteAccount = () => {
+  return useMutation({
+    mutationFn: userApi.deleteAccount,
+  });
+};

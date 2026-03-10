@@ -2,8 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { MSG } from '@/shared/constants/messages';
-import { useJobDetail } from '@/features/jobs/api/useJobs';
-import { getRelatedJobs } from '@/shared/data/mockJobs';
+import { useJobDetail, useRelatedJobs } from '@/features/jobs/api/useJobs';
 import { JobDetailHeader } from '@/features/jobs/components/JobDetailHeader';
 import { RelatedJobList } from '@/features/jobs/components/RelatedJobList';
 import { ApplyJobModal } from '@/features/jobs/components/ApplyJobModal';
@@ -13,6 +12,7 @@ import { JobDetailContent } from '@/features/jobs/components/JobDetailContent';
 import { Card } from '@/components/ui/card';
 
 import { JobDetailSkeleton } from '@/features/jobs/components/JobDetailSkeleton';
+import { JobCardHorizontalSkeleton } from '@/features/jobs/components/JobCardHorizontalSkeleton';
 import { SearchX, ArrowLeft } from 'lucide-react';
 
 export const JobDetailPage = () => {
@@ -24,8 +24,7 @@ export const JobDetailPage = () => {
   const hasApplied = false;
   const hasReported = false;
 
-  // TODO: Khi có API related jobs, thay bằng useRelatedJobs(id)
-  const relatedJobs = getRelatedJobs(id);
+  const { data: relatedJobs, isLoading: isRelatedLoading } = useRelatedJobs(id);
 
   const [applyOpen, setApplyOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -87,7 +86,15 @@ export const JobDetailPage = () => {
             />
 
             <h2 className="text-lg font-semibold ">Việc làm liên quan</h2>
-            <RelatedJobList jobs={relatedJobs} />
+            {isRelatedLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <JobCardHorizontalSkeleton key={i} />
+                ))}
+              </div>
+            ) : (
+              <RelatedJobList jobs={relatedJobs || []} />
+            )}
           </Card>
         </div>
       </div>

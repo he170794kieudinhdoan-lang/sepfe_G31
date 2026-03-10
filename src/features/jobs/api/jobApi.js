@@ -21,6 +21,10 @@ export const getJobDetail = async (id) => {
   return await apiClient.get(`/job/${id}`);
 };
 
+export const getRelatedJobs = async (id) => {
+  return await apiClient.get(`/job/${id}/related`);
+};
+
 // ===== SEARCH =====
 
 export const searchJobs = async (params = {}) => {
