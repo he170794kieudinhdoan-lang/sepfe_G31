@@ -2,7 +2,7 @@ import axios from 'axios';
 import { getAccessToken, refreshTokens, clearTokens } from './tokenService';
 
 export const apiClient = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    baseURL: 'http://localhost:4000/api',
 });
 
 apiClient.interceptors.request.use((config) => {

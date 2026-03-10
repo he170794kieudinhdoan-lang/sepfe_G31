@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -10,6 +10,7 @@ import { DashboardLayout } from "@/shared/components/Layout/DashboardLayout"
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover'
 import { useToast } from "@/shared/contexts/ToastContext"
 import { MSG } from "@/shared/constants/messages"
+import { SectorManagementService } from "@/features/jobs/api/sectormanagement"
 
 const kpi = [
     { label: "Total users", value: "12,540" },
@@ -37,11 +38,6 @@ const mockUsers = [
     },
 ]
 
-const mockSectors = [
-    { id: 1, name: "Bán lẻ", created: "2025-10-12" },
-    { id: 2, name: "Kho vận", created: "2025-09-09" },
-]
-
 export const AdminDashboard = () => {
     const { toast } = useToast()
     const [active, setActive] = useState("overview")
@@ -53,6 +49,8 @@ export const AdminDashboard = () => {
     const [termsSaved, setTermsSaved] = useState("Nội dung điều khoản sử dụng WorkLink. Đây là bản mock cho giao diện admin quản trị.")
     const [termsDraft, setTermsDraft] = useState("")
     const [sectorName, setSectorName] = useState("")
+    const [sectors, setSectors] = useState([])
+    const [loadingSectors, setLoadingSectors] = useState(false)
     const isLoading = false
     const users = mockUsers
 
@@ -63,6 +61,47 @@ export const AdminDashboard = () => {
         { key: "stats", label: "Thống kê hệ thống" },
         { key: "terms", label: "Điều khoản" },
     ]
+
+    const fetchSectors = async () => {
+        try {
+            setLoadingSectors(true)
+
+            const sectors = await SectorManagementService.getAllSectors()
+            setSectors(sectors)
+
+        } catch (e) {
+            console.error(e)
+        } finally {
+            setLoadingSectors(false)
+        }
+    }
+
+    useEffect(() => {
+        fetchSectors()
+    }, [])
+    const createSector = async () => {
+        try {
+            if (!sectorName.trim()) {
+                toast("Tên ngành nghề không được để trống", "error")
+                return
+            }
+
+            await SectorManagementService.createSector({
+                name: sectorName
+            })
+
+            // cập nhật list sector ngay lập tức
+            await fetchSectors()
+
+            toast("Tạo ngành nghề thành công")
+
+            setSectorModal(false)
+            setSectorName("")
+        } catch (e) {
+            console.error(e)
+            toast("Tạo ngành nghề thất bại", "error")
+        }
+    }
 
     return (
         <DashboardLayout
@@ -198,30 +237,49 @@ export const AdminDashboard = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {mockSectors.map((sector) => (
-                                    <tr key={sector.id} className="border-b last:border-b-0">
-                                        <td className="py-3 font-semibold">{sector.name}</td>
-                                        <td>{sector.created}</td>
-                                        <td className="flex gap-2 py-2">
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="rounded-full"
-                                                onClick={() => { setEditSector(sector); setSectorName(sector.name); setSectorModal(true); }}
-                                            >
-                                                Edit
-                                            </Button>
-                                            <Button
-                                                variant="destructive"
-                                                size="sm"
-                                                className="rounded-full"
-                                                onClick={() => setSectorToDelete(sector)}
-                                            >
-                                                Delete
-                                            </Button>
+                                {loadingSectors ? (
+                                    <tr>
+                                        <td colSpan="3" className="text-center py-6">
+                                            <Skeleton className="h-6 w-full" />
                                         </td>
                                     </tr>
-                                ))}
+                                ) : sectors.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="3" className="text-center py-6 text-muted-foreground">
+                                            Không có ngành nghề
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    sectors.map((sector) => (
+                                        <tr key={sector.id} className="border-b last:border-b-0">
+                                            <td className="py-3 font-semibold">{sector.name}</td>
+                                            <td>{new Date(sector.createdAt).toLocaleDateString()}</td>
+                                            <td className="flex gap-2 py-2">
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="rounded-full"
+                                                    onClick={() => {
+                                                        setEditSector(sector)
+                                                        setSectorName(sector.name)
+                                                        setSectorModal(true)
+                                                    }}
+                                                >
+                                                    Edit
+                                                </Button>
+
+                                                <Button
+                                                    variant="destructive"
+                                                    size="sm"
+                                                    className="rounded-full"
+                                                    onClick={() => setSectorToDelete(sector)}
+                                                >
+                                                    Delete
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
                             </tbody>
                         </table>
                     </Card>
@@ -305,7 +363,13 @@ export const AdminDashboard = () => {
                 title={editSector ? "Cập nhật ngành nghề" : "Tạo ngành nghề"}
                 description="Nhập tên ngành nghề"
                 onClose={() => { setSectorModal(false); setEditSector(null); setSectorName(""); }}
-                onConfirm={() => { setSectorModal(false); setEditSector(null); setSectorName(""); toast("Đã lưu."); }}
+                onConfirm={() => {
+                    if (editSector) {
+                        // update sector (sẽ làm sau)
+                    } else {
+                        createSector()
+                    }
+                }}
                 confirmLabel="Lưu"
             >
                 <Input placeholder="Tên ngành nghề" value={editSector ? (sectorName || editSector.name) : sectorName} onChange={(e) => setSectorName(e.target.value)} className="rounded-xl" />
