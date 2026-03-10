@@ -21,7 +21,7 @@ import {
   XCircle,
   Phone,
   User,
-  Search
+  Search,
 } from 'lucide-react';
 import {
   useGetCompanies,
@@ -38,9 +38,18 @@ const MENU_QUAN_LY = [
 ];
 
 const MAU_TRANG_THAI = {
-  APPROVED: { label: 'Đã thông qua', color: 'bg-green-50 text-green-700 border-green-100' },
-  PENDING: { label: 'Đang chờ', color: 'bg-blue-50 text-blue-700 border-blue-100' },
-  REJECTED: { label: 'Từ chối', color: 'bg-red-50 text-red-700 border-red-100' },
+  APPROVED: {
+    label: 'Đã thông qua',
+    color: 'bg-green-50 text-green-700 border-green-100',
+  },
+  PENDING: {
+    label: 'Đang chờ',
+    color: 'bg-blue-50 text-blue-700 border-blue-100',
+  },
+  REJECTED: {
+    label: 'Từ chối',
+    color: 'bg-red-50 text-red-700 border-red-100',
+  },
 };
 
 export const ManagerDashboard = () => {
@@ -57,9 +66,12 @@ export const ManagerDashboard = () => {
 
   // --- LẤY DỮ LIỆU TỪ API ---
   const { data: tatCaCongTy = [], isLoading: dangTaiTatCa } = useGetCompanies();
-  const { data: congTyChoDuyet = [], isLoading: dangTaiChoDuyet } = useGetCompaniesByStatus('PENDING');
-  const { data: congTyBiTuChoi = [], isLoading: dangTaiTuChoi } = useGetCompaniesByStatus('REJECTED');
-  const { data: chiTietCongTy, isLoading: dangTaiChiTiet } = useGetCompaniesById(idCongTyDangXem);
+  const { data: congTyChoDuyet = [], isLoading: dangTaiChoDuyet } =
+    useGetCompaniesByStatus('PENDING');
+  const { data: congTyBiTuChoi = [], isLoading: dangTaiTuChoi } =
+    useGetCompaniesByStatus('REJECTED');
+  const { data: chiTietCongTy, isLoading: dangTaiChiTiet } =
+    useGetCompaniesById(idCongTyDangXem);
   const mutationDuyetDon = useReviewCompany();
 
   // Logic chọn danh sách nào để hiển thị
@@ -74,7 +86,7 @@ export const ManagerDashboard = () => {
 
   // Logic lọc theo ô tìm kiếm
   const danhSachHienThi = danhSachGoc.filter((item) =>
-    item.name.toLowerCase().includes(tuKhoaTimKiem.toLowerCase())
+    item.name.toLowerCase().includes(tuKhoaTimKiem.toLowerCase()),
   );
 
   // --- HÀM XỬ LÝ DUYỆT / TỪ CHỐI ---
@@ -102,18 +114,23 @@ export const ManagerDashboard = () => {
   // GIAO DIỆN 1: CHI TIẾT CÔNG TY (KHI NHẤN XEM)
   // ==========================================================
   const renderChiTiet = () => {
-    if (dangTaiChiTiet) return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-600">
-        <div className="h-10 w-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-        <p>Đang lấy thông tin chi tiết...</p>
-      </div>
-    );
+    if (dangTaiChiTiet)
+      return (
+        <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-600">
+          <div className="h-10 w-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
+          <p>Đang lấy thông tin chi tiết...</p>
+        </div>
+      );
 
     if (!chiTietCongTy) return null;
 
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => setIdCongTyDangXem(null)} className="text-slate-600 hover:bg-primary-muted hover:text-primary-muted-foreground">
+        <Button
+          variant="ghost"
+          onClick={() => setIdCongTyDangXem(null)}
+          className="text-slate-600 hover:bg-primary-muted hover:text-primary-muted-foreground"
+        >
           ← Quay lại danh sách
         </Button>
 
@@ -124,37 +141,62 @@ export const ManagerDashboard = () => {
               <div className="flex gap-6 items-start pb-6 border-b border-slate-100">
                 <div className="h-20 w-20 rounded-lg bg-slate-50 flex items-center justify-center border border-slate-200 shrink-0">
                   {chiTietCongTy.logoUrl ? (
-                    <img src={chiTietCongTy.logoUrl} className="h-full w-full object-cover rounded-lg" />
+                    <img
+                      src={chiTietCongTy.logoUrl}
+                      className="h-full w-full object-cover rounded-lg"
+                    />
                   ) : (
                     <Building2 className="h-8 w-8 text-slate-400" />
                   )}
                 </div>
                 <div className="flex-1 pt-1">
                   <div className="flex justify-between items-start">
-                    <h2 className="text-2xl font-bold text-slate-800">{chiTietCongTy.name}</h2>
-                    <Badge className={MAU_TRANG_THAI[chiTietCongTy.status]?.color + " rounded-md"}>
+                    <h2 className="text-2xl font-bold text-slate-800">
+                      {chiTietCongTy.name}
+                    </h2>
+                    <Badge
+                      className={
+                        MAU_TRANG_THAI[chiTietCongTy.status]?.color +
+                        ' rounded-md'
+                      }
+                    >
                       {MAU_TRANG_THAI[chiTietCongTy.status]?.label}
                     </Badge>
                   </div>
                   <p className="text-slate-500 flex items-center gap-2 mt-1">
-                    <MapPin className="h-4 w-4 text-slate-400" /> {chiTietCongTy.address}
+                    <MapPin className="h-4 w-4 text-slate-400" />{' '}
+                    {chiTietCongTy.address}
                   </p>
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-8 mt-8">
-                <ItemThongTin icon={FileText} label="Mã số thuế" value={chiTietCongTy.taxCode} />
+                <ItemThongTin
+                  icon={FileText}
+                  label="Mã số thuế"
+                  value={chiTietCongTy.taxCode}
+                />
                 <ItemThongTin
                   icon={Globe}
                   label="Website"
-                  value={chiTietCongTy.website || "Chưa cập nhật"}
+                  value={chiTietCongTy.website || 'Chưa cập nhật'}
                   link={chiTietCongTy.website}
                 />
-                <ItemThongTin icon={Calendar} label="Ngày đăng ký" value={new Date(chiTietCongTy.createdAt).toLocaleDateString('vi-VN')} />
+                <ItemThongTin
+                  icon={Calendar}
+                  label="Ngày đăng ký"
+                  value={new Date(chiTietCongTy.createdAt).toLocaleDateString(
+                    'vi-VN',
+                  )}
+                />
                 <ItemThongTin
                   icon={FileText}
                   label="Giấy phép kinh doanh"
-                  value={chiTietCongTy.businessLicenseUrl ? "Xem bản gốc" : "Chưa tải lên"}
+                  value={
+                    chiTietCongTy.businessLicenseUrl
+                      ? 'Xem bản gốc'
+                      : 'Chưa tải lên'
+                  }
                   link={chiTietCongTy.businessLicenseUrl}
                 />
               </div>
@@ -163,40 +205,53 @@ export const ManagerDashboard = () => {
                 <h4 className="font-semibold text-slate-800 mb-2">
                   Giới thiệu công ty
                 </h4>
-                <p className="text-slate-600 leading-relaxed text-sm">{chiTietCongTy.description || "Chưa có mô tả chi tiết."}</p>
+                <p className="text-slate-600 leading-relaxed text-sm">
+                  {chiTietCongTy.description || 'Chưa có mô tả chi tiết.'}
+                </p>
               </div>
 
-              {chiTietCongTy.status === 'REJECTED' && chiTietCongTy.rejectionReason && (
-                <div className="mt-4 p-5 bg-red-50 rounded-xl border border-red-100">
-                  <h4 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
-                    <XCircle className="h-4 w-4" /> Lý do từ chối
-                  </h4>
-                  <p className="text-red-700 leading-relaxed text-sm font-medium">{chiTietCongTy.rejectionReason}</p>
-                </div>
-              )}
+              {chiTietCongTy.status === 'REJECTED' &&
+                chiTietCongTy.rejectionReason && (
+                  <div className="mt-4 p-5 bg-red-50 rounded-xl border border-red-100">
+                    <h4 className="font-semibold text-red-800 mb-2 flex items-center gap-2">
+                      <XCircle className="h-4 w-4" /> Lý do từ chối
+                    </h4>
+                    <p className="text-red-700 leading-relaxed text-sm font-medium">
+                      {chiTietCongTy.rejectionReason}
+                    </p>
+                  </div>
+                )}
             </Card>
           </div>
 
           {/* CỘT PHẢI: LIÊN HỆ & DUYỆT */}
           <div className="space-y-6">
             <Card className="p-6 rounded-xl border border-slate-200 shadow-sm bg-white">
-              <h3 className="text-base font-bold mb-4 text-slate-800">Người đại diện</h3>
+              <h3 className="text-base font-bold mb-4 text-slate-800">
+                Người đại diện
+              </h3>
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-full bg-slate-100 text-slate-600 flex items-center justify-center font-bold">
                     {chiTietCongTy.owner?.fullName?.charAt(0)}
                   </div>
                   <div>
-                    <p className="font-semibold text-sm">{chiTietCongTy.owner?.fullName}</p>
-                    <p className="text-slate-400 text-xs">ID: {chiTietCongTy.ownerId}</p>
+                    <p className="font-semibold text-sm">
+                      {chiTietCongTy.owner?.fullName}
+                    </p>
+                    <p className="text-slate-400 text-xs">
+                      ID: {chiTietCongTy.ownerId}
+                    </p>
                   </div>
                 </div>
                 <div className="pt-4 space-y-2 border-t border-slate-100">
                   <div className="flex items-center gap-3 text-sm text-slate-600">
-                    <Mail className="h-4 w-4 text-slate-400" /> {chiTietCongTy.owner?.email}
+                    <Mail className="h-4 w-4 text-slate-400" />{' '}
+                    {chiTietCongTy.owner?.email}
                   </div>
                   <div className="flex items-center gap-3 text-sm text-slate-600">
-                    <Phone className="h-4 w-4 text-slate-400" /> {chiTietCongTy.owner?.phone}
+                    <Phone className="h-4 w-4 text-slate-400" />{' '}
+                    {chiTietCongTy.owner?.phone}
                   </div>
                 </div>
               </div>
@@ -243,7 +298,11 @@ export const ManagerDashboard = () => {
             />
           </div>
           <p className="text-sm text-slate-500 px-2 font-medium">
-            Hiển thị <span className="text-blue-600 font-bold">{danhSachHienThi.length}</span> đơn
+            Hiển thị{' '}
+            <span className="text-blue-600 font-bold">
+              {danhSachHienThi.length}
+            </span>{' '}
+            đơn
           </p>
         </div>
 
@@ -256,39 +315,76 @@ export const ManagerDashboard = () => {
                   <th className="px-6 py-4 font-semibold">Công ty</th>
                   <th className="px-6 py-4 font-semibold">Địa chỉ</th>
                   <th className="px-6 py-4 font-semibold">Trạng thái</th>
-                  <th className="px-6 py-4 text-right font-semibold">Thao tác</th>
+                  <th className="px-6 py-4 text-right font-semibold">
+                    Thao tác
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {dangTaiData ? (
-                  <tr><td colSpan="4" className="py-20 text-center text-slate-400 font-medium">Đang tải dữ liệu...</td></tr>
+                  <tr>
+                    <td
+                      colSpan="4"
+                      className="py-20 text-center text-slate-400 font-medium"
+                    >
+                      Đang tải dữ liệu...
+                    </td>
+                  </tr>
                 ) : danhSachHienThi.length === 0 ? (
-                  <tr><td colSpan="4" className="py-20 text-center text-slate-400">Không tìm thấy dữ liệu nào phù hợp.</td></tr>
+                  <tr>
+                    <td
+                      colSpan="4"
+                      className="py-20 text-center text-slate-400"
+                    >
+                      Không tìm thấy dữ liệu nào phù hợp.
+                    </td>
+                  </tr>
                 ) : (
                   danhSachHienThi.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-50/50 transition-colors">
+                    <tr
+                      key={c.id}
+                      className="hover:bg-slate-50/50 transition-colors"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
                             {c.logoUrl ? (
-                              <img src={c.logoUrl} className="h-full w-full object-cover rounded-lg" />
+                              <img
+                                src={c.logoUrl}
+                                className="h-full w-full object-cover rounded-lg"
+                              />
                             ) : (
                               <Building2 className="h-5 w-5 text-slate-400" />
                             )}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-800 text-sm">{c.name}</p>
-                            <p className="text-xs text-slate-400 font-normal">{c.owner?.email || "Chưa có email"}</p>
+                            <p className="font-semibold text-slate-800 text-sm">
+                              {c.name}
+                            </p>
+                            <p className="text-xs text-slate-400 font-normal">
+                              {c.owner?.email || 'Chưa có email'}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 text-sm">{c.address || "—"}</td>
+                      <td className="px-6 py-4 text-slate-500 text-sm">
+                        {c.address || '—'}
+                      </td>
                       <td className="px-6 py-4">
-                        <Badge variant="outline" className={MAU_TRANG_THAI[c.status]?.color + " border font-normal px-2 py-0.5 rounded-md text-[10px]"}>
+                        <Badge
+                          variant="outline"
+                          className={
+                            MAU_TRANG_THAI[c.status]?.color +
+                            ' border font-normal px-2 py-0.5 rounded-md text-[10px]'
+                          }
+                        >
                           {MAU_TRANG_THAI[c.status]?.label}
                         </Badge>
                         {c.status === 'REJECTED' && c.rejectionReason && (
-                          <p className="text-[10px] text-red-500 mt-1 max-w-[150px] truncate italic" title={c.rejectionReason}>
+                          <p
+                            className="text-[10px] text-red-500 mt-1 max-w-[150px] truncate italic"
+                            title={c.rejectionReason}
+                          >
                             Lý do: {c.rejectionReason}
                           </p>
                         )}
@@ -317,16 +413,22 @@ export const ManagerDashboard = () => {
   // --- RENDERING CHÍNH ---
   return (
     <DashboardLayout
-      title={MENU_QUAN_LY.find(m => m.key === tabHienTai)?.label || "Quản lý công ty"}
+      title={
+        MENU_QUAN_LY.find((m) => m.key === tabHienTai)?.label ||
+        'Quản lý công ty'
+      }
       menu={MENU_QUAN_LY}
       activeKey={tabHienTai}
-      onSelect={(key) => { setTabHienTai(key); setIdCongTyDangXem(null); }}
+      onSelect={(key) => {
+        setTabHienTai(key);
+        setIdCongTyDangXem(null);
+      }}
       topbarBell={<NotificationBellPopover />}
     >
       <div className="min-h-screen bg-slate-50/50 p-6">
         <div className="max-w-7xl mx-auto space-y-4">
           <h2 className="text-xl font-bold text-slate-800">
-            {MENU_QUAN_LY.find(m => m.key === tabHienTai)?.label}
+            {MENU_QUAN_LY.find((m) => m.key === tabHienTai)?.label}
           </h2>
           {idCongTyDangXem ? renderChiTiet() : renderDanhSach()}
         </div>
@@ -368,11 +470,16 @@ const ItemThongTin = ({ icon: Icon, label, value, link }) => (
       <Icon className="h-3 w-3" /> {label}
     </p>
     {link ? (
-      <a href={link} target="_blank" rel="noreferrer" className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1">
+      <a
+        href={link}
+        target="_blank"
+        rel="noreferrer"
+        className="text-sm font-semibold text-blue-600 hover:text-blue-700 hover:underline inline-flex items-center gap-1"
+      >
         {value} <ExternalLink className="h-3 w-3" />
       </a>
     ) : (
-      <p className="text-sm font-semibold text-slate-700">{value || "—"}</p>
+      <p className="text-sm font-semibold text-slate-700">{value || '—'}</p>
     )}
   </div>
 );

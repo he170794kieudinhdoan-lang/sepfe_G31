@@ -24,7 +24,8 @@ export const MOCK_JOBS = [
     status: 'Đang tuyển',
     featured: true,
     imageUrl: IMG.warehouse,
-    description: 'Quản lý xuất nhập kho, đóng gói, kiểm đếm. Có phụ cấp ca đêm và chỗ ở cho nhân viên xa.',
+    description:
+      'Quản lý xuất nhập kho, đóng gói, kiểm đếm. Có phụ cấp ca đêm và chỗ ở cho nhân viên xa.',
     requirements: 'Tốt nghiệp THPT, có sức khỏe, chịu được ca đêm.',
     benefits: 'Lương tháng 13, bảo hiểm, phụ cấp ăn ca.',
     address: 'Khu công nghiệp Tân Bình, Q.Tân Bình, TP.HCM',

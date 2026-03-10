@@ -34,13 +34,13 @@ export const ForgotPassword = () => {
 
   if (isSuccess) {
     return (
-      <AuthLayout title='Kiểm tra email' subtitle={MSG.MSG_FORGOT_SUCCESS}>
-        <Card className='p-6 rounded-2xl shadow-sm border-0'>
-          <p className='text-sm text-muted-foreground mb-6'>
+      <AuthLayout title="Kiểm tra email" subtitle={MSG.MSG_FORGOT_SUCCESS}>
+        <Card className="p-6 rounded-2xl shadow-sm border-0">
+          <p className="text-sm text-muted-foreground mb-6">
             Nếu không thấy email, hãy kiểm tra thư mục spam hoặc thử lại.
           </p>
-          <Link to='/auth/login'>
-            <Button variant='outline' className='w-full rounded-xl'>
+          <Link to="/auth/login">
+            <Button variant="outline" className="w-full rounded-xl">
               Quay lại đăng nhập
             </Button>
           </Link>
@@ -50,27 +50,36 @@ export const ForgotPassword = () => {
   }
 
   return (
-    <AuthLayout title='Quên mật khẩu' subtitle='Nhập email để nhận link đặt lại mật khẩu'>
-      <Card className='p-6 rounded-2xl shadow-sm border-0'>
+    <AuthLayout
+      title="Quên mật khẩu"
+      subtitle="Nhập email để nhận link đặt lại mật khẩu"
+    >
+      <Card className="p-6 rounded-2xl shadow-sm border-0">
         <Link
-          to='/auth/login'
-          className='inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6'
+          to="/auth/login"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-6"
         >
-          <ArrowLeft className='h-4 w-4' /> Quay lại đăng nhập
+          <ArrowLeft className="h-4 w-4" /> Quay lại đăng nhập
         </Link>
-        <form onSubmit={handleSubmit(onSubmit)} className='space-y-5'>
-          <div className='space-y-2'>
-            <Label htmlFor='email'>Email</Label>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
             <Input
-              id='email'
-              type='email'
-              placeholder='email@example.com'
-              className='rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white'
+              id="email"
+              type="email"
+              placeholder="email@example.com"
+              className="rounded-xl border-0 shadow-sm bg-gray-50 focus:bg-white"
               {...register('email')}
             />
-            {errors.email && <p className='text-xs text-destructive'>{errors.email.message}</p>}
+            {errors.email && (
+              <p className="text-xs text-destructive">{errors.email.message}</p>
+            )}
           </div>
-          <Button type='submit' disabled={isPending} className='w-full rounded-xl h-11 font-medium'>
+          <Button
+            type="submit"
+            disabled={isPending}
+            className="w-full rounded-xl h-11 font-medium"
+          >
             {isPending ? 'Đang gửi...' : 'Gửi link đặt lại mật khẩu'}
           </Button>
         </form>

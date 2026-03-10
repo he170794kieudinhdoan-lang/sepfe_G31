@@ -1,5 +1,5 @@
 import { createBrowserRouter } from 'react-router-dom';
-import { MainLayout } from '@/shared/components/Layout';
+import { FullWidthLayout, MainLayout } from '@/shared/components/Layout';
 import {
   Login,
   RegisterChoose,
@@ -10,20 +10,18 @@ import {
 } from '@/features/auth';
 import { HomePage } from '@/pages/HomePage';
 import { JobDetailPage } from '@/pages/JobDetailPage';
-import { JobListPage } from '@/pages/JobListPage';
 import { JobSearchPage } from '@/pages/JobSearchPage';
 import { WishlistPage } from '@/pages/WishlistPage';
-import { NotificationPage } from '@/pages/NotificationPage';
 import { ChatPage } from '@/pages/ChatPage';
-import { CompanyListPage } from '@/features/companies/components/CompanyListPage';
-import { CompanyDetailPage } from '@/features/companies/components/CompanyDetailPage';
+import { CompanyListPage } from '@/features/companies/pages/CompanyListPage';
+import { CompanyDetailPage } from '@/features/companies/pages/CompanyDetailPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
 import { WorkerWelcome } from '@/pages/WorkerWelcome';
 import { WorkerProfileSetup } from '@/pages/WorkerProfileSetup';
 import { TermsPage } from '@/pages/TermsPage';
 import { AdminDashboard } from '@/pages/AdminDashboard';
-import { ManagerDashboard } from '@/features/companies/router/ManagerDashboard';
-import { CompanyApplicantPage } from '@/features/companies/components/CompanyApplicantPage';
+import { ManagerDashboard } from '@/features/companies/pages/ManagerDashboard';
+import { CompanyApplicantPage } from '@/features/companies/pages/CompanyApplicantPage';
 import { EmployerDashboard } from '@/pages/EmployerDashboard';
 import { EmployerLayout } from '@/shared/components/Layout/EmployerLayout';
 import { CreateJobPage } from '@/pages/CreateJobPage';
@@ -31,15 +29,19 @@ import { EditJobPage } from '@/pages/EditJobPage';
 export const router = createBrowserRouter([
   {
     path: '/',
-    element: <MainLayout />,
+    element: <FullWidthLayout />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'jobs', element: <JobListPage /> },
       { path: 'search', element: <JobSearchPage /> },
+    ],
+  },
+  {
+    path: '/',
+    element: <MainLayout />,
+    children: [
+      { path: 'chat', element: <ChatPage /> },
       { path: 'job/:id', element: <JobDetailPage /> },
       { path: 'wishlist', element: <WishlistPage /> },
-      { path: 'notifications', element: <NotificationPage /> },
-      { path: 'chat', element: <ChatPage /> },
       { path: 'companies', element: <CompanyListPage /> },
       { path: 'company/:id', element: <CompanyDetailPage /> },
       { path: 'profile', element: <UserProfilePage /> },
@@ -62,15 +64,6 @@ export const router = createBrowserRouter([
   {
     path: '/employer',
     element: <EmployerDashboard />,
-    children: [
-      {
-        path: 'jobs',
-        children: [
-          { path: 'create', element: <CreateJobPage /> },
-          { path: ':jobId/edit', element: <EditJobPage /> },
-        ],
-      },
-    ],
   },
   { path: '/auth/login', element: <Login /> },
   { path: '/auth/register', element: <RegisterChoose /> },
@@ -83,10 +76,10 @@ export const router = createBrowserRouter([
   {
     path: '*',
     element: (
-      <div className='min-h-screen flex items-center justify-center'>
-        <div className='text-center'>
-          <h1 className='text-2xl font-bold'>404</h1>
-          <p className='text-muted-foreground'>Trang không tồn tại.</p>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">404</h1>
+          <p className="text-muted-foreground">Trang không tồn tại.</p>
         </div>
       </div>
     ),
