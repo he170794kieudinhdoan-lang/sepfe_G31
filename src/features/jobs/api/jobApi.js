@@ -14,6 +14,7 @@ export const deleteJobApi = async ({ jobId }) => {
   return await apiClient.delete(`/job/${jobId}`);
 };
 
+<<<<<<< HEAD
 export const getJobDetail = async (id) => {
   return await apiClient.get(`/job/${id}`);
 };
@@ -69,3 +70,18 @@ export const getWards = async (wardsId) => {
   ).get();
   return { communes: response.districts };
 };
+=======
+// GET JOB DETAIL
+export const getJobDetailApi = async (jobId) => {
+  const res = await apiClient.get(`/job/${jobId}`)
+  console.log("RAW RESPONSE:", res.data)
+  return res.data
+}
+
+//Get Job Apply
+export const getJobApplyApi = async (jobId) => {
+  const rest = await apiClient.get(`/job/${jobId}/apply-form`)
+  console.log("data: " + rest.data)
+  return rest.data
+}
+>>>>>>> a1ae6c8 (add apply layout)

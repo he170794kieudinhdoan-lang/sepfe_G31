@@ -143,3 +143,12 @@ export const useGetWards = (wardsId) => {
     keepPreviousData: true,
   });
 };
+export const useJobApply = (jobId) => {
+  return useQuery({
+    queryKey: ['job-apply', jobId],
+    queryFn: () => getJobApplyApi(jobId),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+    enabled: !!jobId,
+  })
+}

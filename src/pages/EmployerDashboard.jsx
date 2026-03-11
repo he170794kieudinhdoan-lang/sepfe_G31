@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { Modal } from '@/shared/components/Modal';
+import { Outlet, NavLink, Link } from "react-router-dom"
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { CompanyRegisterPage } from '@/pages/CompanyRegisterPage';
