@@ -3,7 +3,7 @@ export const SectorManagementService = {
     createSector: (formData) =>
         apiClient.post('/sectors', formData),
     updateSector: (sectorId, formData) =>
-        apiClient.put(`/sectors/${sectorId}`, formData),
+        apiClient.patch(`/sectors/${sectorId}`, formData),
     getAllSectors: () =>
         apiClient.get('/sectors'),
     deleteSector: (sectorId) =>

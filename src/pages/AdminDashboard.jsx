@@ -102,6 +102,49 @@ export const AdminDashboard = () => {
             toast("Tạo ngành nghề thất bại", "error")
         }
     }
+    const updateSector = async () => {
+        try {
+            if (!sectorName.trim()) {
+                toast("Tên ngành nghề không được để trống", "error")
+                return
+            }
+
+            if (!editSector) return
+
+            await SectorManagementService.updateSector(editSector.id, {
+                name: sectorName
+            })
+
+            toast("Cập nhật ngành nghề thành công")
+
+            setSectorModal(false)
+            setEditSector(null)
+            setSectorName("")
+
+            await fetchSectors()
+
+        } catch (e) {
+            console.error(e)
+            toast("Cập nhật ngành nghề thất bại", "error")
+        }
+    }
+    const deleteSector = async () => {
+        try {
+            if (!sectorToDelete) return
+
+            await SectorManagementService.deleteSector(sectorToDelete.id)
+
+            toast("Xóa ngành nghề thành công")
+
+            setSectorToDelete(null)
+
+            await fetchSectors()
+
+        } catch (e) {
+            console.error(e)
+            toast("Xóa ngành nghề thất bại", "error")
+        }
+    }
 
     return (
         <DashboardLayout
@@ -365,14 +408,14 @@ export const AdminDashboard = () => {
                 onClose={() => { setSectorModal(false); setEditSector(null); setSectorName(""); }}
                 onConfirm={() => {
                     if (editSector) {
-                        // update sector (sẽ làm sau)
+                        updateSector()
                     } else {
                         createSector()
                     }
                 }}
                 confirmLabel="Lưu"
             >
-                <Input placeholder="Tên ngành nghề" value={editSector ? (sectorName || editSector.name) : sectorName} onChange={(e) => setSectorName(e.target.value)} className="rounded-xl" />
+                <Input placeholder="Tên ngành nghề" value={sectorName} onChange={(e) => setSectorName(e.target.value)} className="rounded-xl" />
             </Modal>
 
             <Modal
@@ -380,12 +423,7 @@ export const AdminDashboard = () => {
                 title="Xóa ngành nghề"
                 description="Bạn chắc chắn muốn xóa ngành nghề này?"
                 onClose={() => setSectorToDelete(null)}
-                onConfirm={() => {
-                    if (sectorToDelete?.id === 2) {
-                        toast(MSG.MSG_INDUSTRY_IN_USE, "error")
-                    }
-                    setSectorToDelete(null)
-                }}
+                onConfirm={deleteSector}
                 confirmLabel="Xóa"
                 tone="danger"
             />
