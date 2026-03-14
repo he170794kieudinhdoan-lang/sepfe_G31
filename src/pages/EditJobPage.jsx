@@ -239,7 +239,7 @@ export const EditJobPage = () => {
             Chỉnh sửa tin tuyển dụng
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Hoàn thành các bước để cập nhật tin tuyển dụng
+            Hoàn thành các bước để cập nhập tin tuyển dụng
           </p>
         </div>
 
