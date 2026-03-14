@@ -145,7 +145,9 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
       return;
     }
 
-    const provinceObj = provinces.find((p) => p.name === form.province);
+    const provinceObj = provinces.find(
+      (p) => p.name.trim().toLowerCase() === form.province.trim().toLowerCase(),
+    );
 
     if (!provinceObj) return;
 
@@ -156,9 +158,10 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
           `${PROVINCES_API}/p/${provinceObj.code}?depth=2`,
         );
         const data = await res.json();
-        setDistricts(data.districts || []);
+        const districtList = data.districts || data.wards || [];
+        setDistricts(districtList);
       } catch (err) {
-        console.error(err);
+        console.error('[EditJob] Fetch district error:', err);
       } finally {
         setLoadingDistrict(false);
       }
