@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { JobDetailSkeleton } from '@/features/jobs/components/JobDetailSkeleton';
 import { JobCardHorizontalSkeleton } from '@/features/jobs/components/JobCardHorizontalSkeleton';
 import { SearchX, ArrowLeft } from 'lucide-react';
+import { useGetOrCreateConversation } from '@/features/chat/api/useChat';
 
 export const JobDetailPage = () => {
   const { id } = useParams();
@@ -25,9 +26,15 @@ export const JobDetailPage = () => {
   const hasReported = false;
 
   const { data: relatedJobs, isLoading: isRelatedLoading } = useRelatedJobs(id);
+  const { mutate: createConversation } = useGetOrCreateConversation();
 
   const [applyOpen, setApplyOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+
+  const handleCreateConversation = (id) => {
+    console.log(id);
+    createConversation({ participantId: id });
+  };
 
   if (isLoading) {
     return <JobDetailSkeleton />;
@@ -74,7 +81,10 @@ export const JobDetailPage = () => {
         </div>
 
         <div className="lg:col-span-1 lg:row-span-2">
-          <CompanyInfo company={job.company} />
+          <CompanyInfo
+            company={job.company}
+            handleCreateConversation={handleCreateConversation}
+          />
         </div>
 
         <div className="lg:col-span-2">

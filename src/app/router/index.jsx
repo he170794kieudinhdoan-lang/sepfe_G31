@@ -12,7 +12,7 @@ import { HomePage } from '@/pages/HomePage';
 import { JobDetailPage } from '@/pages/JobDetailPage';
 import { JobSearchPage } from '@/pages/JobSearchPage';
 import { WishlistPage } from '@/pages/WishlistPage';
-import { ChatPage } from '@/pages/ChatPage';
+import { ChatPage } from '@/features/chat/pages/ChatPage';
 import { CompanyListPage } from '@/features/companies/pages/CompanyListPage';
 import { CompanyDetailPage } from '@/features/companies/pages/CompanyDetailPage';
 import { UserProfilePage } from '@/pages/UserProfilePage';
@@ -39,7 +39,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <MainLayout />,
     children: [
-      { path: 'chat', element: <ChatPage /> },
+      { path: '/chat/:conversationId', element: <ChatPage /> },
       { path: 'job/:id', element: <JobDetailPage /> },
       { path: 'wishlist', element: <WishlistPage /> },
       { path: 'companies', element: <CompanyListPage /> },

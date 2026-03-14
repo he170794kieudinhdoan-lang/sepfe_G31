@@ -14,3 +14,9 @@ export const notificationRealtimeConfig = {
     table: import.meta.env.VITE_NOTIFICATION_REALTIME_TABLE || 'notifications',
     userColumn: import.meta.env.VITE_NOTIFICATION_REALTIME_USER_COLUMN || 'user_id',
 };
+
+export const chatRealtimeConfig = {
+    schema: 'public',
+    messageTable: 'ChatMessage',
+    conversationTable: 'ChatConversation',
+};

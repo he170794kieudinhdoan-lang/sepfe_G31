@@ -1,4 +1,10 @@
-import { differenceInDays, format, formatDistanceToNow } from 'date-fns';
+import {
+  differenceInDays,
+  format,
+  formatDistanceToNow,
+  isToday,
+  isYesterday,
+} from 'date-fns';
 import { vi } from 'date-fns/locale';
 
 export const getDaysLeft = (expiryDate) => {
@@ -22,4 +28,20 @@ export const formatInVN = (date, pattern = 'dd/MM/yyyy') => {
   if (!date) return '';
 
   return format(new Date(date), pattern, { locale: vi });
+};
+
+export const formatMessageTime = (date) => {
+  if (!date) return '';
+
+  const d = new Date(date);
+
+  if (isToday(d)) {
+    return format(d, 'HH:mm');
+  }
+
+  if (isYesterday(d)) {
+    return 'Hôm qua ' + format(d, 'HH:mm');
+  }
+
+  return format(d, 'dd/MM HH:mm');
 };
