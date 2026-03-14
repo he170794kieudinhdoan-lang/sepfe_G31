@@ -1,74 +1,70 @@
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { useParams, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { useUpdateJob, useJobDetail } from '@/features/jobs/api/useJobs';
-import { useToast } from '@/shared/contexts/ToastContext';
-import { apiClient } from '@/shared/api/apiClient';
-import { useProvinces } from '@/shared/hooks/useProvinces';
-import { X } from 'lucide-react';
-export const EditJobPage = ({
-  jobIdProp,
-  onBack,
-  onSuccess: onSuccessProp,
-}) => {
-  const { jobId: jobIdParam } = useParams();
-  const jobId = jobIdProp || jobIdParam;
-  const navigate = useNavigate();
-  const handleClose = () => (onBack ? onBack() : navigate('/employer'));
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { useParams, useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { useUpdateJob } from "@/features/jobs/useJobMutation"
+import { useJobDetail } from "@/features/jobs/useJobQuery"
+import { useToast } from "@/shared/contexts/ToastContext"
+import { apiClient } from "@/shared/api/apiClient"
+import { useProvinces } from "@/shared/hooks/useProvinces"
+import { X } from "lucide-react"
+export const EditJobPage = () => {
+  const { jobId } = useParams()
+  const navigate = useNavigate()
   const PROVINCES_API = import.meta.env.VITE_PROVINCES_API_URL;
   const { toast } = useToast();
 
   const steps = [
-    'Ngành nghề & Thông tin',
-    'Địa điểm & Ca làm',
-    'Form ứng tuyển',
-  ];
-  const { data: jobDetail, isLoading } = useJobDetail(Number(jobId));
-  const { mutate: updateJob, isPending } = useUpdateJob();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [sectors, setSectors] = useState([]);
-  const [selectedSector, setSelectedSector] = useState('');
-  const [loadingSector, setLoadingSector] = useState(false);
-  const [occupations, setOccupations] = useState([]);
-  const [loadingOccupation, setLoadingOccupation] = useState(false);
-  const { provinces, isLoading: loadingProvince } = useProvinces();
-  const [districts, setDistricts] = useState([]);
-  const [loadingDistrict, setLoadingDistrict] = useState(false);
+    "Ngành nghề & Thông tin",
+    "Địa điểm & Ca làm",
+    "Form ứng tuyển"
+  ]
+  const { data: jobDetail, isLoading } = useJobDetail(Number(jobId))
+  const { mutate: updateJob, isPending } = useUpdateJob()
+  const [currentStep, setCurrentStep] = useState(0)
+  const [sectors, setSectors] = useState([])
+  const [selectedSector, setSelectedSector] = useState("")
+  const [loadingSector, setLoadingSector] = useState(false)
+  const [occupations, setOccupations] = useState([])
+  const [loadingOccupation, setLoadingOccupation] = useState(false)
+  const { provinces, isLoading: loadingProvince } = useProvinces()
+  const [districts, setDistricts] = useState([])
+  const [loadingDistrict, setLoadingDistrict] = useState(false)
 
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    occupationId: '',
-    workingShift: '',
-    quantity: '',
-    genderRequirement: '',
-    address: '',
-    province: '',
-    district: '',
-    ageMin: '',
-    ageMax: '',
-    salaryMin: '',
-    salaryMax: '',
-    fields: [],
-  });
+    title: "",
+    description: "",
+    occupationId: "",
+    workingShift: "",
+    quantity: "",
+    genderRequirement: "",
+    address: "",
+    province: "",
+    district: "",
+    ageMin: "",
+    ageMax: "",
+    salaryMin: "",
+    salaryMax: "",
+    fields: []
+  })
   const nextStep = () => {
     if (currentStep < steps.length - 1) {
-      setCurrentStep((prev) => prev + 1);
+      setCurrentStep(prev => prev + 1)
     }
-  };
+  }
 
   const prevStep = () => {
     if (currentStep > 0) {
-      setCurrentStep((prev) => prev - 1);
+      setCurrentStep(prev => prev - 1)
     }
-  };
+  }
 
-  const [errorMessage, setErrorMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState("")
 
   useEffect(() => {
-    if (!jobDetail) return;
+
+    if (!jobDetail) return
 
     setForm({
       title: jobDetail.title,
@@ -76,102 +72,105 @@ export const EditJobPage = ({
       occupationId: jobDetail.occupationId,
       workingShift: jobDetail.workingShift,
       quantity: jobDetail.quantity,
-      genderRequirement: jobDetail.genderRequirement || '',
-      address: jobDetail.address || '',
-      province: jobDetail.province || '',
-      district: jobDetail.district || '',
-      ageMin: jobDetail.ageMin || '',
-      ageMax: jobDetail.ageMax || '',
-      salaryMin: jobDetail.salaryMin || '',
-      salaryMax: jobDetail.salaryMax || '',
+      genderRequirement: jobDetail.genderRequirement || "",
+      address: jobDetail.address || "",
+      province: jobDetail.province || "",
+      district: jobDetail.district || "",
+      ageMin: jobDetail.ageMin || "",
+      ageMax: jobDetail.ageMax || "",
+      salaryMin: jobDetail.salaryMin || "",
+      salaryMax: jobDetail.salaryMax || "",
       fields:
-        jobDetail.applyForms?.[0]?.fields?.map((f) => ({
+        jobDetail.applyForms?.[0]?.fields?.map(f => ({
           id: f.id,
           label: f.label,
           fieldType: f.fieldType,
           isRequired: f.isRequired,
           options:
-            f.fieldType === 'select' ||
-            f.fieldType === 'radio' ||
-            f.fieldType === 'checkbox'
-              ? JSON.parse(f.options || '[]')
-              : [],
-        })) || [],
-    });
+            f.fieldType === "select" || f.fieldType === "radio" || f.fieldType === "checkbox"
+              ? JSON.parse(f.options || "[]")
+              : []
+        })) || []
+    })
 
-    const foundSector = sectors.find((sector) =>
-      sector.occupations?.some((o) => o.id === jobDetail.occupationId),
-    );
+    const foundSector = sectors.find(sector =>
+      sector.occupations?.some(o => o.id === jobDetail.occupationId)
+    )
 
     if (foundSector) {
-      setSelectedSector(foundSector.id.toString());
+      setSelectedSector(foundSector.id.toString())
     }
-    console.log('jobDetail:', jobDetail);
-    console.log('sectors:', sectors);
-    console.log('form:', form);
-    console.log('jobId:', jobId);
-    console.log('jobDetail:', jobDetail);
-    console.log('isLoading:', isLoading);
-  }, [jobDetail, sectors]);
+    console.log("jobDetail:", jobDetail)
+    console.log("sectors:", sectors)
+    console.log("form:", form)
+    console.log("jobId:", jobId)
+    console.log("jobDetail:", jobDetail)
+    console.log("isLoading:", isLoading)
+  }, [jobDetail, sectors])
 
   useEffect(() => {
     const fetchSectors = async () => {
       try {
-        setLoadingSector(true);
+        setLoadingSector(true)
 
         // apiClient đã có baseURL + unwrap data
-        const data = await apiClient.get('/occupations/grouped-by-sector');
+        const data = await apiClient.get("/occupations/grouped-by-sector")
 
-        setSectors(Array.isArray(data) ? data : []);
+        setSectors(Array.isArray(data) ? data : [])
       } catch (err) {
-        console.error('Fetch sectors error:', err);
+        console.error("Fetch sectors error:", err)
       } finally {
-        setLoadingSector(false);
+        setLoadingSector(false)
       }
-    };
+    }
 
-    fetchSectors();
-  }, []);
+    fetchSectors()
+  }, [])
 
   useEffect(() => {
     if (!selectedSector) {
-      setOccupations([]);
-      return;
+      setOccupations([])
+      return
     }
 
-    const sector = sectors.find((s) => s.id === Number(selectedSector));
+    const sector = sectors.find(
+      (s) => s.id === Number(selectedSector)
+    )
 
-    setOccupations(sector?.occupations || []);
-  }, [selectedSector, sectors]);
+    setOccupations(sector?.occupations || [])
+
+  }, [selectedSector, sectors])
   useEffect(() => {
     if (!form.province) {
-      setDistricts([]);
-      return;
+      setDistricts([])
+      return
     }
 
-    const provinceObj = provinces.find((p) => p.name === form.province);
+    const provinceObj = provinces.find(
+      (p) => p.name === form.province
+    )
 
-    if (!provinceObj) return;
+    if (!provinceObj) return
 
     const fetchDistricts = async () => {
       try {
-        setLoadingDistrict(true);
+        setLoadingDistrict(true)
         const res = await fetch(
-          `https://provinces.open-api.vn/api/p/${provinceObj.code}?depth=2`,
-        );
-        const data = await res.json();
-        setDistricts(data.districts || []);
+          `${PROVINCES_API}/p/${provinceObj.code}?depth=2`
+        )
+        const data = await res.json()
+        setDistricts(data.districts || [])
       } catch (err) {
-        console.error(err);
+        console.error(err)
       } finally {
-        setLoadingDistrict(false);
+        setLoadingDistrict(false)
       }
-    };
+    }
 
-    fetchDistricts();
-  }, [form.province, provinces]);
+    fetchDistricts()
+  }, [form.province, provinces])
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>Loading...</div>
 
   const handleSubmit = () => {
     const payload = {
@@ -186,65 +185,42 @@ export const EditJobPage = ({
       province: form.province || null,
       district: form.district || null,
 
-      ageMin:
-        form.ageMin !== '' && form.ageMin !== undefined && form.ageMin !== null
-          ? Number(form.ageMin)
-          : null,
-      ageMax:
-        form.ageMax !== '' && form.ageMax !== undefined && form.ageMax !== null
-          ? Number(form.ageMax)
-          : null,
-      salaryMin:
-        form.salaryMin !== '' &&
-        form.salaryMin !== undefined &&
-        form.salaryMin !== null
-          ? Number(form.salaryMin)
-          : null,
-      salaryMax:
-        form.salaryMax !== '' &&
-        form.salaryMax !== undefined &&
-        form.salaryMax !== null
-          ? Number(form.salaryMax)
-          : null,
+      ageMin: form.ageMin !== "" && form.ageMin !== undefined && form.ageMin !== null ? Number(form.ageMin) : null,
+      ageMax: form.ageMax !== "" && form.ageMax !== undefined && form.ageMax !== null ? Number(form.ageMax) : null,
+      salaryMin: form.salaryMin !== "" && form.salaryMin !== undefined && form.salaryMin !== null ? Number(form.salaryMin) : null,
+      salaryMax: form.salaryMax !== "" && form.salaryMax !== undefined && form.salaryMax !== null ? Number(form.salaryMax) : null,
 
-      fields: form.fields.map((f) => ({
+      fields: form.fields.map(f => ({
         id: f.id, // nếu có
         label: f.label,
         fieldType: f.fieldType,
         isRequired: f.isRequired,
         options:
-          f.fieldType === 'select' ||
-          f.fieldType === 'radio' ||
-          f.fieldType === 'checkbox'
-            ? JSON.stringify(f.options.filter((opt) => opt.trim() !== ''))
-            : undefined,
-      })),
-    };
+          f.fieldType === "select" || f.fieldType === "radio" || f.fieldType === "checkbox"
+            ? JSON.stringify(
+              f.options.filter(opt => opt.trim() !== "")
+            )
+            : undefined
+      }))
+    }
 
-    updateJob(
-      {
-        companyId: 1, // hard code tạm
-        jobId: Number(jobId),
-        payload,
+    updateJob({
+      companyId: 1, // hard code tạm
+      jobId: Number(jobId),
+      payload
+    }, {
+      onSuccess: () => {
+        toast("Cập nhật thành công", "success")
+        navigate("/employer")
       },
-      {
-        onSuccess: () => {
-          toast('Cập nhật thành công', 'success');
-          onSuccessProp ? onSuccessProp() : navigate('/employer');
-        },
-        onError: (err) => {
-          console.error('Lỗi cập nhật:', err);
-          const message =
-            err?.response?.data?.message ||
-            'Lỗi khi cập nhật tin. Vui lòng thử lại.';
-          setErrorMessage(
-            Array.isArray(message) ? message.join(', ') : message,
-          );
-          toast('Cập nhật thất bại', 'error');
-        },
-      },
-    );
-  };
+      onError: (err) => {
+        console.error("Lỗi cập nhật:", err);
+        const message = err?.response?.data?.message || "Lỗi khi cập nhật tin. Vui lòng thử lại.";
+        setErrorMessage(Array.isArray(message) ? message.join(", ") : message);
+        toast("Cập nhật thất bại", "error")
+      }
+    })
+  }
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
@@ -253,13 +229,15 @@ export const EditJobPage = ({
           variant="ghost"
           size="icon"
           className="absolute right-4 top-4 z-10 rounded-full hover:bg-gray-100"
-          onClick={handleClose}
+          onClick={() => navigate('/employer')}
         >
           <X className="w-5 h-5" />
         </Button>
 
         <div className="mb-6 pt-2">
-          <h1 className="text-2xl font-semibold">Tạo tin tuyển dụng</h1>
+          <h1 className="text-2xl font-semibold">
+            Tạo tin tuyển dụng
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
             Hoàn thành các bước để đăng tin tuyển dụng
           </p>
@@ -268,36 +246,30 @@ export const EditJobPage = ({
         {/* Stepper */}
         <div className="flex items-center mb-8">
           {steps.map((step, index) => {
-            const active = index === currentStep;
-            const done = index < currentStep;
+            const active = index === currentStep
+            const done = index < currentStep
 
             return (
               <div key={index} className="flex items-center flex-1">
                 <div
                   className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium
-                    ${
-                      active
-                        ? 'bg-primary text-white'
-                        : done
-                          ? 'bg-green-500 text-white'
-                          : 'bg-gray-200 text-gray-600'
-                    }
+                    ${active ? "bg-primary text-white"
+                      : done ? "bg-green-500 text-white"
+                        : "bg-gray-200 text-gray-600"}
                     `}
                 >
-                  {done ? '✓' : index + 1}
+                  {done ? "✓" : index + 1}
                 </div>
 
-                <span
-                  className={`ml-2 text-sm ${active ? 'font-semibold' : 'text-muted-foreground'}`}
-                >
+                <span className={`ml-2 text-sm ${active ? "font-semibold" : "text-muted-foreground"}`}>
                   {step}
                 </span>
 
-                {index !== steps.length - 1 && (
+                {index !== steps.length - 1 &&
                   <div className="flex-1 h-[2px] bg-gray-200 mx-4" />
-                )}
+                }
               </div>
-            );
+            )
           })}
         </div>
         {errorMessage && (
@@ -306,22 +278,24 @@ export const EditJobPage = ({
           </div>
         )}
         <Card className="p-8 rounded-xl shadow-sm min-h-[450px]">
+
           {/* STEP 1 */}
           {currentStep === 0 && (
             <div className="space-y-6 max-w-xl">
+
               <div>
                 <label className="text-sm font-medium">Lĩnh vực *</label>
                 <select
                   className="w-full mt-1 rounded-xl border px-3 py-2 text-sm bg-white"
                   value={selectedSector}
                   onChange={(e) => {
-                    setSelectedSector(e.target.value);
-                    setForm({ ...form, occupationId: '' });
+                    setSelectedSector(e.target.value)
+                    setForm({ ...form, occupationId: "" })
                   }}
                   disabled={loadingSector}
                 >
                   <option value="">
-                    {loadingSector ? 'Đang tải...' : 'Chọn lĩnh vực'}
+                    {loadingSector ? "Đang tải..." : "Chọn lĩnh vực"}
                   </option>
 
                   {sectors.map((sector) => (
@@ -344,10 +318,10 @@ export const EditJobPage = ({
                 >
                   <option value="">
                     {!selectedSector
-                      ? 'Chọn lĩnh vực trước'
+                      ? "Chọn lĩnh vực trước"
                       : loadingOccupation
-                        ? 'Đang tải...'
-                        : 'Chọn ngành nghề'}
+                        ? "Đang tải..."
+                        : "Chọn ngành nghề"}
                   </option>
 
                   {occupations.map((occupation) => (
@@ -371,9 +345,7 @@ export const EditJobPage = ({
                   className="w-full rounded-xl border px-4 py-3 text-sm"
                   rows={4}
                   value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, description: e.target.value })}
                 />
               </div>
 
@@ -382,9 +354,7 @@ export const EditJobPage = ({
                 <Input
                   type="number"
                   value={form.quantity}
-                  onChange={(e) =>
-                    setForm({ ...form, quantity: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, quantity: e.target.value })}
                 />
               </div>
 
@@ -393,9 +363,7 @@ export const EditJobPage = ({
                 <select
                   className="w-full rounded-xl border px-3 py-2 text-sm"
                   value={form.genderRequirement}
-                  onChange={(e) =>
-                    setForm({ ...form, genderRequirement: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, genderRequirement: e.target.value })}
                 >
                   <option value="">Không yêu cầu</option>
                   <option value="MALE">Nam</option>
@@ -428,9 +396,7 @@ export const EditJobPage = ({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium">
-                    Lương tối thiểu (VND)
-                  </label>
+                  <label className="text-sm font-medium">Lương tối thiểu (VND)</label>
                   <Input
                     type="number"
                     value={form.salaryMin}
@@ -441,9 +407,7 @@ export const EditJobPage = ({
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium">
-                    Lương tối đa (VND)
-                  </label>
+                  <label className="text-sm font-medium">Lương tối đa (VND)</label>
                   <Input
                     type="number"
                     value={form.salaryMax}
@@ -459,14 +423,13 @@ export const EditJobPage = ({
           {/* STEP 2 */}
           {currentStep === 1 && (
             <div className="space-y-6 max-w-xl">
+
               <div>
                 <label className="text-sm font-medium">Ca làm *</label>
                 <select
                   className="w-full rounded-xl border px-3 py-2 text-sm"
                   value={form.workingShift}
-                  onChange={(e) =>
-                    setForm({ ...form, workingShift: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, workingShift: e.target.value })}
                 >
                   <option value="">Chọn ca</option>
                   <option value="MORNING">Ca sáng</option>
@@ -481,9 +444,7 @@ export const EditJobPage = ({
                 <label className="text-sm font-medium">Địa chỉ</label>
                 <Input
                   value={form.address}
-                  onChange={(e) =>
-                    setForm({ ...form, address: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
                 />
               </div>
 
@@ -496,13 +457,13 @@ export const EditJobPage = ({
                     setForm({
                       ...form,
                       province: e.target.value,
-                      district: '',
+                      district: ""
                     })
                   }
                   disabled={loadingProvince}
                 >
                   <option value="">
-                    {loadingProvince ? 'Đang tải...' : 'Chọn tỉnh/thành phố'}
+                    {loadingProvince ? "Đang tải..." : "Chọn tỉnh/thành phố"}
                   </option>
 
                   {provinces.map((province) => (
@@ -526,10 +487,10 @@ export const EditJobPage = ({
                 >
                   <option value="">
                     {!form.province
-                      ? 'Chọn tỉnh trước'
+                      ? "Chọn tỉnh trước"
                       : loadingDistrict
-                        ? 'Đang tải...'
-                        : 'Chọn quận/huyện'}
+                        ? "Đang tải..."
+                        : "Chọn quận/huyện"}
                   </option>
 
                   {districts.map((district) => (
@@ -539,11 +500,13 @@ export const EditJobPage = ({
                   ))}
                 </select>
               </div>
+
             </div>
           )}
 
           {currentStep === 2 && (
             <div className="space-y-8">
+
               {/* Header */}
               <div className="flex justify-between items-center">
                 <div>
@@ -561,12 +524,12 @@ export const EditJobPage = ({
                       fields: [
                         ...form.fields,
                         {
-                          label: '',
-                          fieldType: 'text',
+                          label: "",
+                          fieldType: "text",
                           isRequired: false,
-                          options: [],
-                        },
-                      ],
+                          options: []
+                        }
+                      ]
                     })
                   }
                 >
@@ -580,8 +543,10 @@ export const EditJobPage = ({
                   key={index}
                   className="p-6 rounded-2xl border shadow-sm space-y-6"
                 >
+
                   {/* Dòng 1: Nội dung + Loại */}
                   <div className="grid grid-cols-3 gap-4 items-end">
+
                     <div className="col-span-2 space-y-2">
                       <label className="text-sm font-medium">
                         Nội dung câu hỏi
@@ -590,9 +555,9 @@ export const EditJobPage = ({
                         placeholder="Ví dụ: Bạn có bao nhiêu năm kinh nghiệm?"
                         value={field.label}
                         onChange={(e) => {
-                          const updated = [...form.fields];
-                          updated[index].label = e.target.value;
-                          setForm({ ...form, fields: updated });
+                          const updated = [...form.fields]
+                          updated[index].label = e.target.value
+                          setForm({ ...form, fields: updated })
                         }}
                       />
                     </div>
@@ -605,75 +570,70 @@ export const EditJobPage = ({
                         className="w-full rounded-xl border px-3 py-2 text-sm bg-white"
                         value={field.fieldType}
                         onChange={(e) => {
-                          const updated = [...form.fields];
-                          const newType = e.target.value;
+                          const updated = [...form.fields]
+                          const newType = e.target.value
 
-                          updated[index].fieldType = newType;
+                          updated[index].fieldType = newType
 
-                          if (
-                            newType === 'select' ||
-                            newType === 'radio' ||
-                            newType === 'checkbox'
-                          ) {
+                          if (newType === "select" || newType === "radio" || newType === "checkbox") {
                             if (!Array.isArray(updated[index].options)) {
-                              updated[index].options = [];
+                              updated[index].options = []
                             }
                           } else {
-                            updated[index].options = [];
+                            updated[index].options = []
                           }
 
-                          setForm({ ...form, fields: updated });
+                          setForm({ ...form, fields: updated })
                         }}
                       >
                         <option value="text">Trả lời ngắn</option>
                         <option value="textarea">Trả lời dài</option>
                         <option value="select">Danh sách chọn</option>
                         <option value="radio">Chọn một đáp án (Radio)</option>
-                        <option value="checkbox">
-                          Chọn nhiều đáp án (Checkbox)
-                        </option>
+                        <option value="checkbox">Chọn nhiều đáp án (Checkbox)</option>
                       </select>
                     </div>
                   </div>
 
                   {/* Options */}
-                  {(field.fieldType === 'select' ||
-                    field.fieldType === 'radio' ||
-                    field.fieldType === 'checkbox') && (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">
-                          Danh sách lựa chọn
-                        </span>
+                  {(field.fieldType === "select" ||
+                    field.fieldType === "radio" ||
+                    field.fieldType === "checkbox") && (
+                      <div className="space-y-4">
 
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            const updated = [...form.fields];
-                            updated[index].options.push('');
-                            setForm({ ...form, fields: updated });
-                          }}
-                        >
-                          + Thêm lựa chọn
-                        </Button>
-                      </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">
+                            Danh sách lựa chọn
+                          </span>
 
-                      {(Array.isArray(field.options) ? field.options : []).map(
-                        (opt, optIndex) => (
-                          <div
-                            key={optIndex}
-                            className="flex gap-3 items-center"
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              const updated = [...form.fields]
+                              updated[index].options.push("")
+                              setForm({ ...form, fields: updated })
+                            }}
                           >
+                            + Thêm lựa chọn
+                          </Button>
+                        </div>
+
+                        {(Array.isArray(field.options)
+                          ? field.options
+                          : []
+                        ).map((opt, optIndex) => (
+                          <div key={optIndex} className="flex gap-3 items-center">
+
                             <Input
                               placeholder={`Lựa chọn ${optIndex + 1}`}
                               value={opt}
                               onChange={(e) => {
-                                const updated = [...form.fields];
+                                const updated = [...form.fields]
                                 updated[index].options[optIndex] =
-                                  e.target.value;
-                                setForm({ ...form, fields: updated });
+                                  e.target.value
+                                setForm({ ...form, fields: updated })
                               }}
                             />
 
@@ -682,29 +642,29 @@ export const EditJobPage = ({
                               size="icon"
                               variant="ghost"
                               onClick={() => {
-                                const updated = [...form.fields];
-                                updated[index].options.splice(optIndex, 1);
-                                setForm({ ...form, fields: updated });
+                                const updated = [...form.fields]
+                                updated[index].options.splice(optIndex, 1)
+                                setForm({ ...form, fields: updated })
                               }}
                             >
                               ✕
                             </Button>
                           </div>
-                        ),
-                      )}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
 
                   {/* Footer */}
                   <div className="flex justify-between items-center pt-2 border-t">
+
                     <label className="flex items-center gap-2 text-sm">
                       <input
                         type="checkbox"
                         checked={field.isRequired}
                         onChange={(e) => {
-                          const updated = [...form.fields];
-                          updated[index].isRequired = e.target.checked;
-                          setForm({ ...form, fields: updated });
+                          const updated = [...form.fields]
+                          updated[index].isRequired = e.target.checked
+                          setForm({ ...form, fields: updated })
                         }}
                       />
                       Câu hỏi bắt buộc
@@ -715,14 +675,16 @@ export const EditJobPage = ({
                       variant="ghost"
                       size="sm"
                       onClick={() => {
-                        const updated = [...form.fields];
-                        updated.splice(index, 1);
-                        setForm({ ...form, fields: updated });
+                        const updated = [...form.fields]
+                        updated.splice(index, 1)
+                        setForm({ ...form, fields: updated })
                       }}
                     >
                       Xóa câu hỏi
                     </Button>
+
                   </div>
+
                 </Card>
               ))}
 
@@ -731,16 +693,14 @@ export const EditJobPage = ({
                   Chưa có câu hỏi nào. Hãy thêm câu hỏi để bắt đầu.
                 </div>
               )}
+
             </div>
           )}
-        </Card>
+
+        </Card >
 
         <div className="flex justify-between mt-6">
-          <Button
-            variant="outline"
-            onClick={prevStep}
-            disabled={currentStep === 0}
-          >
+          <Button variant="outline" onClick={prevStep} disabled={currentStep === 0}>
             Quay lại
           </Button>
 
@@ -750,12 +710,13 @@ export const EditJobPage = ({
           >
             {currentStep === steps.length - 1
               ? isPending
-                ? 'Đang cập nhật...'
-                : 'Cập nhật tin'
-              : 'Tiếp tục'}
+                ? "Đang cập nhật..."
+                : "Cập nhật tin"
+              : "Tiếp tục"}
           </Button>
         </div>
+
       </div>
     </div>
-  );
-};
+  )
+}
