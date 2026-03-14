@@ -3,23 +3,19 @@ import { apiClient, apiClientCustom } from '@/shared/api/apiClient';
 // ===== JOB CRUD =====
 
 export const createJobApi = async ({ payload }) => {
-  const res = await apiClient.post(`/job`, payload);
-  return res.data;
+  return await apiClient.post(`/job`, payload);
 };
 
 export const updateJobApi = async ({ jobId, payload }) => {
-  const res = await apiClient.put(`/job/${jobId}`, payload);
-  return res.data;
+  return await apiClient.put(`/job/${jobId}`, payload);
 };
 
 export const deleteJobApi = async ({ jobId }) => {
-  const res = await apiClient.delete(`/job/${jobId}`);
-  return res.data;
+  return await apiClient.delete(`/job/${jobId}`);
 };
 
 export const getJobDetail = async (id) => {
-  const res = await apiClient.get(`/job/${id}`);
-  return res.data;
+  return await apiClient.get(`/job/${id}`);
 };
 
 export const getRelatedJobs = async (id) => {
