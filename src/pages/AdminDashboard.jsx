@@ -1,15 +1,15 @@
-import { useState, useEffect } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
-import { EmptyState } from "@/shared/components/EmptyState"
-import { Modal } from "@/shared/components/Modal"
-import { DashboardLayout } from "@/shared/components/Layout/DashboardLayout"
-import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover'
-import { useToast } from "@/shared/contexts/ToastContext"
-import { MSG } from "@/shared/constants/messages"
+import { useState, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/shared/components/EmptyState';
+import { Modal } from '@/shared/components/Modal';
+import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
+import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
+import { useToast } from '@/shared/contexts/ToastContext';
+import { MSG } from '@/shared/constants/messages';
 import { SectorManagementService } from "@/features/jobs/api/sectormanagement"
 import { OccupationManagementService } from "@/features/jobs/api/occupationmanagement"
 const kpi = [
@@ -254,7 +254,7 @@ export const AdminDashboard = () => {
       onSelect={setActive}
       topbarBell={<NotificationBellPopover />}
     >
-      {active === "overview" && (
+      {active === 'overview' && (
         <div className="space-y-6">
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
             {kpi.map((item) => (
@@ -270,7 +270,8 @@ export const AdminDashboard = () => {
                 <h3 className="text-lg font-semibold">Chart hệ thống</h3>
                 <Badge variant="outline">Placeholder</Badge>
               </div>
-              <div className="h-60 rounded-xl bg-gradient-to-br from-primary/10 via-white to-primary-muted/30 border border-dashed flex items-center justify-center text-muted-foreground">
+              <div className="h-60 rounded-xl bg-linear-to-br from-primary/10 via-white to-primary-muted/30 border border-dashed flex items-center justify-center text-muted-foreground">
+                {' '}
                 Chart placeholder
               </div>
             </Card>
@@ -295,7 +296,7 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {active === "users" && (
+      {active === 'users' && (
         <div className="space-y-6">
           <Card className="p-4 flex flex-wrap gap-3 items-center">
             <select className="rounded-full border px-4 py-2 text-sm bg-white">
@@ -313,11 +314,16 @@ export const AdminDashboard = () => {
             <Input type="date" className="max-w-[180px]" />
             <Input type="date" className="max-w-[180px]" />
             <Button className="rounded-full">Lọc</Button>
-            <Button variant="outline" className="rounded-full">Reset</Button>
+            <Button variant="outline" className="rounded-full">
+              Reset
+            </Button>
           </Card>
 
           {users.length === 0 ? (
-            <EmptyState title={MSG.MSG_USER_LIST_EMPTY} description="Danh sách người dùng đang trống." />
+            <EmptyState
+              title={MSG.MSG_USER_LIST_EMPTY}
+              description="Danh sách người dùng đang trống."
+            />
           ) : (
             <Card className="p-4">
               <table className="w-full text-sm">
@@ -338,7 +344,11 @@ export const AdminDashboard = () => {
                       <td>{user.email}</td>
                       <td>{user.role}</td>
                       <td>
-                        <Badge variant={user.status === "Active" ? "default" : "secondary"}>
+                        <Badge
+                          variant={
+                            user.status === 'Active' ? 'default' : 'secondary'
+                          }
+                        >
                           {user.status}
                         </Badge>
                       </td>
@@ -350,7 +360,7 @@ export const AdminDashboard = () => {
                           className="rounded-full"
                           onClick={() => setConfirmOpen(true)}
                         >
-                          {user.status === "Active" ? "Disable" : "Enable"}
+                          {user.status === 'Active' ? 'Disable' : 'Enable'}
                         </Button>
                       </td>
                     </tr>
@@ -522,7 +532,7 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {active === "stats" && (
+      {active === 'stats' && (
         <div className="space-y-6">
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
             {kpi.map((item) => (
@@ -546,15 +556,20 @@ export const AdminDashboard = () => {
             )}
           </Card>
           {false && (
-            <EmptyState title={MSG.MSG_STATS_EMPTY} description="Chưa có dữ liệu hệ thống." />
+            <EmptyState
+              title={MSG.MSG_STATS_EMPTY}
+              description="Chưa có dữ liệu hệ thống."
+            />
           )}
         </div>
       )}
 
-      {active === "terms" && (
+      {active === 'terms' && (
         <div className="space-y-6">
           <Card className="p-6 rounded-xl shadow-sm">
-            <h3 className="text-lg font-semibold mb-4">Điều khoản & điều kiện</h3>
+            <h3 className="text-lg font-semibold mb-4">
+              Điều khoản & điều kiện
+            </h3>
             {termsEditMode ? (
               <>
                 <textarea
@@ -563,10 +578,24 @@ export const AdminDashboard = () => {
                   onChange={(e) => setTermsDraft(e.target.value)}
                 />
                 <div className="flex gap-2 mt-4">
-                  <Button className="rounded-xl" onClick={() => { setTermsSaved(termsDraft); setTermsEditMode(false); toast("Đã lưu điều khoản."); }}>
+                  <Button
+                    className="rounded-xl"
+                    onClick={() => {
+                      setTermsSaved(termsDraft);
+                      setTermsEditMode(false);
+                      toast('Đã lưu điều khoản.');
+                    }}
+                  >
                     Lưu
                   </Button>
-                  <Button variant="outline" className="rounded-xl" onClick={() => { setTermsDraft(termsSaved); setTermsEditMode(false); }}>
+                  <Button
+                    variant="outline"
+                    className="rounded-xl"
+                    onClick={() => {
+                      setTermsDraft(termsSaved);
+                      setTermsEditMode(false);
+                    }}
+                  >
                     Hủy
                   </Button>
                 </div>
@@ -576,7 +605,13 @@ export const AdminDashboard = () => {
                 <div className="h-48 overflow-y-auto rounded-xl border p-4 text-sm text-muted-foreground">
                   {termsSaved}
                 </div>
-                <Button className="rounded-xl mt-4" onClick={() => { setTermsDraft(termsSaved); setTermsEditMode(true); }}>
+                <Button
+                  className="rounded-xl mt-4"
+                  onClick={() => {
+                    setTermsDraft(termsSaved);
+                    setTermsEditMode(true);
+                  }}
+                >
                   Chỉnh sửa
                 </Button>
               </>

@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -10,8 +11,6 @@ import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
-import { CompanyRegisterPage } from '@/pages/CompanyRegisterPage';
-import { CompanyService } from '@/features/companies/api/company.service';
 import { useSearchJobs } from '@/features/jobs/useJobQueries';
 import { useDeleteJob } from '@/features/jobs/useJobMutation';
 import { Loader2, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
@@ -43,7 +42,6 @@ const MOCK_APPLICANTS = [
 export const EmployerDashboard = () => {
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
-  const [companyModalOpen, setCompanyModalOpen] = useState(false);
   const [jobModalOpen, setJobModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -114,78 +112,38 @@ export const EmployerDashboard = () => {
     toast(MSG.MSG_CANDIDATE_UPDATE_FAIL, 'error');
   };
 
-  const [company, setCompany] = useState(null);
-  const [loadingCompany, setLoadingCompany] = useState(true);
-
-  const fetchCompany = async () => {
-    try {
-      const companyData = await CompanyService.getMyCompany();
-      setCompany(companyData);
-    } catch {
-      setCompany(null);
-    } finally {
-      setLoadingCompany(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchCompany();
-  }, []);
-
-  const isLocked = company?.status !== 'APPROVED';
-
-  useEffect(() => {
-    if (isLocked && active !== 'overview') {
-      setActive('overview');
-    }
-  }, [isLocked]);
-
-  const filteredMenu = isLocked
-    ? EMPLOYER_MENU.filter(item => item.key === 'overview')
-    : EMPLOYER_MENU;
-
-  if (loadingCompany) {
-    return null;
-  }
   return (
     <DashboardLayout
       title="Employer Dashboard"
-      menu={filteredMenu}
+      menu={EMPLOYER_MENU}
       activeKey={active}
-      onSelect={(key) => {
-        if (isLocked && key !== 'overview') return;
-        setActive(key);
-      }}
+      onSelect={setActive}
       topbarBell={<NotificationBellPopover />}
     >
+      <div className="relative">
+        <Outlet />
+      </div>
       {active === 'overview' && (
         <div className="space-y-6">
-          {isLocked && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
-              {company === null && 'Bạn chưa đăng ký công ty.'}
-              {company?.status === 'PENDING' && 'Công ty đang chờ duyệt.'}
-              {company?.status === 'REJECT' && 'Công ty bị từ chối. Vui lòng cập nhật lại.'}
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <h2 className="text-xl font-semibold">Tổng quan</h2>
+            <div className="flex gap-2">
+              <Button variant="outline" className="rounded-xl" asChild>
+                <Link to="/company/register">Đăng ký / Chỉnh sửa công ty</Link>
+              </Button>
+              <Button asChild>
+                <Link to="/employer/jobs/create">Tạo tin tuyển dụng</Link>
+              </Button>
             </div>
-          )}
-          <div className="flex gap-2 justify-end">
-            <Button className="rounded-xl" onClick={() => setCompanyModalOpen(true)}>
-              Đăng ký / Chỉnh sửa công ty
-            </Button>
           </div>
-          {!isLocked && (
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h2 className="text-xl font-semibold">Tổng quan</h2>
-            </div>)}
-          {!isLocked && (
-            <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-              {MOCK_KPI.map((item) => (
-                <Card key={item.label} className="p-5 rounded-xl shadow-sm">
-                  <p className="text-sm text-muted-foreground">{item.label}</p>
-                  <p className="text-2xl font-bold mt-2">{item.value}</p>
-                </Card>
-              ))}
-            </div>
-          )}
+          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {MOCK_KPI.map((item) => (
+              <Card key={item.label} className="p-5 rounded-xl shadow-sm">
+                <p className="text-sm text-muted-foreground">{item.label}</p>
+                <p className="text-2xl font-bold mt-2">{item.value}</p>
+              </Card>
+            ))}
+          </div>
         </div>
       )}
 
@@ -193,7 +151,9 @@ export const EmployerDashboard = () => {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Tin tuyển dụng</h2>
-            <Button className="rounded-xl" onClick={openCreateJob}>Tạo tin tuyển dụng</Button>
+            <Button asChild>
+              <Link to="/employer/jobs/create">Tạo tin tuyển dụng</Link>
+            </Button>
           </div>
           <Card className="p-4 rounded-xl shadow-sm overflow-x-auto">
             <table className="w-full text-sm">
@@ -398,36 +358,6 @@ export const EmployerDashboard = () => {
           </Card>
         </div>
       )}
-
-      <Modal
-        open={companyModalOpen}
-        onClose={() => setCompanyModalOpen(false)}
-        variant="custom"
-      >
-        <CompanyRegisterPage
-          isModal
-          onSuccess={() => {
-            setCompanyModalOpen(false);
-            fetchCompany();
-          }}
-          onBack={() => setCompanyModalOpen(false)}
-        />
-      </Modal>
-
-      <Modal
-        open={companyModalOpen}
-        onClose={() => setCompanyModalOpen(false)}
-        variant="custom"
-      >
-        <CompanyRegisterPage
-          isModal
-          onSuccess={() => {
-            setCompanyModalOpen(false);
-            fetchCompany();
-          }}
-          onBack={() => setCompanyModalOpen(false)}
-        />
-      </Modal>
 
       {/* <Modal open={jobModalOpen} title={editingJob ? 'Chỉnh sửa tin' : 'Tạo tin tuyển dụng'} onClose={() => setJobModalOpen(false)} onConfirm={handleSaveJob} confirmLabel="Lưu">
         <div className="space-y-4">

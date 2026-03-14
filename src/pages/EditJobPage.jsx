@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card"
 import { useParams, useNavigate } from "react-router-dom"
 import { useEffect, useState } from "react"
 import { useUpdateJob } from "@/features/jobs/useJobMutation"
-import { useJobDetail } from "@/features/jobs/useJobQuery"
+import { useJobDetail } from "@/features/jobs/api/useJobs"
 import { useToast } from "@/shared/contexts/ToastContext"
 import { apiClient } from "@/shared/api/apiClient"
 import { useProvinces } from "@/shared/hooks/useProvinces"
@@ -236,10 +236,10 @@ export const EditJobPage = () => {
 
         <div className="mb-6 pt-2">
           <h1 className="text-2xl font-semibold">
-            Tạo tin tuyển dụng
+            Chỉnh sửa tin tuyển dụng
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Hoàn thành các bước để đăng tin tuyển dụng
+            Hoàn thành các bước để cập nhập tin tuyển dụng
           </p>
         </div>
 

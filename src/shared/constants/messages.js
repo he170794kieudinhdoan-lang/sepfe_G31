@@ -14,7 +14,8 @@ export const MSG = {
   // --- Quên / đặt lại mật khẩu ---
   MSG_FORGOT_SUCCESS: 'Link đặt lại mật khẩu đã được gửi đến email của bạn.',
   MSG_FORGOT_ERROR: 'Gửi yêu cầu thất bại',
-  MSG_RESET_TOKEN_INVALID: 'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.',
+  MSG_RESET_TOKEN_INVALID:
+    'Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.',
   MSG_RESET_SUCCESS: 'Đặt lại mật khẩu thành công! Vui lòng đăng nhập.',
   MSG_RESET_ERROR: 'Đặt lại mật khẩu thất bại',
 
