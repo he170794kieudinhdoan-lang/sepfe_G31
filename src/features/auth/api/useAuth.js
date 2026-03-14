@@ -1,6 +1,6 @@
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useToast } from '@/shared/contexts/ToastContext';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MSG } from '@/shared/constants/messages';
 import * as authApi from './authApi';
@@ -49,6 +49,7 @@ export const useLogin = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loginSuccess } = useAuth();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: authApi.loginWithCredentials,
@@ -57,11 +58,14 @@ export const useLogin = () => {
 
       const roleType = data.tokens?.roleType || data.tokens?.role || '';
 
+      queryClient.removeQueries({ queryKey: ['users', 'me'] });
+
       try {
         const userData = await getUsers();
         loginSuccess(userData, roleType);
       } catch (err) {
         console.error('Failed to fetch user info after login:', err);
+        loginSuccess({}, roleType);
       }
 
       await navigateAfterLogin(navigate, roleType);
@@ -77,6 +81,7 @@ export const useLoginGoogle = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { loginSuccess } = useAuth();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: ({ googleToken, additionalData }) =>
@@ -86,11 +91,15 @@ export const useLoginGoogle = () => {
 
       const roleType = data.tokens?.role || '';
 
+      // Xóa cache cũ trước khi fetch user mới
+      queryClient.removeQueries({ queryKey: ['users', 'me'] });
+
       try {
         const userData = await getUsers();
         loginSuccess(userData, roleType);
       } catch (err) {
         console.error('Failed to fetch user info after Google login:', err);
+        loginSuccess({}, roleType);
       }
 
       await navigateAfterLogin(navigate, roleType);

@@ -16,11 +16,15 @@ export const loginWithCredentials = async (data) => {
 };
 
 export const loginWithGoogle = async (googleToken, additionalData = {}) => {
-  const response = await apiClient.post('/user/login/social/google', additionalData, {
-    headers: {
-      Authorization: `Bearer ${googleToken}`,
+  const response = await apiClient.post(
+    '/user/login/social/google',
+    additionalData,
+    {
+      headers: {
+        Authorization: `Bearer ${googleToken}`,
+      },
     },
-  });
+  );
 
   if (response.tokens) {
     setTokens(response.tokens);

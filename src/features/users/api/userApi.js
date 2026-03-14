@@ -4,6 +4,14 @@ export const getUsers = async () => {
   return apiClient.get('/user/user-info');
 };
 
+export const updateUserInfo = async (formData) => {
+  return apiClient.put('/user/user-info', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+};
+
 export const getWorkerProfile = async () => {
   return apiClient.get('/user/worker-profile');
 };
@@ -14,6 +22,14 @@ export const createWorkerProfile = async (body) => {
 
 export const updateWorkerProfile = async (body) => {
   return apiClient.put('/user/worker-profile', body);
+};
+
+export const deleteAccount = async () => {
+  return apiClient.put('/user/delete-account');
+};
+
+export const changePassword = async (data) => {
+  return apiClient.put('/user/change-password', data);
 };
 
 export const getOccupations = async () => {

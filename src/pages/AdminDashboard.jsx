@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
-import { EmptyState } from "@/shared/components/EmptyState"
-import { Modal } from "@/shared/components/Modal"
-import { DashboardLayout } from "@/shared/components/Layout/DashboardLayout"
-import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover'
-import { useToast } from "@/shared/contexts/ToastContext"
-import { MSG } from "@/shared/constants/messages"
+import { useState, useEffect, useEffect } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { getTermsCondition, updateTermsCondition } from '@/features/terms/api/termsApi';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { EmptyState } from '@/shared/components/EmptyState';
+import { Modal } from '@/shared/components/Modal';
+import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
+import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
+import { useToast } from '@/shared/contexts/ToastContext';
+import { MSG } from '@/shared/constants/messages';
 import { SectorManagementService } from "@/features/jobs/api/sectormanagement"
 import { OccupationManagementService } from "@/features/jobs/api/occupationmanagement"
 const kpi = [
@@ -551,35 +552,73 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {active === "terms" && (
+      {active === 'terms' && (
         <div className="space-y-6">
           <Card className="p-6 rounded-xl shadow-sm">
-            <h3 className="text-lg font-semibold mb-4">Điều khoản & điều kiện</h3>
-            {termsEditMode ? (
-              <>
-                <textarea
-                  className="w-full h-48 rounded-xl border p-4 text-sm resize-y"
-                  value={termsDraft}
-                  onChange={(e) => setTermsDraft(e.target.value)}
+            <h3 className="text-lg font-semibold mb-4">
+              Điều khoản & điều kiện
+            </h3>
+            {isTermsLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-96 w-full" />
+              </div>
+            ) : termsEditMode ? (
+              <div className="space-y-4">
+                <Input
+                  className="text-lg font-medium p-4 h-14 rounded-xl"
+                  placeholder="Tiêu đề"
+                  value={termsDraft.title}
+                  onChange={(e) => setTermsDraft({ ...termsDraft, title: e.target.value })}
                 />
-                <div className="flex gap-2 mt-4">
-                  <Button className="rounded-xl" onClick={() => { setTermsSaved(termsDraft); setTermsEditMode(false); toast("Đã lưu điều khoản."); }}>
-                    Lưu
-                  </Button>
-                  <Button variant="outline" className="rounded-xl" onClick={() => { setTermsDraft(termsSaved); setTermsEditMode(false); }}>
+                <textarea
+                  className="w-full min-h-[500px] rounded-xl border p-6 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono shadow-sm bg-slate-50/50"
+                  placeholder="Nội dung điều khoản..."
+                  value={termsDraft.content}
+                  onChange={(e) => setTermsDraft({ ...termsDraft, content: e.target.value })}
+                />
+                <div className="flex justify-end gap-3 pt-4 border-t mt-4">
+                  <Button
+                    variant="outline"
+                    className="rounded-xl px-6"
+                    onClick={() => {
+                      setTermsDraft(termsSaved);
+                      setTermsEditMode(false);
+                    }}
+                  >
                     Hủy
                   </Button>
+                  <Button
+                    className="rounded-xl px-8"
+                    onClick={handleSaveTerms}
+                  >
+                    Lưu thay đổi
+                  </Button>
                 </div>
-              </>
+              </div>
             ) : (
-              <>
-                <div className="h-48 overflow-y-auto rounded-xl border p-4 text-sm text-muted-foreground">
-                  {termsSaved}
+              <div className="flex flex-col h-full space-y-4">
+                <div className="flex-1 bg-slate-50/50 rounded-2xl border p-8 shadow-sm">
+                  <h4 className="text-2xl font-bold mb-6 text-slate-800 border-b pb-4">
+                    {termsSaved.title || 'Chưa có tiêu đề'}
+                  </h4>
+                  <div className="min-h-[400px] text-base text-slate-700 whitespace-pre-wrap leading-loose">
+                    {termsSaved.content || 'Chưa có nội dung'}
+                  </div>
                 </div>
-                <Button className="rounded-xl mt-4" onClick={() => { setTermsDraft(termsSaved); setTermsEditMode(true); }}>
-                  Chỉnh sửa
-                </Button>
-              </>
+                <div className="flex justify-end">
+                  <Button
+                    size="lg"
+                    className="rounded-xl px-8 mt-2 shadow-sm"
+                    onClick={() => {
+                      setTermsDraft(termsSaved);
+                      setTermsEditMode(true);
+                    }}
+                  >
+                    Chỉnh sửa điều khoản
+                  </Button>
+                </div>
+              </div>
             )}
           </Card>
         </div>
