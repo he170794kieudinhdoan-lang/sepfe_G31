@@ -6,6 +6,7 @@ import {
   getJobDetail,
   getRelatedJobs,
   searchJobs,
+  getJobsForEmployer,
   getSectorsWithOccupations,
   getOccupationsBySector,
   getProvinces,
@@ -43,10 +44,22 @@ export const useSearchJobs = (filters = {}, options = {}) => {
   });
 };
 
+export const useJobsForEmployer = (filters = {}, options = {}) => {
+  return useQuery({
+    queryKey: ['jobs-for-employer', filters],
+    queryFn: () => getJobsForEmployer(filters),
+    staleTime: 2 * 60 * 1000,
+    retry: 1,
+    keepPreviousData: true,
+    ...options,
+  });
+};
+
 // ===== JOB MUTATIONS =====
 
 const invalidateJobQueries = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ['job-search'] });
+  queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
   queryClient.invalidateQueries({ queryKey: ['job-detail'] });
   queryClient.invalidateQueries({ queryKey: ['employer-jobs'] });
 };
@@ -56,7 +69,6 @@ export const useCreateJob = () => {
   return useMutation({
     mutationFn: (payload) =>
       createJobApi({
-        companyId: 1, // hard code tạm
         payload,
       }),
     onSuccess: () => {
