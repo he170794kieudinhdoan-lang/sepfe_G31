@@ -31,7 +31,7 @@ const InfoItem = ({ icon, label, value, isLink }) => (
   </div>
 );
 
-export const CompanyInfo = ({ company }) => {
+export const CompanyInfo = ({ company, handleCreateConversation }) => {
   return (
     <div className="sticky top-24 space-y-3">
       <Card className="p-6 rounded-xl shadow-sm border-0">
@@ -70,6 +70,12 @@ export const CompanyInfo = ({ company }) => {
           />
         </div>
       </Card>
+      <Button
+        className="w-full rounded-xl py-6 font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
+        onClick={() => handleCreateConversation(company.ownerId)}
+      >
+        Liên hệ với nhà tuyển dụng
+      </Button>
       <Button className="w-full rounded-xl py-6 font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300">
         Xem chi tiết công ty
       </Button>

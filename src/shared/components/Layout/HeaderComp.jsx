@@ -298,7 +298,7 @@ export const Header = () => {
               className="rounded-full text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
               asChild
             >
-              <Link to="/chat">
+              <Link to="/chat/conversations">
                 <MessageCircle className="h-5 w-5" />
               </Link>
             </Button>
