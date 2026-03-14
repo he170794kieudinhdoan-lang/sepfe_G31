@@ -64,6 +64,15 @@ export const router = createBrowserRouter([
   {
     path: '/employer',
     element: <EmployerDashboard />,
+    children: [
+      {
+        path: 'jobs',
+        children: [
+          { path: 'create', element: <CreateJobPage /> },
+          { path: ':jobId/edit', element: <EditJobPage /> },
+        ],
+      },
+    ],
   },
   { path: '/auth/login', element: <Login /> },
   { path: '/auth/register', element: <RegisterChoose /> },
