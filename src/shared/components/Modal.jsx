@@ -12,6 +12,7 @@ export const Modal = ({
   onClose,
   tone = 'default',
   variant = 'confirm', // thêm dòng này
+  confirmDisabled = false,
 }) => {
   if (!open) return null;
 
@@ -46,6 +47,7 @@ export const Modal = ({
               <Button
                 variant={tone === 'danger' ? 'destructive' : 'default'}
                 onClick={onConfirm}
+                disabled={confirmDisabled}
                 className={cn(
                   tone === 'danger' && 'bg-red-600 hover:bg-red-700',
                 )}

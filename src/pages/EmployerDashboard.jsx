@@ -656,10 +656,10 @@ export const EmployerDashboard = () => {
                           </td>
                         </tr>
                       ) : jobs.filter((j) =>
-                          j.title
-                            .toLowerCase()
-                            .includes(jobSearchText.toLowerCase()),
-                        ).length === 0 ? (
+                        j.title
+                          .toLowerCase()
+                          .includes(jobSearchText.toLowerCase()),
+                      ).length === 0 ? (
                         <tr>
                           <td
                             colSpan="6"

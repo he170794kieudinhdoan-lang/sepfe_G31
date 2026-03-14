@@ -110,7 +110,7 @@ export const JobDetailPage = () => {
         </div>
       </div>
 
-      <ApplyJobModal open={applyOpen} onClose={() => setApplyOpen(false)} />
+      <ApplyJobModal open={applyOpen} onClose={() => setApplyOpen(false)} jobId={id} />
 
       <ReportJobModal
         open={reportOpen}

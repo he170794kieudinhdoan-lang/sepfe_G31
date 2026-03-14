@@ -11,6 +11,10 @@ import {
   getOccupationsBySector,
   getProvinces,
   getWards,
+  getJobApplyApi,
+  applyJobApi,
+  getMyApplicationsApi,
+  cancelApplyJobApi,
 } from './jobApi';
 
 // ===== JOB DETAIL =====
@@ -150,5 +154,35 @@ export const useJobApply = (jobId) => {
     staleTime: 5 * 60 * 1000,
     retry: 1,
     enabled: !!jobId,
-  })
-}
+  });
+};
+
+export const useApplyJobMutation = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ jobId, payload }) => applyJobApi({ jobId, payload }),
+    onSuccess: (_, { jobId }) => {
+      queryClient.invalidateQueries({ queryKey: ['job-apply', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['job-detail', jobId] });
+    },
+  });
+};
+
+export const useMyApplications = () => {
+  return useQuery({
+    queryKey: ['my-applications'],
+    queryFn: getMyApplicationsApi,
+    staleTime: 2 * 60 * 1000,
+    retry: 1,
+  });
+};
+
+export const useCancelApplyJob = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (jobId) => cancelApplyJobApi(jobId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-applications'] });
+    },
+  });
+};

@@ -497,7 +497,7 @@ export function HomePage() {
               </div>
 
               {/* Decorative Floating Cards (Non-data specific) */}
-              <div className="absolute top-0 -right-4 z-20 bg-white p-4 rounded-2xl shadow-xl border border-primary-muted animate-bounce duration-5000 hidden md:block">
+              <div className="absolute top-0 -right-4 z-20 bg-white p-4 rounded-2xl shadow-xl border border-primary-muted  hidden md:block">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
                     <Check className="w-6 h-6" />

@@ -14,13 +14,43 @@ export const deleteJobApi = async ({ jobId }) => {
   return await apiClient.delete(`/job/${jobId}`);
 };
 
-<<<<<<< HEAD
+// ===== JOB DETAIL =====
+
 export const getJobDetail = async (id) => {
   return await apiClient.get(`/job/${id}`);
 };
 
+export const getJobDetailApi = async (jobId) => {
+  const res = await apiClient.get(`/job/${jobId}`);
+  console.log('RAW RESPONSE:', res.data);
+  return res.data;
+};
+
 export const getRelatedJobs = async (id) => {
   return await apiClient.get(`/job/${id}/related`);
+};
+
+// ===== APPLY =====
+
+export const getJobApplyApi = async (jobId) => {
+  const res = await apiClient.get(`/job/${jobId}/apply-form`);
+  console.log('Job apply form:', res);
+  return res;
+};
+
+export const applyJobApi = async ({ jobId, payload }) => {
+  const res = await apiClient.post(`/job/${jobId}/apply`, payload);
+  return res.data;
+};
+
+export const getMyApplicationsApi = async () => {
+  const res = await apiClient.get('/job/me/applications');
+  return res.data;
+};
+
+export const cancelApplyJobApi = async (jobId) => {
+  const res = await apiClient.patch(`/job/${jobId}/cancel-apply`);
+  return res.data;
 };
 
 // ===== SEARCH =====
@@ -70,18 +100,3 @@ export const getWards = async (wardsId) => {
   ).get();
   return { communes: response.districts };
 };
-=======
-// GET JOB DETAIL
-export const getJobDetailApi = async (jobId) => {
-  const res = await apiClient.get(`/job/${jobId}`)
-  console.log("RAW RESPONSE:", res.data)
-  return res.data
-}
-
-//Get Job Apply
-export const getJobApplyApi = async (jobId) => {
-  const rest = await apiClient.get(`/job/${jobId}/apply-form`)
-  console.log("data: " + rest.data)
-  return rest.data
-}
->>>>>>> a1ae6c8 (add apply layout)
