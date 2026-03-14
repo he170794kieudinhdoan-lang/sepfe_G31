@@ -18,7 +18,8 @@ export const deleteJobApi = async ({ companyId, jobId }) => {
 };
 
 export const getJobDetail = async (id) => {
-  return await apiClient.get(`/job/${id}`);
+  const res = await apiClient.get(`/job/${id}`);
+  return res.data;
 };
 
 export const getRelatedJobs = async (id) => {
