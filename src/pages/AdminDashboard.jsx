@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { getTermsCondition, updateTermsCondition } from '@/features/terms/api/termsApi';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -50,10 +51,9 @@ export const AdminDashboard = () => {
   const [editSector, setEditSector] = useState(null);
   const [sectorToDelete, setSectorToDelete] = useState(null);
   const [termsEditMode, setTermsEditMode] = useState(false);
-  const [termsSaved, setTermsSaved] = useState(
-    'Nội dung điều khoản sử dụng WorkLink. Đây là bản mock cho giao diện admin quản trị.',
-  );
-  const [termsDraft, setTermsDraft] = useState('');
+  const [termsSaved, setTermsSaved] = useState({ id: null, title: '', content: '' });
+  const [termsDraft, setTermsDraft] = useState({ id: null, title: '', content: '' });
+  const [isTermsLoading, setIsTermsLoading] = useState(false);
   const [sectorName, setSectorName] = useState('');
   const isLoading = false;
   const users = mockUsers;
@@ -65,6 +65,60 @@ export const AdminDashboard = () => {
     { key: 'stats', label: 'Thống kê hệ thống' },
     { key: 'terms', label: 'Điều khoản' },
   ];
+
+  useEffect(() => {
+    if (active === 'terms') {
+      const fetchTerms = async () => {
+        setIsTermsLoading(true);
+        try {
+          const data = await getTermsCondition();
+          // Lấy phần tử đầu tiên nếu data là một mảng
+          const termsData = Array.isArray(data) ? data[0] : data;
+          
+          if (termsData) {
+            setTermsSaved({
+              id: termsData?.id,
+              title: termsData?.title || '',
+              content: termsData?.content || '',
+            });
+            setTermsDraft({
+              id: termsData?.id,
+              title: termsData?.title || '',
+              content: termsData?.content || '',
+            });
+          }
+        } catch (error) {
+          toast('Không thể tải điều khoản', 'error');
+        } finally {
+          setIsTermsLoading(false);
+        }
+      };
+
+      fetchTerms();
+    }
+  }, [active, toast]);
+
+  const handleSaveTerms = async () => {
+    if (!termsDraft.id) {
+      toast('Không tìm thấy ID điều khoản để cập nhật', 'error');
+      return;
+    }
+    
+    setIsTermsLoading(true);
+    try {
+      await updateTermsCondition(termsDraft.id, {
+        title: termsDraft.title,
+        content: termsDraft.content,
+      });
+      setTermsSaved(termsDraft);
+      setTermsEditMode(false);
+      toast('Đã lưu điều khoản.');
+    } catch (error) {
+      toast('Lưu điều khoản thất bại', 'error');
+    } finally {
+      setIsTermsLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout
@@ -289,27 +343,29 @@ export const AdminDashboard = () => {
             <h3 className="text-lg font-semibold mb-4">
               Điều khoản & điều kiện
             </h3>
-            {termsEditMode ? (
-              <>
-                <textarea
-                  className="w-full h-48 rounded-xl border p-4 text-sm resize-y"
-                  value={termsDraft}
-                  onChange={(e) => setTermsDraft(e.target.value)}
+            {isTermsLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-96 w-full" />
+              </div>
+            ) : termsEditMode ? (
+              <div className="space-y-4">
+                <Input
+                  className="text-lg font-medium p-4 h-14 rounded-xl"
+                  placeholder="Tiêu đề"
+                  value={termsDraft.title}
+                  onChange={(e) => setTermsDraft({ ...termsDraft, title: e.target.value })}
                 />
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    className="rounded-xl"
-                    onClick={() => {
-                      setTermsSaved(termsDraft);
-                      setTermsEditMode(false);
-                      toast('Đã lưu điều khoản.');
-                    }}
-                  >
-                    Lưu
-                  </Button>
+                <textarea
+                  className="w-full min-h-[500px] rounded-xl border p-6 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono shadow-sm bg-slate-50/50"
+                  placeholder="Nội dung điều khoản..."
+                  value={termsDraft.content}
+                  onChange={(e) => setTermsDraft({ ...termsDraft, content: e.target.value })}
+                />
+                <div className="flex justify-end gap-3 pt-4 border-t mt-4">
                   <Button
                     variant="outline"
-                    className="rounded-xl"
+                    className="rounded-xl px-6"
                     onClick={() => {
                       setTermsDraft(termsSaved);
                       setTermsEditMode(false);
@@ -317,23 +373,37 @@ export const AdminDashboard = () => {
                   >
                     Hủy
                   </Button>
+                  <Button
+                    className="rounded-xl px-8"
+                    onClick={handleSaveTerms}
+                  >
+                    Lưu thay đổi
+                  </Button>
                 </div>
-              </>
+              </div>
             ) : (
-              <>
-                <div className="h-48 overflow-y-auto rounded-xl border p-4 text-sm text-muted-foreground">
-                  {termsSaved}
+              <div className="flex flex-col h-full space-y-4">
+                <div className="flex-1 bg-slate-50/50 rounded-2xl border p-8 shadow-sm">
+                  <h4 className="text-2xl font-bold mb-6 text-slate-800 border-b pb-4">
+                    {termsSaved.title || 'Chưa có tiêu đề'}
+                  </h4>
+                  <div className="min-h-[400px] text-base text-slate-700 whitespace-pre-wrap leading-loose">
+                    {termsSaved.content || 'Chưa có nội dung'}
+                  </div>
                 </div>
-                <Button
-                  className="rounded-xl mt-4"
-                  onClick={() => {
-                    setTermsDraft(termsSaved);
-                    setTermsEditMode(true);
-                  }}
-                >
-                  Chỉnh sửa
-                </Button>
-              </>
+                <div className="flex justify-end">
+                  <Button
+                    size="lg"
+                    className="rounded-xl px-8 mt-2 shadow-sm"
+                    onClick={() => {
+                      setTermsDraft(termsSaved);
+                      setTermsEditMode(true);
+                    }}
+                  >
+                    Chỉnh sửa điều khoản
+                  </Button>
+                </div>
+              </div>
             )}
           </Card>
         </div>
