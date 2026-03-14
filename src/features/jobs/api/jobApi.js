@@ -2,18 +2,18 @@ import { apiClient, apiClientCustom } from '@/shared/api/apiClient';
 
 // ===== JOB CRUD =====
 
-export const createJobApi = async ({ companyId, payload }) => {
-  const res = await apiClient.post(`/job/${companyId}`, payload);
+export const createJobApi = async ({ payload }) => {
+  const res = await apiClient.post(`/job`, payload);
   return res.data;
 };
 
-export const updateJobApi = async ({ companyId, jobId, payload }) => {
-  const res = await apiClient.put(`/job/${companyId}/jobs/${jobId}`, payload);
+export const updateJobApi = async ({ jobId, payload }) => {
+  const res = await apiClient.put(`/job/${jobId}`, payload);
   return res.data;
 };
 
-export const deleteJobApi = async ({ companyId, jobId }) => {
-  const res = await apiClient.delete(`/job/${companyId}/jobs/${jobId}`);
+export const deleteJobApi = async ({ jobId }) => {
+  const res = await apiClient.delete(`/job/${jobId}`);
   return res.data;
 };
 
@@ -36,6 +36,16 @@ export const searchJobs = async (params = {}) => {
     }
   });
   return await apiClient.get('/job/search', { params: cleanParams });
+};
+
+export const getJobsForEmployer = async (params = {}) => {
+  const cleanParams = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      cleanParams[key] = value;
+    }
+  });
+  return await apiClient.get('/job/get-for-employer', { params: cleanParams });
 };
 
 // ===== OCCUPATIONS =====

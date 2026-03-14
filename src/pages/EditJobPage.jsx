@@ -205,7 +205,6 @@ export const EditJobPage = () => {
     }
 
     updateJob({
-      companyId: 1, // hard code tạm
       jobId: Number(jobId),
       payload
     }, {

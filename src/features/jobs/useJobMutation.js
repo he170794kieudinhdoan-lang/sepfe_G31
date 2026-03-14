@@ -12,6 +12,7 @@ const invalidateJobQueries = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ['job-search'] });
   queryClient.invalidateQueries({ queryKey: ['job-detail'] });
   queryClient.invalidateQueries({ queryKey: ['employer-jobs'] });
+  queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
 };
 
 /**
@@ -25,7 +26,6 @@ export const useCreateJob = () => {
   return useMutation({
     mutationFn: (payload) =>
       createJobApi({
-        companyId: 1, // hard code tạm
         payload,
       }),
     onSuccess: (data) => {

@@ -11,7 +11,7 @@ import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
-import { useSearchJobs } from '@/features/jobs/useJobQueries';
+import { useJobsForEmployer } from '@/features/jobs/api/useJobs';
 import { useDeleteJob } from '@/features/jobs/useJobMutation';
 import { Loader2, ChevronLeft, ChevronRight, Check, X } from 'lucide-react';
 
@@ -56,9 +56,8 @@ export const EmployerDashboard = () => {
   const applicants = MOCK_APPLICANTS;
 
   // Real API integration
-  const companyId = 1; // Hardcode tạm
   const [jobPage, setJobPage] = useState(1);
-  const { data: searchResult, isLoading: loadingJobs } = useSearchJobs({ companyId, allStatus: true, page: jobPage, limit: 10 });
+  const { data: searchResult, isLoading: loadingJobs } = useJobsForEmployer({ allStatus: true, page: jobPage, limit: 10 });
   const { mutate: deleteJob } = useDeleteJob();
   const jobs = searchResult?.items || [];
   const totalPages = searchResult?.meta?.totalPage || 1;
