@@ -13,11 +13,7 @@ export const JobActionSidebar = ({
   return (
     <div className="sticky top-24 space-y-3">
       <Card className="p-6 rounded-xl shadow-sm border-0">
-        {isGuest ? (
-          <Button className="w-full rounded-xl" asChild>
-            <Link to="/auth/login">Đăng nhập để ứng tuyển</Link>
-          </Button>
-        ) : hasApplied ? (
+        {hasApplied ? (
           <Button className="w-full rounded-xl" disabled>
             Đã ứng tuyển
           </Button>

@@ -163,7 +163,9 @@ export const Header = () => {
                 <Link to="/employer">Quản lý tuyển dụng</Link>
               </Button>
             )}
-            <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+            
+            {isAuthenticated && (
+              <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
@@ -308,21 +310,25 @@ export const Header = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full relative text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
-              asChild
-            >
-              <Link to="/chat">
-                <MessageCircle className="h-5 w-5" />
-                {unreadCountChat > 0 && (
-                  <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white">
-                    {unreadCountChat > 99 ? '99+' : unreadCountChat}
-                  </span>
-                )}
-              </Link>
-            </Button>
+            )}
+
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full relative text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
+                asChild
+              >
+                <Link to="/chat">
+                  <MessageCircle className="h-5 w-5" />
+                  {unreadCountChat > 0 && (
+                    <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white">
+                      {unreadCountChat > 99 ? '99+' : unreadCountChat}
+                    </span>
+                  )}
+                </Link>
+              </Button>
+            )}
 
             {isLoading ? (
               <div className="flex items-center gap-2">

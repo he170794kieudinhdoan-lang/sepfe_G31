@@ -16,14 +16,20 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { JobCard } from '@/features/jobs/components/JobCard';
-import { SearchIcon } from 'lucide-react';
 import {
   useGetProvinces,
   useGetWards,
   useSearchJobs,
 } from '@/features/jobs/api/useJobs';
+import {
+  useWishlist,
+  useSaveJob,
+  useUnsaveJob,
+} from '@/features/jobs/api/useWishlist';
 import Typewriter from 'typewriter-effect';
 import { Container } from '@/shared/components/Container';
+import { Heart } from 'lucide-react';
+import { useAuth } from '@/shared/contexts/AuthContext';
 const POPULAR_KEYWORDS = [
   'công nhân sản xuất',
   'công nhân may mặc',
@@ -57,6 +63,44 @@ function JobCardSkeleton() {
         </div>
       </div>
     </Card>
+  );
+}
+
+function SaveJobButton({ job }) {
+  const { isAuthenticated, user } = useAuth();
+  const { data } = useWishlist({}, { enabled: !!user });
+  const saveJobMutation = useSaveJob();
+  const unsaveJobMutation = useUnsaveJob();
+
+  const wishlist = data?.items || data || [];
+  const isSaved = Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job.id);
+  const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
+
+  if (!isAuthenticated) return null;
+
+  const handleWishlistToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isSaved) {
+      unsaveJobMutation.mutate(job.id);
+    } else {
+      saveJobMutation.mutate(job.id);
+    }
+  };
+
+  return (
+    <Button
+      variant="outline"
+      className="rounded-xl px-6 border-slate-200 hover:bg-slate-50"
+      onClick={handleWishlistToggle}
+      disabled={isPending}
+    >
+      <Heart
+        className={`h-4 w-4 mr-2 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400'}`}
+      />
+      {isSaved ? 'Bỏ lưu' : 'Lưu tin'}
+    </Button>
   );
 }
 
@@ -254,7 +298,7 @@ function SearchBarPopover({
             handleSearch();
           }}
         >
-          <SearchIcon className="text-white" title="tìm kiếm theo từ khoá" />
+          <Search className="text-white h-4 w-4" title="tìm kiếm theo từ khoá" />
         </Button>
       </div>
 
@@ -630,9 +674,7 @@ export function HomePage() {
                         </Button>
                       </div>
                       <div className="pt-4">
-                        <Button className="rounded-xl px-6" asChild>
-                          <Link to={`/job/${job.id}`}>Ứng tuyển ngay</Link>
-                        </Button>
+                        <SaveJobButton job={job} />
                       </div>
                     </div>
                   </div>
