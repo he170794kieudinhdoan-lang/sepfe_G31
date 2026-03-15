@@ -37,7 +37,9 @@ import {
   CheckCircle2,
   AlertCircle,
   Globe,
-  Trash2,
+  Home,
+  LayoutDashboard,
+  MessageCircle,
 } from 'lucide-react';
 import { useGetMyCompany } from '@/features/companies/api/useGetCompanies';
 import { useJobsForEmployer } from '@/features/jobs/api/useJobs';
@@ -45,10 +47,12 @@ import { useDeleteJob } from '@/features/jobs/useJobMutation';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 
 const EMPLOYER_MENU = [
-  { key: 'overview', label: 'Tổng quan' },
-  { key: 'jobs', label: 'Tin tuyển dụng' },
-  { key: 'applicants', label: 'Ứng viên' },
-  { key: 'stats', label: 'Thống kê' },
+  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
+  { key: 'jobs', label: 'Tin tuyển dụng', icon: Briefcase },
+  { key: 'applicants', label: 'Ứng viên', icon: Users },
+  { key: 'stats', label: 'Thống kê', icon: BarChart3 },
+  { key: 'chat', label: 'Tin nhắn', icon: MessageCircle, path: '/chat' },
+  { key: 'home', label: 'Trang chủ', icon: Home, path: '/' },
 ];
 
 const MOCK_KPI = [

@@ -39,6 +39,7 @@ export const router = createBrowserRouter([
     path: '/',
     element: <MainLayout />,
     children: [
+      { path: 'chat', element: <ChatPage /> },
       { path: '/chat/:conversationId', element: <ChatPage /> },
       { path: 'job/:id', element: <JobDetailPage /> },
       { path: 'wishlist', element: <WishlistPage /> },
