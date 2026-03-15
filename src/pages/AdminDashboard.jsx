@@ -1,4 +1,4 @@
-import { useState, useEffect, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { getTermsCondition, updateTermsCondition } from '@/features/terms/api/termsApi';
 import { Button } from '@/components/ui/button';
@@ -47,8 +47,9 @@ export const AdminDashboard = () => {
   const [editSector, setEditSector] = useState(null)
   const [sectorToDelete, setSectorToDelete] = useState(null)
   const [termsEditMode, setTermsEditMode] = useState(false)
-  const [termsSaved, setTermsSaved] = useState("Nội dung điều khoản sử dụng WorkLink. Đây là bản mock cho giao diện admin quản trị.")
-  const [termsDraft, setTermsDraft] = useState("")
+  const [termsSaved, setTermsSaved] = useState({ id: null, title: '', content: '' })
+  const [termsDraft, setTermsDraft] = useState({ id: null, title: '', content: '' })
+  const [isTermsLoading, setIsTermsLoading] = useState(false)
   const [sectorName, setSectorName] = useState("")
   const [sectors, setSectors] = useState([])
   const [loadingSectors, setLoadingSectors] = useState(false)
@@ -246,6 +247,60 @@ export const AdminDashboard = () => {
       toast("Xóa nghề nghiệp thất bại", "error")
     }
   }
+
+  useEffect(() => {
+    if (active === 'terms') {
+      const fetchTerms = async () => {
+        setIsTermsLoading(true);
+        try {
+          const data = await getTermsCondition();
+          // Lấy phần tử đầu tiên nếu data là một mảng
+          const termsData = Array.isArray(data) ? data[0] : data;
+
+          if (termsData) {
+            setTermsSaved({
+              id: termsData?.id,
+              title: termsData?.title || '',
+              content: termsData?.content || '',
+            });
+            setTermsDraft({
+              id: termsData?.id,
+              title: termsData?.title || '',
+              content: termsData?.content || '',
+            });
+          }
+        } catch (error) {
+          toast('Không thể tải điều khoản', 'error');
+        } finally {
+          setIsTermsLoading(false);
+        }
+      };
+
+      fetchTerms();
+    }
+  }, [active, toast]);
+
+  const handleSaveTerms = async () => {
+    if (!termsDraft.id) {
+      toast('Không tìm thấy ID điều khoản để cập nhật', 'error');
+      return;
+    }
+
+    setIsTermsLoading(true);
+    try {
+      await updateTermsCondition(termsDraft.id, {
+        title: termsDraft.title,
+        content: termsDraft.content,
+      });
+      setTermsSaved(termsDraft);
+      setTermsEditMode(false);
+      toast('Đã lưu điều khoản.');
+    } catch (error) {
+      toast('Lưu điều khoản thất bại', 'error');
+    } finally {
+      setIsTermsLoading(false);
+    }
+  };
 
   return (
     <DashboardLayout
