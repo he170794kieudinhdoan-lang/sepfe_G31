@@ -297,11 +297,16 @@ export const Header = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
+                className="rounded-full relative text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
                 asChild
               >
                 <Link to="/chat">
                   <MessageCircle className="h-5 w-5" />
+                  {unreadCountChat > 0 && (
+                    <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white">
+                      {unreadCountChat > 99 ? '99+' : unreadCountChat}
+                    </span>
+                  )}
                 </Link>
               </Button>
             )}
