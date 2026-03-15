@@ -101,7 +101,7 @@ const CommonInfoJob = ({ job, className }) => {
 
 export const CompanyInfo = ({ job, company, handleCreateConversation }) => {
   const { isAuthenticated } = useAuth();
-  
+
   return (
     <div className="sticky top-24 space-y-3">
       <Card className="p-6 rounded-xl shadow-sm border-0">
@@ -151,16 +151,15 @@ export const CompanyInfo = ({ job, company, handleCreateConversation }) => {
 
       {isAuthenticated && (
         <Button
-          className="w-full rounded-xl py-6 font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
+          className="w-full rounded-2xl py-6 text-lg transition-all duration-300 flex gap-3"
           onClick={() => handleCreateConversation(company.ownerId)}
         >
-          Liên hệ với nhà tuyển dụng
+          <MessageSquare className="h-5 w-5" />
+          Liên hệ ngay
         </Button>
       )}
 
-      <Button className="w-full rounded-xl py-6 font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300">
-        Xem chi tiết công ty
-      </Button>
+      <CommonInfoJob job={job} className={'h-full'} />
     </div>
   );
 };
