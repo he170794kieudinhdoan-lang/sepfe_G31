@@ -13,6 +13,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { GENDERS } from '@/shared/constants/enums';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 const InfoItem = ({ icon, label, value, isLink }) => (
   <div className="group flex items-start gap-3 p-2 ">
@@ -99,6 +100,8 @@ const CommonInfoJob = ({ job, className }) => {
 };
 
 export const CompanyInfo = ({ job, company, handleCreateConversation }) => {
+  const { isAuthenticated } = useAuth();
+
   return (
     <div className="sticky top-24 space-y-3">
       <Card className="p-6 rounded-xl shadow-sm border-0">
@@ -146,13 +149,15 @@ export const CompanyInfo = ({ job, company, handleCreateConversation }) => {
         </Button>
       </Card>
 
-      <Button
-        className="w-full rounded-2xl py-7 text-lg transition-all duration-300 flex gap-3"
-        onClick={() => handleCreateConversation(company.ownerId)}
-      >
-        <MessageSquare className="h-5 w-5" />
-        Liên hệ ngay
-      </Button>
+      {isAuthenticated && (
+        <Button
+          className="w-full rounded-2xl py-6 text-lg transition-all duration-300 flex gap-3"
+          onClick={() => handleCreateConversation(company.ownerId)}
+        >
+          <MessageSquare className="h-5 w-5" />
+          Liên hệ ngay
+        </Button>
+      )}
 
       <CommonInfoJob job={job} className={'h-full'} />
     </div>

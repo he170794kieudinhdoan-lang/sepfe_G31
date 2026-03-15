@@ -11,6 +11,7 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { MSG } from '@/shared/constants/messages';
 import { User, Loader2, Camera } from 'lucide-react';
 import { WorkerProfileView } from '@/features/users/components/WorkerProfileView';
+import { useMyApplications, useCancelApplyJob } from '@/features/jobs/api/useJobs';
 import {
   useUpdateUserInfo,
   useChangePassword,
@@ -54,6 +55,7 @@ export const UserProfilePage = () => {
   const [editForm, setEditForm] = useState({});
   const [pw, setPw] = useState({ current: '', new: '', confirm: '' });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [cancelJobId, setCancelJobId] = useState(null);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -68,6 +70,25 @@ export const UserProfilePage = () => {
 
   const { mutate: updateProfile, isPending: isUpdatingProfile } =
     useUpdateUserInfo();
+
+  const { data: applications, isLoading: isLoadingApplications } = useMyApplications();
+  const { mutate: cancelApply, isPending: isCanceling } = useCancelApplyJob();
+
+  const handleCancelApplication = () => {
+    if (!cancelJobId) return;
+    cancelApply(cancelJobId, {
+      onSuccess: () => {
+        toast('Hủy ứng tuyển thành công', 'success');
+        setCancelJobId(null);
+      },
+      onError: (err) => {
+        const msg = err?.response?.data?.message || 'Có lỗi xảy ra khi hủy ứng tuyển';
+        toast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
+        setCancelJobId(null);
+      }
+    });
+  };
+
   const handleCropComplete = async () => {
     try {
       const croppedBlob = await getCroppedImg(imageToCrop, croppedAreaPixels);
@@ -292,11 +313,10 @@ export const UserProfilePage = () => {
                 <button
                   key={item.key}
                   onClick={() => setActive(item.key)}
-                  className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium cursor-pointer ${
-                    active === item.key
+                  className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium cursor-pointer ${active === item.key
                       ? 'bg-primary/10 text-foreground'
                       : 'text-muted-foreground hover:bg-gray-100'
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </button>
@@ -442,10 +462,55 @@ export const UserProfilePage = () => {
           {active === 'history' && (
             <Card className="p-6 rounded-xl shadow-sm">
               <h2 className="text-lg font-semibold mb-4">Lịch sử ứng tuyển</h2>
-              <p className="text-muted-foreground text-sm">
-                Chưa có lịch sử ứng tuyển.
-              </p>
-              {/* TODO: fetch và hiển thị apply history từ API */}
+
+              {isLoadingApplications ? (
+                <div className="flex justify-center items-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : !applications || applications.length === 0 ? (
+                <p className="text-muted-foreground text-sm text-center py-8 bg-gray-50 rounded-xl">
+                  Chưa có lịch sử ứng tuyển.
+                </p>
+              ) : (
+                <div className="space-y-4">
+                  {applications.map((app) => (
+                    <div
+                      key={app.id}
+                      className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 border rounded-xl hover:bg-gray-50 transition-colors"
+                    >
+                      <div>
+                        <Link to={`/job/${app.job.id}`} className="font-semibold text-lg text-primary hover:underline">
+                          {app.job.title}
+                        </Link>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {app.job.company?.name || 'Công ty ẩn danh'}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                          <Badge variant={app.status === 'APPLIED' ? 'default' : app.status === 'CANCELLED' ? 'secondary' : 'outline'}>
+                            {app.status === 'APPLIED' ? 'Đã ứng tuyển' : app.status === 'CANCELLED' ? 'Đã hủy' : app.status}
+                          </Badge>
+                          <span className="text-xs text-muted-foreground">
+                            Ngày nộp: {new Date(app.updatedAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {app.status === 'APPLIED' && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="rounded-xl w-full sm:w-auto shrink-0"
+                          onClick={() => setCancelJobId(app.job.id)}
+                          disabled={isCanceling}
+                        >
+                          {isCanceling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          Hủy ứng tuyển
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           )}
 
@@ -479,6 +544,17 @@ export const UserProfilePage = () => {
         confirmLabel={isDeletingAccount ? 'Đang xóa...' : 'Xóa'}
         tone="danger"
         isPending={isDeletingAccount}
+      />
+
+      <Modal
+        open={!!cancelJobId}
+        title="Xác nhận hủy ứng tuyển"
+        description="Bạn có chắc chắn muốn hủy ứng tuyển công việc này không?"
+        onClose={() => setCancelJobId(null)}
+        onConfirm={handleCancelApplication}
+        confirmLabel={isCanceling ? 'Đang xử lý...' : 'Hủy'}
+        tone="danger"
+        isPending={isCanceling}
       />
 
       {/* --- Modal Cắt Ảnh --- */}

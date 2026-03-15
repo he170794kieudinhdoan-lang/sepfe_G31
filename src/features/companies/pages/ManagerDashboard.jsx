@@ -8,6 +8,7 @@ import { Modal } from '@/shared/components/Modal';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
+import parse from "html-react-parser";
 import {
   Building2,
   FileText,
@@ -206,7 +207,7 @@ export const ManagerDashboard = () => {
                   Giới thiệu công ty
                 </h4>
                 <p className="text-slate-600 leading-relaxed text-sm">
-                  {chiTietCongTy.description || 'Chưa có mô tả chi tiết.'}
+                  {parse(chiTietCongTy.description) || 'Chưa có mô tả chi tiết.'}
                 </p>
               </div>
 
