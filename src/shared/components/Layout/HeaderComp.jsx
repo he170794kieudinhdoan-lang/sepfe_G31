@@ -152,7 +152,7 @@ export const Header = () => {
                 </Link>
               ))}
             </nav>
-          </div>
+          </div >
 
           <div className="flex items-center gap-3 shrink-0">
             {isAuthenticated && user?.roleType === 'EMPLOYER' && (
@@ -163,9 +163,7 @@ export const Header = () => {
                 <Link to="/employer">Quản lý tuyển dụng</Link>
               </Button>
             )}
-            
-            {isAuthenticated && (
-              <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+            <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
@@ -310,25 +308,29 @@ export const Header = () => {
                 </div>
               </PopoverContent>
             </Popover>
-            )}
-
             {isAuthenticated && (
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full relative text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
+                className="rounded-full text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
                 asChild
               >
-                <Link to="/chat">
+                <Link to="/chat/conversations">
                   <MessageCircle className="h-5 w-5" />
-                  {unreadCountChat > 0 && (
-                    <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white">
-                      {unreadCountChat > 99 ? '99+' : unreadCountChat}
-                    </span>
-                  )}
                 </Link>
               </Button>
             )}
+            <nav className="flex items-center gap-1 border-t border-gray-100 py-2">
+              {TASKBAR_LINKS.map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
 
             {isLoading ? (
               <div className="flex items-center gap-2">
@@ -436,7 +438,7 @@ export const Header = () => {
             )}
           </div>
         </div>
-      </div>
-    </header>
+      </div >
+    </header >
   );
 };

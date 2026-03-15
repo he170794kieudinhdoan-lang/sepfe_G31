@@ -55,6 +55,7 @@ export const UserProfilePage = () => {
   const [editForm, setEditForm] = useState({});
   const [pw, setPw] = useState({ current: '', new: '', confirm: '' });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [cancelJobId, setCancelJobId] = useState(null);
   const [imageToCrop, setImageToCrop] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -72,15 +73,18 @@ export const UserProfilePage = () => {
 
   const { data: applications, isLoading: isLoadingApplications } = useMyApplications();
   const { mutate: cancelApply, isPending: isCanceling } = useCancelApplyJob();
-  
-  const handleCancelApplication = (jobId) => {
-    cancelApply(jobId, {
+
+  const handleCancelApplication = () => {
+    if (!cancelJobId) return;
+    cancelApply(cancelJobId, {
       onSuccess: () => {
         toast('Hủy ứng tuyển thành công', 'success');
+        setCancelJobId(null);
       },
       onError: (err) => {
         const msg = err?.response?.data?.message || 'Có lỗi xảy ra khi hủy ứng tuyển';
         toast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
+        setCancelJobId(null);
       }
     });
   };
@@ -309,11 +313,10 @@ export const UserProfilePage = () => {
                 <button
                   key={item.key}
                   onClick={() => setActive(item.key)}
-                  className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium cursor-pointer ${
-                    active === item.key
+                  className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium cursor-pointer ${active === item.key
                       ? 'bg-primary/10 text-foreground'
                       : 'text-muted-foreground hover:bg-gray-100'
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </button>
@@ -459,7 +462,7 @@ export const UserProfilePage = () => {
           {active === 'history' && (
             <Card className="p-6 rounded-xl shadow-sm">
               <h2 className="text-lg font-semibold mb-4">Lịch sử ứng tuyển</h2>
-              
+
               {isLoadingApplications ? (
                 <div className="flex justify-center items-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -487,21 +490,17 @@ export const UserProfilePage = () => {
                             {app.status === 'APPLIED' ? 'Đã ứng tuyển' : app.status === 'CANCELLED' ? 'Đã hủy' : app.status}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
-                            Ngày nộp: {new Date(app.createdAt).toLocaleDateString('vi-VN')}
+                            Ngày nộp: {new Date(app.updatedAt).toLocaleDateString('vi-VN')}
                           </span>
                         </div>
                       </div>
-                      
+
                       {app.status === 'APPLIED' && (
-                        <Button 
-                          variant="destructive" 
+                        <Button
+                          variant="destructive"
                           size="sm"
                           className="rounded-xl w-full sm:w-auto shrink-0"
-                          onClick={() => {
-                            if (window.confirm('Bạn có chắc chắn muốn hủy ứng tuyển công việc này?')) {
-                              handleCancelApplication(app.job.id);
-                            }
-                          }}
+                          onClick={() => setCancelJobId(app.job.id)}
                           disabled={isCanceling}
                         >
                           {isCanceling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -545,6 +544,17 @@ export const UserProfilePage = () => {
         confirmLabel={isDeletingAccount ? 'Đang xóa...' : 'Xóa'}
         tone="danger"
         isPending={isDeletingAccount}
+      />
+
+      <Modal
+        open={!!cancelJobId}
+        title="Xác nhận hủy ứng tuyển"
+        description="Bạn có chắc chắn muốn hủy ứng tuyển công việc này không?"
+        onClose={() => setCancelJobId(null)}
+        onConfirm={handleCancelApplication}
+        confirmLabel={isCanceling ? 'Đang xử lý...' : 'Hủy'}
+        tone="danger"
+        isPending={isCanceling}
       />
 
       {/* --- Modal Cắt Ảnh --- */}
