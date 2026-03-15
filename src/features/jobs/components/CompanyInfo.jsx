@@ -100,6 +100,8 @@ const CommonInfoJob = ({ job, className }) => {
 };
 
 export const CompanyInfo = ({ job, company, handleCreateConversation }) => {
+  const { isAuthenticated } = useAuth();
+  
   return (
     <div className="sticky top-24 space-y-3">
       <Card className="p-6 rounded-xl shadow-sm border-0">
