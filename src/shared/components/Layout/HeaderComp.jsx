@@ -39,21 +39,6 @@ const TASKBAR_LINKS = [
   // { to: '/terms', label: 'Điều khoản' },
 ];
 
-{
-  /* <div className="flex-1 max-w-2xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2">
-<Search className="h-4 w-4 text-muted-foreground shrink-0" />
-<Input
-  value={search}
-  onChange={(e) => setSearch(e.target.value)}
-  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-  placeholder="Tìm theo tên việc/công ty/khu vực"
-  className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-9"
-/>
-<Button size="sm" className="rounded-lg shrink-0" onClick={handleSearch}>
-  Tìm kiếm
-</Button>
-</div> */
-}
 export const Header = () => {
   const NOTIFICATION_POLLING_MS = 15000;
 
@@ -152,7 +137,7 @@ export const Header = () => {
                 </Link>
               ))}
             </nav>
-          </div >
+          </div>
 
           <div className="flex items-center gap-3 shrink-0">
             {isAuthenticated && user?.roleType === 'EMPLOYER' && (
@@ -312,25 +297,19 @@ export const Header = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="rounded-full text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
+                className="rounded-full relative text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
                 asChild
               >
-                <Link to="/chat/conversations">
+                <Link to="/chat">
                   <MessageCircle className="h-5 w-5" />
+                  {unreadCountChat > 0 && (
+                    <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white">
+                      {unreadCountChat > 99 ? '99+' : unreadCountChat}
+                    </span>
+                  )}
                 </Link>
               </Button>
             )}
-            <nav className="flex items-center gap-1 border-t border-gray-100 py-2">
-              {TASKBAR_LINKS.map(({ to, label }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
 
             {isLoading ? (
               <div className="flex items-center gap-2">
@@ -438,7 +417,7 @@ export const Header = () => {
             )}
           </div>
         </div>
-      </div >
-    </header >
+      </div>
+    </header>
   );
 };
