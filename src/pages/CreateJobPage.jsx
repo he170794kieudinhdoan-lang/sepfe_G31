@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { apiClient } from '@/shared/api/apiClient';
 import { useProvinces } from '@/shared/hooks/useProvinces';
-import { useCreateJob } from '@/features/jobs/api/useJobs';
+import { useCreateJob } from '@/features/jobs/useJobMutation';
 import { useToast } from '@/shared/contexts/ToastContext';
 import {
   Briefcase,
@@ -158,7 +158,6 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
   const PROVINCES_API = import.meta.env.VITE_PROVINCES_API_URL;
   const { toast } = useToast();
   const navigate = useNavigate();
-  const handleClose = () => (onBack ? onBack() : navigate('/employer'));
   const { mutate: createJob, isPending: isSubmitting } = useCreateJob();
 
   const steps = [
@@ -245,29 +244,48 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
 
   // Fetch Districts
   useEffect(() => {
-    if (!watchProvince) {
+    if (!watchProvince || !provinces.length) {
       setDistricts([]);
       return;
     }
-    const provinceObj = provinces.find((p) => p.name === watchProvince);
-    if (!provinceObj) return;
+
+    const provinceObj = provinces.find(
+      (p) =>
+        p.name.trim().toLowerCase() === watchProvince?.trim().toLowerCase(),
+    );
+
+    if (!provinceObj) {
+      console.warn(
+        '[CreateJob] Province not found in list. watchProvince:',
+        watchProvince,
+        'available:',
+        provinces.map((p) => p.name),
+      );
+      return;
+    }
 
     const fetchDistricts = async () => {
       try {
         setLoadingDistrict(true);
         const res = await fetch(
-          `https://provinces.open-api.vn/api/p/${provinceObj.code}?depth=2`,
+          `${PROVINCES_API}/p/${provinceObj.code}?depth=2`,
         );
+
+        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+
         const data = await res.json();
-        setDistricts(data.districts || []);
+        // In V2, 'districts' level is flattened or renamed to 'wards' at depth 2
+        setDistricts(data.wards || []);
       } catch (err) {
-        console.error(err);
+        console.error('[CreateJob] Fetch districts error:', err);
+        toast('Không thể tải danh sách quận huyện', 'error');
       } finally {
         setLoadingDistrict(false);
       }
     };
     fetchDistricts();
-  }, [watchProvince, provinces, PROVINCES_API]);
+  }, [watchProvince, provinces, PROVINCES_API, toast]);
+
   const handleNextStep = async () => {
     let fieldsToValidate = [];
     if (currentStep === 0) {
@@ -333,8 +351,14 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
 
     createJob(payload, {
       onSuccess: () => {
-        toast('Tạo tin tuyển dụng thành công', 'success');
-        onSuccessProp ? onSuccessProp() : navigate('/employer');
+        toast('Tạo tin tuyển dụng thành công!', 'success');
+        if (onSuccessProp) {
+          onSuccessProp();
+        } else if (onBack) {
+          onBack();
+        } else {
+          navigate('/employer');
+        }
       },
       onError: (error) => {
         const message =
@@ -358,12 +382,12 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
           variant="ghost"
           size="icon"
           className="absolute right-4 top-4 z-10 rounded-full hover:bg-gray-100"
-          onClick={handleClose}
+          onClick={() => (onBack ? onBack() : navigate('/employer'))}
         >
           <X className="w-5 h-5" />
         </Button>
         <div className="mb-10 text-center pt-2">
-          <h1 className="text-3xl font-bold bg-linear-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
             Tạo tin tuyển dụng mới
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -439,8 +463,9 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                             field.onChange(val);
                             setValue('occupationId', undefined);
                           }}
-                          value={field.value}
+                          value={field.value || ''}
                           disabled={loadingSector}
+                          modal={false}
                         >
                           <SelectTrigger
                             className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 transition-colors ${errors.sectorId ? 'border-red-500 focus:ring-red-500' : ''}`}
@@ -474,8 +499,9 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                       render={({ field }) => (
                         <Select
                           onValueChange={(val) => field.onChange(Number(val))}
-                          value={field.value?.toString()}
+                          value={field.value?.toString() || ''}
                           disabled={!watchSectorId}
+                          modal={false}
                         >
                           <SelectTrigger
                             className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 transition-colors ${errors.occupationId ? 'border-red-500 focus:ring-red-500' : ''}`}
@@ -550,7 +576,8 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                       render={({ field }) => (
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value}
+                          value={field.value || ''}
+                          modal={false}
                         >
                           <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-gray-200">
                             <SelectValue placeholder="Không yêu cầu" />
@@ -657,7 +684,8 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                     render={({ field }) => (
                       <Select
                         onValueChange={field.onChange}
-                        value={field.value}
+                        value={field.value || ''}
+                        modal={false}
                       >
                         <SelectTrigger
                           className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.workingShift ? 'border-red-500' : ''}`}
@@ -693,8 +721,9 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                             field.onChange(val);
                             setValue('district', '');
                           }}
-                          value={field.value}
+                          value={field.value || ''}
                           disabled={loadingProvince}
+                          modal={false}
                         >
                           <SelectTrigger
                             className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.province ? 'border-red-500' : ''}`}
@@ -729,10 +758,11 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                       name="district"
                       render={({ field }) => (
                         <Select
-                          key={`district-${watchProvince || 'none'}`}
+                          key={watchProvince}
                           onValueChange={field.onChange}
-                          value={field.value || undefined}
+                          value={field.value || ''}
                           disabled={!watchProvince || loadingDistrict}
+                          modal={false}
                         >
                           <SelectTrigger
                             className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.district ? 'border-red-500' : ''}`}
@@ -811,7 +841,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                     >
                       <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 opacity-50 group-hover:opacity-100 transition-opacity" />
 
-                      <div className="flex justify-between items-start mb-5  sm:hidden">
+                      <div className="flex justify-between items-start mb-5 block sm:hidden">
                         <h3 className="font-medium text-sm text-gray-500">
                           Câu số {index + 1}
                         </h3>
@@ -827,7 +857,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-                        <div className="col-span-1 border border-gray-200 bg-gray-50 rounded-xl w-10 h-10  items-center justify-center font-bold text-gray-400 hidden sm:flex">
+                        <div className="col-span-1 border border-gray-200 bg-gray-50 rounded-xl w-10 h-10 flex items-center justify-center font-bold text-gray-400 hidden sm:flex">
                           {index + 1}
                         </div>
 

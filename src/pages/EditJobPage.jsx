@@ -3,20 +3,16 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useUpdateJob, useJobDetail } from '@/features/jobs/api/useJobs';
+import { useUpdateJob } from '@/features/jobs/useJobMutation';
+import { useJobDetail } from '@/features/jobs/api/useJobs';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { apiClient } from '@/shared/api/apiClient';
 import { useProvinces } from '@/shared/hooks/useProvinces';
 import { X } from 'lucide-react';
-export const EditJobPage = ({
-  jobIdProp,
-  onBack,
-  onSuccess: onSuccessProp,
-}) => {
-  const { jobId: jobIdParam } = useParams();
-  const jobId = jobIdProp || jobIdParam;
+export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
+  const { jobId: paramsId } = useParams();
+  const jobId = jobIdProp || paramsId;
   const navigate = useNavigate();
-  const handleClose = () => (onBack ? onBack() : navigate('/employer'));
   const PROVINCES_API = import.meta.env.VITE_PROVINCES_API_URL;
   const { toast } = useToast();
 
@@ -71,11 +67,11 @@ export const EditJobPage = ({
     if (!jobDetail) return;
 
     setForm({
-      title: jobDetail.title,
-      description: jobDetail.description,
-      occupationId: jobDetail.occupationId,
-      workingShift: jobDetail.workingShift,
-      quantity: jobDetail.quantity,
+      title: jobDetail.title || '',
+      description: jobDetail.description || '',
+      occupationId: jobDetail.occupationId || '',
+      workingShift: jobDetail.workingShift || '',
+      quantity: jobDetail.quantity || '',
       genderRequirement: jobDetail.genderRequirement || '',
       address: jobDetail.address || '',
       province: jobDetail.province || '',
@@ -149,7 +145,9 @@ export const EditJobPage = ({
       return;
     }
 
-    const provinceObj = provinces.find((p) => p.name === form.province);
+    const provinceObj = provinces.find(
+      (p) => p.name.trim().toLowerCase() === form.province.trim().toLowerCase(),
+    );
 
     if (!provinceObj) return;
 
@@ -157,12 +155,13 @@ export const EditJobPage = ({
       try {
         setLoadingDistrict(true);
         const res = await fetch(
-          `https://provinces.open-api.vn/api/p/${provinceObj.code}?depth=2`,
+          `${PROVINCES_API}/p/${provinceObj.code}?depth=2`,
         );
         const data = await res.json();
-        setDistricts(data.districts || []);
+        const districtList = data.districts || data.wards || [];
+        setDistricts(districtList);
       } catch (err) {
-        console.error(err);
+        console.error('[EditJob] Fetch district error:', err);
       } finally {
         setLoadingDistrict(false);
       }
@@ -223,14 +222,17 @@ export const EditJobPage = ({
 
     updateJob(
       {
-        companyId: 1, // hard code tạm
         jobId: Number(jobId),
         payload,
       },
       {
         onSuccess: () => {
           toast('Cập nhật thành công', 'success');
-          onSuccessProp ? onSuccessProp() : navigate('/employer');
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            navigate('/employer');
+          }
         },
         onError: (err) => {
           console.error('Lỗi cập nhật:', err);
@@ -253,15 +255,15 @@ export const EditJobPage = ({
           variant="ghost"
           size="icon"
           className="absolute right-4 top-4 z-10 rounded-full hover:bg-gray-100"
-          onClick={handleClose}
+          onClick={() => (onBack ? onBack() : navigate('/employer'))}
         >
           <X className="w-5 h-5" />
         </Button>
 
         <div className="mb-6 pt-2">
-          <h1 className="text-2xl font-semibold">Tạo tin tuyển dụng</h1>
+          <h1 className="text-2xl font-semibold">Chỉnh sửa tin tuyển dụng</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Hoàn thành các bước để đăng tin tuyển dụng
+            Hoàn thành các bước để cập nhập tin tuyển dụng
           </p>
         </div>
 

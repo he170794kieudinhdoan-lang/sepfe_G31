@@ -30,6 +30,8 @@ import {
   normalizeNotifications,
 } from '@/features/notifications/utils/normalizeNotifications';
 import { useToast } from '@/shared/contexts/ToastContext';
+import { useGetUserConversations } from '@/features/chat/api/useChat';
+import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
 
 const TASKBAR_LINKS = [
   { to: '/search', label: 'Việc làm' },
@@ -80,6 +82,12 @@ export const Header = () => {
   const markReadMutation = useMarkNotificationRead();
   const markAllReadMutation = useMarkAllNotificationsRead();
   const deleteMutation = useDeleteNotification();
+  const { data: conversations } = useGetUserConversations();
+
+  useChatRealtime(null, currentUserId);
+
+  const unreadCountChat =
+    conversations?.reduce((acc, conv) => acc + (conv.unreadCount || 0), 0) || 0;
 
   const notifications = normalizeNotifications(notificationData);
   const unreadCount = getUnreadCount(notifications);
@@ -125,28 +133,36 @@ export const Header = () => {
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between gap-4 h-20 p-2 mx-6">
-          <Link
-            to="/"
-            className="text-2xl font-extrabold text-primary shrink-0 flex items-center gap-2"
-          >
-            <img src="/logo_02.png" alt="WorkLink" className=" h-12 w-auto" />
-          </Link>
-          {/* 
-          <div className='flex-1 max-w-2xl flex items-center gap-2 rounded-xl bg-gray-100/80 shadow-sm px-3 py-2'>
-            <Search className='h-4 w-4 text-muted-foreground shrink-0' />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder='Tìm theo tên việc/công ty/khu vực'
-              className='border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-9'
-            />
-            <Button size='sm' className='rounded-lg shrink-0' onClick={handleSearch}>
-              Tìm kiếm
-            </Button>
-          </div> */}
+          <div className="flex items-center gap-8">
+            <Link
+              to="/"
+              className="text-2xl font-extrabold text-primary shrink-0 flex items-center gap-2"
+            >
+              <img src="/logo_02.png" alt="WorkLink" className=" h-12 w-auto" />
+            </Link>
 
-          <div className="flex items-center gap-2 shrink-0">
+            <nav className="hidden md:flex items-center gap-1">
+              {TASKBAR_LINKS.map(({ to, label }) => (
+                <Link
+                  key={to}
+                  to={to}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors"
+                >
+                  {label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0">
+            {isAuthenticated && user?.roleType === 'EMPLOYER' && (
+              <Button
+                className="hidden sm:flex rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 font-semibold transition-all shadow-sm border border-primary/20 hover:shadow-md"
+                asChild
+              >
+                <Link to="/employer">Quản lý tuyển dụng</Link>
+              </Button>
+            )}
             <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -295,24 +311,18 @@ export const Header = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="rounded-full text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
+              className="rounded-full relative text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
               asChild
             >
               <Link to="/chat">
                 <MessageCircle className="h-5 w-5" />
+                {unreadCountChat > 0 && (
+                  <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white">
+                    {unreadCountChat > 99 ? '99+' : unreadCountChat}
+                  </span>
+                )}
               </Link>
             </Button>
-            <nav className="flex items-center gap-1 border-t border-gray-100 py-2">
-              {TASKBAR_LINKS.map(({ to, label }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary-muted hover:text-foreground transition"
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
 
             {isLoading ? (
               <div className="flex items-center gap-2">
@@ -385,16 +395,6 @@ export const Header = () => {
                       >
                         Việc làm đã lưu
                       </Link>
-
-                      {user?.roleType === 'EMPLOYER' && (
-                        <Link
-                          to="/employer"
-                          className="block px-4 py-2 text-sm hover:bg-gray-50"
-                          onClick={() => setAvatarOpen(false)}
-                        >
-                          Quản lý tuyển dụng
-                        </Link>
-                      )}
 
                       {user?.roleType === 'ADMIN' && (
                         <Link

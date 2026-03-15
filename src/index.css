@@ -212,6 +212,28 @@
   }
 }
 
+/* * {
+  scrollbar-width: calc(2px);
+  scrollbar-color: #cbd5e1 transparent;
+} */
+
+*::-webkit-scrollbar {
+  width: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
 .company-editor-shell {
   border: 1px solid hsl(var(--border));
   border-radius: 0.75rem;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,7 +8,6 @@ import { EmptyState } from '@/shared/components/EmptyState';
 import { Modal } from '@/shared/components/Modal';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { useToast } from '@/shared/contexts/ToastContext';
-import { MSG } from '@/shared/constants/messages';
 import { CompanyRegisterPage } from '@/pages/CompanyRegisterPage';
 import { CreateJobPage } from '@/pages/CreateJobPage';
 import { EditJobPage } from '@/pages/EditJobPage';
@@ -38,15 +37,22 @@ import {
   CheckCircle2,
   AlertCircle,
   Globe,
+  Home,
+  LayoutDashboard,
+  MessageCircle,
 } from 'lucide-react';
 import { useGetMyCompany } from '@/features/companies/api/useGetCompanies';
+import { useJobsForEmployer } from '@/features/jobs/api/useJobs';
+import { useDeleteJob } from '@/features/jobs/useJobMutation';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 
 const EMPLOYER_MENU = [
-  { key: 'overview', label: 'Tổng quan' },
-  { key: 'jobs', label: 'Tin tuyển dụng' },
-  { key: 'applicants', label: 'Ứng viên' },
-  { key: 'stats', label: 'Thống kê' },
+  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
+  { key: 'jobs', label: 'Tin tuyển dụng', icon: Briefcase },
+  { key: 'applicants', label: 'Ứng viên', icon: Users },
+  { key: 'stats', label: 'Thống kê', icon: BarChart3 },
+  { key: 'chat', label: 'Tin nhắn', icon: MessageCircle, path: '/chat' },
+  { key: 'home', label: 'Trang chủ', icon: Home, path: '/' },
 ];
 
 const MOCK_KPI = [
@@ -81,57 +87,6 @@ const MOCK_KPI = [
     color: 'text-orange-600',
     bg: 'bg-orange-100',
     trend: '+18%',
-  },
-];
-
-const MOCK_JOBS = [
-  {
-    id: 1,
-    title: 'Nhân viên kho vận ca đêm',
-    status: 'PUBLISHED',
-    quantity: 5,
-    location: 'TP. Hồ Chí Minh',
-    salaryMin: 10000000,
-    salaryMax: 15000000,
-    createdAt: '2025-02-01T00:00:00Z',
-    expiredAt: '2025-03-01T00:00:00Z',
-    boosted: true,
-  },
-  {
-    id: 2,
-    title: 'Phục vụ nhà hàng part-time',
-    status: 'PUBLISHED',
-    quantity: 10,
-    location: 'Hà Nội',
-    salaryMin: 3000000,
-    salaryMax: 5000000,
-    createdAt: '2025-01-28T00:00:00Z',
-    expiredAt: '2025-02-28T00:00:00Z',
-    boosted: false,
-  },
-  {
-    id: 3,
-    title: 'Giám sát bán hàng (Supervisor)',
-    status: 'EXPIRED',
-    quantity: 2,
-    location: 'Đà Nẵng',
-    salaryMin: 15000000,
-    salaryMax: 20000000,
-    createdAt: '2025-01-01T00:00:00Z',
-    expiredAt: '2025-01-31T00:00:00Z',
-    boosted: false,
-  },
-  {
-    id: 4,
-    title: 'Chuyên viên Marketing',
-    status: 'PENDING',
-    quantity: 1,
-    location: 'Remote',
-    salaryMin: 12000000,
-    salaryMax: 18000000,
-    createdAt: '2025-02-15T00:00:00Z',
-    expiredAt: '2025-03-15T00:00:00Z',
-    boosted: false,
   },
 ];
 
@@ -252,6 +207,7 @@ const ApplicantStatusBadge = ({ status }) => {
 };
 
 export const EmployerDashboard = () => {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
@@ -268,12 +224,18 @@ export const EmployerDashboard = () => {
   const [jobSearchText, setJobSearchText] = useState('');
   const [selectedJobIdFilter, setSelectedJobIdFilter] = useState('');
 
-  // Fake Pagination
+  // Real API integration
   const [jobPage, setJobPage] = useState(1);
-  const totalPages = Math.ceil(MOCK_JOBS.length / 10);
-
-  // Hook Loading Company
   const { data: company, isLoading: loadingCompany } = useGetMyCompany();
+  const { data: searchResult, isLoading: loadingJobs } = useJobsForEmployer({
+    allStatus: true,
+    page: jobPage,
+    limit: 10,
+  });
+  const { mutate: deleteJob } = useDeleteJob();
+
+  const jobs = searchResult?.items || [];
+  const totalPages = searchResult?.meta?.totalPage || 1;
 
   useEffect(() => {
     if (loadingCompany) return;
@@ -283,8 +245,20 @@ export const EmployerDashboard = () => {
   }, [company, loadingCompany]);
 
   const handleDeleteJob = () => {
-    toast('Xóa tin tuyển dụng thành công', 'success');
-    setDeleteConfirm(null);
+    if (!deleteConfirm || !company?.id) return;
+    deleteJob(
+      { companyId: company.id, jobId: deleteConfirm.id },
+      {
+        onSuccess: () => {
+          toast('Xóa tin tuyển dụng thành công', 'success');
+          setDeleteConfirm(null);
+        },
+        onError: (error) => {
+          const message = error?.response?.data?.message || 'Xóa tin thất bại';
+          toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+        },
+      },
+    );
   };
 
   const handleBoostCheckout = () => {
@@ -298,6 +272,7 @@ export const EmployerDashboard = () => {
 
   const handleSaveApplicantStatus = () => {
     if (!applicantStatus) return;
+    // Mock save for now as there is no specific applicant status API yet
     toast('Cập nhật trạng thái ứng viên thành công!', 'success');
     setApplicantDetail((prev) => ({ ...prev, status: applicantStatus }));
   };
@@ -337,7 +312,7 @@ export const EmployerDashboard = () => {
     >
       {/* ===== NO COMPANY GATE ===== */}
       {hasNoCompany && !companyModalOpen && (
-        <div className="flex flex-col items-center justify-center py-24 px-4">
+        <div className="flex flex-col items-center justify-center py-24 px-4 overflow-y-auto">
           <div className="max-w-md w-full text-center">
             <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
               <Building2 size={36} className="text-primary" />
@@ -365,7 +340,7 @@ export const EmployerDashboard = () => {
         <>
           {/* OVERVIEW TAB */}
           {active === 'overview' && (
-            <div className="space-y-8 animate-in fade-in duration-500">
+            <div className="space-y-8 animate-in fade-in duration-500 overflow-y-auto pb-6">
               {/* Welcome Banner */}
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white p-6 rounded-2xl shadow-sm border border-slate-200/80 gap-6">
                 <div className="flex items-center gap-5">
@@ -523,34 +498,47 @@ export const EmployerDashboard = () => {
                     <Button
                       variant="link"
                       onClick={() => setActive('jobs')}
-                      className="text-primary pr-0"
+                      className="text-primary pr-0 font-semibold"
                     >
                       Xem tất cả
                     </Button>
                   </div>
                   <div className="space-y-4">
-                    {MOCK_JOBS.slice(0, 3).map((job) => (
-                      <div
-                        key={job.id}
-                        className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors gap-4"
-                      >
-                        <div>
-                          <p className="font-semibold text-slate-800">
-                            {job.title}
-                          </p>
-                          <div className="flex gap-4 mt-2 text-sm text-slate-500">
-                            <span className="flex items-center gap-1">
-                              <MapPin size={14} /> {job.location}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <DollarSign size={14} />{' '}
-                              {(job.salaryMax / 1000000).toFixed(0)}Tr
-                            </span>
-                          </div>
-                        </div>
-                        <StatusBadge status={job.status} />
+                    {loadingJobs ? (
+                      <div className="flex justify-center py-8">
+                        <Loader2 className="animate-spin text-primary" />
                       </div>
-                    ))}
+                    ) : jobs.length === 0 ? (
+                      <p className="text-sm text-slate-500 text-center py-4">
+                        Chưa có tin tuyển dụng nào.
+                      </p>
+                    ) : (
+                      jobs.slice(0, 3).map((job) => (
+                        <div
+                          key={job.id}
+                          className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors gap-4"
+                        >
+                          <div>
+                            <p className="font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-xs">
+                              {job.title}
+                            </p>
+                            <div className="flex gap-4 mt-2 text-sm text-slate-500">
+                              <span className="flex items-center gap-1">
+                                <MapPin size={14} />{' '}
+                                {job.province || 'Toàn quốc'}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <DollarSign size={14} />{' '}
+                                {job.salaryMax
+                                  ? `${(job.salaryMax / 1000000).toFixed(0)}Tr`
+                                  : 'Thỏa thuận'}
+                              </span>
+                            </div>
+                          </div>
+                          <StatusBadge status={job.status} />
+                        </div>
+                      ))
+                    )}
                   </div>
                 </Card>
 
@@ -580,7 +568,7 @@ export const EmployerDashboard = () => {
                   </div>
                   <Button
                     variant="outline"
-                    className="w-full mt-6 rounded-xl"
+                    className="w-full mt-6 rounded-xl font-semibold border-slate-200"
                     onClick={() => setActive('applicants')}
                   >
                     Quản lý ứng viên
@@ -592,7 +580,7 @@ export const EmployerDashboard = () => {
 
           {/* JOBS TAB */}
           {active === 'jobs' && (
-            <div className="space-y-6 animate-in fade-in py-2">
+            <div className="space-y-6 animate-in fade-in py-2 overflow-y-auto pb-6">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-slate-800">
@@ -604,7 +592,7 @@ export const EmployerDashboard = () => {
                 </div>
                 {isApproved && (
                   <Button
-                    className="rounded-xl gap-2 shadow-sm w-full sm:w-auto"
+                    className="rounded-xl gap-2 shadow-sm w-full sm:w-auto font-semibold px-6"
                     onClick={() => setCreateJobModalOpen(true)}
                   >
                     <Plus size={18} /> Tạo tin mới
@@ -619,14 +607,14 @@ export const EmployerDashboard = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
                     <Input
                       placeholder="Tìm kiếm công việc..."
-                      className="pl-9 rounded-xl border-slate-200 bg-slate-50"
+                      className="pl-9 rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
                       value={jobSearchText}
                       onChange={(e) => setJobSearchText(e.target.value)}
                     />
                   </div>
                   <Button
                     variant="outline"
-                    className="rounded-xl gap-2 bg-white border-slate-200"
+                    className="rounded-xl gap-2 bg-white border-slate-200 font-medium"
                   >
                     <Filter size={16} /> Lọc trạng thái
                   </Button>
@@ -639,21 +627,38 @@ export const EmployerDashboard = () => {
                         <th className="py-4 px-4 rounded-tl-xl whitespace-nowrap">
                           Vị trí tuyển dụng
                         </th>
-                        <th className="px-4 whitespace-nowrap">Trạng thái</th>
-                        <th className="px-4 whitespace-nowrap">Số lượng</th>
-                        <th className="px-4 whitespace-nowrap">Ngày đăng</th>
-                        <th className="px-4 whitespace-nowrap">Tính năng</th>
-                        <th className="px-4 rounded-tr-xl whitespace-nowrap text-right">
+                        <th className="px-4 whitespace-nowrap text-center">
+                          Trạng thái
+                        </th>
+                        <th className="px-4 whitespace-nowrap text-center">
+                          Số lượng
+                        </th>
+                        <th className="px-4 whitespace-nowrap text-center">
+                          Ngày đăng
+                        </th>
+                        <th className="px-4 whitespace-nowrap text-center">
+                          Tính năng
+                        </th>
+                        <th className="px-4 rounded-tr-xl whitespace-nowrap text-center">
                           Tùy chọn
                         </th>
                       </tr>
                     </thead>
                     <tbody>
-                      {MOCK_JOBS.filter((j) =>
-                        j.title
-                          .toLowerCase()
-                          .includes(jobSearchText.toLowerCase()),
-                      ).length === 0 ? (
+                      {loadingJobs ? (
+                        <tr>
+                          <td
+                            colSpan="6"
+                            className="py-12 text-center text-slate-500"
+                          >
+                            <Loader2 className="animate-spin mx-auto text-primary" />
+                          </td>
+                        </tr>
+                      ) : jobs.filter((j) =>
+                          j.title
+                            .toLowerCase()
+                            .includes(jobSearchText.toLowerCase()),
+                        ).length === 0 ? (
                         <tr>
                           <td
                             colSpan="6"
@@ -666,88 +671,96 @@ export const EmployerDashboard = () => {
                           </td>
                         </tr>
                       ) : (
-                        MOCK_JOBS.filter((j) =>
-                          j.title
-                            .toLowerCase()
-                            .includes(jobSearchText.toLowerCase()),
-                        ).map((job) => (
-                          <tr
-                            key={job.id}
-                            className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors"
-                          >
-                            <td className="py-4 px-4">
-                              <p className="font-semibold text-slate-800">
-                                {job.title}
-                              </p>
-                              <div className="flex gap-3 mt-1 text-slate-500 text-xs">
-                                <span className="flex items-center gap-1">
-                                  <MapPin size={12} /> {job.location}
+                        jobs
+                          .filter((j) =>
+                            j.title
+                              .toLowerCase()
+                              .includes(jobSearchText.toLowerCase()),
+                          )
+                          .map((job) => (
+                            <tr
+                              key={job.id}
+                              className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors"
+                            >
+                              <td className="py-4 px-4">
+                                <p className="font-semibold text-slate-800">
+                                  {job.title}
+                                </p>
+                                <div className="flex gap-3 mt-1 text-slate-500 text-xs">
+                                  <span className="flex items-center gap-1">
+                                    <MapPin size={12} />{' '}
+                                    {job.province || 'Toàn quốc'}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <DollarSign size={12} />{' '}
+                                    {job.salaryMin
+                                      ? `${(job.salaryMin / 1000000).toFixed(0)}M`
+                                      : '?'}{' '}
+                                    -{' '}
+                                    {job.salaryMax
+                                      ? `${(job.salaryMax / 1000000).toFixed(0)}M`
+                                      : '?'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-4 text-center">
+                                <StatusBadge status={job.status} />
+                              </td>
+                              <td className="px-4 font-medium text-slate-700 text-center">
+                                {job.quantity}
+                              </td>
+                              <td className="px-4 text-center">
+                                <span className="flex items-center justify-center gap-2 text-slate-600">
+                                  <CalendarCheck
+                                    size={14}
+                                    className="text-slate-400"
+                                  />
+                                  {new Date(job.createdAt).toLocaleDateString(
+                                    'vi-VN',
+                                  )}
                                 </span>
-                                <span className="flex items-center gap-1">
-                                  <DollarSign size={12} />{' '}
-                                  {job.salaryMin / 1000000}M -{' '}
-                                  {job.salaryMax / 1000000}M
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4">
-                              <StatusBadge status={job.status} />
-                            </td>
-                            <td className="px-4 font-medium text-slate-700">
-                              {job.quantity}
-                            </td>
-                            <td className="px-4">
-                              <span className="flex items-center gap-2 text-slate-600">
-                                <CalendarCheck
-                                  size={14}
-                                  className="text-slate-400"
-                                />
-                                {new Date(job.createdAt).toLocaleDateString(
-                                  'vi-VN',
+                              </td>
+                              <td className="px-4 text-center">
+                                {job.boosted ? (
+                                  <Badge
+                                    variant="secondary"
+                                    className="bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-pointer"
+                                  >
+                                    Đang Boost 🚀
+                                  </Badge>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-xs text-primary bg-primary/10 hover:bg-primary/20 rounded-lg"
+                                    onClick={() => setBoostModalOpen(true)}
+                                  >
+                                    Nâng cấp
+                                  </Button>
                                 )}
-                              </span>
-                            </td>
-                            <td className="px-4">
-                              {job.boosted ? (
-                                <Badge
-                                  variant="secondary"
-                                  className="bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-pointer"
-                                >
-                                  Đang Boost 🚀
-                                </Badge>
-                              ) : (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 text-xs text-primary bg-primary/10 hover:bg-primary/20 rounded-lg"
-                                  onClick={() => setBoostModalOpen(true)}
-                                >
-                                  Nâng cấp
-                                </Button>
-                              )}
-                            </td>
-                            <td className="px-4 text-right">
-                              <div className="flex justify-end gap-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="rounded-lg text-slate-600 hover:text-primary"
-                                  onClick={() => setEditJobId(job.id)}
-                                >
-                                  Sửa
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  className="rounded-lg text-slate-600 hover:text-red-600 hover:bg-red-50"
-                                  onClick={() => setDeleteConfirm(job)}
-                                >
-                                  Xóa
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
+                              </td>
+                              <td className="px-4 text-center">
+                                <div className="flex justify-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-lg text-slate-600 hover:text-primary transition-all border-slate-200"
+                                    onClick={() => setEditJobId(job.id)}
+                                  >
+                                    Sửa
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="rounded-lg text-slate-600 hover:text-red-600 hover:bg-red-50 transition-all border-slate-200"
+                                    onClick={() => setDeleteConfirm(job)}
+                                  >
+                                    Xóa
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))
                       )}
                     </tbody>
                   </table>
@@ -757,24 +770,26 @@ export const EmployerDashboard = () => {
                 {totalPages > 1 && (
                   <div className="flex items-center justify-between mt-4 px-2">
                     <span className="text-sm text-slate-500">
-                      Hiển thị 10 / {MOCK_JOBS.length} kết quả
+                      Trang {jobPage} / {totalPages}
                     </span>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="rounded-lg"
                         onClick={() => setJobPage((p) => Math.max(1, p - 1))}
-                        disabled={jobPage === 1}
+                        disabled={jobPage === 1 || loadingJobs}
                       >
                         <ChevronLeft size={16} />
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
+                        className="rounded-lg"
                         onClick={() =>
                           setJobPage((p) => Math.min(totalPages, p + 1))
                         }
-                        disabled={jobPage === totalPages}
+                        disabled={jobPage === totalPages || loadingJobs}
                       >
                         <ChevronRight size={16} />
                       </Button>
@@ -787,7 +802,7 @@ export const EmployerDashboard = () => {
 
           {/* APPLICANTS TAB */}
           {active === 'applicants' && (
-            <div className="space-y-6 animate-in fade-in py-2">
+            <div className="space-y-6 animate-in fade-in py-2 overflow-y-auto pb-6">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-bold text-slate-800">
@@ -800,7 +815,7 @@ export const EmployerDashboard = () => {
                 </div>
                 <Button
                   variant="outline"
-                  className="rounded-xl gap-2 shadow-sm border-slate-200"
+                  className="rounded-xl gap-2 shadow-sm border-slate-200 font-medium"
                   onClick={handleExportApplicants}
                 >
                   <Download size={16} /> Xuất dữ liệu
@@ -814,12 +829,12 @@ export const EmployerDashboard = () => {
                 >
                   <Card className="p-4 rounded-2xl shadow-sm border-slate-100 flex flex-wrap gap-3">
                     <select
-                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[200px] outline-none focus:border-primary"
+                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[200px] outline-none focus:border-primary transition-all"
                       value={selectedJobIdFilter}
                       onChange={(e) => setSelectedJobIdFilter(e.target.value)}
                     >
                       <option value="">-- Lọc theo công việc --</option>
-                      {MOCK_JOBS.map((j) => (
+                      {jobs.map((j) => (
                         <option key={j.id} value={j.id}>
                           {j.title}
                         </option>
@@ -854,18 +869,18 @@ export const EmployerDashboard = () => {
                               <img
                                 src={a.avatar}
                                 alt="avatar"
-                                className="w-12 h-12 rounded-full shadow-sm"
+                                className="w-12 h-12 rounded-full shadow-sm object-cover border border-slate-100"
                               />
-                              <div>
-                                <h4 className="font-semibold text-slate-800">
+                              <div className="overflow-hidden">
+                                <h4 className="font-semibold text-slate-800 truncate">
                                   {a.workerName}
                                 </h4>
-                                <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5">
+                                <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5 truncate">
                                   <Briefcase size={12} /> {a.jobTitle}
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right shrink-0">
                               <ApplicantStatusBadge status={a.status} />
                               <p className="text-xs text-slate-400 mt-2 flex items-center justify-end gap-1">
                                 <Clock size={12} /> {a.appliedDate}
@@ -881,7 +896,7 @@ export const EmployerDashboard = () => {
                 {/* Right Side: Detail Viewer */}
                 {applicantDetail && (
                   <div className="xl:w-1/2 animate-in slide-in-from-right-8 duration-300">
-                    <Card className="p-6 rounded-2xl shadow-lg border-primary/20 bg-white sticky top-24">
+                    <Card className="p-6 rounded-2xl shadow-lg border-primary/20 bg-white sticky top-4">
                       <div className="flex justify-between items-start mb-6">
                         <h3 className="font-bold text-lg flex items-center gap-2">
                           <Users className="text-primary" /> Chi tiết hồ sơ
@@ -899,7 +914,7 @@ export const EmployerDashboard = () => {
                       <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
                         <img
                           src={applicantDetail.avatar}
-                          className="w-20 h-20 rounded-2xl shadow-sm"
+                          className="w-20 h-20 rounded-2xl shadow-sm object-cover"
                           alt="avatar"
                         />
                         <div>
@@ -928,9 +943,9 @@ export const EmployerDashboard = () => {
                         </div>
                         <div>
                           <p className="text-sm font-medium text-slate-500">
-                            Câu trả lời phỏng vấn (mock)
+                            Câu trả lời khảo sát
                           </p>
-                          <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-700 mt-2 border border-slate-100">
+                          <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-700 mt-2 border border-slate-100 leading-relaxed">
                             <p>
                               <strong>1. Kinh nghiệm của bạn:</strong> Tôi có 2
                               năm làm việc tại vị trí tương đương...
@@ -944,13 +959,13 @@ export const EmployerDashboard = () => {
                         </div>
                       </div>
 
-                      <div className="pt-6 border-t border-slate-100 bg-slate-50/50 -mx-6 -mb-6 p-6 rounded-b-2xl">
+                      <div className="pt-6 border-t border-slate-100 bg-slate-300/10 -mx-6 -mb-6 p-6 rounded-b-2xl">
                         <p className="text-sm font-medium text-slate-700 mb-3">
                           Cập nhật trạng thái ứng viên
                         </p>
                         <div className="flex items-center gap-3">
                           <select
-                            className="rounded-xl border border-slate-300 px-4 py-2 text-sm bg-white flex-1 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none"
+                            className="rounded-xl border border-slate-300 px-4 py-2 text-sm bg-white flex-1 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm"
                             value={applicantStatus}
                             onChange={(e) => setApplicantStatus(e.target.value)}
                           >
@@ -962,7 +977,7 @@ export const EmployerDashboard = () => {
                             <option value="Rejected">Từ chối</option>
                           </select>
                           <Button
-                            className="rounded-xl px-6"
+                            className="rounded-xl px-6 font-semibold"
                             onClick={handleSaveApplicantStatus}
                           >
                             Lưu lại
@@ -978,7 +993,7 @@ export const EmployerDashboard = () => {
 
           {/* STATS TAB */}
           {active === 'stats' && (
-            <div className="space-y-6 animate-in fade-in py-2">
+            <div className="space-y-6 animate-in fade-in py-2 overflow-y-auto pb-6">
               <h2 className="text-2xl font-bold text-slate-800 mb-6">
                 Báo cáo & Thống kê
               </h2>
@@ -1057,7 +1072,10 @@ export const EmployerDashboard = () => {
       {createJobModalOpen && (
         <CreateJobPage
           onBack={() => setCreateJobModalOpen(false)}
-          onSuccess={() => setCreateJobModalOpen(false)}
+          onSuccess={() => {
+            setCreateJobModalOpen(false);
+            // Re-fetch jobs would be ideal, but rely on useChatRealtime/invalidate if implemented
+          }}
         />
       )}
       {editJobId && (
