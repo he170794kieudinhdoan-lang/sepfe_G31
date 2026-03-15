@@ -463,8 +463,9 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                             field.onChange(val);
                             setValue('occupationId', undefined);
                           }}
-                          value={field.value}
+                          value={field.value || ''}
                           disabled={loadingSector}
+                          modal={false}
                         >
                           <SelectTrigger
                             className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 transition-colors ${errors.sectorId ? 'border-red-500 focus:ring-red-500' : ''}`}
@@ -498,8 +499,9 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                       render={({ field }) => (
                         <Select
                           onValueChange={(val) => field.onChange(Number(val))}
-                          value={field.value?.toString()}
+                          value={field.value?.toString() || ''}
                           disabled={!watchSectorId}
+                          modal={false}
                         >
                           <SelectTrigger
                             className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 transition-colors ${errors.occupationId ? 'border-red-500 focus:ring-red-500' : ''}`}
@@ -574,7 +576,8 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                       render={({ field }) => (
                         <Select
                           onValueChange={field.onChange}
-                          value={field.value}
+                          value={field.value || ''}
+                          modal={false}
                         >
                           <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-gray-200">
                             <SelectValue placeholder="Không yêu cầu" />
@@ -681,7 +684,8 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                     render={({ field }) => (
                       <Select
                         onValueChange={field.onChange}
-                        value={field.value}
+                        value={field.value || ''}
+                        modal={false}
                       >
                         <SelectTrigger
                           className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.workingShift ? 'border-red-500' : ''}`}
@@ -717,8 +721,9 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                             field.onChange(val);
                             setValue('district', '');
                           }}
-                          value={field.value}
+                          value={field.value || ''}
                           disabled={loadingProvince}
+                          modal={false}
                         >
                           <SelectTrigger
                             className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.province ? 'border-red-500' : ''}`}
@@ -755,8 +760,9 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                         <Select
                           key={watchProvince}
                           onValueChange={field.onChange}
-                          value={field.value}
+                          value={field.value || ''}
                           disabled={!watchProvince || loadingDistrict}
+                          modal={false}
                         >
                           <SelectTrigger
                             className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.district ? 'border-red-500' : ''}`}

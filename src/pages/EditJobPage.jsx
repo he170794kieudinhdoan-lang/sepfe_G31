@@ -67,11 +67,11 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
     if (!jobDetail) return;
 
     setForm({
-      title: jobDetail.title,
-      description: jobDetail.description,
-      occupationId: jobDetail.occupationId,
-      workingShift: jobDetail.workingShift,
-      quantity: jobDetail.quantity,
+      title: jobDetail.title || '',
+      description: jobDetail.description || '',
+      occupationId: jobDetail.occupationId || '',
+      workingShift: jobDetail.workingShift || '',
+      quantity: jobDetail.quantity || '',
       genderRequirement: jobDetail.genderRequirement || '',
       address: jobDetail.address || '',
       province: jobDetail.province || '',
