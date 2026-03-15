@@ -26,6 +26,7 @@ import { EmployerDashboard } from '@/pages/EmployerDashboard';
 import { EmployerLayout } from '@/shared/components/Layout/EmployerLayout';
 import { CreateJobPage } from '@/pages/CreateJobPage';
 import { EditJobPage } from '@/pages/EditJobPage';
+import { JobApplyPage } from '@/pages/JobApplyPage';
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -83,6 +84,7 @@ export const router = createBrowserRouter([
   { path: '/auth/reset-password', element: <ResetPassword /> },
   { path: '/worker/welcome', element: <WorkerWelcome /> },
   { path: '/worker/setup-profile', element: <WorkerProfileSetup /> },
+  { path: '/job/apply/:id', element: <JobApplyPage /> },
   {
     path: '*',
     element: (

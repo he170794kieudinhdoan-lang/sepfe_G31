@@ -13,6 +13,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { GENDERS } from '@/shared/constants/enums';
+import { useAuth } from '@/shared/contexts/AuthContext';
 
 const InfoItem = ({ icon, label, value, isLink }) => (
   <div className="group flex items-start gap-3 p-2 ">
@@ -146,15 +147,18 @@ export const CompanyInfo = ({ job, company, handleCreateConversation }) => {
         </Button>
       </Card>
 
-      <Button
-        className="w-full rounded-2xl py-7 text-lg transition-all duration-300 flex gap-3"
-        onClick={() => handleCreateConversation(company.ownerId)}
-      >
-        <MessageSquare className="h-5 w-5" />
-        Liên hệ ngay
-      </Button>
+      {isAuthenticated && (
+        <Button
+          className="w-full rounded-xl py-6 font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300"
+          onClick={() => handleCreateConversation(company.ownerId)}
+        >
+          Liên hệ với nhà tuyển dụng
+        </Button>
+      )}
 
-      <CommonInfoJob job={job} className={'h-full'} />
+      <Button className="w-full rounded-xl py-6 font-semibold shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all duration-300">
+        Xem chi tiết công ty
+      </Button>
     </div>
   );
 };

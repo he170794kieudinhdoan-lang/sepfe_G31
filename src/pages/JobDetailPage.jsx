@@ -15,6 +15,15 @@ import { JobDetailSkeleton } from '@/features/jobs/components/JobDetailSkeleton'
 import { JobCardHorizontalSkeleton } from '@/features/jobs/components/JobCardHorizontalSkeleton';
 import { SearchX, ArrowLeft, User, Users, CircleUser } from 'lucide-react';
 import { useGetOrCreateConversation } from '@/features/chat/api/useChat';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export const JobDetailPage = () => {
   const { id } = useParams();
@@ -27,13 +36,22 @@ export const JobDetailPage = () => {
 
   const { data: relatedJobs, isLoading: isRelatedLoading } = useRelatedJobs(id);
   const { mutate: createConversation } = useGetOrCreateConversation();
+  const { isAuthenticated } = useAuth();
 
   const [applyOpen, setApplyOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [loginPromptOpen, setLoginPromptOpen] = useState(false);
 
-  const handleCreateConversation = (id) => {
-    console.log(id);
-    createConversation({ participantId: id });
+  const handleCreateConversation = (companyOwnerId) => {
+    createConversation({ participantId: companyOwnerId });
+  };
+
+  const handleApplyClick = () => {
+    if (isAuthenticated) {
+      setApplyOpen(true);
+    } else {
+      setLoginPromptOpen(true);
+    }
   };
 
   if (isLoading) {
@@ -77,7 +95,7 @@ export const JobDetailPage = () => {
     <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <JobDetailHeader job={job} onApply={() => setApplyOpen(true)} />
+          <JobDetailHeader job={job} onApply={handleApplyClick} />
         </div>
 
         <div className="lg:col-span-1 lg:row-span-2">
@@ -92,7 +110,7 @@ export const JobDetailPage = () => {
           <Card className="flex flex-col gap-6 border-0 p-8 shadow-sm rounded-xl">
             <JobDetailContent
               job={job}
-              onApply={() => setApplyOpen(true)}
+              onApply={handleApplyClick}
               onReport={() => setReportOpen(true)}
             />
 
@@ -110,13 +128,30 @@ export const JobDetailPage = () => {
         </div>
       </div>
 
-      <ApplyJobModal open={applyOpen} onClose={() => setApplyOpen(false)} />
+      <ApplyJobModal open={applyOpen} onClose={() => setApplyOpen(false)} jobId={id} />
 
       <ReportJobModal
         open={reportOpen}
         onClose={() => setReportOpen(false)}
         hasReported={hasReported}
       />
+
+      <Dialog open={loginPromptOpen} onOpenChange={setLoginPromptOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Yêu cầu đăng nhập</DialogTitle>
+            <DialogDescription>
+              Vui lòng đăng nhập để ứng tuyển công việc này và mở khóa các tính năng khác trên hệ thống.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" onClick={() => setLoginPromptOpen(false)}>Hủy</Button>
+            <Button asChild>
+              <Link to="/auth/login" state={{ from: `/job/${id}` }}>Đến trang đăng nhập</Link>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

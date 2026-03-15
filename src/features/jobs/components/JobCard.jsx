@@ -75,18 +75,20 @@ export const JobCard = ({ job, featured, aiSuggest }) => {
             </div>
 
             <div className="flex flex-col items-end gap-1 shrink-0 z-20">
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`h-8 w-8 rounded-full shadow-sm hover:shadow active:scale-95 transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : 'bg-white hover:bg-gray-50'}`}
-                title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
-                onClick={handleWishlistToggle}
-                disabled={isPending}
-              >
-                <Heart
-                  className={`h-4 w-4 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
-                />
-              </Button>
+              {user && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={`h-8 w-8 rounded-full shadow-sm hover:shadow active:scale-95 transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : 'bg-white hover:bg-gray-50'}`}
+                  title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
+                  onClick={handleWishlistToggle}
+                  disabled={isPending}
+                >
+                  <Heart
+                    className={`h-4 w-4 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
+                  />
+                </Button>
+              )}
             </div>
           </div>
 
