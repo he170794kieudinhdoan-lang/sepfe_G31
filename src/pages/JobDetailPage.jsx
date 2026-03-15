@@ -13,7 +13,7 @@ import { Card } from '@/components/ui/card';
 
 import { JobDetailSkeleton } from '@/features/jobs/components/JobDetailSkeleton';
 import { JobCardHorizontalSkeleton } from '@/features/jobs/components/JobCardHorizontalSkeleton';
-import { SearchX, ArrowLeft } from 'lucide-react';
+import { SearchX, ArrowLeft, User, Users, CircleUser } from 'lucide-react';
 import { useGetOrCreateConversation } from '@/features/chat/api/useChat';
 
 export const JobDetailPage = () => {
@@ -82,6 +82,7 @@ export const JobDetailPage = () => {
 
         <div className="lg:col-span-1 lg:row-span-2">
           <CompanyInfo
+            job={job}
             company={job.company}
             handleCreateConversation={handleCreateConversation}
           />
