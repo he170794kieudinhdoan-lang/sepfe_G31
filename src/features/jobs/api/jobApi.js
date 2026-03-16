@@ -75,6 +75,15 @@ export const getJobsForEmployer = async (params = {}) => {
   return await apiClient.get('/job/get-for-employer', { params: cleanParams });
 };
 
+export const getEmployerApplications = async (jobId) => {
+  const params = jobId ? { jobId } : {};
+  return await apiClient.get('/job/employer/applications', { params });
+};
+
+export const updateApplicationStatus = async ({ applicationId, status }) => {
+  return await apiClient.put(`/job/applications/${applicationId}/status`, { status });
+};
+
 // ===== OCCUPATIONS =====
 
 export const getSectorsWithOccupations = async () => {
