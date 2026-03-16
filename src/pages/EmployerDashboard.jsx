@@ -43,8 +43,8 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { useGetMyCompany } from '@/features/companies/api/useGetCompanies';
-import { useJobsForEmployer } from '@/features/jobs/api/useJobs';
-import { useDeleteJob } from '@/features/jobs/useJobMutation';
+import { useJobsForEmployer, useEmployerApplications, useUpdateApplicationStatus } from '@/features/jobs/api/useJobs';
+import { useDeleteJob } from '@/features/jobs/api/useJobs';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 
 const EMPLOYER_MENU = [
@@ -177,21 +177,25 @@ const StatusBadge = ({ status }) => {
 
 const ApplicantStatusBadge = ({ status }) => {
   const statusConfig = {
-    Pending: {
+    APPLIED: {
       color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       label: 'Chờ xử lý',
     },
-    Reviewed: {
+    VIEWED: {
       color: 'bg-blue-100 text-blue-800 border-blue-200',
       label: 'Đã xem',
     },
-    Contacting: {
-      color: 'bg-purple-100 text-purple-800 border-purple-200',
-      label: 'Đang liên hệ',
+    SUITABLE: {
+      color: 'bg-green-100 text-green-800 border-green-200',
+      label: 'Phù hợp',
     },
-    Rejected: {
+    UNSUITABLE: {
       color: 'bg-red-100 text-red-800 border-red-200',
-      label: 'Từ chối',
+      label: 'Không phù hợp',
+    },
+    CANCELLED: {
+      color: 'bg-gray-100 text-gray-800 border-gray-200',
+      label: 'Đã hủy',
     },
   };
 
@@ -224,6 +228,7 @@ export const EmployerDashboard = () => {
   // Filtering states
   const [jobSearchText, setJobSearchText] = useState('');
   const [selectedJobIdFilter, setSelectedJobIdFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
 
   // Real API integration
   const [jobPage, setJobPage] = useState(1);
@@ -233,7 +238,20 @@ export const EmployerDashboard = () => {
     page: jobPage,
     limit: 10,
   });
+
+  // Real applicants data
+  const { data: applicationsResult, isLoading: loadingApplications } = useEmployerApplications(
+    selectedJobIdFilter || undefined
+  );
+
   const { mutate: deleteJob } = useDeleteJob();
+  const { mutate: updateApplicantStatus } = useUpdateApplicationStatus();
+
+  const applicantsList = applicationsResult?.data || [];
+  const filteredApplicants = applicantsList.filter(a => {
+    if (a.status === 'CANCELLED') return false;
+    return statusFilter ? a.status === statusFilter : true;
+  });
 
   const jobs = searchResult?.items || [];
   const totalPages = searchResult?.meta?.totalPage || 1;
@@ -272,11 +290,240 @@ export const EmployerDashboard = () => {
   };
 
   const handleSaveApplicantStatus = () => {
-    if (!applicantStatus) return;
-    // Mock save for now as there is no specific applicant status API yet
-    toast('Cập nhật trạng thái ứng viên thành công!', 'success');
-    setApplicantDetail((prev) => ({ ...prev, status: applicantStatus }));
+    if (!applicantStatus || !applicantDetail) return;
+
+    updateApplicantStatus(
+      { applicationId: applicantDetail.id, status: applicantStatus },
+      {
+        onSuccess: () => {
+          toast('Cập nhật trạng thái thành công', 'success');
+          setApplicantDetail(null);
+        },
+        onError: (error) => {
+          const message = error?.response?.data?.message || 'Cập nhật thất bại';
+          toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+        }
+      }
+    );
   };
+
+  const renderApplicantManagement = (isModal = false) => (
+    <div className="flex flex-col gap-6">
+      {/* Filters + List */}
+      <div className={`space-y-4 transition-all w-full`}>
+        {!isModal && (
+          <Card className="p-4 rounded-2xl shadow-sm border-slate-100 flex flex-wrap gap-3">
+            <select
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[200px] outline-none focus:border-primary transition-all"
+              value={selectedJobIdFilter}
+              onChange={(e) => setSelectedJobIdFilter(e.target.value)}
+            >
+              <option value="">-- Lọc theo công việc --</option>
+              {jobs.filter(j => j.status !== 'DELETED').map((j) => (
+                <option key={j.id} value={j.id}>
+                  {j.title}
+                </option>
+              ))}
+            </select>
+            <select
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[150px] outline-none"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">Trạng thái</option>
+              <option value="APPLIED">Chờ xử lý</option>
+              <option value="VIEWED">Đã xem</option>
+              <option value="SUITABLE">Phù hợp</option>
+              <option value="UNSUITABLE">Không phù hợp</option>
+            </select>
+          </Card>
+        )}
+
+        {loadingApplications ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="animate-spin text-primary" />
+          </div>
+        ) : applicantsList.length === 0 ? (
+          <EmptyState
+            title="Chưa có ứng viên nào."
+            description="Khi có ứng viên nộp hồ sơ, dữ liệu sẽ hiển thị ở đây."
+          />
+        ) : (
+          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+            {filteredApplicants.map((a) => (
+              <Card
+                key={a.id}
+                className={`p-4 rounded-2xl shadow-sm border transition-all cursor-pointer hover:border-primary hover:shadow-md ${applicantDetail?.id === a.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-slate-100'}`}
+                onClick={() => {
+                  setApplicantDetail(a);
+                  setApplicantStatus(a.status);
+                }}
+              >
+                <div className="flex justify-between items-start gap-4">
+                  <div className="flex items-center gap-4">
+                    <img
+                      src={a.user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(a.user?.fullName || 'User')}&background=e0e7ff&color=4338ca`}
+                      alt="avatar"
+                      className="w-12 h-12 rounded-full shadow-sm object-cover border border-slate-100"
+                    />
+                    <div className="overflow-hidden">
+                      <h4 className="font-semibold text-slate-800 truncate">
+                        {a.user?.fullName}
+                      </h4>
+                      <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5 truncate">
+                        <Briefcase size={12} /> {a.job?.title}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <ApplicantStatusBadge status={a.status} />
+                    <p className="text-xs text-slate-400 mt-2 flex items-center justify-end gap-1">
+                      <Clock size={12} /> {new Date(a.updatedAt || a.createdAt || new Date()).toLocaleDateString('vi-VN')}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Right Side: Detail Viewer Modal */}
+      <Modal
+        open={!!applicantDetail}
+        onClose={() => setApplicantDetail(null)}
+        title="Chi tiết hồ sơ ứng viên"
+        variant="custom"
+      >
+        {applicantDetail && (
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Users className="text-primary" /> Thông tin ứng viên
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-8 w-8 hover:bg-slate-100"
+                onClick={() => setApplicantDetail(null)}
+              >
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
+              <img
+                src={applicantDetail.user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(applicantDetail.user?.fullName || 'User')}&background=e0e7ff&color=4338ca`}
+                className="w-20 h-20 rounded-2xl shadow-sm object-cover"
+                alt="avatar"
+              />
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">
+                  {applicantDetail.user?.fullName}
+                </h2>
+                <div className="text-sm text-slate-500 mt-2 space-y-1">
+                  <p className="flex items-center gap-2">
+                    <Phone size={14} className="text-primary" /> 
+                    <span className="font-medium text-slate-700">{applicantDetail.user?.phone || 'Chưa cập nhật SĐT'}</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="py-6 space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+              <div>
+                <p className="text-sm font-medium text-slate-500">Vị trí ứng tuyển</p>
+                <p className="font-semibold text-slate-800 mt-1">
+                  {applicantDetail.job?.title}
+                </p>
+              </div>
+
+              {/* Worker Profile Info */}
+              <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-700 mt-4 border border-slate-100">
+                <h4 className="font-semibold mb-3">Thông tin hồ sơ cá nhân</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-slate-500 text-xs">Giới tính</p>
+                    <p className="font-medium mt-1">
+                      {applicantDetail.user?.workerProfile?.gender === 'MALE' ? 'Nam' :
+                        applicantDetail.user?.workerProfile?.gender === 'FEMALE' ? 'Nữ' : 'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Năm sinh</p>
+                    <p className="font-medium mt-1">{applicantDetail.user?.workerProfile?.birthYear || 'Chưa cập nhật'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Ca làm mong muốn</p>
+                    <p className="font-medium mt-1">
+                      {{
+                        MORNING: 'Ca sáng',
+                        AFTERNOON: 'Ca chiều',
+                        EVENING: 'Ca tối',
+                        FULL_DAY: 'Cả ngày',
+                        FLEXIBLE: 'Linh hoạt'
+                      }[applicantDetail.user?.workerProfile?.shift] || applicantDetail.user?.workerProfile?.shift || 'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Khu vực</p>
+                    <p className="font-medium mt-1">{applicantDetail.user?.workerProfile?.province || 'Chưa cập nhật'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Công việc đã từng làm</p>
+                    <p className="font-medium mt-1">{applicantDetail.user?.workerProfile?.occupation?.name || 'Chưa cập nhật'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Năm kinh nghiệm</p>
+                    <p className="font-medium mt-1">{applicantDetail.user?.workerProfile?.experienceYear ? `${applicantDetail.user?.workerProfile?.experienceYear} năm` : 'Chưa có'}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Mức lương mong muốn</p>
+                    <p className="font-medium mt-1">
+                      {applicantDetail.user?.workerProfile?.expectedSalary
+                        ? `${(applicantDetail.user.workerProfile.expectedSalary / 1000000).toFixed(0)}Tr`
+                        : 'Thỏa thuận'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <p className="text-sm font-semibold text-slate-800">
+                  Cập nhật trạng thái ứng viên
+                </p>
+                <Button className="rounded-xl px-6 font-semibold shadow-sm" onClick={handleSaveApplicantStatus}>
+                  Lưu lại
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { value: 'APPLIED', label: 'Chờ xử lý', activeClass: 'border-yellow-500 bg-yellow-50 text-yellow-700 ring-1 ring-yellow-500' },
+                  { value: 'VIEWED', label: 'Đã xem hồ sơ', activeClass: 'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500' },
+                  { value: 'SUITABLE', label: 'Phù hợp', activeClass: 'border-green-500 bg-green-50 text-green-700 ring-1 ring-green-500' },
+                  { value: 'UNSUITABLE', label: 'Không phù hợp', activeClass: 'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500' },
+                ].map((status) => (
+                  <button
+                    key={status.value}
+                    onClick={() => setApplicantStatus(status.value)}
+                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
+                      applicantStatus === status.value
+                        ? status.activeClass
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
+    </div>
+  );
 
   const hasNoCompany = !company?.id;
   const isRejected = company?.id && company?.status === 'REJECTED';
@@ -549,19 +796,19 @@ export const EmployerDashboard = () => {
                     Ứng viên mới nhất
                   </h3>
                   <div className="space-y-4">
-                    {MOCK_APPLICANTS.slice(0, 4).map((app) => (
+                    {applicantsList.slice(0, 4).map((app) => (
                       <div key={app.id} className="flex items-center gap-3">
                         <img
-                          src={app.avatar}
+                          src={app.user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(app.user?.fullName || 'User')}&background=e0e7ff&color=4338ca`}
                           alt="avatar"
                           className="w-10 h-10 rounded-full border border-slate-200"
                         />
                         <div className="flex-1 overflow-hidden">
                           <p className="font-medium text-sm text-slate-800 truncate">
-                            {app.workerName}
+                            {app.user?.fullName || 'Ứng viên'}
                           </p>
                           <p className="text-xs text-slate-500 truncate">
-                            {app.jobTitle}
+                            {app.job?.title}
                           </p>
                         </div>
                       </div>
@@ -745,6 +992,17 @@ export const EmployerDashboard = () => {
                                   <Button
                                     variant="outline"
                                     size="sm"
+                                    className="rounded-lg text-primary hover:bg-primary/5 transition-all border-slate-200"
+                                    onClick={() => {
+                                      setActive('applicants');
+                                      setSelectedJobIdFilter(String(job.id));
+                                    }}
+                                  >
+                                    Xem ứng viên
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
                                     className="rounded-lg text-slate-600 hover:text-primary transition-all border-slate-200"
                                     onClick={() => setEditJobId(job.id)}
                                   >
@@ -823,172 +1081,7 @@ export const EmployerDashboard = () => {
                 </Button>
               </div>
 
-              <div className="flex flex-col xl:flex-row gap-6">
-                {/* Left/Top: Filters + List */}
-                <div
-                  className={`space-y-4 transition-all ${applicantDetail ? 'xl:w-1/2' : 'w-full'}`}
-                >
-                  <Card className="p-4 rounded-2xl shadow-sm border-slate-100 flex flex-wrap gap-3">
-                    <select
-                      className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[200px] outline-none focus:border-primary transition-all"
-                      value={selectedJobIdFilter}
-                      onChange={(e) => setSelectedJobIdFilter(e.target.value)}
-                    >
-                      <option value="">-- Lọc theo công việc --</option>
-                      {jobs.map((j) => (
-                        <option key={j.id} value={j.id}>
-                          {j.title}
-                        </option>
-                      ))}
-                    </select>
-                    <select className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[150px] outline-none">
-                      <option value="">Trạng thái</option>
-                      <option value="Pending">Chờ xử lý</option>
-                      <option value="Reviewed">Đã xem</option>
-                      <option value="Rejected">Từ chối</option>
-                    </select>
-                  </Card>
-
-                  {MOCK_APPLICANTS.length === 0 ? (
-                    <EmptyState
-                      title="Chưa có ứng viên nào."
-                      description="Khi có ứng viên nộp hồ sơ, dữ liệu sẽ hiển thị ở đây."
-                    />
-                  ) : (
-                    <div className="space-y-3">
-                      {MOCK_APPLICANTS.map((a) => (
-                        <Card
-                          key={a.id}
-                          className={`p-4 rounded-2xl shadow-sm border transition-all cursor-pointer hover:border-primary hover:shadow-md ${applicantDetail?.id === a.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-slate-100'}`}
-                          onClick={() => {
-                            setApplicantDetail(a);
-                            setApplicantStatus(a.status);
-                          }}
-                        >
-                          <div className="flex justify-between items-start gap-4">
-                            <div className="flex items-center gap-4">
-                              <img
-                                src={a.avatar}
-                                alt="avatar"
-                                className="w-12 h-12 rounded-full shadow-sm object-cover border border-slate-100"
-                              />
-                              <div className="overflow-hidden">
-                                <h4 className="font-semibold text-slate-800 truncate">
-                                  {a.workerName}
-                                </h4>
-                                <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5 truncate">
-                                  <Briefcase size={12} /> {a.jobTitle}
-                                </p>
-                              </div>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <ApplicantStatusBadge status={a.status} />
-                              <p className="text-xs text-slate-400 mt-2 flex items-center justify-end gap-1">
-                                <Clock size={12} /> {a.appliedDate}
-                              </p>
-                            </div>
-                          </div>
-                        </Card>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Side: Detail Viewer */}
-                {applicantDetail && (
-                  <div className="xl:w-1/2 animate-in slide-in-from-right-8 duration-300">
-                    <Card className="p-6 rounded-2xl shadow-lg border-primary/20 bg-white sticky top-4">
-                      <div className="flex justify-between items-start mb-6">
-                        <h3 className="font-bold text-lg flex items-center gap-2">
-                          <Users className="text-primary" /> Chi tiết hồ sơ
-                        </h3>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="rounded-full h-8 w-8 hover:bg-slate-100"
-                          onClick={() => setApplicantDetail(null)}
-                        >
-                          <X size={18} />
-                        </Button>
-                      </div>
-
-                      <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
-                        <img
-                          src={applicantDetail.avatar}
-                          className="w-20 h-20 rounded-2xl shadow-sm object-cover"
-                          alt="avatar"
-                        />
-                        <div>
-                          <h2 className="text-xl font-bold text-slate-800">
-                            {applicantDetail.workerName}
-                          </h2>
-                          <div className="text-sm text-slate-500 mt-2 space-y-1">
-                            <p className="flex items-center gap-2">
-                              <Mail size={14} /> {applicantDetail.email}
-                            </p>
-                            <p className="flex items-center gap-2">
-                              <Phone size={14} /> {applicantDetail.phone}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="py-6 space-y-4">
-                        <div>
-                          <p className="text-sm font-medium text-slate-500">
-                            Vị trí ứng tuyển
-                          </p>
-                          <p className="font-semibold text-slate-800 mt-1">
-                            {applicantDetail.jobTitle}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-slate-500">
-                            Câu trả lời khảo sát
-                          </p>
-                          <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-700 mt-2 border border-slate-100 leading-relaxed">
-                            <p>
-                              <strong>1. Kinh nghiệm của bạn:</strong> Tôi có 2
-                              năm làm việc tại vị trí tương đương...
-                            </p>
-                            <br />
-                            <p>
-                              <strong>2. Lý do chọn chúng tôi:</strong> Công ty
-                              có môi trường làm việc năng động và chế độ tốt...
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="pt-6 border-t border-slate-100 bg-slate-300/10 -mx-6 -mb-6 p-6 rounded-b-2xl">
-                        <p className="text-sm font-medium text-slate-700 mb-3">
-                          Cập nhật trạng thái ứng viên
-                        </p>
-                        <div className="flex items-center gap-3">
-                          <select
-                            className="rounded-xl border border-slate-300 px-4 py-2 text-sm bg-white flex-1 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all shadow-sm"
-                            value={applicantStatus}
-                            onChange={(e) => setApplicantStatus(e.target.value)}
-                          >
-                            <option value="Pending">Chờ xử lý</option>
-                            <option value="Reviewed">Đã xem hồ sơ</option>
-                            <option value="Contacting">
-                              Đang liên hệ / Phỏng vấn
-                            </option>
-                            <option value="Rejected">Từ chối</option>
-                          </select>
-                          <Button
-                            className="rounded-xl px-6 font-semibold"
-                            onClick={handleSaveApplicantStatus}
-                          >
-                            Lưu lại
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  </div>
-                )}
-              </div>
+              {renderApplicantManagement(false)}
             </div>
           )}
 

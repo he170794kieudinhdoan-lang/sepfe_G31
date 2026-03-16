@@ -274,8 +274,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
         const data = await res.json();
-        // In V2, 'districts' level is flattened or renamed to 'wards' at depth 2
-        setDistricts(data.wards || []);
+        setDistricts(data.districts || data.wards || []);
       } catch (err) {
         console.error('[CreateJob] Fetch districts error:', err);
         toast('Không thể tải danh sách quận huyện', 'error');

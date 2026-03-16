@@ -15,6 +15,8 @@ import {
   applyJobApi,
   getMyApplicationsApi,
   cancelApplyJobApi,
+  getEmployerApplications,
+  updateApplicationStatus,
 } from './jobApi';
 
 // ===== JOB DETAIL =====
@@ -59,6 +61,13 @@ export const useJobsForEmployer = (filters = {}, options = {}) => {
   });
 };
 
+export const useEmployerApplications = (jobId) => {
+  return useQuery({
+    queryKey: ['employer-applications', jobId],
+    queryFn: () => getEmployerApplications(jobId),
+  });
+};
+
 // ===== JOB MUTATIONS =====
 
 const invalidateJobQueries = (queryClient) => {
@@ -87,6 +96,16 @@ export const useUpdateJob = () => {
     mutationFn: updateJobApi,
     onSuccess: () => {
       invalidateJobQueries(queryClient);
+    },
+  });
+};
+
+export const useUpdateApplicationStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateApplicationStatus,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
     },
   });
 };
