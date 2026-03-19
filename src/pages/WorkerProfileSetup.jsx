@@ -15,22 +15,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useGetOccupations } from '@/features/users/api/useUser';
-import { useCreateWorkerProfile } from '@/features/users/api/useUser';
+import {
+  useGetOccupations,
+  useCreateWorkerProfile,
+} from '@/features/users/api/useUser';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
 import { SHIFTS, GENDERS } from '@/shared/constants/enums';
-import { useProvinces } from '@/shared/hooks/useProvinces';
+import { useProvinces, useWards } from '@/shared/hooks/useProvinces';
+import { Textarea } from '@/components/ui/textarea';
 
 const schema = z.object({
   occupationId: z
     .number({ required_error: 'Vui lòng chọn nghề nghiệp' })
     .min(1, 'Vui lòng chọn nghề nghiệp'),
-  shift: z.string().optional(),
-  address: z.string().optional(),
-  province: z.string().optional(),
-  district: z.string().optional(),
-  gender: z.string().optional(),
+  shift: z.string().min(1, 'Vui lòng chọn ca làm việc'),
+  province: z.string().min(1, 'Vui lòng chọn tỉnh/thành'),
+  gender: z.string().min(1, 'Vui lòng chọn giới tính'),
   birthYear: z.preprocess(
     (val) =>
       val === '' ||
@@ -73,6 +74,12 @@ const schema = z.object({
       .max(80, 'Số năm kinh nghiệm không hợp lệ')
       .optional(),
   ),
+  bio: z.string().max(100, 'Mô tả bản thân tối đa 100 ký tự').optional(),
+  desiredJobText: z
+    .string()
+    .max(100, 'Mong muốn công việc tối đa 100 ký tự')
+    .optional(),
+  ward: z.string().min(1, 'Vui lòng chọn phường/xã'),
 });
 
 export const WorkerProfileSetup = () => {
@@ -91,6 +98,7 @@ export const WorkerProfileSetup = () => {
     handleSubmit,
     control,
     setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -98,14 +106,29 @@ export const WorkerProfileSetup = () => {
       occupationId: '',
       shift: '',
       province: '',
+      ward: '',
       gender: '',
       birthYear: '',
       expectedSalary: '',
       experienceYear: '',
+      bio: '',
+      desiredJobText: '',
     },
   });
 
-  // Get filtered occupations based on selected sector
+  const watchProvince = watch('province');
+  const [provinceCode, setProvinceCode] = useState('');
+  const { wards, isLoading: wardsLoading } = useWards(provinceCode);
+
+  useEffect(() => {
+    if (watchProvince && provinces.length > 0) {
+      const p = provinces.find((p) => p.name === watchProvince);
+      if (p) setProvinceCode(p.code);
+    } else {
+      setProvinceCode('');
+    }
+  }, [watchProvince, provinces]);
+
   const filteredOccupations = useMemo(() => {
     if (!occupationsData || !sectorId) return [];
     const sector = occupationsData.find((s) => s.id.toString() === sectorId);
@@ -307,6 +330,24 @@ export const WorkerProfileSetup = () => {
                   </p>
                 )}
               </div>
+
+              {/* Bio */}
+              <div className="col-span-full space-y-2">
+                <Label htmlFor="bio" className="text-sm font-medium">
+                  Mô tả bản thân
+                </Label>
+                <Textarea
+                  id="bio"
+                  placeholder="Hãy giới thiệu một chút về bản thân bạn (kinh nghiệm, kỹ năng, thái độ làm việc...)"
+                  className="min-h-[100px] rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors resize-none"
+                  {...register('bio')}
+                />
+                {errors.bio && (
+                  <p className="text-xs text-destructive">
+                    {errors.bio.message}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -328,11 +369,10 @@ export const WorkerProfileSetup = () => {
                   </p>
                 )}
               </div>
-
               {/* Province */}
               <div className="space-y-2">
                 <Label htmlFor="province" className="text-sm font-medium">
-                  Địa điểm làm việc
+                  Tỉnh/Thành phố
                 </Label>
                 <Controller
                   name="province"
@@ -340,7 +380,10 @@ export const WorkerProfileSetup = () => {
                   render={({ field }) => (
                     <Select
                       value={field.value ?? ''}
-                      onValueChange={(val) => field.onChange(val)}
+                      onValueChange={(val) => {
+                        field.onChange(val);
+                        setValue('ward', '');
+                      }}
                       disabled={provincesLoading}
                     >
                       <SelectTrigger className="w-full h-11! rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
@@ -366,6 +409,63 @@ export const WorkerProfileSetup = () => {
                     </Select>
                   )}
                 />
+              </div>
+
+              {/* Ward (Treating districts as wards) */}
+              <div className="space-y-2">
+                <Label htmlFor="ward" className="text-sm font-medium">
+                  Phường/Xã
+                </Label>
+                <Controller
+                  name="ward"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      value={field.value ?? ''}
+                      onValueChange={(val) => field.onChange(val)}
+                      disabled={!watchProvince || wardsLoading}
+                    >
+                      <SelectTrigger className="w-full h-11! rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors disabled:opacity-50">
+                        <SelectValue
+                          placeholder={
+                            wardsLoading ? 'Đang tải...' : 'Chọn phường/xã'
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                        <div className="max-h-60 overflow-y-auto py-1 px-1">
+                          {wards.map((w) => (
+                            <SelectItem
+                              key={w.code}
+                              value={w.name}
+                              className="rounded-lg text-sm cursor-pointer hover:bg-primary/10 focus:bg-primary/10 focus:text-foreground"
+                            >
+                              {w.name}
+                            </SelectItem>
+                          ))}
+                        </div>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </div>
+
+              {/* Desired Job Text */}
+              <div className="col-span-full space-y-2">
+                <Label htmlFor="desiredJobText" className="text-sm font-medium">
+                  Mong muốn cụ thể về công việc
+                </Label>
+                <Input
+                  id="desiredJobText"
+                  placeholder="VD: Muốn làm gần nhà, ưu tiên tăng ca..."
+                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
+                  {...register('desiredJobText')}
+                />
+                {errors.desiredJobText && (
+                  <p className="text-xs text-destructive">
+                    {errors.desiredJobText.message}
+                  </p>
+                )}
               </div>
             </div>
 

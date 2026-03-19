@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -29,10 +30,9 @@ import {
   Clock,
   DollarSign,
   Star,
-  ChevronRight,
   Loader2,
 } from 'lucide-react';
-import { useProvinces, formatProvinceName } from '@/shared/hooks/useProvinces';
+import { useProvinces, useWards } from '@/shared/hooks/useProvinces';
 
 const schema = z.object({
   occupationId: z
@@ -81,6 +81,12 @@ const schema = z.object({
       .min(0, 'Số năm kinh nghiệm không hợp lệ')
       .max(80, 'Số năm kinh nghiệm không hợp lệ'),
   ),
+  bio: z.string().max(100, 'Mô tả bản thân tối đa 100 ký tự').optional(),
+  desiredJobText: z
+    .string()
+    .max(100, 'Mong muốn công việc tối đa 100 ký tự')
+    .optional(),
+  ward: z.string().optional(),
 });
 
 export const WorkerProfileView = () => {
@@ -95,6 +101,10 @@ export const WorkerProfileView = () => {
     useUpdateWorkerProfile();
   const { provinces, isLoading: provincesLoading } = useProvinces();
 
+  const [provinceCode, setProvinceCode] = useState('');
+
+  const { wards, isLoading: wardsLoading } = useWards(provinceCode);
+
   const filteredOccupations = useMemo(() => {
     if (!occupationsData || !sectorId) return [];
     const sector = occupationsData.find((s) => s.id.toString() === sectorId);
@@ -107,6 +117,7 @@ export const WorkerProfileView = () => {
     control,
     setValue,
     reset,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -114,12 +125,27 @@ export const WorkerProfileView = () => {
       occupationId: undefined,
       shift: '',
       province: '',
+      ward: '',
       gender: '',
       birthYear: '',
       expectedSalary: '',
       experienceYear: '',
+      bio: '',
+      desiredJobText: '',
     },
   });
+
+  const watchProvince = watch('province');
+
+  // Sync codes when names change (especially on load)
+  useEffect(() => {
+    if (watchProvince && provinces.length > 0) {
+      const p = provinces.find((p) => p.name === watchProvince);
+      if (p) setProvinceCode(p.code);
+    } else {
+      setProvinceCode('');
+    }
+  }, [watchProvince, provinces]);
 
   useEffect(() => {
     if (!workerProfile || !occupationsData || provinces.length === 0) return;
@@ -134,12 +160,23 @@ export const WorkerProfileView = () => {
       occupationId: occupation?.id ?? undefined,
       shift: rest.shift || '',
       province: rest.province || '',
+      ward: rest.ward || '',
       gender: rest.gender || '',
       birthYear: rest.birthYear || '',
       expectedSalary: rest.expectedSalary || '',
       experienceYear: rest.experienceYear ?? '',
+      bio: rest.bio || '',
+      desiredJobText: rest.desiredJobText || '',
     });
-  }, [workerProfile, occupationsData, provinces, reset]);
+  }, [
+    workerProfile,
+    occupationsData,
+    provinces,
+    reset,
+    provinceCode,
+    wardsLoading,
+    wards,
+  ]);
 
   const handleSectorChange = (newSectorId) => {
     if (!newSectorId) return;
@@ -363,6 +400,23 @@ export const WorkerProfileView = () => {
                 />
                 <FieldError message={errors.birthYear?.message} />
               </div>
+
+              {/* Bio */}
+              <div className="col-span-full space-y-1.5">
+                <Label
+                  htmlFor="bio"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Mô tả bản thân
+                </Label>
+                <Textarea
+                  id="bio"
+                  placeholder="Hãy giới thiệu một chút về bản thân bạn (kinh nghiệm, kỹ năng, thái độ làm việc...)"
+                  className="min-h-[100px] rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors resize-none"
+                  {...register('bio')}
+                />
+                <FieldError message={errors.bio?.message} />
+              </div>
             </div>
           </section>
 
@@ -489,41 +543,106 @@ export const WorkerProfileView = () => {
                 </div>
               </div>
 
-              {/* Province */}
+              {/* Desired Job Context */}
               <div className="space-y-1.5">
-                <Label className="text-sm font-medium text-gray-700">
-                  Địa điểm làm việc <RequiredMark />
+                <Label
+                  htmlFor="desiredJobText"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  Mong muốn cụ thể về công việc
                 </Label>
-                <Controller
-                  name="province"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      value={field.value || ''}
-                      onValueChange={(val) => {
-                        if (val) field.onChange(val);
-                      }}
-                    >
-                      <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
-                        <SelectValue placeholder="Chọn tỉnh/thành" />
-                      </SelectTrigger>
-                      <SelectContent className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden">
-                        <div className="max-h-60 overflow-y-auto py-1 px-1">
-                          {provinces.map((p) => (
-                            <SelectItem
-                              key={p.code}
-                              value={p.name}
-                              className="rounded-lg text-sm cursor-pointer hover:bg-primary-muted focus:bg-primary-muted focus:text-foreground"
-                            >
-                              {p.name}
-                            </SelectItem>
-                          ))}
-                        </div>
-                      </SelectContent>
-                    </Select>
-                  )}
+                <Input
+                  id="desiredJobText"
+                  placeholder="VD: Muốn làm gần nhà, ưu tiên tăng ca..."
+                  className="h-11 rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors"
+                  {...register('desiredJobText')}
                 />
-                <FieldError message={errors.province?.message} />
+                <FieldError message={errors.desiredJobText?.message} />
+              </div>
+
+              {/* Province - Ward */}
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {/* Province */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Tỉnh/Thành phố <RequiredMark />
+                    </Label>
+                    <Controller
+                      name="province"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value || ''}
+                          onValueChange={(val) => {
+                            if (val) {
+                              field.onChange(val);
+                              setValue('ward', '');
+                            }
+                          }}
+                        >
+                          <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
+                            <SelectValue placeholder="Chọn tỉnh/thành" />
+                          </SelectTrigger>
+                          <SelectContent className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                            <div className="max-h-60 overflow-y-auto py-1 px-1">
+                              {provinces.map((p) => (
+                                <SelectItem
+                                  key={p.code}
+                                  value={p.name}
+                                  className="rounded-lg text-sm cursor-pointer hover:bg-primary-muted focus:bg-primary-muted focus:text-foreground"
+                                >
+                                  {p.name}
+                                </SelectItem>
+                              ))}
+                            </div>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <FieldError message={errors.province?.message} />
+                  </div>
+
+                  {/* Ward (Treating districts as wards) */}
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <Label className="text-sm font-medium text-gray-700">
+                      Phường/Xã <RequiredMark />
+                    </Label>
+                    <Controller
+                      name="ward"
+                      control={control}
+                      render={({ field }) => (
+                        <Select
+                          value={field.value || ''}
+                          onValueChange={field.onChange}
+                          disabled={!watchProvince || wardsLoading}
+                        >
+                          <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
+                            <SelectValue
+                              placeholder={
+                                wardsLoading ? 'Đang tải...' : 'Chọn phường/xã'
+                              }
+                            />
+                          </SelectTrigger>
+                          <SelectContent className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                            <div className="max-h-60 overflow-y-auto py-1 px-1">
+                              {wards.map((w) => (
+                                <SelectItem
+                                  key={w.code}
+                                  value={w.name}
+                                  className="rounded-lg text-sm cursor-pointer hover:bg-primary-muted focus:bg-primary-muted focus:text-foreground"
+                                >
+                                  {w.name}
+                                </SelectItem>
+                              ))}
+                            </div>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <FieldError message={errors.ward?.message} />
+                  </div>
+                </div>
               </div>
             </div>
           </section>

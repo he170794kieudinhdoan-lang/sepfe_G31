@@ -18,7 +18,7 @@ export const useProvinces = () => {
   useEffect(() => {
     let mounted = true;
     setIsLoading(true);
-    fetch(`${PROVINCES_API}/p/`)
+    fetch(`${PROVINCES_API}`)
       .then((res) => res.json())
       .then((data) => {
         if (!mounted) return;
@@ -41,4 +41,47 @@ export const useProvinces = () => {
   }, []);
 
   return { provinces, isLoading, error };
+};
+
+
+export const useWards = (provinceCode) => {
+  const [wards, setWards] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!provinceCode) {
+      setWards([]);
+      return;
+    }
+
+    let mounted = true;
+    setIsLoading(true);
+    fetch(`${PROVINCES_API}/p/${provinceCode}?depth=2`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!mounted) return;
+        const formatted =
+          data && Array.isArray(data.wards)
+            ? data.wards.map((w) => ({
+                ...w,
+                name: formatProvinceName(w.name),
+              }))
+            : [];
+        setWards(formatted);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setError(err);
+        setWards([]);
+      })
+      .finally(() => {
+        if (mounted) setIsLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [provinceCode]);
+
+  return { wards, isLoading, error };
 };
