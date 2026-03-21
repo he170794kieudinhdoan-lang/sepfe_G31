@@ -109,3 +109,8 @@ export const getWards = async (wardsId) => {
   ).get();
   return { communes: response.districts };
 };
+
+//AI
+export const getMatchedJobsApi = async (limit = 10) => {
+  return await apiClient.get('/ai-matching/jobs', { params: { limit } });
+};

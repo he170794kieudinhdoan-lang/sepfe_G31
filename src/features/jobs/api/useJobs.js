@@ -17,6 +17,7 @@ import {
   cancelApplyJobApi,
   getEmployerApplications,
   updateApplicationStatus,
+  getMatchedJobsApi,
 } from './jobApi';
 
 // ===== JOB DETAIL =====
@@ -203,5 +204,15 @@ export const useCancelApplyJob = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-applications'] });
     },
+  });
+};
+
+//AI
+export const useMatchedJobs = (limit = 10, options = {}) => {
+  return useQuery({
+    queryKey: ['matched-jobs', limit],
+    queryFn: () => getMatchedJobsApi(limit),
+    staleTime: 5 * 60 * 1000,
+    ...options,
   });
 };

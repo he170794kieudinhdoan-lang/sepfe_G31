@@ -31,6 +31,6 @@ export const formatSalary = (min, max, variant = 'full') => {
   const fMin = formatNumber(min);
   const fMax = formatNumber(max);
 
-  if (min && max) return `${fMin} đ - ${fMax} đ/tháng`;
-  return min ? `Từ ${fMin} đ/tháng` : `Đến ${fMax} đ/tháng`;
+  if (min && max) return `${fMin} đ - ${fMax} đ`;
+  return min ? `Từ ${fMin} đ` : `Đến ${fMax} đ`;
 };
