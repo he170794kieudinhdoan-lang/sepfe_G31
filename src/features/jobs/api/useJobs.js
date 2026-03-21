@@ -18,7 +18,10 @@ import {
   getEmployerApplications,
   updateApplicationStatus,
   getMatchedJobsApi,
+  getWeights,
+  updateWeights,
 } from './jobApi';
+import { useToast } from '@/shared/contexts/ToastContext';
 
 // ===== JOB DETAIL =====
 
@@ -214,5 +217,32 @@ export const useMatchedJobs = (limit = 10, options = {}) => {
     queryFn: () => getMatchedJobsApi(limit),
     staleTime: 5 * 60 * 1000,
     ...options,
+  });
+};
+
+export const useGetAiWeights = () => {
+  return useQuery({
+    queryKey: ['ai-weights'],
+    queryFn: getWeights,
+  });
+};
+
+export const useUpdateAiWeights = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: (weights) => updateWeights(weights),
+    onSuccess: () => {
+      toast('Cập nhật trọng số AI thành công', 'success');
+      queryClient.invalidateQueries({ queryKey: ['ai-weights'] });
+    },
+    onError: (error) => {
+      console.error(error);
+      const message =
+        error?.response?.data?.message ||
+        'Có lỗi xảy ra khi cập nhật trọng số AI';
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    },
   });
 };
