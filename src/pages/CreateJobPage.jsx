@@ -82,6 +82,7 @@ const schema = z
         .number({ invalid_type_error: 'Vui lòng nhập số' })
         .int('Lương phải là số nguyên')
         .min(0, 'Lương không được âm')
+        .max(100000000, 'Lương không được quá 100.000.000')
         .optional()
         .nullable(),
     ),
@@ -94,6 +95,7 @@ const schema = z
         .number({ invalid_type_error: 'Vui lòng nhập số' })
         .int('Lương phải là số nguyên')
         .min(0, 'Lương không được âm')
+        .max(100000000, 'Lương không được quá 100.000.000')
         .optional()
         .nullable(),
     ),

@@ -3,6 +3,51 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { z } from 'zod';
+
+const step0Schema = z.object({
+  occupationId: z.coerce.number().min(1, 'Vui lòng chọn ngành nghề'),
+  title: z.string().min(5, 'Tiêu đề phải có ít nhất 5 ký tự'),
+  description: z.string().min(20, 'Mô tả phải có ít nhất 20 ký tự'),
+  quantity: z.coerce.number().min(1, 'Số lượng tuyển phải lớn hơn 0'),
+  ageMin: z.preprocess((v) => v === '' || v === null ? undefined : Number(v), z.number().min(18, 'Tuổi tối thiểu phải từ 18').optional()),
+  ageMax: z.preprocess((v) => v === '' || v === null ? undefined : Number(v), z.number().min(18, 'Tuổi tối đa phải từ 18').optional()),
+  salaryMin: z.preprocess((v) => v === '' || v === null ? undefined : Number(v), z.number().min(0, 'Lương không được âm').max(100000000, 'Lương không được quá 100.000.000').optional()),
+  salaryMax: z.preprocess((v) => v === '' || v === null ? undefined : Number(v), z.number().min(0, 'Lương không được âm').max(100000000, 'Lương không được quá 100.000.000').optional()),
+}).superRefine((data, ctx) => {
+  if (data.ageMin && data.ageMax && data.ageMin > data.ageMax) {
+    ctx.addIssue({ path: ['ageMax'], message: 'Tuổi tối đa không được nhỏ hơn tuổi tối thiểu', code: 'custom' });
+  }
+  if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
+    ctx.addIssue({ path: ['salaryMax'], message: 'Lương tối đa không được nhỏ hơn lương tối thiểu', code: 'custom' });
+  }
+});
+
+const step1Schema = z.object({
+  workingShift: z.string().min(1, 'Vui lòng chọn ca làm việc'),
+  province: z.string().min(1, 'Vui lòng chọn Tỉnh/Thành phố'),
+  district: z.string().min(1, 'Vui lòng chọn Quận/Huyện'),
+});
+
+const step2Schema = z.object({
+  fields: z.array(
+    z.object({
+      label: z.string().min(1, 'Vui lòng nhập nội dung câu hỏi'),
+      fieldType: z.string(),
+      options: z.array(z.string()).optional(),
+    })
+  ).superRefine((fields, ctx) => {
+    fields.forEach((f, i) => {
+      if (['select', 'radio', 'checkbox'].includes(f.fieldType)) {
+        const validOpts = (f.options || []).filter(o => o?.trim());
+        if (validOpts.length < 2) {
+          ctx.addIssue({ path: [i, 'options'], message: `Câu hỏi số ${i + 1} phải có ít nhất 2 lựa chọn hợp lệ`, code: 'custom' });
+        }
+      }
+    });
+  }).optional(),
+});
+
 import { useUpdateJob } from '@/features/jobs/useJobMutation';
 import { useJobDetail } from '@/features/jobs/api/useJobs';
 import { useToast } from '@/shared/contexts/ToastContext';
@@ -49,19 +94,65 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
     salaryMax: '',
     fields: [],
   });
-  const nextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep((prev) => prev + 1);
-    }
-  };
-
   const prevStep = () => {
     if (currentStep > 0) {
       setCurrentStep((prev) => prev - 1);
+      setErrorMessage('');
+      setErrors({});
     }
   };
 
   const [errorMessage, setErrorMessage] = useState('');
+  const [errors, setErrors] = useState({});
+
+  const FieldError = ({ error }) => {
+    if (!error) return null;
+    return (
+      <p className="text-red-500 text-xs mt-1.5 font-medium">{error}</p>
+    );
+  };
+
+  const validateStep = (stepIndex) => {
+    setErrorMessage('');
+    
+    // sectorId is independent of the form block
+    if (stepIndex === 0 && !selectedSector) {
+      setErrors({ sectorId: "Vui lòng chọn lĩnh vực." });
+      return false;
+    }
+
+    let schemaToValidate;
+    if (stepIndex === 0) schemaToValidate = step0Schema;
+    if (stepIndex === 1) schemaToValidate = step1Schema;
+    if (stepIndex === 2) schemaToValidate = step2Schema;
+
+    if (schemaToValidate) {
+      const result = schemaToValidate.safeParse(form);
+      if (!result.success) {
+        const fieldErrors = {};
+        result.error.issues.forEach(issue => {
+          const path = issue.path.join('.');
+          if (!fieldErrors[path]) {
+             fieldErrors[path] = issue.message;
+          }
+        });
+        setErrors(fieldErrors);
+        return false;
+      }
+    }
+
+    setErrors({});
+    return true;
+  };
+
+  const nextStep = () => {
+    const isValid = validateStep(currentStep);
+    if (!isValid) return;
+
+    if (currentStep < steps.length - 1) {
+      setCurrentStep((prev) => prev + 1);
+    }
+  };
 
   useEffect(() => {
     if (!jobDetail) return;
@@ -173,6 +264,9 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
   if (isLoading) return <div>Loading...</div>;
 
   const handleSubmit = () => {
+    const isValid = validateStep(currentStep);
+    if (!isValid) return;
+
     const payload = {
       title: form.title,
       description: form.description,
@@ -314,11 +408,12 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
               <div>
                 <label className="text-sm font-medium">Lĩnh vực *</label>
                 <select
-                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm bg-white"
+                  className={`w-full mt-1 rounded-xl border px-3 py-2 text-sm bg-white ${errors.sectorId ? 'border-red-500' : ''}`}
                   value={selectedSector}
                   onChange={(e) => {
                     setSelectedSector(e.target.value);
                     setForm({ ...form, occupationId: '' });
+                    setErrors({ ...errors, sectorId: undefined });
                   }}
                   disabled={loadingSector}
                 >
@@ -332,16 +427,18 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                     </option>
                   ))}
                 </select>
+                <FieldError error={errors.sectorId} />
               </div>
 
               <div>
                 <label className="text-sm font-medium">Ngành nghề *</label>
                 <select
-                  className="w-full mt-1 rounded-xl border px-3 py-2 text-sm bg-white"
+                  className={`w-full mt-1 rounded-xl border px-3 py-2 text-sm bg-white ${errors.occupationId ? 'border-red-500' : ''}`}
                   value={form.occupationId}
-                  onChange={(e) =>
-                    setForm({ ...form, occupationId: Number(e.target.value) })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, occupationId: Number(e.target.value) });
+                    setErrors({ ...errors, occupationId: undefined });
+                  }}
                   disabled={!selectedSector || loadingOccupation}
                 >
                   <option value="">
@@ -358,36 +455,47 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                     </option>
                   ))}
                 </select>
+                <FieldError error={errors.occupationId} />
               </div>
               <div>
                 <label className="text-sm font-medium">Tiêu đề *</label>
                 <Input
+                  className={errors.title ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  onChange={(e) => {
+                    setForm({ ...form, title: e.target.value });
+                    setErrors({ ...errors, title: undefined });
+                  }}
                 />
+                <FieldError error={errors.title} />
               </div>
 
               <div>
                 <label className="text-sm font-medium">Mô tả *</label>
                 <textarea
-                  className="w-full rounded-xl border px-4 py-3 text-sm"
+                  className={`w-full rounded-xl border px-4 py-3 text-sm ${errors.description ? 'border-red-500 focus-visible:outline-red-500' : ''}`}
                   rows={4}
                   value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, description: e.target.value });
+                    setErrors({ ...errors, description: undefined });
+                  }}
                 />
+                <FieldError error={errors.description} />
               </div>
 
               <div>
                 <label className="text-sm font-medium">Số lượng tuyển *</label>
                 <Input
+                  className={errors.quantity ? 'border-red-500 focus-visible:ring-red-500' : ''}
                   type="number"
                   value={form.quantity}
-                  onChange={(e) =>
-                    setForm({ ...form, quantity: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, quantity: e.target.value });
+                    setErrors({ ...errors, quantity: undefined });
+                  }}
                 />
+                <FieldError error={errors.quantity} />
               </div>
 
               <div>
@@ -408,23 +516,29 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                 <div>
                   <label className="text-sm font-medium">Tuổi tối thiểu</label>
                   <Input
+                    className={errors.ageMin ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     type="number"
                     value={form.ageMin}
-                    onChange={(e) =>
-                      setForm({ ...form, ageMin: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, ageMin: e.target.value });
+                      setErrors({ ...errors, ageMin: undefined });
+                    }}
                   />
+                  <FieldError error={errors.ageMin} />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium">Tuổi tối đa</label>
                   <Input
+                    className={errors.ageMax ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     type="number"
                     value={form.ageMax}
-                    onChange={(e) =>
-                      setForm({ ...form, ageMax: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, ageMax: e.target.value });
+                      setErrors({ ...errors, ageMax: undefined });
+                    }}
                   />
+                  <FieldError error={errors.ageMax} />
                 </div>
               </div>
 
@@ -434,12 +548,15 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                     Lương tối thiểu (VND)
                   </label>
                   <Input
+                    className={errors.salaryMin ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     type="number"
                     value={form.salaryMin}
-                    onChange={(e) =>
-                      setForm({ ...form, salaryMin: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, salaryMin: e.target.value });
+                      setErrors({ ...errors, salaryMin: undefined });
+                    }}
                   />
+                  <FieldError error={errors.salaryMin} />
                 </div>
 
                 <div>
@@ -447,12 +564,15 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                     Lương tối đa (VND)
                   </label>
                   <Input
+                    className={errors.salaryMax ? 'border-red-500 focus-visible:ring-red-500' : ''}
                     type="number"
                     value={form.salaryMax}
-                    onChange={(e) =>
-                      setForm({ ...form, salaryMax: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setForm({ ...form, salaryMax: e.target.value });
+                      setErrors({ ...errors, salaryMax: undefined });
+                    }}
                   />
+                  <FieldError error={errors.salaryMax} />
                 </div>
               </div>
             </div>
@@ -464,11 +584,12 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
               <div>
                 <label className="text-sm font-medium">Ca làm *</label>
                 <select
-                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  className={`w-full rounded-xl border px-3 py-2 text-sm ${errors.workingShift ? 'border-red-500' : ''}`}
                   value={form.workingShift}
-                  onChange={(e) =>
-                    setForm({ ...form, workingShift: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, workingShift: e.target.value });
+                    setErrors({ ...errors, workingShift: undefined });
+                  }}
                 >
                   <option value="">Chọn ca</option>
                   <option value="MORNING">Ca sáng</option>
@@ -477,6 +598,7 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                   <option value="FULL_DAY">Toàn thời gian</option>
                   <option value="FLEXIBLE">Linh hoạt</option>
                 </select>
+                <FieldError error={errors.workingShift} />
               </div>
 
               <div>
@@ -492,15 +614,16 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
               <div>
                 <label className="text-sm font-medium">Tỉnh/Thành phố *</label>
                 <select
-                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  className={`w-full rounded-xl border px-3 py-2 text-sm ${errors.province ? 'border-red-500' : ''}`}
                   value={form.province}
-                  onChange={(e) =>
+                  onChange={(e) => {
                     setForm({
                       ...form,
                       province: e.target.value,
                       district: '',
-                    })
-                  }
+                    });
+                    setErrors({ ...errors, province: undefined });
+                  }}
                   disabled={loadingProvince}
                 >
                   <option value="">
@@ -513,17 +636,19 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                     </option>
                   ))}
                 </select>
+                <FieldError error={errors.province} />
               </div>
 
               {/* District */}
               <div>
                 <label className="text-sm font-medium">Quận/Huyện *</label>
                 <select
-                  className="w-full rounded-xl border px-3 py-2 text-sm"
+                  className={`w-full rounded-xl border px-3 py-2 text-sm ${errors.district ? 'border-red-500' : ''}`}
                   value={form.district}
-                  onChange={(e) =>
-                    setForm({ ...form, district: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setForm({ ...form, district: e.target.value });
+                    setErrors({ ...errors, district: undefined });
+                  }}
                   disabled={!form.province || loadingDistrict}
                 >
                   <option value="">
@@ -540,6 +665,7 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                     </option>
                   ))}
                 </select>
+                <FieldError error={errors.district} />
               </div>
             </div>
           )}
