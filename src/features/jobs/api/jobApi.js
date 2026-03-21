@@ -109,3 +109,16 @@ export const getWards = async (wardsId) => {
   ).get();
   return { communes: response.districts };
 };
+
+//AI
+export const getMatchedJobsApi = async (limit = 10) => {
+  return await apiClient.get('/ai-matching/jobs', { params: { limit } });
+};
+
+export const getWeights = async () => {
+  return await apiClient.get('/ai-matching/weights');
+};
+
+export const updateWeights = async (weights) => {
+  return await apiClient.put('/ai-matching/weights', { weights });
+};

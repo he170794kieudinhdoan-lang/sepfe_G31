@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, MapPin, X, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -9,6 +9,7 @@ import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import {
   Popover,
   PopoverContent,
+  PopoverAnchor,
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { RadioGroup } from '@/components/ui/radio-group';
@@ -16,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { JobCard } from '@/features/jobs/components/JobCard';
+import { MatchedJobs } from '@/features/jobs/components/MatchedJobs';
 import {
   useGetProvinces,
   useGetWards,
@@ -28,8 +30,10 @@ import {
 } from '@/features/jobs/api/useWishlist';
 import Typewriter from 'typewriter-effect';
 import { Container } from '@/shared/components/Container';
-import { Heart } from 'lucide-react';
+import { Heart, Clock } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { SHIFTS } from '@/shared/constants/enums';
+import { formatSalary } from '@/shared/utils/salaryUtils';
 const POPULAR_KEYWORDS = [
   'công nhân sản xuất',
   'công nhân may mặc',
@@ -73,7 +77,8 @@ function SaveJobButton({ job }) {
   const unsaveJobMutation = useUnsaveJob();
 
   const wishlist = data?.items || data || [];
-  const isSaved = Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job.id);
+  const isSaved =
+    Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job.id);
   const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
 
   if (!isAuthenticated) return null;
@@ -298,7 +303,10 @@ function SearchBarPopover({
             handleSearch();
           }}
         >
-          <Search className="text-white h-4 w-4" title="tìm kiếm theo từ khoá" />
+          <Search
+            className="text-white h-4 w-4"
+            title="tìm kiếm theo từ khoá"
+          />
         </Button>
       </div>
 
@@ -407,21 +415,21 @@ export function HomePage() {
   const [searchMode, setSearchMode] = useState('both');
   const [wardsName, setWardsName] = useState('');
   const [openId, setOpenId] = useState(null);
-  const [hoverTimeout, setHoverTimeout] = useState(null);
+  const timeoutRef = useRef(null);
 
   const handleMouseEnter = (jobId) => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setOpenId(jobId);
   };
 
   const handleMouseLeave = () => {
-    setOpenId(null);
+    timeoutRef.current = setTimeout(() => {
+      setOpenId(null);
+    }, 150);
   };
 
   const { data: newestJobs, isLoading } = useSearchJobs({ limit });
 
-  function formatMoney(number) {
-    return number?.toLocaleString('vi-VN') + ' đ';
-  }
   return (
     <div className="bg-background min-h-full">
       {/* PROFESSIONAL YELLOW-THEMED HERO SECTION */}
@@ -588,6 +596,8 @@ export function HomePage() {
         </Container>
       </section>
 
+      <MatchedJobs />
+
       {/* FEATURED */}
       <section
         id="jobs"
@@ -600,87 +610,128 @@ export function HomePage() {
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           {isLoading
             ? Array.from({ length: limit }).map((_, i) => (
-              <JobCardSkeleton key={i} />
-            ))
+                <JobCardSkeleton key={i} />
+              ))
             : newestJobs?.items?.map((job) => (
-              <Popover key={job.id} open={openId == job.id}>
-                <PopoverTrigger asChild>
-                  <div
+                <Popover key={job.id} open={openId === job.id}>
+                  <PopoverAnchor asChild>
+                    <div className="relative">
+                      <JobCard
+                        key={job.id}
+                        job={job}
+                        featured
+                        onMouseEnterTitle={() => handleMouseEnter(job.id)}
+                        onMouseLeaveTitle={handleMouseLeave}
+                      />
+                    </div>
+                  </PopoverAnchor>
+                  <PopoverContent
+                    className="w-[450px] p-0 overflow-hidden rounded-[24px] border border-slate-100 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.15)] bg-white z-100"
+                    side="left"
+                    sideOffset={0}
                     onMouseEnter={() => handleMouseEnter(job.id)}
                     onMouseLeave={handleMouseLeave}
                   >
-                    <JobCard key={job.id} job={job} featured />
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent
-                  className="w-[40vw] h-auto"
-                  onMouseEnter={() => handleMouseEnter(job.id)}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  <div>
-                    <div className="flex items-center gap-2 pb-5">
-                      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
-                        <ImageWithFallback
-                          src={job.company.logoUrl}
-                          alt={job.company.name}
-                          className="h-full w-full object-contain"
-                          fallbackClassName="h-full w-full flex items-center justify-center text-[10px] text-slate-400 text-center p-1"
-                        />
-                      </div>
-                      <div className="flex-7">
-                        <div className="text-lg p-2 font-bold text-gray-600">
-                          {job.title}
+                    <div className="flex flex-col max-h-[580px]">
+                      {/* --- HEADER --- */}
+                      <div className="p-6 bg-white shrink-0">
+                        <div className="flex items-start gap-4">
+                          <div className="h-[60px] w-[60px] shrink-0 overflow-hidden rounded-[14px] border border-slate-100/60 bg-white p-2 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.06)] flex items-center justify-center">
+                            <ImageWithFallback
+                              src={job.company?.logoUrl}
+                              alt={job.company?.name || 'Logo'}
+                              className="h-full w-full object-contain"
+                              fallbackClassName="text-[10px] text-slate-400 font-medium text-center"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0 pt-0.5">
+                            <h4
+                              className="text-[16px] font-extrabold text-slate-900 leading-[1.3] truncate hover:whitespace-normal hover:overflow-visible transition-colors"
+                              title={job.title}
+                            >
+                              {job.title}
+                            </h4>
+                            <div className="text-[13px] font-semibold text-slate-500 mt-1.5 truncate">
+                              {job.company?.name ||
+                                job.companyName ||
+                                'Công ty ẩn'}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-2 mt-3.5">
+                              <Badge
+                                variant="secondary"
+                                className="rounded-md text-[11px] font-black px-2.5 py-0.5"
+                              >
+                                {formatSalary(job.salaryMin)} -{' '}
+                                {formatSalary(job.salaryMax)}
+                              </Badge>
+                              <Badge
+                                variant="outline"
+                                className="border-slate-200 text-slate-500 rounded-md text-[11px] font-semibold px-2.5 py-0.5 bg-slate-50"
+                              >
+                                SL: {job.quantity || 1}
+                              </Badge>
+                              {job.workingShift && (
+                                <Badge
+                                  variant="outline"
+                                  className="border-slate-200 text-slate-500 rounded-md text-[11px] font-semibold px-2.5 py-0.5 bg-slate-50 gap-1 flex items-center"
+                                >
+                                  <Clock className="w-3.5 h-3.5" />
+                                  <span>
+                                    {SHIFTS.find(
+                                      (s) => s.value === job.workingShift,
+                                    )?.label || job.workingShift}
+                                  </span>
+                                </Badge>
+                              )}
+                              {/* Location Section */}
+                              <div className="flex gap-1 items-center ">
+                                <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                                <p className="text-[13px] text-slate-700 font-medium leading-[1.6]">
+                                  {job.district ? `${job.district}, ` : ''}
+                                  {job.province}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-sm ps-2">{job.company.name}</div>
                       </div>
-                    </div>
-                    <div className="pb-5 flex gap-2">
-                      <Badge className="bg-primary text-primary-foreground border-none w-fit rounded-xl px-4 py-1.5 font-bold text-[13px] shadow-sm">
-                        Số lượng {job.quantity}
-                      </Badge>
-                      <Badge className="bg-primary text-primary-foreground border-none w-fit rounded-xl px-4 py-1.5 font-bold text-[13px] shadow-sm">
-                        {formatMoney(job.salaryMin)} -{' '}
-                        {formatMoney(job.salaryMax)} {job.salaryUnit}
-                      </Badge>
-                      {/* <Badge className="bg-white text-black border-primary/30 w-fit rounded-lg">
-                      {job.gender}
-                    </Badge> */}
-                    </div>
-                    <hr></hr>
-                    <div>
-                      <div className="pt-2">
-                        <h4 className="text-sm font-bold text-gray-500">
-                          Mô tả công việc
-                        </h4>
+
+                      <div className="h-px bg-slate-100 w-full shrink-0" />
+
+                      {/* --- SCROLLABLE BODY --- */}
+                      {/* Use native div with custom-scrollbar to guarantee scroll visibility */}
+                      <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-6 space-y-7 overscroll-contain">
+                        {/* Description Section */}
+                        <section>
+                          <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5">
+                            Mô tả chi tiết
+                          </h5>
+                          <div className="text-[13px] text-slate-600 space-y-2 whitespace-pre-wrap leading-[1.7] px-1">
+                            {job.description ||
+                              'Chưa có thông tin mô tả chi tiết.'}
+                          </div>
+                        </section>
                       </div>
-                      <div className="pt-2">
-                        <p className="text-sm">{job.description}</p>
-                      </div>
-                      <div className="pt-2">
-                        <h4 className="text-sm font-bold text-gray-500">
-                          Địa chỉ
-                        </h4>
-                      </div>
-                      <div className="pt-2">
-                        <p className="text-sm font-bold text-gray-600">
-                          {job.address} - {job.district} - {job.province}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex justify-center gap-3">
-                      <div className="pt-4">
-                        <Button className="rounded-xl px-6" asChild>
-                          <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
+
+                      <div className="h-px bg-slate-100 w-full shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.02)]" />
+
+                      {/* --- FOOTER ACTIONS --- */}
+                      <div className="p-5 bg-white flex gap-3 shrink-0 items-center justify-end">
+                        <Button
+                          className="flex-1 h-11 rounded-[14px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98]"
+                          asChild
+                        >
+                          <Link to={`/job/${job.id}`}>
+                            Xem chi tiết việc làm
+                          </Link>
                         </Button>
-                      </div>
-                      <div className="pt-4">
+
                         <SaveJobButton job={job} />
                       </div>
                     </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
-            ))}
+                  </PopoverContent>
+                </Popover>
+              ))}
         </div>
         <div className="mt-8 text-center pt-8">
           <Button

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { getTermsCondition, updateTermsCondition } from '@/features/terms/api/termsApi';
+import {
+  getTermsCondition,
+  updateTermsCondition,
+} from '@/features/terms/api/termsApi';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -11,242 +14,279 @@ import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
-import { SectorManagementService } from "@/features/jobs/api/sectormanagement"
-import { OccupationManagementService } from "@/features/jobs/api/occupationmanagement"
+import { SectorManagementService } from '@/features/jobs/api/sectormanagement';
+import { OccupationManagementService } from '@/features/jobs/api/occupationmanagement';
+import { useGetAiWeights, useUpdateAiWeights } from '@/features/jobs';
+
 const kpi = [
-  { label: "Total users", value: "12,540" },
-  { label: "Total employers", value: "1,240" },
-  { label: "Total companies", value: "860" },
-  { label: "Total job postings", value: "4,520" },
-]
+  { label: 'Total users', value: '12,540' },
+  { label: 'Total employers', value: '1,240' },
+  { label: 'Total companies', value: '860' },
+  { label: 'Total job postings', value: '4,520' },
+];
 
 const mockUsers = [
   {
     id: 1,
-    name: "Nguyen Mai",
-    email: "mai.nguyen@mail.com",
-    role: "Worker",
-    status: "Active",
-    created: "2025-12-20",
+    name: 'Nguyen Mai',
+    email: 'mai.nguyen@mail.com',
+    role: 'Worker',
+    status: 'Active',
+    created: '2025-12-20',
   },
   {
     id: 2,
-    name: "Tran Quang",
-    email: "quang.tran@mail.com",
-    role: "Employer",
-    status: "Disabled",
-    created: "2025-11-18",
+    name: 'Tran Quang',
+    email: 'quang.tran@mail.com',
+    role: 'Employer',
+    status: 'Disabled',
+    created: '2025-11-18',
   },
-]
+];
 
 export const AdminDashboard = () => {
-  const { toast } = useToast()
-  const [active, setActive] = useState("overview")
-  const [confirmOpen, setConfirmOpen] = useState(false)
-  const [sectorModal, setSectorModal] = useState(false)
-  const [editSector, setEditSector] = useState(null)
-  const [sectorToDelete, setSectorToDelete] = useState(null)
-  const [termsEditMode, setTermsEditMode] = useState(false)
-  const [termsSaved, setTermsSaved] = useState({ id: null, title: '', content: '' })
-  const [termsDraft, setTermsDraft] = useState({ id: null, title: '', content: '' })
-  const [isTermsLoading, setIsTermsLoading] = useState(false)
-  const [sectorName, setSectorName] = useState("")
-  const [sectors, setSectors] = useState([])
-  const [loadingSectors, setLoadingSectors] = useState(false)
+  const { toast } = useToast();
+  const [active, setActive] = useState('overview');
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [sectorModal, setSectorModal] = useState(false);
+  const [editSector, setEditSector] = useState(null);
+  const [sectorToDelete, setSectorToDelete] = useState(null);
+  const [termsEditMode, setTermsEditMode] = useState(false);
+  const [termsSaved, setTermsSaved] = useState({
+    id: null,
+    title: '',
+    content: '',
+  });
+  const [termsDraft, setTermsDraft] = useState({
+    id: null,
+    title: '',
+    content: '',
+  });
+  const [isTermsLoading, setIsTermsLoading] = useState(false);
+  const [sectorName, setSectorName] = useState('');
+  const [sectors, setSectors] = useState([]);
+  const [loadingSectors, setLoadingSectors] = useState(false);
 
   // Occupations state
-  const [occupations, setOccupations] = useState([])
-  const [loadingOccupations, setLoadingOccupations] = useState(false)
-  const [occupationModal, setOccupationModal] = useState(false)
-  const [editOccupation, setEditOccupation] = useState(null)
-  const [occupationToDelete, setOccupationToDelete] = useState(null)
-  const [occupationName, setOccupationName] = useState("")
-  const [selectedSectorId, setSelectedSectorId] = useState("")
-  const [filterSectorId, setFilterSectorId] = useState("")
+  const [occupations, setOccupations] = useState([]);
+  const [loadingOccupations, setLoadingOccupations] = useState(false);
+  const [occupationModal, setOccupationModal] = useState(false);
+  const [editOccupation, setEditOccupation] = useState(null);
+  const [occupationToDelete, setOccupationToDelete] = useState(null);
+  const [occupationName, setOccupationName] = useState('');
+  const [selectedSectorId, setSelectedSectorId] = useState('');
+  const [filterSectorId, setFilterSectorId] = useState('');
 
-  const isLoading = false
-  const users = mockUsers
+  // AI Matching Weights State
+  const { data: weightsData, isLoading: loadingWeights } = useGetAiWeights();
+  const updateWeightsMutation = useUpdateAiWeights();
+  const [aiWeights, setAiWeights] = useState({});
+
+  const [aiLabels, setAiLabels] = useState({});
+
+  useEffect(() => {
+    if (weightsData && Array.isArray(weightsData)) {
+      const newWeights = { ...aiWeights };
+      const newLabels = { ...aiLabels };
+      weightsData.forEach((item) => {
+        newWeights[item.key] = Math.round(item.weight * 100);
+        newLabels[item.key] = item.label;
+      });
+      setAiWeights(newWeights);
+      setAiLabels(newLabels);
+    }
+  }, [weightsData]);
+
+  const totalAiWeight = Object.values(aiWeights).reduce(
+    (sum, val) => sum + Number(val),
+    0,
+  );
+
+  const isLoading = false;
+  const users = mockUsers;
 
   const menu = [
-    { key: "overview", label: "Tổng quan" },
-    { key: "users", label: "Quản lý người dùng" },
-    { key: "sectors", label: "Quản lý ngành nghề" },
-    { key: "occupations", label: "Quản lý nghề nghiệp" },
-    { key: "stats", label: "Thống kê hệ thống" },
-    { key: "terms", label: "Điều khoản" },
-  ]
+    { key: 'overview', label: 'Tổng quan' },
+    { key: 'users', label: 'Quản lý người dùng' },
+    { key: 'sectors', label: 'Quản lý ngành nghề' },
+    { key: 'occupations', label: 'Quản lý nghề nghiệp' },
+    { key: 'stats', label: 'Thống kê hệ thống' },
+    { key: 'terms', label: 'Điều khoản' },
+    { key: 'ai_weights', label: 'Cấu hình AI' },
+  ];
 
   const fetchSectors = async () => {
     try {
-      setLoadingSectors(true)
+      setLoadingSectors(true);
 
-      const sectors = await SectorManagementService.getAllSectors()
-      setSectors(sectors)
-
+      const sectors = await SectorManagementService.getAllSectors();
+      setSectors(sectors);
     } catch (e) {
-      console.error(e)
+      console.error(e);
     } finally {
-      setLoadingSectors(false)
+      setLoadingSectors(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchSectors()
-  }, [])
+    fetchSectors();
+  }, []);
   const createSector = async () => {
     try {
       if (!sectorName.trim()) {
-        toast("Tên ngành nghề không được để trống", "error")
-        return
+        toast('Tên ngành nghề không được để trống', 'error');
+        return;
       }
 
       await SectorManagementService.createSector({
-        name: sectorName
-      })
+        name: sectorName,
+      });
 
       // cập nhật list sector ngay lập tức
-      await fetchSectors()
+      await fetchSectors();
 
-      toast("Tạo ngành nghề thành công")
+      toast('Tạo ngành nghề thành công');
 
-      setSectorModal(false)
-      setSectorName("")
+      setSectorModal(false);
+      setSectorName('');
     } catch (e) {
-      console.error(e)
-      toast("Tạo ngành nghề thất bại", "error")
+      console.error(e);
+      toast('Tạo ngành nghề thất bại', 'error');
     }
-  }
+  };
   const updateSector = async () => {
     try {
       if (!sectorName.trim()) {
-        toast("Tên ngành nghề không được để trống", "error")
-        return
+        toast('Tên ngành nghề không được để trống', 'error');
+        return;
       }
 
-      if (!editSector) return
+      if (!editSector) return;
 
       await SectorManagementService.updateSector(editSector.id, {
-        name: sectorName
-      })
+        name: sectorName,
+      });
 
-      toast("Cập nhật ngành nghề thành công")
+      toast('Cập nhật ngành nghề thành công');
 
-      setSectorModal(false)
-      setEditSector(null)
-      setSectorName("")
+      setSectorModal(false);
+      setEditSector(null);
+      setSectorName('');
 
-      await fetchSectors()
-
+      await fetchSectors();
     } catch (e) {
-      console.error(e)
-      toast("Cập nhật ngành nghề thất bại", "error")
+      console.error(e);
+      toast('Cập nhật ngành nghề thất bại', 'error');
     }
-  }
+  };
   const deleteSector = async () => {
     try {
-      if (!sectorToDelete) return
+      if (!sectorToDelete) return;
 
-      await SectorManagementService.deleteSector(sectorToDelete.id)
+      await SectorManagementService.deleteSector(sectorToDelete.id);
 
-      toast("Xóa ngành nghề thành công")
+      toast('Xóa ngành nghề thành công');
 
-      setSectorToDelete(null)
+      setSectorToDelete(null);
 
-      await fetchSectors()
-
+      await fetchSectors();
     } catch (e) {
-      console.error(e)
-      toast("Xóa ngành nghề thất bại", "error")
+      console.error(e);
+      toast('Xóa ngành nghề thất bại', 'error');
     }
-  }
+  };
 
-  const fetchOccupations = async (sectorId = "") => {
+  const fetchOccupations = async (sectorId = '') => {
     try {
-      setLoadingOccupations(true)
-      let data
+      setLoadingOccupations(true);
+      let data;
       if (sectorId) {
-        data = await OccupationManagementService.getActiveOccupationBySector(sectorId)
+        data =
+          await OccupationManagementService.getActiveOccupationBySector(
+            sectorId,
+          );
       } else {
-        data = await OccupationManagementService.getAllActiveOccupations()
+        data = await OccupationManagementService.getAllActiveOccupations();
       }
 
       let arr = [];
       if (Array.isArray(data)) arr = data;
       else if (data?.data && Array.isArray(data.data)) arr = data.data;
       else if (data?.content && Array.isArray(data.content)) arr = data.content;
-      else if (data?.data?.data && Array.isArray(data.data.data)) arr = data.data.data;
+      else if (data?.data?.data && Array.isArray(data.data.data))
+        arr = data.data.data;
 
-      setOccupations(arr)
+      setOccupations(arr);
     } catch (e) {
-      console.error(e)
-      toast("Lỗi khi tải danh sách nghề nghiệp", "error")
+      console.error(e);
+      toast('Lỗi khi tải danh sách nghề nghiệp', 'error');
     } finally {
-      setLoadingOccupations(false)
+      setLoadingOccupations(false);
     }
-  }
+  };
 
   useEffect(() => {
-    if (active === "occupations") {
-      fetchOccupations(filterSectorId)
+    if (active === 'occupations') {
+      fetchOccupations(filterSectorId);
     }
-  }, [active, filterSectorId])
+  }, [active, filterSectorId]);
 
   const createOccupation = async () => {
     try {
       if (!occupationName.trim() || !selectedSectorId) {
-        toast("Vui lòng nhập đầy đủ tên và chọn ngành nghề", "error")
-        return
+        toast('Vui lòng nhập đầy đủ tên và chọn ngành nghề', 'error');
+        return;
       }
       await OccupationManagementService.createOccupation({
         name: occupationName,
-        sectorId: selectedSectorId
-      })
-      await fetchOccupations(filterSectorId)
-      toast("Tạo nghề nghiệp thành công")
-      setOccupationModal(false)
-      setOccupationName("")
-      setSelectedSectorId("")
+        sectorId: selectedSectorId,
+      });
+      await fetchOccupations(filterSectorId);
+      toast('Tạo nghề nghiệp thành công');
+      setOccupationModal(false);
+      setOccupationName('');
+      setSelectedSectorId('');
     } catch (e) {
-      console.error(e)
-      toast("Tạo nghề nghiệp thất bại", "error")
+      console.error(e);
+      toast('Tạo nghề nghiệp thất bại', 'error');
     }
-  }
+  };
 
   const updateOccupation = async () => {
     try {
       if (!occupationName.trim() || !selectedSectorId) {
-        toast("Vui lòng nhập đầy đủ tên và chọn ngành nghề", "error")
-        return
+        toast('Vui lòng nhập đầy đủ tên và chọn ngành nghề', 'error');
+        return;
       }
-      if (!editOccupation) return
+      if (!editOccupation) return;
       await OccupationManagementService.updateOccupation(editOccupation.id, {
         name: occupationName,
-        sectorId: selectedSectorId
-      })
-      toast("Cập nhật nghề nghiệp thành công")
-      setOccupationModal(false)
-      setEditOccupation(null)
-      setOccupationName("")
-      setSelectedSectorId("")
-      await fetchOccupations(filterSectorId)
+        sectorId: selectedSectorId,
+      });
+      toast('Cập nhật nghề nghiệp thành công');
+      setOccupationModal(false);
+      setEditOccupation(null);
+      setOccupationName('');
+      setSelectedSectorId('');
+      await fetchOccupations(filterSectorId);
     } catch (e) {
-      console.error(e)
-      toast("Cập nhật nghề nghiệp thất bại", "error")
+      console.error(e);
+      toast('Cập nhật nghề nghiệp thất bại', 'error');
     }
-  }
+  };
 
   const deleteOccupation = async () => {
     try {
-      if (!occupationToDelete) return
-      await OccupationManagementService.deleteOccupation(occupationToDelete.id)
-      toast("Xóa nghề nghiệp thành công")
-      setOccupationToDelete(null)
-      await fetchOccupations(filterSectorId)
+      if (!occupationToDelete) return;
+      await OccupationManagementService.deleteOccupation(occupationToDelete.id);
+      toast('Xóa nghề nghiệp thành công');
+      setOccupationToDelete(null);
+      await fetchOccupations(filterSectorId);
     } catch (e) {
-      console.error(e)
-      toast("Xóa nghề nghiệp thất bại", "error")
+      console.error(e);
+      toast('Xóa nghề nghiệp thất bại', 'error');
     }
-  }
+  };
 
   useEffect(() => {
     if (active === 'terms') {
@@ -302,6 +342,8 @@ export const AdminDashboard = () => {
     }
   };
 
+  console.log(weightsData);
+
   return (
     <DashboardLayout
       title="Admin Dashboard"
@@ -310,7 +352,7 @@ export const AdminDashboard = () => {
       onSelect={setActive}
       topbarBell={<NotificationBellPopover />}
     >
-      {active === "overview" && (
+      {active === 'overview' && (
         <div className="space-y-6">
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
             {kpi.map((item) => (
@@ -351,7 +393,7 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {active === "users" && (
+      {active === 'users' && (
         <div className="space-y-6">
           <Card className="p-4 flex flex-wrap gap-3 items-center">
             <select className="rounded-full border px-4 py-2 text-sm bg-white">
@@ -369,11 +411,16 @@ export const AdminDashboard = () => {
             <Input type="date" className="max-w-[180px]" />
             <Input type="date" className="max-w-[180px]" />
             <Button className="rounded-full">Lọc</Button>
-            <Button variant="outline" className="rounded-full">Reset</Button>
+            <Button variant="outline" className="rounded-full">
+              Reset
+            </Button>
           </Card>
 
           {users.length === 0 ? (
-            <EmptyState title={MSG.MSG_USER_LIST_EMPTY} description="Danh sách người dùng đang trống." />
+            <EmptyState
+              title={MSG.MSG_USER_LIST_EMPTY}
+              description="Danh sách người dùng đang trống."
+            />
           ) : (
             <Card className="p-4">
               <table className="w-full text-sm">
@@ -394,7 +441,11 @@ export const AdminDashboard = () => {
                       <td>{user.email}</td>
                       <td>{user.role}</td>
                       <td>
-                        <Badge variant={user.status === "Active" ? "default" : "secondary"}>
+                        <Badge
+                          variant={
+                            user.status === 'Active' ? 'default' : 'secondary'
+                          }
+                        >
                           {user.status}
                         </Badge>
                       </td>
@@ -406,7 +457,7 @@ export const AdminDashboard = () => {
                           className="rounded-full"
                           onClick={() => setConfirmOpen(true)}
                         >
-                          {user.status === "Active" ? "Disable" : "Enable"}
+                          {user.status === 'Active' ? 'Disable' : 'Enable'}
                         </Button>
                       </td>
                     </tr>
@@ -418,11 +469,18 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {active === "sectors" && (
+      {active === 'sectors' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Quản lý ngành nghề</h2>
-            <Button className="rounded-xl" onClick={() => { setSectorModal(true); setEditSector(null); setSectorName(""); }}>
+            <Button
+              className="rounded-xl"
+              onClick={() => {
+                setSectorModal(true);
+                setEditSector(null);
+                setSectorName('');
+              }}
+            >
               Tạo ngành nghề
             </Button>
           </div>
@@ -444,7 +502,10 @@ export const AdminDashboard = () => {
                   </tr>
                 ) : sectors.length === 0 ? (
                   <tr>
-                    <td colSpan="3" className="text-center py-6 text-muted-foreground">
+                    <td
+                      colSpan="3"
+                      className="text-center py-6 text-muted-foreground"
+                    >
                       Không có ngành nghề
                     </td>
                   </tr>
@@ -459,9 +520,9 @@ export const AdminDashboard = () => {
                           size="sm"
                           className="rounded-full"
                           onClick={() => {
-                            setEditSector(sector)
-                            setSectorName(sector.name)
-                            setSectorModal(true)
+                            setEditSector(sector);
+                            setSectorName(sector.name);
+                            setSectorModal(true);
                           }}
                         >
                           Edit
@@ -485,7 +546,7 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {active === "occupations" && (
+      {active === 'occupations' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold">Quản lý nghề nghiệp</h2>
@@ -497,7 +558,9 @@ export const AdminDashboard = () => {
               >
                 <option value="">Tất cả ngành nghề</option>
                 {sectors.map((sector) => (
-                  <option key={sector.id} value={sector.id}>{sector.name}</option>
+                  <option key={sector.id} value={sector.id}>
+                    {sector.name}
+                  </option>
                 ))}
               </select>
               <Button
@@ -505,8 +568,8 @@ export const AdminDashboard = () => {
                 onClick={() => {
                   setOccupationModal(true);
                   setEditOccupation(null);
-                  setOccupationName("");
-                  setSelectedSectorId(filterSectorId || "");
+                  setOccupationName('');
+                  setSelectedSectorId(filterSectorId || '');
                 }}
               >
                 Tạo nghề nghiệp
@@ -531,13 +594,18 @@ export const AdminDashboard = () => {
                   </tr>
                 ) : occupations.length === 0 ? (
                   <tr>
-                    <td colSpan="4" className="text-center py-6 text-muted-foreground">
+                    <td
+                      colSpan="4"
+                      className="text-center py-6 text-muted-foreground"
+                    >
                       Không có nghề nghiệp
                     </td>
                   </tr>
                 ) : (
                   occupations.map((occ) => {
-                    const sector = sectors.find(s => s.id == (occ.sectorId || occ.sector?.id)) || { name: 'Unknown' };
+                    const sector = sectors.find(
+                      (s) => s.id == (occ.sectorId || occ.sector?.id),
+                    ) || { name: 'Unknown' };
                     return (
                       <tr key={occ.id} className="border-b last:border-b-0">
                         <td className="py-3 font-semibold">{occ.name}</td>
@@ -550,10 +618,12 @@ export const AdminDashboard = () => {
                             size="sm"
                             className="rounded-full"
                             onClick={() => {
-                              setEditOccupation(occ)
-                              setOccupationName(occ.name)
-                              setSelectedSectorId(String(occ.sectorId || occ.sector?.id || ""))
-                              setOccupationModal(true)
+                              setEditOccupation(occ);
+                              setOccupationName(occ.name);
+                              setSelectedSectorId(
+                                String(occ.sectorId || occ.sector?.id || ''),
+                              );
+                              setOccupationModal(true);
                             }}
                           >
                             Edit
@@ -569,7 +639,7 @@ export const AdminDashboard = () => {
                           </Button>
                         </td>
                       </tr>
-                    )
+                    );
                   })
                 )}
               </tbody>
@@ -578,7 +648,7 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {active === "stats" && (
+      {active === 'stats' && (
         <div className="space-y-6">
           <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
             {kpi.map((item) => (
@@ -602,7 +672,97 @@ export const AdminDashboard = () => {
             )}
           </Card>
           {false && (
-            <EmptyState title={MSG.MSG_STATS_EMPTY} description="Chưa có dữ liệu hệ thống." />
+            <EmptyState
+              title={MSG.MSG_STATS_EMPTY}
+              description="Chưa có dữ liệu hệ thống."
+            />
+          )}
+        </div>
+      )}
+
+      {active === 'ai_weights' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">
+                Cấu hình Trọng số AI Matching
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Điều chỉnh phân bổ tỷ trọng phần trăm (thống nhất 100%) của các
+                tiêu chí quét ứng viên.
+              </p>
+            </div>
+            <Button
+              className="rounded-xl px-6"
+              onClick={() => {
+                if (totalAiWeight !== 100) {
+                  toast('Tổng trọng số phải chuẩn bằng 100%', 'error');
+                  return;
+                }
+                const payload = Object.entries(aiWeights).map(([key, val]) => ({
+                  key,
+                  weight: Number(val) / 100,
+                }));
+                updateWeightsMutation.mutate(payload);
+              }}
+              disabled={updateWeightsMutation.isPending}
+            >
+              {updateWeightsMutation.isPending ? 'Đang lưu...' : 'Lưu cấu hình'}
+            </Button>
+          </div>
+
+          {loadingWeights ? (
+            <Skeleton className="h-[400px] w-full rounded-2xl" />
+          ) : (
+            <Card className="p-8 shadow-sm rounded-2xl">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
+                {Object.keys(aiWeights).map((key) => (
+                  <div key={key} className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-slate-700">
+                        {aiLabels[key] || key}
+                      </span>
+                      <span className="text-primary font-bold text-lg">
+                        {aiWeights[key]}%
+                      </span>
+                    </div>
+                    <Input
+                      type="number"
+                      className="w-full"
+                      min="0"
+                      max="100"
+                      value={aiWeights[key]}
+                      onChange={(e) =>
+                        setAiWeights({
+                          ...aiWeights,
+                          [key]:
+                            e.target.value === '' ? 0 : Number(e.target.value),
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className={`mt-12 p-6 border rounded-xl flex items-center justify-between transition-colors ${totalAiWeight === 100 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}
+              >
+                <span className="font-semibold text-slate-800 text-lg">
+                  Tổng trọng số:
+                </span>
+                <span
+                  className={`text-3xl font-bold ${totalAiWeight === 100 ? 'text-emerald-600' : 'text-rose-600'}`}
+                >
+                  {totalAiWeight}%
+                </span>
+              </div>
+              {totalAiWeight !== 100 && (
+                <p className="text-rose-500 text-sm mt-3 animate-pulse">
+                  * Tổng các trọng số hiện tại là {totalAiWeight}%. Vui lòng
+                  điều chỉnh lại cho tròn 100% để bộ học hoạt động tốt.
+                </p>
+              )}
+            </Card>
           )}
         </div>
       )}
@@ -624,13 +784,17 @@ export const AdminDashboard = () => {
                   className="text-lg font-medium p-4 h-14 rounded-xl"
                   placeholder="Tiêu đề"
                   value={termsDraft.title}
-                  onChange={(e) => setTermsDraft({ ...termsDraft, title: e.target.value })}
+                  onChange={(e) =>
+                    setTermsDraft({ ...termsDraft, title: e.target.value })
+                  }
                 />
                 <textarea
                   className="w-full min-h-[500px] rounded-xl border p-6 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono shadow-sm bg-slate-50/50"
                   placeholder="Nội dung điều khoản..."
                   value={termsDraft.content}
-                  onChange={(e) => setTermsDraft({ ...termsDraft, content: e.target.value })}
+                  onChange={(e) =>
+                    setTermsDraft({ ...termsDraft, content: e.target.value })
+                  }
                 />
                 <div className="flex justify-end gap-3 pt-4 border-t mt-4">
                   <Button
@@ -643,10 +807,7 @@ export const AdminDashboard = () => {
                   >
                     Hủy
                   </Button>
-                  <Button
-                    className="rounded-xl px-8"
-                    onClick={handleSaveTerms}
-                  >
+                  <Button className="rounded-xl px-8" onClick={handleSaveTerms}>
                     Lưu thay đổi
                   </Button>
                 </div>
@@ -690,19 +851,28 @@ export const AdminDashboard = () => {
 
       <Modal
         open={sectorModal}
-        title={editSector ? "Cập nhật ngành nghề" : "Tạo ngành nghề"}
+        title={editSector ? 'Cập nhật ngành nghề' : 'Tạo ngành nghề'}
         description="Nhập tên ngành nghề"
-        onClose={() => { setSectorModal(false); setEditSector(null); setSectorName(""); }}
+        onClose={() => {
+          setSectorModal(false);
+          setEditSector(null);
+          setSectorName('');
+        }}
         onConfirm={() => {
           if (editSector) {
-            updateSector()
+            updateSector();
           } else {
-            createSector()
+            createSector();
           }
         }}
         confirmLabel="Lưu"
       >
-        <Input placeholder="Tên ngành nghề" value={sectorName} onChange={(e) => setSectorName(e.target.value)} className="rounded-xl" />
+        <Input
+          placeholder="Tên ngành nghề"
+          value={sectorName}
+          onChange={(e) => setSectorName(e.target.value)}
+          className="rounded-xl"
+        />
       </Modal>
 
       <Modal
@@ -717,14 +887,19 @@ export const AdminDashboard = () => {
 
       <Modal
         open={occupationModal}
-        title={editOccupation ? "Cập nhật nghề nghiệp" : "Tạo nghề nghiệp"}
+        title={editOccupation ? 'Cập nhật nghề nghiệp' : 'Tạo nghề nghiệp'}
         description="Nhập tên nghề nghiệp và chọn ngành nghề tương ứng."
-        onClose={() => { setOccupationModal(false); setEditOccupation(null); setOccupationName(""); setSelectedSectorId(""); }}
+        onClose={() => {
+          setOccupationModal(false);
+          setEditOccupation(null);
+          setOccupationName('');
+          setSelectedSectorId('');
+        }}
         onConfirm={() => {
           if (editOccupation) {
-            updateOccupation()
+            updateOccupation();
           } else {
-            createOccupation()
+            createOccupation();
           }
         }}
         confirmLabel="Lưu"
@@ -737,10 +912,17 @@ export const AdminDashboard = () => {
           >
             <option value="">-- Chọn ngành nghề --</option>
             {sectors.map((sector) => (
-              <option key={sector.id} value={sector.id}>{sector.name}</option>
+              <option key={sector.id} value={sector.id}>
+                {sector.name}
+              </option>
             ))}
           </select>
-          <Input placeholder="Tên nghề nghiệp" value={occupationName} onChange={(e) => setOccupationName(e.target.value)} className="rounded-xl" />
+          <Input
+            placeholder="Tên nghề nghiệp"
+            value={occupationName}
+            onChange={(e) => setOccupationName(e.target.value)}
+            className="rounded-xl"
+          />
         </div>
       </Modal>
 
@@ -754,5 +936,5 @@ export const AdminDashboard = () => {
         tone="danger"
       />
     </DashboardLayout>
-  )
-}
+  );
+};

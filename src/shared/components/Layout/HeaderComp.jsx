@@ -155,7 +155,7 @@ export const Header = () => {
                   size="icon"
                   className="relative rounded-full text-gray-700 hover:bg-primary/10 hover:text-foreground transition"
                 >
-                  <Bell className="h-5 w-5" />
+                  <Bell className="h-5 w-5 mt-[2px]" />
                   {unreadCount > 0 && (
                     <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white">
                       {unreadCount > 9 ? '9+' : unreadCount}
