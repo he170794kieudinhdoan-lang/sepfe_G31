@@ -19,10 +19,11 @@ const InfoItem = ({ icon, label, value }) => (
 );
 
 export const JobDetailHeader = ({ job, onApply, onSave }) => {
+  console.log(job);
+
   const salaryDisplay = formatSalary(job.salaryMin, job.salaryMax, 'full');
   const shiftDisplay =
     SHIFTS.find((s) => s.value === job.workingShift)?.label || 'Không yêu cầu';
-
   return (
     <>
       <Card className="flex flex-col gap-6 border-0 p-6 shadow-sm rounded-xl">
@@ -54,14 +55,22 @@ export const JobDetailHeader = ({ job, onApply, onSave }) => {
           />
         </div>
 
-        <span className="text-sm">
-          <span className="text-muted-foreground mr-1">Hạn nộp hồ sơ:</span>
-          <span className="font-semibold">{formatInVN(job.expiredAt)}</span>
-          <span className="mx-2 text-slate-300">|</span>
-          <span className="font-semibold">
-            Còn {getDaysLeft(job.expiredAt)} ngày
+        <div>
+          <div className="flex items-center gap-2 ">
+            <span className="text-muted-foreground text-sm italic">
+              Ngành nghề:
+            </span>
+            <span className="font-bold">{job.occupation.name}</span>
+          </div>
+          <span className="text-sm">
+            <span className="text-muted-foreground mr-1">Hạn nộp hồ sơ:</span>
+            <span className="font-semibold">{formatInVN(job.expiredAt)}</span>
+            <span className="mx-2 text-slate-300">|</span>
+            <span className="font-semibold">
+              Còn {getDaysLeft(job.expiredAt)} ngày
+            </span>
           </span>
-        </span>
+        </div>
 
         <JobAction job={job} fullWidth onApply={onApply} onSave={onSave} />
       </Card>
