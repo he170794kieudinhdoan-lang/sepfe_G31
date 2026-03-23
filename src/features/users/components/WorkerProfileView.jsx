@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -81,10 +81,10 @@ const schema = z.object({
       .min(0, 'Số năm kinh nghiệm không hợp lệ')
       .max(80, 'Số năm kinh nghiệm không hợp lệ'),
   ),
-  bio: z.string().max(100, 'Mô tả bản thân tối đa 100 ký tự').optional(),
+  bio: z.string().max(300, 'Mô tả bản thân tối đa 100 ký tự').optional(),
   desiredJobText: z
     .string()
-    .max(100, 'Mong muốn công việc tối đa 100 ký tự')
+    .max(300, 'Mong muốn công việc tối đa 100 ký tự')
     .optional(),
   ward: z.string().optional(),
 });
@@ -92,6 +92,7 @@ const schema = z.object({
 export const WorkerProfileView = () => {
   const { toast } = useToast();
   const [sectorId, setSectorId] = useState('');
+  const hasUserEditedProvince = useRef(false);
 
   const { data: occupationsData, isLoading: occupationsLoading } =
     useGetOccupations();
@@ -137,7 +138,7 @@ export const WorkerProfileView = () => {
 
   const watchProvince = watch('province');
 
-  // Sync codes when names change (especially on load)
+  // Sync province code when province name changes
   useEffect(() => {
     if (watchProvince && provinces.length > 0) {
       const p = provinces.find((p) => p.name === watchProvince);
@@ -147,6 +148,7 @@ export const WorkerProfileView = () => {
     }
   }, [watchProvince, provinces]);
 
+  // Main form reset — only depends on core data, NOT on wards
   useEffect(() => {
     if (!workerProfile || !occupationsData || provinces.length === 0) return;
 
@@ -168,15 +170,22 @@ export const WorkerProfileView = () => {
       bio: rest.bio || '',
       desiredJobText: rest.desiredJobText || '',
     });
-  }, [
-    workerProfile,
-    occupationsData,
-    provinces,
-    reset,
-    provinceCode,
-    wardsLoading,
-    wards,
-  ]);
+  }, [workerProfile, occupationsData, provinces, reset]);
+
+  // Re-apply saved ward value once wards data finishes loading
+  // This is needed because Radix Select can't display the value text
+  // until its SelectItem children are rendered (which requires wards data)
+  useEffect(() => {
+    if (hasUserEditedProvince.current) return;
+    if (!workerProfile?.ward || wards.length === 0) return;
+
+    const savedWard = workerProfile.ward;
+    const wardExists = wards.some((w) => w.name === savedWard);
+
+    if (wardExists) {
+      setValue('ward', savedWard);
+    }
+  }, [wards, workerProfile, setValue]);
 
   const handleSectorChange = (newSectorId) => {
     if (!newSectorId) return;
@@ -202,7 +211,10 @@ export const WorkerProfileView = () => {
     }
 
     updateProfile(payload, {
-      onSuccess: () => toast(MSG.MSG_WORKER_PROFILE_UPDATE_SUCCESS),
+      onSuccess: () => {
+        toast(MSG.MSG_WORKER_PROFILE_UPDATE_SUCCESS);
+        hasUserEditedProvince.current = false;
+      },
       onError: (error) => {
         const message =
           error.response?.data?.message || MSG.MSG_WORKER_PROFILE_UPDATE_ERROR;
@@ -576,6 +588,7 @@ export const WorkerProfileView = () => {
                           value={field.value || ''}
                           onValueChange={(val) => {
                             if (val) {
+                              hasUserEditedProvince.current = true;
                               field.onChange(val);
                               setValue('ward', '');
                             }
