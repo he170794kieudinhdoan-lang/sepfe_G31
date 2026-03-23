@@ -122,3 +122,20 @@ export const getWeights = async () => {
 export const updateWeights = async (weights) => {
   return await apiClient.put('/ai-matching/weights', { weights });
 };
+
+// ===== REPORT JOB =====
+export const reportJobApi = async ({ jobId, reason, description }) => {
+  // apiClient interceptor đã tự unwrap response.data rồi
+  const res = await apiClient.post('/job/report', { jobId, reason, description });
+  return res;
+};
+
+export const getAllJobReportsApi = async ({ status, page = 1, limit = 10 }) => {
+  const res = await apiClient.get('/job/report/all', { params: { status, page, limit } });
+  return res;
+};
+
+export const updateJobReportStatusApi = async ({ id, status }) => {
+  return await apiClient.put(`/job/report/${id}/status`, { status });
+};
+

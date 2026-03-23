@@ -8,6 +8,11 @@ import {
   updateCompany,
   getMyCompany,
   createCompany,
+  getCompanyReviews,
+  createCompanyReview,
+  updateCompanyReview,
+  deleteCompanyReview,
+  reportCompanyReview,
 } from './getCompanies';
 
 export const useGetCompanies = () => {
@@ -101,5 +106,57 @@ export const useUpdateCompany = () => {
     onSuccess: () => {
       queryClient.invalidateQueries(['my-company']);
     },
+  });
+};
+
+// ===== COMPANY REVIEW HOOKS =====
+
+// Lấy danh sách reviews
+export const useGetCompanyReviews = (companyId) => {
+  return useQuery({
+    queryKey: ['company-reviews', companyId],
+    queryFn: () => getCompanyReviews(companyId),
+    enabled: !!companyId,
+    staleTime: 2 * 60 * 1000,
+  });
+};
+
+// Viết review mới
+export const useCreateCompanyReview = (companyId) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload) => createCompanyReview(companyId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-reviews', companyId] });
+    },
+  });
+};
+
+// Sửa review
+export const useUpdateCompanyReview = (companyId) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ reviewId, payload }) => updateCompanyReview(reviewId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-reviews', companyId] });
+    },
+  });
+};
+
+// Xóa review
+export const useDeleteCompanyReview = (companyId) => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (reviewId) => deleteCompanyReview(reviewId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['company-reviews', companyId] });
+    },
+  });
+};
+
+// Báo cáo review (worker)
+export const useReportCompanyReview = () => {
+  return useMutation({
+    mutationFn: ({ reviewId, payload }) => reportCompanyReview(reviewId, payload),
   });
 };
