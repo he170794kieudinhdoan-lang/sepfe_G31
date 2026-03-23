@@ -113,21 +113,23 @@ export const useUpdateCompany = () => {
 
 // Lấy danh sách reviews
 export const useGetCompanyReviews = (companyId) => {
+  const key = String(companyId);
   return useQuery({
-    queryKey: ['company-reviews', companyId],
+    queryKey: ['company-reviews', key],
     queryFn: () => getCompanyReviews(companyId),
     enabled: !!companyId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
   });
 };
 
 // Viết review mới
 export const useCreateCompanyReview = (companyId) => {
   const queryClient = useQueryClient();
+  const key = String(companyId);
   return useMutation({
     mutationFn: (payload) => createCompanyReview(companyId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-reviews', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['company-reviews', key] });
     },
   });
 };
@@ -135,10 +137,11 @@ export const useCreateCompanyReview = (companyId) => {
 // Sửa review
 export const useUpdateCompanyReview = (companyId) => {
   const queryClient = useQueryClient();
+  const key = String(companyId);
   return useMutation({
     mutationFn: ({ reviewId, payload }) => updateCompanyReview(reviewId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-reviews', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['company-reviews', key] });
     },
   });
 };
@@ -146,10 +149,11 @@ export const useUpdateCompanyReview = (companyId) => {
 // Xóa review
 export const useDeleteCompanyReview = (companyId) => {
   const queryClient = useQueryClient();
+  const key = String(companyId);
   return useMutation({
     mutationFn: (reviewId) => deleteCompanyReview(reviewId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['company-reviews', companyId] });
+      queryClient.invalidateQueries({ queryKey: ['company-reviews', key] });
     },
   });
 };
