@@ -20,6 +20,8 @@ import {
   getMatchedJobsApi,
   getWeights,
   updateWeights,
+  getAllJobReportsApi,
+  updateJobReportStatusApi,
 } from './jobApi';
 import { useToast } from '@/shared/contexts/ToastContext';
 
@@ -246,3 +248,22 @@ export const useUpdateAiWeights = () => {
     },
   });
 };
+
+export const useGetAllJobReports = (status, page = 1, limit = 10) => {
+  return useQuery({
+    queryKey: ['job-reports', status, page, limit],
+    queryFn: () => getAllJobReportsApi({ status, page, limit }),
+    keepPreviousData: true,
+  });
+};
+
+export const useUpdateJobReportStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateJobReportStatusApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['job-reports'] });
+    },
+  });
+};
+

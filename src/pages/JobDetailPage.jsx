@@ -134,6 +134,7 @@ export const JobDetailPage = () => {
         open={reportOpen}
         onClose={() => setReportOpen(false)}
         hasReported={hasReported}
+        jobId={id}
       />
 
       <Dialog open={loginPromptOpen} onOpenChange={setLoginPromptOpen}>
