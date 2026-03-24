@@ -301,7 +301,12 @@ export const WorkerProfileView = () => {
                   <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
                     <SelectValue placeholder="Chọn ngành nghề" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent
+                    position="popper"
+                    side="bottom"
+                    sideOffset={4}
+                    align="start"
+                  >
                     {occupationsData?.map((sector) => (
                       <SelectItem key={sector.id} value={sector.id.toString()}>
                         {sector.name}
@@ -336,7 +341,12 @@ export const WorkerProfileView = () => {
                         <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors disabled:opacity-50">
                           <SelectValue placeholder="Chọn nghề cụ thể" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent
+                          position="popper"
+                          side="bottom"
+                          sideOffset={4}
+                          align="start"
+                        >
                           {filteredOccupations.map((occupation) => (
                             <SelectItem
                               key={occupation.id}
@@ -513,7 +523,12 @@ export const WorkerProfileView = () => {
                           <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
                             <SelectValue placeholder="Chọn số năm kinh nghiệm" />
                           </SelectTrigger>
-                          <SelectContent>
+                          <SelectContent
+                            position="popper"
+                            side="bottom"
+                            sideOffset={4}
+                            align="start"
+                          >
                             <SelectItem value="0">
                               Chưa có kinh nghiệm
                             </SelectItem>
@@ -597,7 +612,13 @@ export const WorkerProfileView = () => {
                           <SelectTrigger className="w-full h-11! rounded-xl border-gray-200 bg-gray-50/60 focus:bg-white transition-colors">
                             <SelectValue placeholder="Chọn tỉnh/thành" />
                           </SelectTrigger>
-                          <SelectContent className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                          <SelectContent
+                            position="popper"
+                            side="bottom"
+                            sideOffset={4}
+                            align="start"
+                            className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden"
+                          >
                             <div className="max-h-60 overflow-y-auto py-1 px-1">
                               {provinces.map((p) => (
                                 <SelectItem
@@ -637,7 +658,13 @@ export const WorkerProfileView = () => {
                               }
                             />
                           </SelectTrigger>
-                          <SelectContent className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden">
+                          <SelectContent
+                            position="popper"
+                            side="bottom"
+                            sideOffset={4}
+                            align="start"
+                            className="p-0 rounded-xl shadow-lg border border-gray-100 overflow-hidden"
+                          >
                             <div className="max-h-60 overflow-y-auto py-1 px-1">
                               {wards.map((w) => (
                                 <SelectItem
