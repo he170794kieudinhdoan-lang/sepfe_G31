@@ -24,6 +24,9 @@ export const JobDetailHeader = ({ job, onApply, onSave }) => {
   const salaryDisplay = formatSalary(job.salaryMin, job.salaryMax, 'full');
   const shiftDisplay =
     SHIFTS.find((s) => s.value === job.workingShift)?.label || 'Không yêu cầu';
+  const locationDisplay = [job.district, job.province]
+    .filter(Boolean)
+    .join(', ');
   return (
     <>
       <Card className="flex flex-col gap-6 border-0 p-6 shadow-sm rounded-xl">
@@ -41,7 +44,7 @@ export const JobDetailHeader = ({ job, onApply, onSave }) => {
           <InfoItem
             icon={<MapPin className="h-5 w-5" />}
             label="Địa điểm"
-            value={job.province}
+            value={locationDisplay}
           />
           <InfoItem
             icon={<Clock className="h-5 w-5" />}
