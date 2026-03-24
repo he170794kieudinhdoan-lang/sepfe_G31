@@ -11,7 +11,7 @@ export const useGetOrCreateConversation = () => {
       chatApi.getOrCreateConversation(participantId),
     onSuccess: (data) => {
       navigate(`/chat/${data.id}`);
-      toast('Thành công');
+      //toast('Thành công');
     },
     onError: (e) => {
       toast(e?.message || 'Có lỗi xảy ra');

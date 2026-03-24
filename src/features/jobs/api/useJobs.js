@@ -21,6 +21,7 @@ import {
   getEmployerApplications,
   updateApplicationStatus,
   getMatchedJobsApi,
+  getMatchedWorkersApi,
   getWeights,
   updateWeights,
   getAllJobReportsApi,
@@ -256,6 +257,16 @@ export const useMatchedJobs = (limit = 10, options = {}) => {
     queryKey: ['matched-jobs', limit],
     queryFn: () => getMatchedJobsApi(limit),
     staleTime: 5 * 60 * 1000,
+    ...options,
+  });
+};
+
+export const useMatchedWorkers = (jobId, limit = 10, options = {}) => {
+  return useQuery({
+    queryKey: ['matched-workers', jobId, limit],
+    queryFn: () => getMatchedWorkersApi(jobId, limit),
+    staleTime: 5 * 60 * 1000,
+    enabled: !!jobId,
     ...options,
   });
 };

@@ -11,7 +11,7 @@ import {
 import { AvatarImage } from '@/components/ui/avatar';
 import { Avatar } from '@radix-ui/react-avatar';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useChatRealtime } from '../hooks/useChatRealtime';
 import { formatMessageTime } from '@/shared/utils/dateUtils';
 
@@ -107,7 +107,44 @@ const MessageThread = ({ messages, isTyping, avatar }) => {
                   : 'bg-gray-100'
               }`}
             >
-              <p className="text-sm">{m?.content}</p>
+              <p className="text-sm whitespace-pre-wrap wrap-break-word">
+                {m?.content
+                  ?.split(/(\[[^\]]+\]\([^)]+\))/g)
+                  .map((part, index) => {
+                    const match = part.match(/\[([^\]]+)\]\(([^)]+)\)/);
+                    if (match) {
+                      const url = match[2];
+                      const isInternal = url.startsWith(window.location.origin);
+                      const path = isInternal
+                        ? url.replace(window.location.origin, '')
+                        : url;
+                      const commonProps = {
+                        key: index,
+                        className: `text-black font-bold font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity `,
+                      };
+
+                      if (isInternal) {
+                        return (
+                          <Link to={path} {...commonProps}>
+                            {match[1]}
+                          </Link>
+                        );
+                      }
+
+                      return (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          {...commonProps}
+                        >
+                          {match[1]}
+                        </a>
+                      );
+                    }
+                    return part;
+                  })}
+              </p>
               <p className="text-xs opacity-80 mt-1">
                 {formatMessageTime(m?.createdAt)}
               </p>
