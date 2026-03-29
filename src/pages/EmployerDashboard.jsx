@@ -78,6 +78,9 @@ import {
 import { SHIFTS, GENDERS } from '@/shared/constants/enums';
 import { formatSalary } from '@/shared/utils/salaryUtils';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
+import { useEmployerOverview } from '@/features/statistics/api/useStatistics';
+import { ApplicationFunnelWidget } from '@/features/statistics/components/ApplicationFunnelWidget';
+import { EmployerPaymentsWidget } from '@/features/statistics/components/EmployerPaymentsWidget';
 
 const EMPLOYER_MENU = [
   { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
@@ -88,38 +91,34 @@ const EMPLOYER_MENU = [
   { key: 'home', label: 'Trang chủ', icon: Home, path: '/' },
 ];
 
-const MOCK_KPI = [
+const buildKpiItems = (overview) => [
   {
-    label: 'Tin đã đăng',
-    value: '24',
+    label: 'Tổng số tin tuyển dụng',
+    value: overview?.totalJobs ?? '—',
     icon: Briefcase,
     color: 'text-blue-600',
     bg: 'bg-blue-100',
-    trend: '+12%',
   },
   {
-    label: 'Tin hoạt động',
-    value: '18',
+    label: 'Tin đang hoạt động',
+    value: overview?.publishedJobs ?? '—',
     icon: TrendingUp,
     color: 'text-green-600',
     bg: 'bg-green-100',
-    trend: '+5%',
   },
   {
-    label: 'Ứng viên mới',
-    value: '156',
+    label: 'Tổng ứng viên đã nộp',
+    value: overview?.totalApplications ?? '—',
     icon: Users,
     color: 'text-purple-600',
     bg: 'bg-purple-100',
-    trend: '+24%',
   },
   {
-    label: 'Lượt xem tin',
-    value: '1,240',
-    icon: Eye,
+    label: 'Vị trí đã được tuyển',
+    value: overview ? `${overview.filledRate}%` : '—',
+    icon: CalendarCheck,
     color: 'text-orange-600',
     bg: 'bg-orange-100',
-    trend: '+18%',
   },
 ];
 
@@ -664,10 +663,17 @@ export const EmployerDashboard = () => {
   // Real API integration
   const [jobPage, setJobPage] = useState(1);
   const { data: company, isLoading: loadingCompany } = useGetMyCompany();
+  const { data: overview, isLoading: loadingOverview } = useEmployerOverview();
   const { data: searchResult, isLoading: loadingJobs } = useJobsForEmployer({
     allStatus: true,
     page: jobPage,
     limit: 10,
+  });
+
+  // Query tất cả công việc (không phân trang) để hiển thị đầy đủ trong các Select box Dropdown
+  const { data: allJobsResult } = useJobsForEmployer({
+    allStatus: true,
+    fetchAll: true,
   });
 
   // Real applicants data
@@ -685,6 +691,10 @@ export const EmployerDashboard = () => {
   });
 
   const jobs = searchResult?.items || [];
+  // Nếu fetchAll=true trả về mảng trực tiếp hoặc trả về object chứa items/data
+  const allJobs = Array.isArray(allJobsResult) 
+    ? allJobsResult 
+    : (allJobsResult?.items || allJobsResult?.data || []);
   const totalPages = searchResult?.meta?.totalPage || 1;
 
   useEffect(() => {
@@ -861,33 +871,33 @@ export const EmployerDashboard = () => {
       {/* Filters + List */}
       <div className={`space-y-4 transition-all w-full`}>
         {!isModal && (
-          <Card className="p-4 rounded-2xl shadow-sm border-slate-100 flex flex-wrap gap-3">
-            <select
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[200px] outline-none focus:border-primary transition-all"
-              value={selectedJobIdFilter}
-              onChange={(e) => setSelectedJobIdFilter(e.target.value)}
-            >
-              <option value="">-- Lọc theo công việc --</option>
-              {jobs
-                .filter((j) => j.status !== 'DELETED')
-                .map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {j.title}
-                  </option>
-                ))}
-            </select>
-            <select
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[150px] outline-none"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">Trạng thái</option>
-              <option value="APPLIED">Chờ xử lý</option>
-              <option value="VIEWED">Đã xem</option>
-              <option value="SUITABLE">Phù hợp</option>
-              <option value="UNSUITABLE">Không phù hợp</option>
-            </select>
-          </Card>
+            <Card className="p-4 rounded-2xl shadow-sm border-slate-100 flex flex-wrap gap-3">
+              <select
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[200px] outline-none focus:border-primary transition-all"
+                value={selectedJobIdFilter}
+                onChange={(e) => setSelectedJobIdFilter(e.target.value)}
+              >
+                <option value="">-- Lọc theo công việc --</option>
+                {allJobs
+                  .filter((j) => j.status !== 'DELETED')
+                  .map((j) => (
+                    <option key={j.id} value={j.id}>
+                      {j.title}
+                    </option>
+                  ))}
+              </select>
+              <select
+                className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[150px] outline-none"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="">Trạng thái</option>
+                <option value="APPLIED">Chờ xử lý</option>
+                <option value="VIEWED">Đã xem</option>
+                <option value="SUITABLE">Phù hợp</option>
+                <option value="UNSUITABLE">Không phù hợp</option>
+              </select>
+            </Card>
         )}
 
         {loadingApplications ? (
@@ -1326,32 +1336,41 @@ export const EmployerDashboard = () => {
 
               {/* KPI Section */}
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-                {MOCK_KPI.map((item, idx) => (
-                  <Card
-                    key={idx}
-                    className="p-6 rounded-2xl shadow-sm border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className={`p-3 rounded-xl ${item.bg}`}>
-                        <item.icon className={`w-6 h-6 ${item.color}`} />
-                      </div>
-                      <Badge
-                        variant="secondary"
-                        className="bg-green-100 text-green-700 font-medium"
+                {loadingOverview
+                  ? Array.from({ length: 4 }).map((_, idx) => (
+                      <Card
+                        key={idx}
+                        className="p-6 rounded-2xl shadow-sm border-slate-100 animate-pulse"
                       >
-                        {item.trend}
-                      </Badge>
-                    </div>
-                    <div className="mt-4">
-                      <p className="text-4xl font-bold text-slate-800">
-                        {item.value}
-                      </p>
-                      <p className="text-sm font-medium text-slate-500 mt-1">
-                        {item.label}
-                      </p>
-                    </div>
-                  </Card>
-                ))}
+                        <div className="flex justify-between items-start">
+                          <div className="w-12 h-12 rounded-xl bg-slate-100" />
+                        </div>
+                        <div className="mt-4 space-y-2">
+                          <div className="h-8 w-16 bg-slate-100 rounded-lg" />
+                          <div className="h-4 w-24 bg-slate-100 rounded" />
+                        </div>
+                      </Card>
+                    ))
+                  : buildKpiItems(overview).map((item, idx) => (
+                      <Card
+                        key={idx}
+                        className="p-6 rounded-2xl shadow-sm border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className={`p-3 rounded-xl ${item.bg}`}>
+                            <item.icon className={`w-6 h-6 ${item.color}`} />
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <p className="text-4xl font-bold text-slate-800">
+                            {item.value}
+                          </p>
+                          <p className="text-sm font-medium text-slate-500 mt-1">
+                            {item.label}
+                          </p>
+                        </div>
+                      </Card>
+                    ))}
               </div>
 
               {/* Quick Actions & Recent Applicants Preview */}
@@ -1772,32 +1791,55 @@ export const EmployerDashboard = () => {
               </h2>
 
               <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-                {MOCK_KPI.map((item, idx) => (
-                  <Card
-                    key={idx}
-                    className="p-6 rounded-2xl shadow-sm border-slate-100 flex flex-col justify-between"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className={`p-3 rounded-xl ${item.bg}`}>
-                        <item.icon className={`w-6 h-6 ${item.color}`} />
-                      </div>
-                    </div>
-                    <div className="mt-4">
-                      <p className="text-4xl font-bold text-slate-800">
-                        {item.value}
-                      </p>
-                      <p className="text-sm font-medium text-slate-500 mt-1">
-                        {item.label}
-                      </p>
-                    </div>
-                  </Card>
-                ))}
+                {loadingOverview
+                  ? Array.from({ length: 4 }).map((_, idx) => (
+                      <Card
+                        key={idx}
+                        className="p-6 rounded-2xl shadow-sm border-slate-100 animate-pulse"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="w-12 h-12 rounded-xl bg-slate-100" />
+                        </div>
+                        <div className="mt-4 space-y-2">
+                          <div className="h-8 w-16 bg-slate-100 rounded-lg" />
+                          <div className="h-4 w-24 bg-slate-100 rounded" />
+                        </div>
+                      </Card>
+                    ))
+                  : buildKpiItems(overview).map((item, idx) => (
+                      <Card
+                        key={idx}
+                        className="p-6 rounded-2xl shadow-sm border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className={`p-3 rounded-xl ${item.bg}`}>
+                            <item.icon className={`w-6 h-6 ${item.color}`} />
+                          </div>
+                        </div>
+                        <div className="mt-4">
+                          <p className="text-4xl font-bold text-slate-800">
+                            {item.value}
+                          </p>
+                          <p className="text-sm font-medium text-slate-500 mt-1">
+                            {item.label}
+                          </p>
+                        </div>
+                      </Card>
+                    ))}
+              </div>
+
+              <div className="mb-6">
+                <ApplicationFunnelWidget jobs={allJobs} />
+              </div>
+
+              <div className="mb-6">
+                <EmployerPaymentsWidget />
               </div>
 
               <Card className="p-6 rounded-2xl shadow-sm border-slate-100">
                 <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                  <BarChart3 className="text-primary" /> Hiệu suất tuyển dụng
-                  tháng này
+                  <BarChart3 className="text-primary" /> Tổng quan hiệu suất
+                  tuyển dụng
                 </h3>
 
                 {/* Fake Chart Area */}
