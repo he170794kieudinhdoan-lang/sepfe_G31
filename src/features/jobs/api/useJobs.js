@@ -7,6 +7,9 @@ import {
   getRelatedJobs,
   searchJobs,
   getJobsForEmployer,
+  getBoostedJobsApi,
+  createBoostCheckoutApi,
+  confirmBoostPaymentApi,
   getSectorsWithOccupations,
   getOccupationsBySector,
   getProvinces,
@@ -60,6 +63,17 @@ export const useJobsForEmployer = (filters = {}, options = {}) => {
   return useQuery({
     queryKey: ['jobs-for-employer', filters],
     queryFn: () => getJobsForEmployer(filters),
+    staleTime: 2 * 60 * 1000,
+    retry: 1,
+    keepPreviousData: true,
+    ...options,
+  });
+};
+
+export const useBoostedJobs = (params = {}, options = {}) => {
+  return useQuery({
+    queryKey: ['boosted-jobs', params],
+    queryFn: () => getBoostedJobsApi(params),
     staleTime: 2 * 60 * 1000,
     retry: 1,
     keepPreviousData: true,
@@ -125,6 +139,27 @@ export const useDeleteJob = () => {
     },
     onError: (error) => {
       console.error(error?.response?.data?.message || 'Delete job failed');
+    },
+  });
+};
+
+export const useCreateBoostCheckout = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createBoostCheckoutApi,
+    onSuccess: () => {
+      invalidateJobQueries(queryClient);
+    },
+  });
+};
+
+export const useConfirmBoostPayment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: confirmBoostPaymentApi,
+    onSuccess: () => {
+      invalidateJobQueries(queryClient);
+      queryClient.invalidateQueries({ queryKey: ['boosted-jobs'] });
     },
   });
 };

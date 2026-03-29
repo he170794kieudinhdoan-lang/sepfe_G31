@@ -75,6 +75,24 @@ export const getJobsForEmployer = async (params = {}) => {
   return await apiClient.get('/job/get-for-employer', { params: cleanParams });
 };
 
+export const getBoostedJobsApi = async (params = {}) => {
+  const cleanParams = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      cleanParams[key] = value;
+    }
+  });
+  return await apiClient.get('/job/boosted', { params: cleanParams });
+};
+
+export const createBoostCheckoutApi = async ({ jobId, payload }) => {
+  return await apiClient.post(`/job/${jobId}/boost/checkout`, payload);
+};
+
+export const confirmBoostPaymentApi = async ({ jobId, payload }) => {
+  return await apiClient.post(`/job/${jobId}/boost/confirm`, payload);
+};
+
 export const getEmployerApplications = async (jobId) => {
   const params = jobId ? { jobId } : {};
   return await apiClient.get('/job/employer/applications', { params });
