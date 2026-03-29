@@ -17,6 +17,7 @@ import { MSG } from '@/shared/constants/messages';
 import { SectorManagementService } from '@/features/jobs/api/sectormanagement';
 import { OccupationManagementService } from '@/features/jobs/api/occupationmanagement';
 import { useGetAiWeights, useUpdateAiWeights } from '@/features/jobs';
+import { getWarningJobsApi, updateJobStatusApi } from '@/features/jobs/api/jobApi';
 
 const kpi = [
   { label: 'Total users', value: '12,540' },
@@ -77,6 +78,10 @@ export const AdminDashboard = () => {
   const [selectedSectorId, setSelectedSectorId] = useState('');
   const [filterSectorId, setFilterSectorId] = useState('');
 
+  // Moderation state
+  const [warningJobs, setWarningJobs] = useState([]);
+  const [loadingModeration, setLoadingModeration] = useState(false);
+
   // AI Matching Weights State
   const { data: weightsData, isLoading: loadingWeights } = useGetAiWeights();
   const updateWeightsMutation = useUpdateAiWeights();
@@ -108,6 +113,7 @@ export const AdminDashboard = () => {
   const menu = [
     { key: 'overview', label: 'Tổng quan' },
     { key: 'users', label: 'Quản lý người dùng' },
+    { key: 'moderation', label: 'Duyệt công việc' },
     { key: 'sectors', label: 'Quản lý ngành nghề' },
     { key: 'occupations', label: 'Quản lý nghề nghiệp' },
     { key: 'stats', label: 'Thống kê hệ thống' },
@@ -131,6 +137,36 @@ export const AdminDashboard = () => {
   useEffect(() => {
     fetchSectors();
   }, []);
+
+  const fetchWarningJobs = async () => {
+    try {
+      setLoadingModeration(true);
+      const res = await getWarningJobsApi({ page: 1, limit: 100 });
+      setWarningJobs(res.items || []);
+    } catch (e) {
+      console.error(e);
+      toast('Lỗi khi tải danh sách kiểm duyệt', 'error');
+    } finally {
+      setLoadingModeration(false);
+    }
+  };
+
+  useEffect(() => {
+    if (active === 'moderation') {
+      fetchWarningJobs();
+    }
+  }, [active]);
+
+  const handleUpdateJobStatus = async (jobId, status) => {
+    try {
+      await updateJobStatusApi({ id: jobId, status });
+      toast('Cập nhật trạng thái thành công');
+      fetchWarningJobs();
+    } catch (e) {
+      console.error(e);
+      toast('Cập nhật thất bại', 'error');
+    }
+  };
   const createSector = async () => {
     try {
       if (!sectorName.trim()) {
@@ -466,6 +502,100 @@ export const AdminDashboard = () => {
               </table>
             </Card>
           )}
+        </div>
+      )}
+
+      {active === 'moderation' && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Duyệt công việc (Warning)</h2>
+            <Button
+              variant="outline"
+              onClick={fetchWarningJobs}
+              disabled={loadingModeration}
+              className="rounded-xl"
+            >
+              Làm mới
+            </Button>
+          </div>
+
+          <Card className="p-4 rounded-xl shadow-sm">
+            <table className="w-full text-sm">
+              <thead className="text-left text-muted-foreground">
+                <tr className="border-b">
+                  <th className="py-2">Công việc</th>
+                  <th>Công ty</th>
+                  <th>Nghề nghiệp</th>
+                  <th>Ngày tạo</th>
+                  <th>Hành động</th>
+                </tr>
+              </thead>
+              <tbody>
+                {loadingModeration ? (
+                  <tr>
+                    <td colSpan="5" className="text-center py-6">
+                      <Skeleton className="h-20 w-full" />
+                    </td>
+                  </tr>
+                ) : warningJobs.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="text-center py-10 text-muted-foreground"
+                    >
+                      Không có công việc nào cần duyệt
+                    </td>
+                  </tr>
+                ) : (
+                  warningJobs.map((job) => (
+                    <tr
+                      key={job.id}
+                      className="border-b last:border-0 hover:bg-slate-50/50 transition-colors"
+                    >
+                      <td className="py-4">
+                        <div className="font-semibold text-slate-800">
+                          {job.title}
+                        </div>
+                        <div className="text-xs text-muted-foreground line-clamp-1">
+                          {job.address}
+                        </div>
+                      </td>
+                      <td>{job.company?.name}</td>
+                      <td>
+                        <Badge variant="outline" className="font-normal">
+                          {job.occupation?.name}
+                        </Badge>
+                      </td>
+                      <td className="text-muted-foreground">
+                        {new Date(job.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="flex gap-2 py-4">
+                        <Button
+                          size="sm"
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4"
+                          onClick={() =>
+                            handleUpdateJobStatus(job.id, 'PUBLISHED')
+                          }
+                        >
+                          Duyệt
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          className="rounded-lg px-4"
+                          onClick={() =>
+                            handleUpdateJobStatus(job.id, 'DELETED')
+                          }
+                        >
+                          Xóa
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </Card>
         </div>
       )}
 

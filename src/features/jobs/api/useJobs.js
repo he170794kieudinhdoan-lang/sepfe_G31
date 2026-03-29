@@ -25,6 +25,8 @@ import {
   updateWeights,
   getAllJobReportsApi,
   updateJobReportStatusApi,
+  getWarningJobsApi,
+  updateJobStatusApi,
 } from './jobApi';
 import { useToast } from '@/shared/contexts/ToastContext';
 
@@ -298,6 +300,26 @@ export const useUpdateJobReportStatus = () => {
     mutationFn: updateJobReportStatusApi,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['job-reports'] });
+    },
+  });
+};
+
+export const useGetWarningJobs = (params) => {
+  return useQuery({
+    queryKey: ['warning-jobs', params],
+    queryFn: () => getWarningJobsApi(params),
+    keepPreviousData: true,
+  });
+};
+
+export const useUpdateJobStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateJobStatusApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warning-jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['job-search'] });
+      queryClient.invalidateQueries({ queryKey: ['job-detail'] });
     },
   });
 };
