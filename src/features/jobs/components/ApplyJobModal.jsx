@@ -37,7 +37,7 @@ export const ApplyJobModal = ({ open, onClose, jobId }) => {
       return;
     }
 
-    // Validate required fields
+    // Validate required fields only if have form
     for (const field of formFields) {
       if (field.isRequired && !answers[field.id]?.trim()) {
         toast(`Vui lòng điền: ${field.label}`, 'error');
@@ -45,15 +45,11 @@ export const ApplyJobModal = ({ open, onClose, jobId }) => {
       }
     }
 
+    // Allow apply without form or with empty answers
     const payloadAnswers = Object.entries(answers).map(([fieldId, value]) => ({
       fieldId: Number(fieldId),
       value: value.trim()
     }));
-
-    if (payloadAnswers.length === 0 && formFields.length > 0) {
-      toast('Vui lòng điền thông tin', 'error');
-      return;
-    }
 
     applyJob({
       jobId,
@@ -134,24 +130,25 @@ export const ApplyJobModal = ({ open, onClose, jobId }) => {
       onClose={handleClose}
       onConfirm={handleSubmit}
       confirmLabel={isApplying ? "Đang gửi..." : "Gửi"}
-      confirmDisabled={isApplying || isFormLoading}
+      confirmDisabled={isApplying}
     >
       <div className="space-y-4">
-        {isFormLoading ? (
-          <div className="flex justify-center p-4">
-            <Loader2 className="w-6 h-6 animate-spin text-primary" />
-          </div>
-        ) : formFields.length > 0 ? (
-          formFields.map((field) => (
-            <div key={field.id} className="space-y-1">
-              <label className="text-sm font-medium">
-                {field.label} {field.isRequired && <span className="text-red-500">*</span>}
-              </label>
-              {renderField(field)}
-            </div>
-          ))
-        ) : (
-          <p className="text-sm text-slate-500 italic pb-2">Vui lòng để lại ghi chú nếu có để nộp đơn ứng tuyển cho công việc này.</p>
+        {formFields.length > 0 && (
+          <>
+            <div className="font-medium text-sm">Thông tin ứng tuyển:</div>
+            {formFields.map((field) => (
+              <div key={field.id} className="space-y-1">
+                <label className="text-sm font-medium">
+                  {field.label} {field.isRequired && <span className="text-red-500">*</span>}
+                </label>
+                {renderField(field)}
+              </div>
+            ))}
+          </>
+        )}
+
+        {formFields.length === 0 && (
+          <p className="text-sm text-slate-500 italic pb-2">Công việc này không có form ứng tuyển. Bạn có thể ứng tuyển ngay.</p>
         )}
 
         <label className="flex items-center gap-2 pt-2">
