@@ -31,13 +31,14 @@ import {
   useGetCompaniesByStatus,
   useReviewCompany,
 } from '../api/useGetCompanies';
-import { useGetAllJobReports, useUpdateJobReportStatus } from '@/features/jobs/api/useJobs';
+import { useGetAllJobReports, useUpdateJobReportStatus, useGetWarningJobs, useUpdateJobStatus } from '@/features/jobs/api/useJobs';
 
 // 1. Management Menu and Status Colors configuration
 const MANAGEMENT_MENU = [
   { key: 'all', label: 'Tất cả đơn' },
   { key: 'approvals', label: 'Đang xếp hàng duyệt' },
   { key: 'rejected', label: 'Đã từ chối' },
+  { key: 'job_warning', label: 'Công việc nghi vấn' },
   { key: 'job_reports', label: 'Báo cáo việc làm' },
 ];
 
@@ -84,6 +85,9 @@ export const ManagerDashboard = () => {
 
   const { data: listReportsData = [], isLoading: loadingReports } = useGetAllJobReports(reportStatus, 1, 50);
   const updateReportMutation = useUpdateJobReportStatus();
+
+  const { data: warningJobsData, isLoading: loadingWarningJobs } = useGetWarningJobs({ page: 1, limit: 100 });
+  const updateJobStatusMutation = useUpdateJobStatus();
 
   // Find the viewing report in the list
   const viewingReport = listReportsData?.data?.find(r => r.id === viewingReportId);
@@ -136,6 +140,16 @@ export const ManagerDashboard = () => {
       setViewingReportId(null);
     } catch (error) {
       toast('Có lỗi xảy ra khi cập nhật', 'error');
+    }
+  };
+
+  const handleUpdateJobStatus = async (jobId, status) => {
+    try {
+      await updateJobStatusMutation.mutateAsync({ id: jobId, status });
+      toast('Cập nhật trạng thái thành công');
+    } catch (e) {
+      console.error(e);
+      toast('Cập nhật thất bại', 'error');
     }
   };
 
@@ -306,6 +320,130 @@ export const ManagerDashboard = () => {
             )}
           </div>
         </div>
+      </div>
+    );
+  };
+
+  // ==========================================================
+  // VIEW: WARNING JOBS MODERATION
+  // ==========================================================
+  const renderWarningJobs = () => {
+    const jobs = warningJobsData?.items || [];
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <p className="text-sm text-slate-500 px-2 font-medium">
+            Phát hiện{' '}
+            <span className="text-amber-600 font-bold">{jobs.length}</span> công
+            việc có dấu hiệu vi phạm
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {}}
+            className="rounded-lg h-9"
+          >
+            Tất cả (Warning)
+          </Button>
+        </div>
+
+        <Card className="rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 text-left text-xs uppercase tracking-wider">
+                  <th className="px-6 py-4 font-semibold">Công việc</th>
+                  <th className="px-6 py-4 font-semibold">Công ty</th>
+                  <th className="px-6 py-4 font-semibold">Nghề nghiệp</th>
+                  <th className="px-6 py-4 font-semibold">Ngày đăng</th>
+                  <th className="px-6 py-4 text-right font-semibold">
+                    Hành động
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loadingWarningJobs ? (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="py-10 text-center text-slate-400 font-medium"
+                    >
+                      Đang tải danh sách...
+                    </td>
+                  </tr>
+                ) : jobs.length === 0 ? (
+                  <tr>
+                    <td
+                      colSpan="5"
+                      className="py-10 text-center text-slate-400 font-medium"
+                    >
+                      Không có công việc nghi vấn
+                    </td>
+                  </tr>
+                ) : (
+                  jobs.map((job) => (
+                    <tr key={job.id} className="hover:bg-slate-50/50">
+                      <td className="px-6 py-4">
+                        <Link
+                          to={`/job/${job.id}`}
+                          target="_blank"
+                          className="text-sm font-semibold text-blue-600 hover:underline"
+                        >
+                          {job.title}
+                        </Link>
+                        <div className="flex items-center gap-2 mt-1">
+                          <div className="text-xs text-muted-foreground truncate max-w-[200px]">
+                            {job.address}
+                          </div>
+                          <Badge
+                            variant="secondary"
+                            className="bg-amber-100 text-amber-700 text-[10px] font-bold border-amber-200"
+                          >
+                            Dấu hiệu vi phạm (AI)
+                          </Badge>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        {job.company?.name || '—'}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <Badge variant="outline" className="font-normal">
+                          {job.occupation?.name || '—'}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-500">
+                        {new Date(job.createdAt).toLocaleDateString('vi-VN')}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 rounded-lg px-4 font-semibold"
+                            onClick={() =>
+                              handleUpdateJobStatus(job.id, 'PUBLISHED')
+                            }
+                          >
+                            Duyệt
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="rounded-lg px-4"
+                            onClick={() =>
+                              handleUpdateJobStatus(job.id, 'DELETED')
+                            }
+                          >
+                            Xóa
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
       </div>
     );
   };
@@ -536,6 +674,8 @@ export const ManagerDashboard = () => {
           </h2>
           {currentTab === 'job_reports'
             ? renderJobReports()
+            : currentTab === 'job_warning'
+            ? renderWarningJobs()
             : viewingCompanyId ? renderDetails() : renderCompanyList()}
         </div>
       </div>

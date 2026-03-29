@@ -139,3 +139,11 @@ export const updateJobReportStatusApi = async ({ id, status }) => {
   return await apiClient.put(`/job/report/${id}/status`, { status });
 };
 
+// ===== MODERATION =====
+export const getWarningJobsApi = async ({ page = 1, limit = 10 } = {}) => {
+  return await apiClient.get('/job/moderation/warning', { params: { page, limit } });
+};
+
+export const updateJobStatusApi = async ({ id, status }) => {
+  return await apiClient.patch(`/job/${id}/status`, { status });
+};
