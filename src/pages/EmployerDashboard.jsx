@@ -9,6 +9,8 @@ import { Modal } from '@/shared/components/Modal';
 import { Outlet, NavLink, Link } from "react-router-dom"
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { useToast } from '@/shared/contexts/ToastContext';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
 import { CompanyRegisterPage } from '@/pages/CompanyRegisterPage';
 import { CreateJobPage } from '@/pages/CreateJobPage';
 import { EditJobPage } from '@/pages/EditJobPage';
@@ -212,6 +214,8 @@ const ApplicantStatusBadge = ({ status }) => {
 };
 
 export const EmployerDashboard = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
@@ -255,6 +259,14 @@ export const EmployerDashboard = () => {
 
   const jobs = searchResult?.items || [];
   const totalPages = searchResult?.meta?.totalPage || 1;
+
+  useEffect(() => {
+    if (user?.id) {
+      queryClient.invalidateQueries({ queryKey: ['my-company'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
+      queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
+    }
+  }, [user?.id, queryClient]);
 
   useEffect(() => {
     if (loadingCompany) return;
@@ -423,7 +435,7 @@ export const EmployerDashboard = () => {
                 </h2>
                 <div className="text-sm text-slate-500 mt-2 space-y-1">
                   <p className="flex items-center gap-2">
-                    <Phone size={14} className="text-primary" /> 
+                    <Phone size={14} className="text-primary" />
                     <span className="font-medium text-slate-700">{applicantDetail.user?.phone || 'Chưa cập nhật SĐT'}</span>
                   </p>
                 </div>
@@ -508,11 +520,10 @@ export const EmployerDashboard = () => {
                   <button
                     key={status.value}
                     onClick={() => setApplicantStatus(status.value)}
-                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
-                      applicantStatus === status.value
+                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
                         ? status.activeClass
                         : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
+                      }`}
                   >
                     {status.label}
                   </button>

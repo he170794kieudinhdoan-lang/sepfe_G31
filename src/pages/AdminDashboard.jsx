@@ -17,6 +17,8 @@ import { MSG } from '@/shared/constants/messages';
 import { SectorManagementService } from '@/features/jobs/api/sectormanagement';
 import { OccupationManagementService } from '@/features/jobs/api/occupationmanagement';
 import { useGetAiWeights, useUpdateAiWeights } from '@/features/jobs';
+import { useGetAllUsersPaginated, useUpdateUserStatus } from '@/features/users/api/useUser';
+import { AppPagination } from '@/shared/components/AppPagination';
 
 const kpi = [
   { label: 'Total users', value: '12,540' },
@@ -25,29 +27,29 @@ const kpi = [
   { label: 'Total job postings', value: '4,520' },
 ];
 
-const mockUsers = [
-  {
-    id: 1,
-    name: 'Nguyen Mai',
-    email: 'mai.nguyen@mail.com',
-    role: 'Worker',
-    status: 'Active',
-    created: '2025-12-20',
-  },
-  {
-    id: 2,
-    name: 'Tran Quang',
-    email: 'quang.tran@mail.com',
-    role: 'Employer',
-    status: 'Disabled',
-    created: '2025-11-18',
-  },
-];
-
 export const AdminDashboard = () => {
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
+
+  // Users state
+  const initialUserFilters = {
+    page: 1,
+    role: '',
+    status: '',
+    fromDate: '',
+    toDate: '',
+  };
+
+  const [userFilters, setUserFilters] = useState(initialUserFilters);
+  const [userFiltersInput, setUserFiltersInput] = useState(initialUserFilters);
+
+  const { data: usersData, isLoading: isLoadingUsers } = useGetAllUsersPaginated(userFilters);
+  const usersList = usersData?.data || [];
+  const totalPages = usersData?.totalPages || 1;
+
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [userStatusToUpdate, setUserStatusToUpdate] = useState(null);
+  const updateUserStatusMutation = useUpdateUserStatus();
   const [sectorModal, setSectorModal] = useState(false);
   const [editSector, setEditSector] = useState(null);
   const [sectorToDelete, setSectorToDelete] = useState(null);
@@ -103,7 +105,6 @@ export const AdminDashboard = () => {
   );
 
   const isLoading = false;
-  const users = mockUsers;
 
   const menu = [
     { key: 'overview', label: 'Tổng quan' },
@@ -396,74 +397,130 @@ export const AdminDashboard = () => {
       {active === 'users' && (
         <div className="space-y-6">
           <Card className="p-4 flex flex-wrap gap-3 items-center">
-            <select className="rounded-full border px-4 py-2 text-sm bg-white">
-              <option>Role</option>
-              <option>Worker</option>
-              <option>Employer</option>
-              <option>Manager</option>
-              <option>Admin</option>
+            <select
+              className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
+              value={userFiltersInput.role}
+              onChange={(e) => setUserFiltersInput({ ...userFiltersInput, role: e.target.value })}
+            >
+              <option value="">Role</option>
+              <option value="WORKER">Worker</option>
+              <option value="EMPLOYER">Employer</option>
+              <option value="MANAGER">Manager</option>
             </select>
-            <select className="rounded-full border px-4 py-2 text-sm bg-white">
-              <option>Status</option>
-              <option>Active</option>
-              <option>Disabled</option>
+            <select
+              className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
+              value={userFiltersInput.status}
+              onChange={(e) => setUserFiltersInput({ ...userFiltersInput, status: e.target.value })}
+            >
+              <option value="">Status</option>
+              <option value="ACTIVE">Active</option>
+              <option value="DELETED">Disabled</option>
             </select>
-            <Input type="date" className="max-w-[180px]" />
-            <Input type="date" className="max-w-[180px]" />
-            <Button className="rounded-full">Lọc</Button>
-            <Button variant="outline" className="rounded-full">
+            <Input
+              type="date"
+              className="max-w-[180px] rounded-full"
+              value={userFiltersInput.fromDate}
+              onChange={(e) => setUserFiltersInput({ ...userFiltersInput, fromDate: e.target.value })}
+            />
+            <Input
+              type="date"
+              className="max-w-[180px] rounded-full"
+              value={userFiltersInput.toDate}
+              onChange={(e) => setUserFiltersInput({ ...userFiltersInput, toDate: e.target.value })}
+            />
+            <Button
+              className="rounded-full px-6"
+              onClick={() => {
+                const newFilters = { ...userFiltersInput, page: 1 };
+                setUserFilters(newFilters);
+                setUserFiltersInput(newFilters);
+              }}
+            >
+              Lọc
+            </Button>
+            <Button
+              variant="outline"
+              className="rounded-full px-6"
+              onClick={() => {
+                setUserFiltersInput(initialUserFilters);
+                setUserFilters(initialUserFilters);
+              }}
+            >
               Reset
             </Button>
           </Card>
 
-          {users.length === 0 ? (
+          {isLoadingUsers ? (
+            <Skeleton className="h-[400px] w-full rounded-2xl" />
+          ) : usersList.length === 0 ? (
             <EmptyState
-              title={MSG.MSG_USER_LIST_EMPTY}
-              description="Danh sách người dùng đang trống."
+              title={MSG.MSG_USER_LIST_EMPTY || "Danh sách trống"}
+              description="Danh sách người dùng đang trống hoặc không có kết quả phù hợp."
             />
           ) : (
             <Card className="p-4">
-              <table className="w-full text-sm">
-                <thead className="text-left text-muted-foreground">
-                  <tr className="border-b">
-                    <th className="py-2">Name</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Created date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {users.map((user) => (
-                    <tr key={user.id} className="border-b last:border-b-0">
-                      <td className="py-3 font-semibold">{user.name}</td>
-                      <td>{user.email}</td>
-                      <td>{user.role}</td>
-                      <td>
-                        <Badge
-                          variant={
-                            user.status === 'Active' ? 'default' : 'secondary'
-                          }
-                        >
-                          {user.status}
-                        </Badge>
-                      </td>
-                      <td>{user.created}</td>
-                      <td>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-full"
-                          onClick={() => setConfirmOpen(true)}
-                        >
-                          {user.status === 'Active' ? 'Disable' : 'Enable'}
-                        </Button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-muted-foreground">
+                    <tr className="border-b">
+                      <th className="py-2 font-medium">Name</th>
+                      <th className="font-medium">Email</th>
+                      <th className="font-medium">Role</th>
+                      <th className="font-medium">Status</th>
+                      <th className="font-medium">Created date</th>
+                      <th className="font-medium">Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {usersList.map((user) => (
+                      <tr key={user.id} className="border-b last:border-b-0 hover:bg-slate-50/50 transition-colors">
+                        <td className="py-3 font-semibold text-slate-800">{user.name}</td>
+                        <td className="text-slate-600">{user.email}</td>
+                        <td className="capitalize text-slate-600">{user.role?.toLowerCase() || ''}</td>
+                        <td>
+                          <Badge
+                            variant={
+                              user.status === 'ACTIVE' ? 'default' : 'secondary'
+                            }
+                            className={user.status === 'ACTIVE' ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20" : ""}
+                          >
+                            {user.status === 'ACTIVE' ? 'Active' : 'Disabled'}
+                          </Badge>
+                        </td>
+                        <td className="text-slate-600">
+                          {user.createdDate ? new Date(user.createdDate).toLocaleDateString() : ''}
+                        </td>
+                        <td>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="rounded-full shadow-sm"
+                            onClick={() => {
+                              setUserStatusToUpdate({
+                                id: user.id,
+                                name: user.name,
+                                status: user.status === 'ACTIVE' ? 'DELETED' : 'ACTIVE'
+                              });
+                              setConfirmOpen(true);
+                            }}
+                          >
+                            {user.status === 'ACTIVE' ? 'Disable' : 'Enable'}
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <AppPagination
+                page={userFilters.page}
+                totalPage={totalPages}
+                onPageChange={(page) => {
+                  setUserFilters({ ...userFilters, page });
+                  setUserFiltersInput({ ...userFiltersInput, page });
+                }}
+              />
             </Card>
           )}
         </div>
@@ -843,10 +900,27 @@ export const AdminDashboard = () => {
       <Modal
         open={confirmOpen}
         title="Xác nhận thay đổi"
-        description="Bạn chắc chắn muốn vô hiệu hóa/kích hoạt tài khoản?"
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={() => setConfirmOpen(false)}
-        confirmLabel="Xác nhận"
+        description={`Bạn chắc chắn muốn ${userStatusToUpdate?.status === 'ACTIVE' ? 'kích hoạt' : 'vô hiệu hóa'} tài khoản của ${userStatusToUpdate?.name || 'người dùng này'}?`}
+        onClose={() => {
+          setConfirmOpen(false);
+          setUserStatusToUpdate(null);
+        }}
+        onConfirm={async () => {
+          if (!userStatusToUpdate) return;
+          try {
+            await updateUserStatusMutation.mutateAsync({
+              userId: userStatusToUpdate.id,
+              status: userStatusToUpdate.status
+            });
+            toast(`Đã ${userStatusToUpdate.status === 'ACTIVE' ? 'kích hoạt' : 'vô hiệu hóa'} tài khoản thành công`);
+            setConfirmOpen(false);
+            setUserStatusToUpdate(null);
+          } catch (error) {
+            toast('Lỗi khi cập nhật trạng thái', 'error');
+          }
+        }}
+        confirmLabel={updateUserStatusMutation.isPending ? "Đang xử lý..." : "Xác nhận"}
+        confirmDisabled={updateUserStatusMutation.isPending}
       />
 
       <Modal
