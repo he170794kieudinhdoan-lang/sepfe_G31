@@ -70,7 +70,6 @@ import {
   useMatchedWorkers,
   useJobDetail,
 } from '@/features/jobs/api/useJobs';
-import { useDeleteJob } from '@/features/jobs/api/useJobs';
 import {
   useGetOrCreateConversation,
   useSendMessage,
@@ -692,9 +691,9 @@ export const EmployerDashboard = () => {
 
   const jobs = searchResult?.items || [];
   // Nếu fetchAll=true trả về mảng trực tiếp hoặc trả về object chứa items/data
-  const allJobs = Array.isArray(allJobsResult) 
-    ? allJobsResult 
-    : (allJobsResult?.items || allJobsResult?.data || []);
+  const allJobs = Array.isArray(allJobsResult)
+    ? allJobsResult
+    : allJobsResult?.items || allJobsResult?.data || [];
   const totalPages = searchResult?.meta?.totalPage || 1;
 
   useEffect(() => {
@@ -871,33 +870,33 @@ export const EmployerDashboard = () => {
       {/* Filters + List */}
       <div className={`space-y-4 transition-all w-full`}>
         {!isModal && (
-            <Card className="p-4 rounded-2xl shadow-sm border-slate-100 flex flex-wrap gap-3">
-              <select
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[200px] outline-none focus:border-primary transition-all"
-                value={selectedJobIdFilter}
-                onChange={(e) => setSelectedJobIdFilter(e.target.value)}
-              >
-                <option value="">-- Lọc theo công việc --</option>
-                {allJobs
-                  .filter((j) => j.status !== 'DELETED')
-                  .map((j) => (
-                    <option key={j.id} value={j.id}>
-                      {j.title}
-                    </option>
-                  ))}
-              </select>
-              <select
-                className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[150px] outline-none"
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-              >
-                <option value="">Trạng thái</option>
-                <option value="APPLIED">Chờ xử lý</option>
-                <option value="VIEWED">Đã xem</option>
-                <option value="SUITABLE">Phù hợp</option>
-                <option value="UNSUITABLE">Không phù hợp</option>
-              </select>
-            </Card>
+          <Card className="p-4 rounded-2xl shadow-sm border-slate-100 flex flex-wrap gap-3">
+            <select
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[200px] outline-none focus:border-primary transition-all"
+              value={selectedJobIdFilter}
+              onChange={(e) => setSelectedJobIdFilter(e.target.value)}
+            >
+              <option value="">-- Lọc theo công việc --</option>
+              {allJobs
+                .filter((j) => j.status !== 'DELETED')
+                .map((j) => (
+                  <option key={j.id} value={j.id}>
+                    {j.title}
+                  </option>
+                ))}
+            </select>
+            <select
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[150px] outline-none"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="">Trạng thái</option>
+              <option value="APPLIED">Chờ xử lý</option>
+              <option value="VIEWED">Đã xem</option>
+              <option value="SUITABLE">Phù hợp</option>
+              <option value="UNSUITABLE">Không phù hợp</option>
+            </select>
+          </Card>
         )}
 
         {loadingApplications ? (
