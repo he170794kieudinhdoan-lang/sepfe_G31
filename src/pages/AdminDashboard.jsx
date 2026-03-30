@@ -18,13 +18,9 @@ import { SectorManagementService } from '@/features/jobs/api/sectormanagement';
 import { OccupationManagementService } from '@/features/jobs/api/occupationmanagement';
 import { useGetAiWeights, useUpdateAiWeights } from '@/features/jobs';
 import { getWarningJobsApi, updateJobStatusApi } from '@/features/jobs/api/jobApi';
+import { useAdminStatistics } from '@/features/admin/api/useAdmin';
 
-const kpi = [
-  { label: 'Total users', value: '12,540' },
-  { label: 'Total employers', value: '1,240' },
-  { label: 'Total companies', value: '860' },
-  { label: 'Total job postings', value: '4,520' },
-];
+
 
 const mockUsers = [
   {
@@ -44,6 +40,20 @@ const mockUsers = [
     created: '2025-11-18',
   },
 ];
+
+const formatCompactVND = (value) => {
+  if (!value) return '0';
+  if (value >= 1_000_000_000) {
+    return (value / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' Tỷ';
+  }
+  if (value >= 1_000_000) {
+    return (value / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' Tr';
+  }
+  if (value >= 1_000) {
+    return (value / 1_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' k';
+  }
+  return value.toLocaleString('vi-VN');
+};
 
 export const AdminDashboard = () => {
   const { toast } = useToast();
@@ -88,6 +98,76 @@ export const AdminDashboard = () => {
   const [aiWeights, setAiWeights] = useState({});
 
   const [aiLabels, setAiLabels] = useState({});
+
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const { data: statsData, isLoading: loadingStats } = useAdminStatistics({ year: selectedYear });
+
+  const kpi = [
+    { label: 'Tổng người dùng', value: statsData?.users?.total || 0 },
+    { label: 'Nhà tuyển dụng', value: statsData?.users?.employers || 0 },
+    { label: 'Tổng doanh nghiệp', value: statsData?.companies?.total || 0 },
+    { label: 'Tổng doanh thu (VNĐ)', value: new Intl.NumberFormat('vi-VN').format(statsData?.payments?.totalRevenue || 0) },
+  ];
+
+  const renderUsersChart = () => {
+    const labels = statsData?.charts?.labels?.length ? statsData.charts.labels : Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`);
+    const newUsers = statsData?.charts?.newUsers || new Array(12).fill(0);
+    const maxUsers = Math.max(...newUsers, 1);
+
+    return (
+      <div className={`flex h-full w-full items-end justify-between px-2 sm:px-4 pb-2 pt-6 gap-2 ${loadingStats ? 'animate-pulse opacity-50' : ''}`}>
+        {labels.map((label, idx) => {
+          const count = newUsers[idx] || 0;
+          const height = count === 0 ? 0 : Math.max(8, (count / maxUsers) * 100);
+
+          return (
+            <div key={label} className="flex flex-col items-center justify-end w-full h-full relative group">
+              <div className="flex flex-col items-center justify-end w-full max-w-[20px] h-full border-b border-slate-100">
+                <div
+                  className={`relative w-full rounded-t-sm transition-all group-hover:opacity-80 ${count > 0 ? 'bg-blue-500' : 'bg-transparent'}`}
+                  style={{ height: `${height}%` }}
+                  title={`Người dùng mới: ${count}`}
+                >
+                  {count > 0 && <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] sm:text-[11px] whitespace-nowrap text-blue-600 font-bold">{count}</span>}
+                </div>
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium mt-3 whitespace-nowrap shrink-0">{label.replace('Tháng ', 'T')}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderRevenueChart = () => {
+    const labels = statsData?.charts?.labels?.length ? statsData.charts.labels : Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`);
+    const revenue = statsData?.charts?.revenue || new Array(12).fill(0);
+    const maxRev = Math.max(...revenue, 1);
+
+    return (
+      <div className={`flex h-full w-full items-end justify-between px-2 sm:px-4 pb-2 pt-6 gap-2 ${loadingStats ? 'animate-pulse opacity-50' : ''}`}>
+        {labels.map((label, idx) => {
+          const rev = revenue[idx] || 0;
+          const height = rev === 0 ? 0 : Math.max(8, (rev / maxRev) * 100);
+
+          return (
+            <div key={label} className="flex flex-col items-center justify-end w-full h-full relative group">
+              <div className="flex flex-col items-center justify-end w-full max-w-[20px] h-full border-b border-slate-100">
+                <div
+                  className={`relative w-full rounded-t-sm transition-all group-hover:opacity-80 ${rev > 0 ? 'bg-emerald-500' : 'bg-transparent'}`}
+                  style={{ height: `${height}%` }}
+                  title={`Doanh thu: ${new Intl.NumberFormat('vi-VN').format(rev)}đ`}
+                >
+                  {rev > 0 && <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap text-emerald-600 font-bold">{formatCompactVND(rev)}</span>}
+                </div>
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium mt-3 whitespace-nowrap shrink-0">{label.replace('Tháng ', 'T')}</span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   useEffect(() => {
     if (weightsData && Array.isArray(weightsData)) {
@@ -398,33 +478,73 @@ export const AdminDashboard = () => {
               </Card>
             ))}
           </div>
-          <div className="grid lg:grid-cols-3 gap-6">
-            <Card className="p-6 lg:col-span-2">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold">Chart hệ thống</h3>
-                <Badge variant="outline">Placeholder</Badge>
+          <div className="grid lg:grid-cols-1 gap-6">
+            <Card className="p-6 lg:col-span-1">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+                <h3 className="text-lg font-semibold">Phân tích tăng trưởng</h3>
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  Năm:
+                  <input
+                    type="number"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(Number(e.target.value) || new Date().getFullYear())}
+                    className="border border-slate-300 focus:outline-blue-500 rounded-md px-3 py-1.5 w-24 text-center font-bold"
+                    placeholder="2026"
+                    min="2000"
+                    max="2100"
+                  />
+                </div>
               </div>
-              <div className="h-60 rounded-xl bg-gradient-to-br from-primary/10 via-white to-primary-muted/30 border border-dashed flex items-center justify-center text-muted-foreground">
-                Chart placeholder
+              <div className="grid lg:grid-cols-2 gap-8">
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div> Biểu đồ người dùng mới
+                  </div>
+                  <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
+                    {renderUsersChart()}
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Biểu đồ doanh thu (VNĐ)
+                  </div>
+                  <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
+                    {renderRevenueChart()}
+                  </div>
+                </div>
               </div>
             </Card>
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Summary</h3>
-              <div className="space-y-3 text-sm text-muted-foreground">
-                <div className="flex items-center justify-between">
-                  <span>New users (7 days)</span>
-                  <span className="font-semibold text-foreground">+420</span>
+
+            <div className="grid lg:grid-cols-3 gap-6">
+              <Card className="p-6 w-full lg:col-span-3">
+                <h3 className="text-lg font-semibold mb-4">Các sự kiện cần chú ý trong tổng quan</h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="flex items-center justify-between bg-slate-50 p-5 rounded-xl border border-slate-100">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-slate-800">Người dùng mới (7 ngày)</span>
+                      <span className="text-xs text-muted-foreground mt-1">Lượng tài khoản mới ghi nhận</span>
+                    </div>
+                    <span className="font-bold text-2xl text-emerald-600">+{statsData?.users?.newUsers7Days || 0}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-orange-50 p-5 rounded-xl border border-orange-100">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-orange-800">C.ty đang đợi xét duyệt</span>
+                      <span className="text-xs text-orange-600 mt-1">Cần kiểm tra hồ sơ và mở tài khoản</span>
+                    </div>
+                    <span className="font-bold text-2xl text-orange-600">{statsData?.companies?.pending || 0}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between bg-rose-50 p-5 rounded-xl border border-rose-100">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-rose-800">Báo cáo vi phạm việc làm</span>
+                      <span className="text-xs text-rose-600 mt-1">Các tin tuyển dụng chờ xem xét vi phạm</span>
+                    </div>
+                    <span className="font-bold text-2xl text-rose-600">{statsData?.reports?.unresolved || 0}</span>
+                  </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span>Companies pending</span>
-                  <span className="font-semibold text-foreground">18</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Reports unresolved</span>
-                  <span className="font-semibold text-foreground">12</span>
-                </div>
-              </div>
-            </Card>
+              </Card>
+            </div>
           </div>
         </div>
       )}
@@ -790,16 +910,15 @@ export const AdminDashboard = () => {
           </div>
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Thống kê theo role</h3>
-              <Badge variant="outline">Placeholder</Badge>
-            </div>
-            {isLoading ? (
-              <Skeleton className="h-52 w-full" />
-            ) : (
-              <div className="h-52 rounded-xl bg-slate-100 border border-dashed flex items-center justify-center text-muted-foreground">
-                Chart placeholder
+              <h3 className="text-lg font-semibold">Thống kê tăng trưởng</h3>
+              <div className="flex gap-3 text-xs font-medium">
+                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500"></div>Người dùng mới</span>
+                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div>Doanh thu</span>
               </div>
-            )}
+            </div>
+            <div className="h-60 rounded-xl bg-slate-50 border border-slate-100 p-2">
+              {renderChart()}
+            </div>
           </Card>
           {false && (
             <EmptyState
