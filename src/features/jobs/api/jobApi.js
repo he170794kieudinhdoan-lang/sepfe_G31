@@ -14,6 +14,7 @@ export const deleteJobApi = async ({ jobId }) => {
   return await apiClient.delete(`/job/${jobId}`);
 };
 
+
 // ===== JOB DETAIL =====
 
 export const getJobDetail = async (id) => {

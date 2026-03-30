@@ -333,7 +333,78 @@ export const EmployerDashboard = () => {
   };
 
   const handleExportApplicants = () => {
-    toast('Đã xuất thông tin ứng viên ra file CSV.', 'success');
+    if (!filteredApplicants || filteredApplicants.length === 0) {
+      toast('Không có dữ liệu ứng viên để xuất', 'error');
+      return;
+    }
+
+    const headers = [
+      'Tên ứng viên', 'Vị trí ứng tuyển', 'Trạng thái',  
+      'Email', 'Số điện thoại', 'Giới tính', 'Năm sinh', 'Khu vực', 
+      'Công việc đã làm', 'Năm kinh nghiệm', 'Lương mong muốn', 
+      'Ca làm', 'Giới thiệu bản thân (Bio)'
+    ];
+    
+    const statusMap = {
+      APPLIED: 'Chờ xử lý',
+      VIEWED: 'Đã xem',
+      SUITABLE: 'Phù hợp',
+      UNSUITABLE: 'Không phù hợp'
+    };
+
+    const shiftMap = {
+      MORNING: 'Ca sáng',
+      AFTERNOON: 'Ca chiều',
+      EVENING: 'Ca tối',
+      FULL_DAY: 'Cả ngày',
+      FLEXIBLE: 'Linh hoạt'
+    };
+
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+
+    filteredApplicants.forEach(app => {
+        const escapeCsv = (str) => {
+            if (!str && str !== 0) return '""';
+            return `"${String(str).replace(/"/g, '""')}"`;
+        };
+
+        const wp = app.user?.workerProfile || {};
+        
+        const genderText = wp.gender === 'MALE' ? 'Nam' : wp.gender === 'FEMALE' ? 'Nữ' : 'Chưa cập nhật';
+        const expectedSalaryText = wp.expectedSalary ? `${(wp.expectedSalary / 1000000).toFixed(0)}Tr` : 'Thỏa thuận';
+        const shiftText = shiftMap[wp.shift] || wp.shift || 'Chưa cập nhật';
+
+        const row = [
+            escapeCsv(app.user?.fullName),
+            escapeCsv(app.job?.title),
+            escapeCsv(statusMap[app.status] || app.status),
+            escapeCsv(app.user?.email),
+            escapeCsv(app.user?.phone || 'Chưa cập nhật'),
+            escapeCsv(genderText),
+            escapeCsv(wp.birthYear || 'Chưa cập nhật'),
+            escapeCsv(wp.province || 'Chưa cập nhật'),
+            escapeCsv(wp.occupation?.name || 'Chưa cập nhật'),
+            escapeCsv(wp.experienceYear ? `${wp.experienceYear} năm` : 'Chưa có'),
+            escapeCsv(expectedSalaryText),
+            escapeCsv(shiftText),
+            escapeCsv(wp.bio || 'Chưa cập nhật')
+        ];
+        csvRows.push(row.join(','));
+    });
+
+    const csvContent = "\uFEFF" + csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'Danh_sach_ung_vien.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast('Đã tải xuống file Danh_sach_ung_vien.csv', 'success');
   };
 
   const handleSaveApplicantStatus = () => {
@@ -532,6 +603,12 @@ export const EmployerDashboard = () => {
                         : 'Thỏa thuận'}
                     </p>
                   </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-slate-500 text-xs mb-1">Giới thiệu bản thân (Bio)</p>
+                  <p className="font-medium whitespace-pre-wrap text-slate-700">
+                    {applicantDetail.user?.workerProfile?.bio ? applicantDetail.user.workerProfile.bio : <span className="italic text-slate-400">Chưa cập nhật</span>}
+                  </p>
                 </div>
               </div>
             </div>
@@ -1043,7 +1120,7 @@ export const EmployerDashboard = () => {
                                 )}
                               </td>
                               <td className="px-4 text-center">
-                                <div className="flex justify-center gap-2">
+                                <div className="flex justify-start gap-2 w-[310px] mx-auto">
                                   <Button
                                     variant="outline"
                                     size="sm"

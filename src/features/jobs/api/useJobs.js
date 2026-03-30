@@ -166,6 +166,7 @@ export const useConfirmBoostPayment = () => {
   });
 };
 
+
 // ===== OCCUPATIONS =====
 
 export const useGetSectorsWithOccupations = () => {
