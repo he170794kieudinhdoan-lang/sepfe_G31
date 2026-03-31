@@ -30,6 +30,8 @@ const kpi = [
 export const AdminDashboard = () => {
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
+  const sectorRowsPerPage = 20;
+  const occupationRowsPerPage = 20;
 
   // Users state
   const initialUserFilters = {
@@ -68,6 +70,7 @@ export const AdminDashboard = () => {
   const [sectorName, setSectorName] = useState('');
   const [sectors, setSectors] = useState([]);
   const [loadingSectors, setLoadingSectors] = useState(false);
+  const [sectorPage, setSectorPage] = useState(1);
 
   // Occupations state
   const [occupations, setOccupations] = useState([]);
@@ -78,6 +81,7 @@ export const AdminDashboard = () => {
   const [occupationName, setOccupationName] = useState('');
   const [selectedSectorId, setSelectedSectorId] = useState('');
   const [filterSectorId, setFilterSectorId] = useState('');
+  const [occupationPage, setOccupationPage] = useState(1);
 
   // AI Matching Weights State
   const { data: weightsData, isLoading: loadingWeights } = useGetAiWeights();
@@ -132,6 +136,50 @@ export const AdminDashboard = () => {
   useEffect(() => {
     fetchSectors();
   }, []);
+
+  const sectorTotalPages = Math.max(
+    1,
+    Math.ceil(sectors.length / sectorRowsPerPage),
+  );
+  const paginatedSectors = sectors.slice(
+    (sectorPage - 1) * sectorRowsPerPage,
+    sectorPage * sectorRowsPerPage,
+  );
+  const occupationTotalPages = Math.max(
+    1,
+    Math.ceil(occupations.length / occupationRowsPerPage),
+  );
+  const paginatedOccupations = occupations.slice(
+    (occupationPage - 1) * occupationRowsPerPage,
+    occupationPage * occupationRowsPerPage,
+  );
+
+  useEffect(() => {
+    setSectorPage(1);
+  }, [active]);
+
+  useEffect(() => {
+    if (active === 'occupations') {
+      setOccupationPage(1);
+    }
+  }, [active]);
+
+  useEffect(() => {
+    if (sectorPage > sectorTotalPages) {
+      setSectorPage(sectorTotalPages);
+    }
+  }, [sectorPage, sectorTotalPages]);
+
+  useEffect(() => {
+    if (occupationPage > occupationTotalPages) {
+      setOccupationPage(occupationTotalPages);
+    }
+  }, [occupationPage, occupationTotalPages]);
+
+  useEffect(() => {
+    setOccupationPage(1);
+  }, [filterSectorId]);
+
   const createSector = async () => {
     try {
       if (!sectorName.trim()) {
@@ -567,7 +615,7 @@ export const AdminDashboard = () => {
                     </td>
                   </tr>
                 ) : (
-                  sectors.map((sector) => (
+                  paginatedSectors.map((sector) => (
                     <tr key={sector.id} className="border-b last:border-b-0">
                       <td className="py-3 font-semibold">{sector.name}</td>
                       <td>{new Date(sector.createdAt).toLocaleDateString()}</td>
@@ -599,6 +647,11 @@ export const AdminDashboard = () => {
                 )}
               </tbody>
             </table>
+            <AppPagination
+              page={sectorPage}
+              totalPage={sectorTotalPages}
+              onPageChange={setSectorPage}
+            />
           </Card>
         </div>
       )}
@@ -659,7 +712,7 @@ export const AdminDashboard = () => {
                     </td>
                   </tr>
                 ) : (
-                  occupations.map((occ) => {
+                  paginatedOccupations.map((occ) => {
                     const sector = sectors.find(
                       (s) => s.id == (occ.sectorId || occ.sector?.id),
                     ) || { name: 'Unknown' };
@@ -701,6 +754,11 @@ export const AdminDashboard = () => {
                 )}
               </tbody>
             </table>
+            <AppPagination
+              page={occupationPage}
+              totalPage={occupationTotalPages}
+              onPageChange={setOccupationPage}
+            />
           </Card>
         </div>
       )}

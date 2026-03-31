@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { getAccessToken, refreshTokens, clearTokens } from './tokenService';
+import { toast } from 'sonner';
 
 export const apiClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
@@ -90,7 +91,40 @@ apiClient.interceptors.response.use(
       }
     }
 
-    return Promise.reject(error);
+let isLoggingOut = false;
+
+// Handle DELETED user (403 Forbidden)
+if (error.response?.status === 403 && !isLoggingOut) {
+  isLoggingOut = true;
+
+  toast.error(
+    'Tài khoản của bạn đã bị khóa hoặc xóa. Vui lòng liên hệ quản trị viên.',
+    {
+      duration: 5000,
+    },
+  );
+
+  clearTokens();
+  window.dispatchEvent(new Event('auth:force-logout'));
+
+  // Redirect to login/home AFTER a delay so user can read the message
+  // Use dynamic import of router to avoid circular dependency
+  setTimeout(async () => {
+    try {
+      const { router } = await import('@/app/router');
+      router.navigate('/auth/login');
+    } catch (err) {
+      console.error('Failed to navigate to login:', err);
+      window.location.href = '/auth/login'; // Fallback
+    } finally {
+      isLoggingOut = false;
+    }
+  }, 3000);
+
+  return Promise.reject(error);
+}
+
+return Promise.reject(error);
   },
 );
 
