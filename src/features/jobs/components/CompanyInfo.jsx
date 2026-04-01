@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { GENDERS } from '@/shared/constants/enums';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const InfoItem = ({ icon, label, value, isLink }) => (
   <div className="group flex items-start gap-3 p-2 ">
@@ -109,6 +110,7 @@ const CommonInfoJob = ({ job, className }) => {
 
 export const CompanyInfo = ({ job, company, handleCreateConversation }) => {
   const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="sticky top-24 space-y-3">
@@ -149,6 +151,7 @@ export const CompanyInfo = ({ job, company, handleCreateConversation }) => {
         </div>
 
         <Button
+          onClick={() => navigate(`/company/${company.id}`)}
           variant="outline"
           className="w-full rounded-xl py-5 mt-2 border-2 border-slate-100 font-semibold transition-all text-slate-600 "
         >

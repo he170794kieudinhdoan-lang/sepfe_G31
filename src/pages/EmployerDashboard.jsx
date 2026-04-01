@@ -92,8 +92,9 @@ const buildKpiItems = (overview) => [
     label: 'Tổng số tin tuyển dụng',
     value: overview?.totalJobs ?? '—',
     icon: Briefcase,
-    color: 'text-blue-600',
-    bg: 'bg-blue-100',
+    color: 'text-amber-600',
+    bg: 'bg-amber-100',
+    trend: '+12%',
   },
   {
     label: 'Tin đang hoạt động',
@@ -106,8 +107,9 @@ const buildKpiItems = (overview) => [
     label: 'Tổng ứng viên đã nộp',
     value: overview?.totalApplications ?? '—',
     icon: Users,
-    color: 'text-purple-600',
-    bg: 'bg-purple-100',
+    color: 'text-yellow-600',
+    bg: 'bg-yellow-100',
+    trend: '+24%',
   },
   {
     label: 'Vị trí đã được tuyển',
@@ -170,33 +172,39 @@ const StatusBadge = ({ status }) => {
   const statusConfig = {
     PUBLISHED: {
       color: 'bg-green-100 text-green-800 border-green-200',
-      label: 'Đang hiển thị',
+      label: 'Hiển thị',
+      title: 'Tin tuyển dụng đang được công khai',
     },
     PENDING: {
       color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
       label: 'Chờ duyệt',
+      title: 'Tin tuyển dụng đang chờ quản trị viên phê duyệt',
     },
     EXPIRED: {
       color: 'bg-red-100 text-red-800 border-red-200',
       label: 'Hết hạn',
+      title: 'Tin tuyển dụng đã vượt quá ngày hết hạn',
     },
     REJECTED: {
       color: 'bg-gray-100 text-gray-800 border-gray-200',
       label: 'Bị từ chối',
+      title: 'Tin bị hệ thống từ chối do phát hiện Spam hoặc vi phạm',
     },
     WARNING: {
       color: 'bg-orange-100 text-orange-800 border-orange-200',
       label: 'Cảnh báo',
+      title: 'Tin tuyển dụng đáng ngờ (Scam), đang treo để quản trị viên kiểm tra thủ công',
     },
   };
 
   const config = statusConfig[status] || {
     color: 'bg-gray-100 text-gray-800',
     label: status,
+    title: '',
   };
 
   return (
-    <Badge variant="outline" className={`font-medium ${config.color}`}>
+    <Badge variant="outline" className={`font-medium cursor-help ${config.color}`} title={config.title}>
       {config.label}
     </Badge>
   );
@@ -1034,7 +1042,7 @@ export const EmployerDashboard = () => {
                       {applicantDetail.user?.workerProfile?.gender === 'MALE'
                         ? 'Nam'
                         : applicantDetail.user?.workerProfile?.gender ===
-                            'FEMALE'
+                          'FEMALE'
                           ? 'Nữ'
                           : 'Chưa cập nhật'}
                     </p>
@@ -1154,11 +1162,10 @@ export const EmployerDashboard = () => {
                   <button
                     key={status.value}
                     onClick={() => setApplicantStatus(status.value)}
-                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
-                      applicantStatus === status.value
+                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
                         ? status.activeClass
                         : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
+                      }`}
                   >
                     {status.label}
                   </button>
@@ -1355,39 +1362,39 @@ export const EmployerDashboard = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 {loadingOverview
                   ? Array.from({ length: 4 }).map((_, idx) => (
-                      <Card
-                        key={idx}
-                        className="p-6 rounded-2xl shadow-sm border-slate-100 animate-pulse"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="w-12 h-12 rounded-xl bg-slate-100" />
-                        </div>
-                        <div className="mt-4 space-y-2">
-                          <div className="h-8 w-16 bg-slate-100 rounded-lg" />
-                          <div className="h-4 w-24 bg-slate-100 rounded" />
-                        </div>
-                      </Card>
-                    ))
+                    <Card
+                      key={idx}
+                      className="p-6 rounded-2xl shadow-sm border-slate-100 animate-pulse"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100" />
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <div className="h-8 w-16 bg-slate-100 rounded-lg" />
+                        <div className="h-4 w-24 bg-slate-100 rounded" />
+                      </div>
+                    </Card>
+                  ))
                   : buildKpiItems(overview).map((item, idx) => (
-                      <Card
-                        key={idx}
-                        className="p-6 rounded-2xl shadow-sm border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className={`p-3 rounded-xl ${item.bg}`}>
-                            <item.icon className={`w-6 h-6 ${item.color}`} />
-                          </div>
+                    <Card
+                      key={idx}
+                      className="p-6 rounded-2xl shadow-sm border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className={`p-3 rounded-xl ${item.bg}`}>
+                          <item.icon className={`w-6 h-6 ${item.color}`} />
                         </div>
-                        <div className="mt-4">
-                          <p className="text-4xl font-bold text-slate-800">
-                            {item.value}
-                          </p>
-                          <p className="text-sm font-medium text-slate-500 mt-1">
-                            {item.label}
-                          </p>
-                        </div>
-                      </Card>
-                    ))}
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-4xl font-bold text-slate-800">
+                          {item.value}
+                        </p>
+                        <p className="text-sm font-medium text-slate-500 mt-1">
+                          {item.label}
+                        </p>
+                      </div>
+                    </Card>
+                  ))}
               </div>
 
               {/* Quick Actions & Recent Applicants Preview */}
@@ -1425,15 +1432,15 @@ export const EmployerDashboard = () => {
                             <p className="font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-xs">
                               {job.title}
                             </p>
-                            <div className="flex gap-4 mt-2 text-sm text-slate-500">
-                              <span className="flex items-center gap-1">
-                                <MapPin size={14} />{' '}
+                            <div className="flex gap-2 mt-2 text-xs font-medium">
+                              <span className="flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                <MapPin size={12} />{' '}
                                 {job.province || 'Toàn quốc'}
                               </span>
-                              <span className="flex items-center gap-1">
-                                <DollarSign size={14} />{' '}
-                                {job.salaryMax
-                                  ? `${(job.salaryMax / 1000000).toFixed(0)}Tr`
+                              <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
+                                <DollarSign size={12} />{' '}
+                                {job.salaryMin > 0 || job.salaryMax > 0
+                                  ? `${job.salaryMin > 0 ? (job.salaryMin / 1000000).toFixed(0) : '0'}M - ${job.salaryMax > 0 ? (job.salaryMax / 1000000).toFixed(0) : '0'}M`
                                   : 'Thỏa thuận'}
                               </span>
                             </div>
@@ -1574,10 +1581,10 @@ export const EmployerDashboard = () => {
                           </td>
                         </tr>
                       ) : jobs.filter((j) =>
-                          j.title
-                            .toLowerCase()
-                            .includes(jobSearchText.toLowerCase()),
-                        ).length === 0 ? (
+                        j.title
+                          .toLowerCase()
+                          .includes(jobSearchText.toLowerCase()),
+                      ).length === 0 ? (
                         <tr>
                           <td
                             colSpan="6"
@@ -1605,20 +1612,16 @@ export const EmployerDashboard = () => {
                                 <p className="font-semibold text-slate-800">
                                   {job.title}
                                 </p>
-                                <div className="flex gap-3 mt-1 text-slate-500 text-xs">
-                                  <span className="flex items-center gap-1">
+                                <div className="flex flex-wrap gap-2 mt-2 text-xs font-medium">
+                                  <span className="flex items-center gap-1 text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
                                     <MapPin size={12} />{' '}
                                     {job.province || 'Toàn quốc'}
                                   </span>
-                                  <span className="flex items-center gap-1">
+                                  <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
                                     <DollarSign size={12} />{' '}
-                                    {job.salaryMin
-                                      ? `${(job.salaryMin / 1000000).toFixed(0)}M`
-                                      : '?'}{' '}
-                                    -{' '}
-                                    {job.salaryMax
-                                      ? `${(job.salaryMax / 1000000).toFixed(0)}M`
-                                      : '?'}
+                                    {job.salaryMin > 0 || job.salaryMax > 0
+                                      ? `${job.salaryMin ? (job.salaryMin / 1000000).toFixed(0) : '0'}M - ${job.salaryMax ? (job.salaryMax / 1000000).toFixed(0) : '0'}M`
+                                      : 'Thỏa thuận'}
                                   </span>
                                 </div>
                               </td>
@@ -1643,13 +1646,13 @@ export const EmployerDashboard = () => {
                                 {job.isBoosted ? (
                                   <Badge
                                     variant="secondary"
-                                    className="bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-pointer"
+                                    className="bg-amber-100 text-amber-700 hover:bg-amber-200 cursor-pointer"
                                   >
                                     Đang Boost đến{' '}
                                     {job.boostExpiredAt
                                       ? new Date(
-                                          job.boostExpiredAt,
-                                        ).toLocaleDateString('vi-VN')
+                                        job.boostExpiredAt,
+                                      ).toLocaleDateString('vi-VN')
                                       : 'không thời hạn'}
                                   </Badge>
                                 ) : (
@@ -1806,39 +1809,39 @@ export const EmployerDashboard = () => {
               <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
                 {loadingOverview
                   ? Array.from({ length: 4 }).map((_, idx) => (
-                      <Card
-                        key={idx}
-                        className="p-6 rounded-2xl shadow-sm border-slate-100 animate-pulse"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className="w-12 h-12 rounded-xl bg-slate-100" />
-                        </div>
-                        <div className="mt-4 space-y-2">
-                          <div className="h-8 w-16 bg-slate-100 rounded-lg" />
-                          <div className="h-4 w-24 bg-slate-100 rounded" />
-                        </div>
-                      </Card>
-                    ))
+                    <Card
+                      key={idx}
+                      className="p-6 rounded-2xl shadow-sm border-slate-100 animate-pulse"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="w-12 h-12 rounded-xl bg-slate-100" />
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <div className="h-8 w-16 bg-slate-100 rounded-lg" />
+                        <div className="h-4 w-24 bg-slate-100 rounded" />
+                      </div>
+                    </Card>
+                  ))
                   : buildKpiItems(overview).map((item, idx) => (
-                      <Card
-                        key={idx}
-                        className="p-6 rounded-2xl shadow-sm border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow"
-                      >
-                        <div className="flex justify-between items-start">
-                          <div className={`p-3 rounded-xl ${item.bg}`}>
-                            <item.icon className={`w-6 h-6 ${item.color}`} />
-                          </div>
+                    <Card
+                      key={idx}
+                      className="p-6 rounded-2xl shadow-sm border-slate-100 flex flex-col justify-between hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className={`p-3 rounded-xl ${item.bg}`}>
+                          <item.icon className={`w-6 h-6 ${item.color}`} />
                         </div>
-                        <div className="mt-4">
-                          <p className="text-4xl font-bold text-slate-800">
-                            {item.value}
-                          </p>
-                          <p className="text-sm font-medium text-slate-500 mt-1">
-                            {item.label}
-                          </p>
-                        </div>
-                      </Card>
-                    ))}
+                      </div>
+                      <div className="mt-4">
+                        <p className="text-4xl font-bold text-slate-800">
+                          {item.value}
+                        </p>
+                        <p className="text-sm font-medium text-slate-500 mt-1">
+                          {item.label}
+                        </p>
+                      </div>
+                    </Card>
+                  ))}
               </div>
 
               <div className="mb-6">

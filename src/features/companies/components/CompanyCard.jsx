@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { MapPin, Star } from 'lucide-react';
-import parse from 'html-react-parser';
+
 
 export const CompanyCard = ({ company }) => {
   return (
@@ -29,9 +29,9 @@ export const CompanyCard = ({ company }) => {
         </div>
 
         {/* Description / Additional Info */}
-        <div className="h-full line-clamp-9 text-sm text-muted-foreground">
+        <div className="h-[110px] line-clamp-5 text-sm text-muted-foreground overflow-hidden">
           {company.description
-            ? parse(company.description)
+            ? company.description.replace(/<[^>]*>?/gm, '')
             : 'Công ty chưa cập nhật mô tả chi tiết. Vui lòng xem thêm thông tin tuyển dụng bên trong.'}
         </div>
 
