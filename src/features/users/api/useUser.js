@@ -11,6 +11,15 @@ export const useGetUsers = (options = {}) => {
   });
 };
 
+export const useGetAllUsersPaginated = (params) => {
+  return useQuery({
+    queryKey: ['users', 'paginated', params],
+    queryFn: () => userApi.getAllUsersPaginated(params),
+    keepPreviousData: true,
+  });
+};
+
+
 export const useGetOccupations = () => {
   return useQuery({
     queryKey: ['occupations'],
@@ -71,5 +80,15 @@ export const useChangePassword = () => {
 export const useDeleteAccount = () => {
   return useMutation({
     mutationFn: userApi.deleteAccount,
+  });
+};
+
+export const useUpdateUserStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, status }) => userApi.updateUserStatus(userId, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users', 'paginated'] });
+    },
   });
 };

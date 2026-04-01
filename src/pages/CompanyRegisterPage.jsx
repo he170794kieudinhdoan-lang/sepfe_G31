@@ -683,11 +683,10 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       )}
 
       <div
-        className={`mx-auto w-full ${
-          isModal
-            ? 'max-w-4xl px-2 pb-4 md:px-6 md:pb-6'
-            : 'max-w-3xl px-4 md:px-6 py-8'
-        }`}
+        className={`mx-auto w-full ${isModal
+          ? 'max-w-4xl px-2 pb-4 md:px-6 md:pb-6'
+          : 'max-w-3xl px-4 md:px-6 py-8'
+          }`}
       >
         {!isModal && (
           <div className="mb-8 flex items-start gap-4">

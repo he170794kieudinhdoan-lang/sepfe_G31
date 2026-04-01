@@ -4,6 +4,14 @@ export const getUsers = async () => {
   return apiClient.get('/user/user-info');
 };
 
+export const getAllUsersPaginated = async (params) => {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v !== '' && v !== null && v !== undefined)
+  );
+  return apiClient.get('/user/list', { params: cleanParams });
+};
+
+
 export const updateUserInfo = async (formData) => {
   return apiClient.put('/user/user-info', formData, {
     headers: {
@@ -38,4 +46,8 @@ export const getOccupations = async () => {
 
 export const getOccupationsBySector = async (sectorId) => {
   return apiClient.get(`/occupations/sector/${sectorId}`);
+};
+
+export const updateUserStatus = async (userId, status) => {
+  return apiClient.put(`/user/${userId}/status`, { status });
 };
