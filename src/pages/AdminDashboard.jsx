@@ -133,8 +133,36 @@ export const AdminDashboard = () => {
     }
   };
 
+  const fetchTerms = async () => {
+    setIsTermsLoading(true);
+    try {
+      const data = await getTermsCondition();
+      // Lấy phần tử đầu tiên nếu data là một mảng
+      const termsData = Array.isArray(data) ? data[0] : data;
+
+      if (termsData) {
+        setTermsSaved({
+          id: termsData?.id,
+          title: termsData?.title || '',
+          content: termsData?.content || '',
+        });
+        setTermsDraft({
+          id: termsData?.id,
+          title: termsData?.title || '',
+          content: termsData?.content || '',
+        });
+      }
+    } catch (error) {
+      toast('Không thể tải điều khoản', 'error');
+    } finally {
+      setIsTermsLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchSectors();
+    fetchOccupations();
+    fetchTerms();
   }, []);
 
   const sectorTotalPages = Math.max(
@@ -275,10 +303,8 @@ export const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (active === 'occupations') {
-      fetchOccupations(filterSectorId);
-    }
-  }, [active, filterSectorId]);
+    fetchOccupations(filterSectorId);
+  }, [filterSectorId]);
 
   const createOccupation = async () => {
     try {
@@ -337,37 +363,7 @@ export const AdminDashboard = () => {
     }
   };
 
-  useEffect(() => {
-    if (active === 'terms') {
-      const fetchTerms = async () => {
-        setIsTermsLoading(true);
-        try {
-          const data = await getTermsCondition();
-          // Lấy phần tử đầu tiên nếu data là một mảng
-          const termsData = Array.isArray(data) ? data[0] : data;
 
-          if (termsData) {
-            setTermsSaved({
-              id: termsData?.id,
-              title: termsData?.title || '',
-              content: termsData?.content || '',
-            });
-            setTermsDraft({
-              id: termsData?.id,
-              title: termsData?.title || '',
-              content: termsData?.content || '',
-            });
-          }
-        } catch (error) {
-          toast('Không thể tải điều khoản', 'error');
-        } finally {
-          setIsTermsLoading(false);
-        }
-      };
-
-      fetchTerms();
-    }
-  }, [active, toast]);
 
   const handleSaveTerms = async () => {
     if (!termsDraft.id) {
