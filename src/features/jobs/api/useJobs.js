@@ -7,6 +7,9 @@ import {
   getRelatedJobs,
   searchJobs,
   getJobsForEmployer,
+  getBoostedJobsApi,
+  createBoostCheckoutApi,
+  confirmBoostPaymentApi,
   getSectorsWithOccupations,
   getOccupationsBySector,
   getProvinces,
@@ -20,6 +23,10 @@ import {
   getMatchedJobsApi,
   getWeights,
   updateWeights,
+  getAllJobReportsApi,
+  updateJobReportStatusApi,
+  getWarningJobsApi,
+  updateJobStatusApi,
 } from './jobApi';
 import { useToast } from '@/shared/contexts/ToastContext';
 
@@ -58,6 +65,17 @@ export const useJobsForEmployer = (filters = {}, options = {}) => {
   return useQuery({
     queryKey: ['jobs-for-employer', filters],
     queryFn: () => getJobsForEmployer(filters),
+    staleTime: 2 * 60 * 1000,
+    retry: 1,
+    keepPreviousData: true,
+    ...options,
+  });
+};
+
+export const useBoostedJobs = (params = {}, options = {}) => {
+  return useQuery({
+    queryKey: ['boosted-jobs', params],
+    queryFn: () => getBoostedJobsApi(params),
     staleTime: 2 * 60 * 1000,
     retry: 1,
     keepPreviousData: true,
@@ -126,6 +144,28 @@ export const useDeleteJob = () => {
     },
   });
 };
+
+export const useCreateBoostCheckout = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createBoostCheckoutApi,
+    onSuccess: () => {
+      invalidateJobQueries(queryClient);
+    },
+  });
+};
+
+export const useConfirmBoostPayment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: confirmBoostPaymentApi,
+    onSuccess: () => {
+      invalidateJobQueries(queryClient);
+      queryClient.invalidateQueries({ queryKey: ['boosted-jobs'] });
+    },
+  });
+};
+
 
 // ===== OCCUPATIONS =====
 
@@ -246,3 +286,42 @@ export const useUpdateAiWeights = () => {
     },
   });
 };
+
+export const useGetAllJobReports = (status, page = 1, limit = 10) => {
+  return useQuery({
+    queryKey: ['job-reports', status, page, limit],
+    queryFn: () => getAllJobReportsApi({ status, page, limit }),
+    keepPreviousData: true,
+  });
+};
+
+export const useUpdateJobReportStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateJobReportStatusApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['job-reports'] });
+    },
+  });
+};
+
+export const useGetWarningJobs = (params) => {
+  return useQuery({
+    queryKey: ['warning-jobs', params],
+    queryFn: () => getWarningJobsApi(params),
+    keepPreviousData: true,
+  });
+};
+
+export const useUpdateJobStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateJobStatusApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['warning-jobs'] });
+      queryClient.invalidateQueries({ queryKey: ['job-search'] });
+      queryClient.invalidateQueries({ queryKey: ['job-detail'] });
+    },
+  });
+};
+

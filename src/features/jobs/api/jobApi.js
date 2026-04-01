@@ -14,6 +14,7 @@ export const deleteJobApi = async ({ jobId }) => {
   return await apiClient.delete(`/job/${jobId}`);
 };
 
+
 // ===== JOB DETAIL =====
 
 export const getJobDetail = async (id) => {
@@ -75,6 +76,24 @@ export const getJobsForEmployer = async (params = {}) => {
   return await apiClient.get('/job/get-for-employer', { params: cleanParams });
 };
 
+export const getBoostedJobsApi = async (params = {}) => {
+  const cleanParams = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      cleanParams[key] = value;
+    }
+  });
+  return await apiClient.get('/job/boosted', { params: cleanParams });
+};
+
+export const createBoostCheckoutApi = async ({ jobId, payload }) => {
+  return await apiClient.post(`/job/${jobId}/boost/checkout`, payload);
+};
+
+export const confirmBoostPaymentApi = async ({ jobId, payload }) => {
+  return await apiClient.post(`/job/${jobId}/boost/confirm`, payload);
+};
+
 export const getEmployerApplications = async (jobId) => {
   const params = jobId ? { jobId } : {};
   return await apiClient.get('/job/employer/applications', { params });
@@ -121,4 +140,29 @@ export const getWeights = async () => {
 
 export const updateWeights = async (weights) => {
   return await apiClient.put('/ai-matching/weights', { weights });
+};
+
+// ===== REPORT JOB =====
+export const reportJobApi = async ({ jobId, reason, description }) => {
+  // apiClient interceptor đã tự unwrap response.data rồi
+  const res = await apiClient.post('/job/report', { jobId, reason, description });
+  return res;
+};
+
+export const getAllJobReportsApi = async ({ status, page = 1, limit = 10 }) => {
+  const res = await apiClient.get('/job/report/all', { params: { status, page, limit } });
+  return res;
+};
+
+export const updateJobReportStatusApi = async ({ id, status }) => {
+  return await apiClient.put(`/job/report/${id}/status`, { status });
+};
+
+// ===== MODERATION =====
+export const getWarningJobsApi = async ({ page = 1, limit = 10 } = {}) => {
+  return await apiClient.get('/job/moderation/warning', { params: { page, limit } });
+};
+
+export const updateJobStatusApi = async ({ id, status }) => {
+  return await apiClient.patch(`/job/${id}/status`, { status });
 };

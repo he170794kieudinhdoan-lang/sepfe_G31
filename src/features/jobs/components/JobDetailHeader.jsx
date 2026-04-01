@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Wallet, Clock } from 'lucide-react';
+import { MapPin, Wallet, Clock, Users } from 'lucide-react';
 import { formatInVN, getDaysLeft } from '@/shared/utils/dateUtils';
 import { SHIFTS } from '@/shared/constants/enums';
 import { formatSalary } from '@/shared/utils/salaryUtils';
@@ -46,6 +46,11 @@ export const JobDetailHeader = ({ job, onApply, onSave }) => {
             icon={<Clock className="h-5 w-5" />}
             label="Ca làm"
             value={shiftDisplay}
+          />
+          <InfoItem
+            icon={<Users className="h-5 w-5" />}
+            label="Lượt ứng tuyển"
+            value={job._count?.applications || 0}
           />
         </div>
 

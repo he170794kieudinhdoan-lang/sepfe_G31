@@ -50,3 +50,35 @@ export const getMyCompany = async () => {
   const response = await apiClient.get('/company/owner');
   return response;
 };
+
+// ===== COMPANY REVIEWS =====
+
+// Lấy danh sách reviews của 1 công ty
+export const getCompanyReviews = async (companyId) => {
+  const response = await apiClient.get(`/company/${companyId}/reviews`);
+  return response;
+};
+
+// Viết review mới
+export const createCompanyReview = async (companyId, payload) => {
+  const response = await apiClient.post(`/company/${companyId}/review`, payload);
+  return response;
+};
+
+// Sửa review
+export const updateCompanyReview = async (reviewId, payload) => {
+  const response = await apiClient.put(`/company/reviews/${reviewId}`, payload);
+  return response;
+};
+
+// Xóa review
+export const deleteCompanyReview = async (reviewId) => {
+  const response = await apiClient.delete(`/company/reviews/${reviewId}`);
+  return response;
+};
+
+// Báo cáo review (worker)
+export const reportCompanyReview = async (reviewId, payload) => {
+  const response = await apiClient.post(`/company/reviews/${reviewId}/report`, payload);
+  return response;
+};

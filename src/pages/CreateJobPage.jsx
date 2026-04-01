@@ -351,8 +351,13 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
     };
 
     createJob(payload, {
-      onSuccess: () => {
-        toast('Tạo tin tuyển dụng thành công!', 'success');
+      onSuccess: (res) => {
+        const msg = res?.data?.message || res?.message || 'Đăng tin thành công!';
+        if (res?.data?.status === 'WARNING' || res?.status === 'WARNING') {
+          toast(msg, 'warning');
+        } else {
+          toast(msg, 'success');
+        }
         if (onSuccessProp) {
           onSuccessProp();
         } else if (onBack) {
@@ -1112,7 +1117,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="animate-spin" size={18} /> Đang lưu...
+                    <Loader2 className="animate-spin" size={18} /> AI đang kiểm duyệt tin...
                   </>
                 ) : (
                   <>

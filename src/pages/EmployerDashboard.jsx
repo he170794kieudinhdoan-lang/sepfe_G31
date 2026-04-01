@@ -45,8 +45,13 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { useGetMyCompany } from '@/features/companies/api/useGetCompanies';
-import { useJobsForEmployer, useEmployerApplications, useUpdateApplicationStatus } from '@/features/jobs/api/useJobs';
-import { useDeleteJob } from '@/features/jobs/api/useJobs';
+import {
+  useJobsForEmployer,
+  useEmployerApplications,
+  useUpdateApplicationStatus,
+  useDeleteJob,
+  useCreateBoostCheckout,
+} from '@/features/jobs/api/useJobs';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 
 const EMPLOYER_MENU = [
@@ -222,6 +227,8 @@ export const EmployerDashboard = () => {
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [boostModalOpen, setBoostModalOpen] = useState(false);
+  const [selectedBoostJob, setSelectedBoostJob] = useState(null);
+  const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
   const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
   const [editJobId, setEditJobId] = useState(null);
 
@@ -250,6 +257,7 @@ export const EmployerDashboard = () => {
 
   const { mutate: deleteJob } = useDeleteJob();
   const { mutate: updateApplicantStatus } = useUpdateApplicationStatus();
+  const createBoostCheckoutMutation = useCreateBoostCheckout();
 
   const applicantsList = applicationsResult?.data || [];
   const filteredApplicants = applicantsList.filter(a => {
@@ -292,13 +300,123 @@ export const EmployerDashboard = () => {
     );
   };
 
-  const handleBoostCheckout = () => {
-    setBoostModalOpen(false);
-    toast('Thanh toán thành công. Tính năng đã được mở khóa.', 'success');
+  const handleBoostCheckout = async () => {
+    if (!selectedBoostJob?.id) {
+      toast('Không xác định được job cần boost', 'error');
+      return;
+    }
+
+    try {
+      const checkoutRes = await createBoostCheckoutMutation.mutateAsync({
+        jobId: selectedBoostJob.id,
+        payload: {
+          packageDays: selectedBoostPackageDays,
+        },
+      });
+
+      const checkout = checkoutRes?.data || checkoutRes;
+      const paymentOrderId = checkout?.paymentOrderId;
+      if (!paymentOrderId) {
+        throw new Error('Không lấy được mã đơn thanh toán');
+      }
+
+      const checkoutUrl = checkout?.paymentUrl;
+      if (checkoutUrl) {
+        window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+      }
+
+      setBoostModalOpen(false);
+      setSelectedBoostJob(null);
+
+      const paymentCode = checkout?.paymentCode;
+      toast(
+        paymentCode
+          ? `Đã tạo thanh toán. Chuyển khoản đúng nội dung: ${paymentCode}. Hệ thống sẽ tự boost sau khi SePay gửi webhook.`
+          : 'Đã tạo thanh toán boost. Hệ thống sẽ tự cập nhật sau khi SePay xác nhận.',
+        'success',
+      );
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Thanh toán boost thất bại';
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    }
   };
 
   const handleExportApplicants = () => {
-    toast('Đã xuất thông tin ứng viên ra file CSV.', 'success');
+    if (!filteredApplicants || filteredApplicants.length === 0) {
+      toast('Không có dữ liệu ứng viên để xuất', 'error');
+      return;
+    }
+
+    const headers = [
+      'Tên ứng viên', 'Vị trí ứng tuyển', 'Trạng thái',  
+      'Email', 'Số điện thoại', 'Giới tính', 'Năm sinh', 'Khu vực', 
+      'Công việc đã làm', 'Năm kinh nghiệm', 'Lương mong muốn', 
+      'Ca làm', 'Giới thiệu bản thân (Bio)'
+    ];
+    
+    const statusMap = {
+      APPLIED: 'Chờ xử lý',
+      VIEWED: 'Đã xem',
+      SUITABLE: 'Phù hợp',
+      UNSUITABLE: 'Không phù hợp'
+    };
+
+    const shiftMap = {
+      MORNING: 'Ca sáng',
+      AFTERNOON: 'Ca chiều',
+      EVENING: 'Ca tối',
+      FULL_DAY: 'Cả ngày',
+      FLEXIBLE: 'Linh hoạt'
+    };
+
+    const csvRows = [];
+    csvRows.push(headers.join(','));
+
+    filteredApplicants.forEach(app => {
+        const escapeCsv = (str) => {
+            if (!str && str !== 0) return '""';
+            return `"${String(str).replace(/"/g, '""')}"`;
+        };
+
+        const wp = app.user?.workerProfile || {};
+        
+        const genderText = wp.gender === 'MALE' ? 'Nam' : wp.gender === 'FEMALE' ? 'Nữ' : 'Chưa cập nhật';
+        const expectedSalaryText = wp.expectedSalary ? `${(wp.expectedSalary / 1000000).toFixed(0)}Tr` : 'Thỏa thuận';
+        const shiftText = shiftMap[wp.shift] || wp.shift || 'Chưa cập nhật';
+
+        const row = [
+            escapeCsv(app.user?.fullName),
+            escapeCsv(app.job?.title),
+            escapeCsv(statusMap[app.status] || app.status),
+            escapeCsv(app.user?.email),
+            escapeCsv(app.user?.phone || 'Chưa cập nhật'),
+            escapeCsv(genderText),
+            escapeCsv(wp.birthYear || 'Chưa cập nhật'),
+            escapeCsv(wp.province || 'Chưa cập nhật'),
+            escapeCsv(wp.occupation?.name || 'Chưa cập nhật'),
+            escapeCsv(wp.experienceYear ? `${wp.experienceYear} năm` : 'Chưa có'),
+            escapeCsv(expectedSalaryText),
+            escapeCsv(shiftText),
+            escapeCsv(wp.bio || 'Chưa cập nhật')
+        ];
+        csvRows.push(row.join(','));
+    });
+
+    const csvContent = "\uFEFF" + csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', 'Danh_sach_ung_vien.csv');
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast('Đã tải xuống file Danh_sach_ung_vien.csv', 'success');
   };
 
   const handleSaveApplicantStatus = () => {
@@ -497,6 +615,12 @@ export const EmployerDashboard = () => {
                         : 'Thỏa thuận'}
                     </p>
                   </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-slate-500 text-xs mb-1">Giới thiệu bản thân (Bio)</p>
+                  <p className="font-medium whitespace-pre-wrap text-slate-700">
+                    {applicantDetail.user?.workerProfile?.bio ? applicantDetail.user.workerProfile.bio : <span className="italic text-slate-400">Chưa cập nhật</span>}
+                  </p>
                 </div>
               </div>
             </div>
@@ -980,26 +1104,34 @@ export const EmployerDashboard = () => {
                                 </span>
                               </td>
                               <td className="px-4 text-center">
-                                {job.boosted ? (
+                                {job.isBoosted ? (
                                   <Badge
                                     variant="secondary"
                                     className="bg-purple-100 text-purple-700 hover:bg-purple-200 cursor-pointer"
                                   >
-                                    Đang Boost 🚀
+                                    Đang Boost đến{' '}
+                                    {job.boostExpiredAt
+                                      ? new Date(job.boostExpiredAt).toLocaleDateString('vi-VN')
+                                      : 'không thời hạn'}
                                   </Badge>
                                 ) : (
                                   <Button
                                     variant="ghost"
                                     size="sm"
                                     className="h-7 text-xs text-primary bg-primary/10 hover:bg-primary/20 rounded-lg"
-                                    onClick={() => setBoostModalOpen(true)}
+                                    onClick={() => {
+                                      setSelectedBoostJob(job);
+                                      setSelectedBoostPackageDays(7);
+                                      setBoostModalOpen(true);
+                                    }}
+                                    disabled={job.status !== 'PUBLISHED'}
                                   >
                                     Nâng cấp
                                   </Button>
                                 )}
                               </td>
                               <td className="px-4 text-center">
-                                <div className="flex justify-center gap-2">
+                                <div className="flex justify-start gap-2 w-[310px] mx-auto">
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -1217,19 +1349,32 @@ export const EmployerDashboard = () => {
 
       <Modal
         open={boostModalOpen}
-        title="Nâng cấp tin đăng"
-        description="Tin tuyển dụng của bạn sẽ được hiển thị ở vị trí hàng đầu để thu hút nhiều ứng viên hơn."
-        onClose={() => setBoostModalOpen(false)}
+        title="Thanh toán boost tin tuyển dụng"
+        description={selectedBoostJob
+          ? `Thanh toán để đẩy top cho job: ${selectedBoostJob.title}`
+          : 'Chọn gói boost cho tin tuyển dụng'}
+        onClose={() => {
+          setBoostModalOpen(false);
+          setSelectedBoostJob(null);
+        }}
         onConfirm={handleBoostCheckout}
-        confirmLabel="Thanh toán"
+        confirmLabel={
+          createBoostCheckoutMutation.isPending
+            ? 'Đang xử lý...'
+            : 'Thanh toán'
+        }
         cancelLabel="Hủy"
+        confirmDisabled={
+          createBoostCheckoutMutation.isPending
+        }
       >
         <div className="space-y-4 mt-4">
           <label className="flex items-start gap-4 p-4 rounded-xl border border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
             <input
               type="radio"
               name="pkg"
-              defaultChecked
+              checked={selectedBoostPackageDays === 7}
+              onChange={() => setSelectedBoostPackageDays(7)}
               className="mt-1 w-4 h-4 text-primary"
             />
             <div>
@@ -1241,7 +1386,13 @@ export const EmployerDashboard = () => {
             </div>
           </label>
           <label className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
-            <input type="radio" name="pkg" className="mt-1 w-4 h-4" />
+            <input
+              type="radio"
+              name="pkg"
+              checked={selectedBoostPackageDays === 30}
+              onChange={() => setSelectedBoostPackageDays(30)}
+              className="mt-1 w-4 h-4"
+            />
             <div>
               <p className="font-bold text-slate-700">Gói Đẩy Top 30 ngày ⭐</p>
               <p className="text-sm text-slate-600 mt-1">

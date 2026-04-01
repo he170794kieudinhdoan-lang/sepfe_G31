@@ -29,6 +29,8 @@ export const JobDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { data: job, isLoading, isError } = useJobDetail(id);
+  const applicantCount =
+    Number(job?._count?.applications ?? job?.applications?.length ?? 0) || 0;
 
   // TODO: Khi integrate auth, thay bằng const { user } = useAuth();
   const hasApplied = false;
@@ -108,6 +110,10 @@ export const JobDetailPage = () => {
 
         <div className="lg:col-span-2">
           <Card className="flex flex-col gap-6 border-0 p-8 shadow-sm rounded-xl">
+            <div className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+              {applicantCount} người đã ứng tuyển
+            </div>
+
             <JobDetailContent
               job={job}
               onApply={handleApplyClick}
@@ -134,6 +140,7 @@ export const JobDetailPage = () => {
         open={reportOpen}
         onClose={() => setReportOpen(false)}
         hasReported={hasReported}
+        jobId={id}
       />
 
       <Dialog open={loginPromptOpen} onOpenChange={setLoginPromptOpen}>
