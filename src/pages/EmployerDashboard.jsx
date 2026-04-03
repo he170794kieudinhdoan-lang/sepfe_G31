@@ -11,16 +11,13 @@ import { EmptyState } from '@/shared/components/EmptyState';
 import { Modal } from '@/shared/components/Modal';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { useToast } from '@/shared/contexts/ToastContext';
-<<<<<<< HEAD
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
-=======
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from '@/components/ui/popover';
->>>>>>> 28fe553 (FEAT: integration api and UI suggest worker for employer)
 import { CompanyRegisterPage } from '@/pages/CompanyRegisterPage';
 import { CreateJobPage } from '@/pages/CreateJobPage';
 import { EditJobPage } from '@/pages/EditJobPage';
@@ -779,17 +776,26 @@ export const EmployerDashboard = () => {
     }
 
     const headers = [
-      'Tên ứng viên', 'Vị trí ứng tuyển', 'Trạng thái',  
-      'Email', 'Số điện thoại', 'Giới tính', 'Năm sinh', 'Khu vực', 
-      'Công việc đã làm', 'Năm kinh nghiệm', 'Lương mong muốn', 
-      'Ca làm', 'Giới thiệu bản thân (Bio)'
+      'Tên ứng viên',
+      'Vị trí ứng tuyển',
+      'Trạng thái',
+      'Email',
+      'Số điện thoại',
+      'Giới tính',
+      'Năm sinh',
+      'Khu vực',
+      'Công việc đã làm',
+      'Năm kinh nghiệm',
+      'Lương mong muốn',
+      'Ca làm',
+      'Giới thiệu bản thân (Bio)',
     ];
-    
+
     const statusMap = {
       APPLIED: 'Chờ xử lý',
       VIEWED: 'Đã xem',
       SUITABLE: 'Phù hợp',
-      UNSUITABLE: 'Không phù hợp'
+      UNSUITABLE: 'Không phù hợp',
     };
 
     const shiftMap = {
@@ -797,46 +803,53 @@ export const EmployerDashboard = () => {
       AFTERNOON: 'Ca chiều',
       EVENING: 'Ca tối',
       FULL_DAY: 'Cả ngày',
-      FLEXIBLE: 'Linh hoạt'
+      FLEXIBLE: 'Linh hoạt',
     };
 
     const csvRows = [];
     csvRows.push(headers.join(','));
 
-    filteredApplicants.forEach(app => {
-        const escapeCsv = (str) => {
-            if (!str && str !== 0) return '""';
-            return `"${String(str).replace(/"/g, '""')}"`;
-        };
+    filteredApplicants.forEach((app) => {
+      const escapeCsv = (str) => {
+        if (!str && str !== 0) return '""';
+        return `"${String(str).replace(/"/g, '""')}"`;
+      };
 
-        const wp = app.user?.workerProfile || {};
-        
-        const genderText = wp.gender === 'MALE' ? 'Nam' : wp.gender === 'FEMALE' ? 'Nữ' : 'Chưa cập nhật';
-        const expectedSalaryText = wp.expectedSalary ? `${(wp.expectedSalary / 1000000).toFixed(0)}Tr` : 'Thỏa thuận';
-        const shiftText = shiftMap[wp.shift] || wp.shift || 'Chưa cập nhật';
+      const wp = app.user?.workerProfile || {};
 
-        const row = [
-            escapeCsv(app.user?.fullName),
-            escapeCsv(app.job?.title),
-            escapeCsv(statusMap[app.status] || app.status),
-            escapeCsv(app.user?.email),
-            escapeCsv(app.user?.phone || 'Chưa cập nhật'),
-            escapeCsv(genderText),
-            escapeCsv(wp.birthYear || 'Chưa cập nhật'),
-            escapeCsv(wp.province || 'Chưa cập nhật'),
-            escapeCsv(wp.occupation?.name || 'Chưa cập nhật'),
-            escapeCsv(wp.experienceYear ? `${wp.experienceYear} năm` : 'Chưa có'),
-            escapeCsv(expectedSalaryText),
-            escapeCsv(shiftText),
-            escapeCsv(wp.bio || 'Chưa cập nhật')
-        ];
-        csvRows.push(row.join(','));
+      const genderText =
+        wp.gender === 'MALE'
+          ? 'Nam'
+          : wp.gender === 'FEMALE'
+            ? 'Nữ'
+            : 'Chưa cập nhật';
+      const expectedSalaryText = wp.expectedSalary
+        ? `${(wp.expectedSalary / 1000000).toFixed(0)}Tr`
+        : 'Thỏa thuận';
+      const shiftText = shiftMap[wp.shift] || wp.shift || 'Chưa cập nhật';
+
+      const row = [
+        escapeCsv(app.user?.fullName),
+        escapeCsv(app.job?.title),
+        escapeCsv(statusMap[app.status] || app.status),
+        escapeCsv(app.user?.email),
+        escapeCsv(app.user?.phone || 'Chưa cập nhật'),
+        escapeCsv(genderText),
+        escapeCsv(wp.birthYear || 'Chưa cập nhật'),
+        escapeCsv(wp.province || 'Chưa cập nhật'),
+        escapeCsv(wp.occupation?.name || 'Chưa cập nhật'),
+        escapeCsv(wp.experienceYear ? `${wp.experienceYear} năm` : 'Chưa có'),
+        escapeCsv(expectedSalaryText),
+        escapeCsv(shiftText),
+        escapeCsv(wp.bio || 'Chưa cập nhật'),
+      ];
+      csvRows.push(row.join(','));
     });
 
-    const csvContent = "\uFEFF" + csvRows.join('\n');
+    const csvContent = '\uFEFF' + csvRows.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', 'Danh_sach_ung_vien.csv');
@@ -993,13 +1006,9 @@ export const EmployerDashboard = () => {
                 <div className="text-sm text-slate-500 mt-2 space-y-1">
                   <p className="flex items-center gap-2">
                     <Phone size={14} className="text-primary" />
-<<<<<<< HEAD
-                    <span className="font-medium text-slate-700">{applicantDetail.user?.phone || 'Chưa cập nhật SĐT'}</span>
-=======
                     <span className="font-medium text-slate-700">
                       {applicantDetail.user?.phone || 'Chưa cập nhật SĐT'}
                     </span>
->>>>>>> 28fe553 (FEAT: integration api and UI suggest worker for employer)
                   </p>
                 </div>
               </div>
@@ -1087,9 +1096,17 @@ export const EmployerDashboard = () => {
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-slate-200">
-                  <p className="text-slate-500 text-xs mb-1">Giới thiệu bản thân (Bio)</p>
+                  <p className="text-slate-500 text-xs mb-1">
+                    Giới thiệu bản thân (Bio)
+                  </p>
                   <p className="font-medium whitespace-pre-wrap text-slate-700">
-                    {applicantDetail.user?.workerProfile?.bio ? applicantDetail.user.workerProfile.bio : <span className="italic text-slate-400">Chưa cập nhật</span>}
+                    {applicantDetail.user?.workerProfile?.bio ? (
+                      applicantDetail.user.workerProfile.bio
+                    ) : (
+                      <span className="italic text-slate-400">
+                        Chưa cập nhật
+                      </span>
+                    )}
                   </p>
                 </div>
               </div>
@@ -1137,10 +1154,11 @@ export const EmployerDashboard = () => {
                   <button
                     key={status.value}
                     onClick={() => setApplicantStatus(status.value)}
-                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
+                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
+                      applicantStatus === status.value
                         ? status.activeClass
                         : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
+                    }`}
                   >
                     {status.label}
                   </button>
@@ -1651,11 +1669,7 @@ export const EmployerDashboard = () => {
                                 )}
                               </td>
                               <td className="px-4 text-center">
-<<<<<<< HEAD
                                 <div className="flex justify-start gap-2 w-[310px] mx-auto">
-=======
-                                <div className="flex justify-center items-center gap-2">
->>>>>>> 28fe553 (FEAT: integration api and UI suggest worker for employer)
                                   <Button
                                     variant="outline"
                                     size="sm"
