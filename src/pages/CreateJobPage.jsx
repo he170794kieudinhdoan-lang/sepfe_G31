@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Input } from '@/components/ui/input';
@@ -30,6 +30,7 @@ import {
   Plus,
   Loader2,
   X,
+  AlertTriangle,
 } from 'lucide-react';
 
 const schema = z
@@ -48,54 +49,62 @@ const schema = z
     // Tuổi
     // Tuổi
     ageMin: z.preprocess(
-      (val) =>
-        val === '' || val === undefined || val === null
-          ? undefined
-          : Number(val),
+      (val) => {
+        if (val === '' || val === undefined || val === null) return undefined;
+        const n = Number(val);
+        return isNaN(n) ? val : n;
+      },
       z
-        .number({ invalid_type_error: 'Vui lòng nhập số' })
+        .number({ invalid_type_error: 'Vui lòng nhập số hợp lệ' })
         .int('Tuổi phải là số nguyên')
-        .min(0, 'Tuổi không được âm')
+        .min(15, 'Tuổi phải từ 15 trở lên')
+        .max(60, 'Tuổi tối đa là 60')
         .optional()
         .nullable(),
     ),
     ageMax: z.preprocess(
-      (val) =>
-        val === '' || val === undefined || val === null
-          ? undefined
-          : Number(val),
+      (val) => {
+        if (val === '' || val === undefined || val === null) return undefined;
+        const n = Number(val);
+        return isNaN(n) ? val : n;
+      },
       z
-        .number({ invalid_type_error: 'Vui lòng nhập số' })
+        .number({ invalid_type_error: 'Vui lòng nhập số hợp lệ' })
         .int('Tuổi phải là số nguyên')
-        .min(0, 'Tuổi không được âm')
+        .min(15, 'Tuổi phải từ 15 trở lên')
+        .max(60, 'Tuổi tối đa là 60')
         .optional()
         .nullable(),
     ),
 
     // Lương
     salaryMin: z.preprocess(
-      (val) =>
-        val === '' || val === undefined || val === null
-          ? undefined
-          : Number(val),
+      (val) => {
+        if (val === '' || val === undefined || val === null) return undefined;
+        const rawValue = typeof val === 'string' ? val.replace(/,/g, '') : val;
+        const n = Number(rawValue);
+        return isNaN(n) ? val : n;
+      },
       z
-        .number({ invalid_type_error: 'Vui lòng nhập số' })
+        .number({ invalid_type_error: 'Vui lòng nhập số hợp lệ' })
         .int('Lương phải là số nguyên')
         .min(0, 'Lương không được âm')
-        .max(100000000, 'Lương không được quá 100.000.000')
+        .max(2000000000, 'Lương quá lớn, tối đa 2.000.000.000 VND')
         .optional()
         .nullable(),
     ),
     salaryMax: z.preprocess(
-      (val) =>
-        val === '' || val === undefined || val === null
-          ? undefined
-          : Number(val),
+      (val) => {
+        if (val === '' || val === undefined || val === null) return undefined;
+        const rawValue = typeof val === 'string' ? val.replace(/,/g, '') : val;
+        const n = Number(rawValue);
+        return isNaN(n) ? val : n;
+      },
       z
-        .number({ invalid_type_error: 'Vui lòng nhập số' })
+        .number({ invalid_type_error: 'Vui lòng nhập số hợp lệ' })
         .int('Lương phải là số nguyên')
         .min(0, 'Lương không được âm')
-        .max(100000000, 'Lương không được quá 100.000.000')
+        .max(2000000000, 'Lương quá lớn, tối đa 2.000.000.000 VND')
         .optional()
         .nullable(),
     ),
@@ -165,12 +174,12 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
   const steps = [
     { title: 'Thông tin chung', icon: PenTool },
     { title: 'Địa điểm & Ca làm', icon: MapPin },
-    { title: 'Form ứng tuyển', icon: ClipboardList },
   ];
 
   const [currentStep, setCurrentStep] = useState(0);
   const [sectors, setSectors] = useState([]);
   const [loadingSector, setLoadingSector] = useState(false);
+  const [showSpamModal, setShowSpamModal] = useState(false);
 
   const { provinces, isLoading: loadingProvince } = useProvinces();
   const [districts, setDistricts] = useState([]);
@@ -209,15 +218,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
     formState: { errors },
   } = form;
 
-  const {
-    fields: customFields,
-    append,
-    remove,
-    update,
-  } = useFieldArray({
-    control,
-    name: 'fields',
-  });
+
 
   const watchSectorId = watch('sectorId');
   const watchProvince = watch('province');
@@ -343,8 +344,8 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
           isRequired: f.isRequired,
           options:
             f.fieldType === 'select' ||
-            f.fieldType === 'radio' ||
-            f.fieldType === 'checkbox'
+              f.fieldType === 'radio' ||
+              f.fieldType === 'checkbox'
               ? JSON.stringify(f.options.filter((opt) => opt.trim() !== ''))
               : undefined,
         })) || [],
@@ -369,7 +370,12 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
       onError: (error) => {
         const message =
           error?.response?.data?.message || 'Tạo tin tuyển dụng thất bại';
-        toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+        const errorText = Array.isArray(message) ? message.join(', ') : message;
+        if (errorText.includes('SPAM')) {
+          setShowSpamModal(true);
+        } else {
+          toast(errorText, 'error');
+        }
       },
     });
   };
@@ -382,753 +388,548 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto relative p-6 shadow-2xl">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute right-4 top-4 z-10 rounded-full hover:bg-gray-100"
-          onClick={() => (onBack ? onBack() : navigate('/employer'))}
-        >
-          <X className="w-5 h-5" />
-        </Button>
-        <div className="mb-10 text-center pt-2">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
-            Tạo tin tuyển dụng mới
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Hoàn thiện thông tin thu hút ứng viên tài năng
-          </p>
-        </div>
+    <>
+      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto relative p-6 shadow-2xl">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-4 top-4 z-10 rounded-full hover:bg-gray-100"
+            onClick={() => (onBack ? onBack() : navigate('/employer'))}
+          >
+            <X className="w-5 h-5" />
+          </Button>
+          <div className="mb-10 text-center pt-2">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+              Tạo tin tuyển dụng mới
+            </h1>
+            <p className="text-muted-foreground mt-2">
+              Hoàn thiện thông tin thu hút ứng viên tài năng
+            </p>
+          </div>
 
-        {/* Stepper */}
-        <div className="flex justify-between items-center mb-10 relative">
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0" />
-          <div
-            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary rounded-full z-0 transition-all duration-500 ease-in-out"
-            style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
-          />
+          {/* Stepper */}
+          <div className="flex justify-between items-center mb-10 relative">
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0" />
+            <div
+              className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary rounded-full z-0 transition-all duration-500 ease-in-out"
+              style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+            />
 
-          {steps.map((step, idx) => {
-            const StepIcon = step.icon;
-            const isActive = idx === currentStep;
-            const isCompleted = idx < currentStep;
+            {steps.map((step, idx) => {
+              const StepIcon = step.icon;
+              const isActive = idx === currentStep;
+              const isCompleted = idx < currentStep;
 
-            return (
-              <div
-                key={idx}
-                className="relative z-10 flex flex-col items-center gap-2"
-              >
+              return (
                 <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center border-4 shadow-sm transition-all duration-300
-                                    ${
-                                      isActive
-                                        ? 'bg-primary border-primary/20 text-white scale-110'
-                                        : isCompleted
-                                          ? 'bg-primary border-primary text-white'
-                                          : 'bg-white border-gray-200 text-gray-400'
-                                    }`}
+                  key={idx}
+                  className="relative z-10 flex flex-col items-center gap-2"
                 >
-                  {isCompleted ? (
-                    <CheckCircle size={20} />
-                  ) : (
-                    <StepIcon size={20} />
-                  )}
+                  <div
+                    className={`w-12 h-12 rounded-full flex items-center justify-center border-4 shadow-sm transition-all duration-300
+                                    ${isActive
+                        ? 'bg-primary border-primary/20 text-white scale-110'
+                        : isCompleted
+                          ? 'bg-primary border-primary text-white'
+                          : 'bg-white border-gray-200 text-gray-400'
+                      }`}
+                  >
+                    {isCompleted ? (
+                      <CheckCircle size={20} />
+                    ) : (
+                      <StepIcon size={20} />
+                    )}
+                  </div>
+                  <span
+                    className={`text-sm font-medium ${isActive ? 'text-primary' : isCompleted ? 'text-gray-900' : 'text-gray-400'}`}
+                  >
+                    {step.title}
+                  </span>
                 </div>
-                <span
-                  className={`text-sm font-medium ${isActive ? 'text-primary' : isCompleted ? 'text-gray-900' : 'text-gray-400'}`}
-                >
-                  {step.title}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
 
-        <Card className="rounded-2xl shadow-xl border-0 overflow-hidden bg-white">
-          <div className="h-2 bg-primary w-full" />
-          <div className="p-8 sm:p-10">
-            {/* STEP 1: THÔNG TIN CHUNG */}
-            {currentStep === 0 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <h2 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <Briefcase className="text-primary" /> Thông tin công việc
-                </h2>
+          <Card className="rounded-2xl shadow-xl border-0 overflow-hidden bg-white">
+            <div className="h-2 bg-primary w-full" />
+            <div className="p-8 sm:p-10">
+              {/* STEP 1: THÔNG TIN CHUNG */}
+              {currentStep === 0 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <h2 className="text-xl font-semibold flex items-center gap-2 mb-6">
+                    <Briefcase className="text-primary" /> Thông tin công việc
+                  </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700">
-                      Lĩnh vực <span className="text-red-500">*</span>
-                    </Label>
-                    <Controller
-                      control={control}
-                      name="sectorId"
-                      render={({ field }) => (
-                        <Select
-                          onValueChange={(val) => {
-                            field.onChange(val);
-                            setValue('occupationId', undefined);
-                          }}
-                          value={field.value || ''}
-                          disabled={loadingSector}
-                          modal={false}
-                        >
-                          <SelectTrigger
-                            className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 transition-colors ${errors.sectorId ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">
+                        Lĩnh vực <span className="text-red-500">*</span>
+                      </Label>
+                      <Controller
+                        control={control}
+                        name="sectorId"
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              setValue('occupationId', undefined);
+                            }}
+                            value={field.value || ''}
+                            disabled={loadingSector}
+                            modal={false}
                           >
-                            <SelectValue
-                              placeholder={
-                                loadingSector ? 'Đang tải...' : 'Chọn lĩnh vực'
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {sectors.map((s) => (
-                              <SelectItem key={s.id} value={s.id.toString()}>
-                                {s.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    <FieldError error={errors.sectorId} />
+                            <SelectTrigger
+                              className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 transition-colors ${errors.sectorId ? 'border-red-500 focus:ring-red-500' : ''}`}
+                            >
+                              <SelectValue
+                                placeholder={
+                                  loadingSector ? 'Đang tải...' : 'Chọn lĩnh vực'
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {sectors.map((s) => (
+                                <SelectItem key={s.id} value={s.id.toString()}>
+                                  {s.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <FieldError error={errors.sectorId} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">
+                        Ngành nghề <span className="text-red-500">*</span>
+                      </Label>
+                      <Controller
+                        control={control}
+                        name="occupationId"
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={(val) => field.onChange(Number(val))}
+                            value={field.value?.toString() || ''}
+                            disabled={!watchSectorId}
+                            modal={false}
+                          >
+                            <SelectTrigger
+                              className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 transition-colors ${errors.occupationId ? 'border-red-500 focus:ring-red-500' : ''}`}
+                            >
+                              <SelectValue
+                                placeholder={
+                                  !watchSectorId
+                                    ? 'Chọn lĩnh vực trước'
+                                    : 'Chọn ngành nghề'
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {occupations.map((o) => (
+                                <SelectItem key={o.id} value={o.id.toString()}>
+                                  {o.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <FieldError error={errors.occupationId} />
+                    </div>
                   </div>
 
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-gray-700">
-                      Ngành nghề <span className="text-red-500">*</span>
-                    </Label>
-                    <Controller
-                      control={control}
-                      name="occupationId"
-                      render={({ field }) => (
-                        <Select
-                          onValueChange={(val) => field.onChange(Number(val))}
-                          value={field.value?.toString() || ''}
-                          disabled={!watchSectorId}
-                          modal={false}
-                        >
-                          <SelectTrigger
-                            className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 transition-colors ${errors.occupationId ? 'border-red-500 focus:ring-red-500' : ''}`}
-                          >
-                            <SelectValue
-                              placeholder={
-                                !watchSectorId
-                                  ? 'Chọn lĩnh vực trước'
-                                  : 'Chọn ngành nghề'
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {occupations.map((o) => (
-                              <SelectItem key={o.id} value={o.id.toString()}>
-                                {o.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    <FieldError error={errors.occupationId} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700">
-                    Tiêu đề công việc <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    {...register('title')}
-                    className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 focus:bg-white transition-colors ${errors.title ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                    placeholder="VD: Tuyển gấp kỹ sư phần mềm Javascript"
-                  />
-                  <FieldError error={errors.title} />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700">
-                    Mô tả chi tiết <span className="text-red-500">*</span>
-                  </Label>
-                  <Textarea
-                    {...register('description')}
-                    className={`min-h-[140px] rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 focus:bg-white resize-none transition-colors ${errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                    placeholder="Mô tả công việc, yêu cầu, quyền lợi..."
-                  />
-                  <FieldError error={errors.description} />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700">
-                      Số lượng tuyển <span className="text-red-500">*</span>
+                      Tiêu đề công việc <span className="text-red-500">*</span>
                     </Label>
                     <Input
-                      type="number"
-                      {...register('quantity', { valueAsNumber: true })}
-                      className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.quantity ? 'border-red-500' : ''}`}
-                      placeholder="VD: 5"
+                      {...register('title')}
+                      className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 focus:bg-white transition-colors ${errors.title ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                      placeholder="VD: Tuyển gấp kỹ sư phần mềm Javascript"
                     />
-                    <FieldError error={errors.quantity} />
+                    <FieldError error={errors.title} />
                   </div>
 
                   <div className="space-y-2">
                     <Label className="text-sm font-semibold text-gray-700">
-                      Giới tính yêu cầu
+                      Mô tả chi tiết <span className="text-red-500">*</span>
                     </Label>
-                    <Controller
-                      control={control}
-                      name="genderRequirement"
-                      render={({ field }) => (
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value || ''}
-                          modal={false}
-                        >
-                          <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-gray-200">
-                            <SelectValue placeholder="Không yêu cầu" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="MALE">Nam</SelectItem>
-                            <SelectItem value="FEMALE">Nữ</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
+                    <Textarea
+                      {...register('description')}
+                      className={`min-h-[140px] rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 focus:bg-white resize-none transition-colors ${errors.description ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                      placeholder="Mô tả công việc, yêu cầu, quyền lợi..."
                     />
+                    <FieldError error={errors.description} />
                   </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-gray-50 border border-gray-100 rounded-2xl">
-                  <div>
-                    <Label className="text-sm font-semibold text-gray-700 mb-3 block">
-                      Độ tuổi yêu cầu
-                    </Label>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <Input
-                          type="number"
-                          {...register('ageMin')}
-                          placeholder="Từ (Tối thiểu 0)"
-                          className={`h-11 bg-white ${errors.ageMin ? 'border-red-500' : ''}`}
-                        />
-                        <FieldError error={errors.ageMin} />
-                      </div>
-                      <span className="text-gray-400 font-medium">-</span>
-                      <div className="flex-1">
-                        <Input
-                          type="number"
-                          {...register('ageMax')}
-                          placeholder="Đến"
-                          className={`h-11 bg-white ${errors.ageMax ? 'border-red-500' : ''}`}
-                        />
-                        <FieldError error={errors.ageMax} />
-                      </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">
+                        Số lượng tuyển <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        type="number"
+                        {...register('quantity', { valueAsNumber: true })}
+                        className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.quantity ? 'border-red-500' : ''}`}
+                        placeholder="VD: 5"
+                      />
+                      <FieldError error={errors.quantity} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">
+                        Giới tính yêu cầu
+                      </Label>
+                      <Controller
+                        control={control}
+                        name="genderRequirement"
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || ''}
+                            modal={false}
+                          >
+                            <SelectTrigger className="h-12 rounded-xl bg-gray-50 border-gray-200">
+                              <SelectValue placeholder="Không yêu cầu" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="MALE">Nam</SelectItem>
+                              <SelectItem value="FEMALE">Nữ</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
                     </div>
                   </div>
-                  <div>
-                    <Label className="text-sm font-semibold text-gray-700 mb-3 block">
-                      Mức lương (VND)
-                    </Label>
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1">
-                        <Input
-                          type="number"
-                          {...register('salaryMin')}
-                          placeholder="Từ (Tối thiểu 0)"
-                          className={`h-11 bg-white ${errors.salaryMin ? 'border-red-500' : ''}`}
-                        />
-                        <FieldError error={errors.salaryMin} />
-                      </div>
-                      <span className="text-gray-400 font-medium">-</span>
-                      <div className="flex-1">
-                        <Input
-                          type="number"
-                          {...register('salaryMax')}
-                          placeholder="Đến"
-                          className={`h-11 bg-white ${errors.salaryMax ? 'border-red-500' : ''}`}
-                        />
-                        <FieldError error={errors.salaryMax} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700">
-                    Ngày hết hạn bài viết{' '}
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    type="date"
-                    {...register('expiredAt')}
-                    min={new Date().toISOString().split('T')[0]}
-                    className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.expiredAt ? 'border-red-500' : ''}`}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                    <CheckCircle size={12} className="text-green-500" /> Tin sẽ
-                    tự động ẩn sau ngày này
-                  </p>
-                  <FieldError error={errors.expiredAt} />
-                </div>
-              </div>
-            )}
-
-            {/* STEP 2: ĐỊA ĐIỂM & CA LÀM */}
-            {currentStep === 1 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                <h2 className="text-xl font-semibold flex items-center gap-2 mb-6">
-                  <MapPin className="text-primary" /> Thông tin làm việc
-                </h2>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700">
-                    Ca làm việc <span className="text-red-500">*</span>
-                  </Label>
-                  <Controller
-                    control={control}
-                    name="workingShift"
-                    render={({ field }) => (
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ''}
-                        modal={false}
-                      >
-                        <SelectTrigger
-                          className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.workingShift ? 'border-red-500' : ''}`}
-                        >
-                          <SelectValue placeholder="Chọn ca làm việc" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="MORNING">Ca sáng</SelectItem>
-                          <SelectItem value="AFTERNOON">Ca chiều</SelectItem>
-                          <SelectItem value="NIGHT">Ca tối</SelectItem>
-                          <SelectItem value="FULL_DAY">
-                            Toàn thời gian
-                          </SelectItem>
-                          <SelectItem value="FLEXIBLE">Linh hoạt</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                  <FieldError error={errors.workingShift} />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700">
-                      Tỉnh/Thành phố <span className="text-red-500">*</span>
-                    </Label>
-                    <Controller
-                      control={control}
-                      name="province"
-                      render={({ field }) => (
-                        <Select
-                          onValueChange={(val) => {
-                            field.onChange(val);
-                            setValue('district', '');
-                          }}
-                          value={field.value || ''}
-                          disabled={loadingProvince}
-                          modal={false}
-                        >
-                          <SelectTrigger
-                            className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.province ? 'border-red-500' : ''}`}
-                          >
-                            <SelectValue
-                              placeholder={
-                                loadingProvince
-                                  ? 'Đang tải...'
-                                  : 'Chọn tỉnh/thành phố'
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {provinces.map((p) => (
-                              <SelectItem key={p.code} value={p.name}>
-                                {p.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    <FieldError error={errors.province} />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="text-sm font-semibold text-gray-700">
-                      Quận/Huyện <span className="text-red-500">*</span>
-                    </Label>
-                    <Controller
-                      control={control}
-                      name="district"
-                      render={({ field }) => (
-                        <Select
-                          key={watchProvince}
-                          onValueChange={field.onChange}
-                          value={field.value || ''}
-                          disabled={!watchProvince || loadingDistrict}
-                          modal={false}
-                        >
-                          <SelectTrigger
-                            className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.district ? 'border-red-500' : ''}`}
-                          >
-                            <SelectValue
-                              placeholder={
-                                !watchProvince
-                                  ? 'Chọn tỉnh trước'
-                                  : loadingDistrict
-                                    ? 'Đang tải...'
-                                    : 'Chọn quận/huyện'
-                              }
-                            />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {districts.map((d) => (
-                              <SelectItem key={d.code} value={d.name}>
-                                {d.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                    <FieldError error={errors.district} />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="text-sm font-semibold text-gray-700">
-                    Địa chỉ cụ thể (tùy chọn)
-                  </Label>
-                  <Input
-                    {...register('address')}
-                    className="h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50"
-                    placeholder="Số nhà, đường, ngõ..."
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* STEP 3: FORM ỨNG TUYỂN */}
-            {currentStep === 2 && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-                <div className="flex justify-between items-center bg-blue-50/50 p-5 rounded-2xl border border-blue-100 border-dashed">
-                  <div>
-                    <h2 className="text-xl font-semibold flex items-center gap-2 text-blue-800">
-                      <ClipboardList className="text-blue-500" /> Biểu mẫu khảo
-                      sát
-                    </h2>
-                    <p className="text-sm text-blue-600/80 mt-1">
-                      Câu hỏi phụ để sàng lọc ứng viên tốt hơn
-                    </p>
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      append({
-                        label: '',
-                        fieldType: 'text',
-                        isRequired: false,
-                        options: [],
-                      })
-                    }
-                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md border-0"
-                  >
-                    <Plus size={16} className="mr-2" /> Thêm câu hỏi
-                  </Button>
-                </div>
-
-                <div className="space-y-5">
-                  {customFields.map((field, index) => (
-                    <Card
-                      key={field.id}
-                      className="p-6 rounded-2xl border-gray-200 shadow-sm relative overflow-hidden group"
-                    >
-                      <div className="absolute top-0 left-0 w-1 h-full bg-blue-400 opacity-50 group-hover:opacity-100 transition-opacity" />
-
-                      <div className="flex justify-between items-start mb-5 block sm:hidden">
-                        <h3 className="font-medium text-sm text-gray-500">
-                          Câu số {index + 1}
-                        </h3>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => remove(index)}
-                          className="text-red-500 hover:bg-red-50 hover:text-red-600 h-8 w-8 p-0 rounded-lg"
-                        >
-                          <Trash2 size={16} />
-                        </Button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-                        <div className="col-span-1 border border-gray-200 bg-gray-50 rounded-xl w-10 h-10 flex items-center justify-center font-bold text-gray-400 hidden sm:flex">
-                          {index + 1}
-                        </div>
-
-                        <div className="col-span-1 md:col-span-7 space-y-2">
-                          <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Nội dung câu hỏi
-                          </Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-gray-50 border border-gray-100 rounded-2xl">
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-700 mb-3 block">
+                        Độ tuổi yêu cầu
+                      </Label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
                           <Input
-                            {...register(`fields.${index}.label`)}
-                            placeholder="VD: Bạn đã sử dụng React bao lâu?"
-                            className={`h-11 rounded-xl ${errors.fields?.[index]?.label ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                            type="number"
+                            {...register('ageMin')}
+                            placeholder="Từ (Tối thiểu 0)"
+                            className={`h-11 bg-white ${errors.ageMin ? 'border-red-500' : ''}`}
                           />
-                          <FieldError error={errors.fields?.[index]?.label} />
+                          <FieldError error={errors.ageMin} />
                         </div>
-
-                        <div className="col-span-1 md:col-span-3 space-y-2">
-                          <Label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                            Loại đáp án
-                          </Label>
+                        <span className="text-gray-400 font-medium">-</span>
+                        <div className="flex-1">
+                          <Input
+                            type="number"
+                            {...register('ageMax')}
+                            placeholder="Đến"
+                            className={`h-11 bg-white ${errors.ageMax ? 'border-red-500' : ''}`}
+                          />
+                          <FieldError error={errors.ageMax} />
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <Label className="text-sm font-semibold text-gray-700 mb-3 block">
+                        Mức lương (VND)
+                      </Label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1">
                           <Controller
                             control={control}
-                            name={`fields.${index}.fieldType`}
-                            render={({ field: fProps }) => (
-                              <Select
-                                onValueChange={(val) => {
-                                  fProps.onChange(val);
-                                  if (
-                                    val !== 'select' &&
-                                    val !== 'radio' &&
-                                    val !== 'checkbox'
-                                  ) {
-                                    const currentField = form.getValues(
-                                      `fields.${index}`,
-                                    );
-                                    update(index, {
-                                      ...currentField,
-                                      options: [],
-                                    });
-                                  } else {
-                                    const currentField = form.getValues(
-                                      `fields.${index}`,
-                                    );
-                                    if (
-                                      !currentField.options ||
-                                      currentField.options.length === 0
-                                    ) {
-                                      update(index, {
-                                        ...currentField,
-                                        options: [''],
-                                      });
-                                    }
-                                  }
+                            name="salaryMin"
+                            render={({ field: { onChange, value, ...field } }) => (
+                              <Input
+                                {...field}
+                                type="text"
+                                placeholder="Từ (Tối thiểu 0)"
+                                className={`h-11 bg-white ${errors.salaryMin ? 'border-red-500' : ''}`}
+                                value={value ? new Intl.NumberFormat('en-US').format(value) : ''}
+                                onChange={(e) => {
+                                  const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                                  onChange(rawValue ? Number(rawValue) : undefined);
                                 }}
-                                value={fProps.value}
-                              >
-                                <SelectTrigger className="h-11 rounded-xl">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="text">
-                                    Trả lời ngắn
-                                  </SelectItem>
-                                  <SelectItem value="textarea">
-                                    Đoạn văn
-                                  </SelectItem>
-                                  <SelectItem value="select">
-                                    Dropdown chọn 1
-                                  </SelectItem>
-                                  <SelectItem value="radio">
-                                    Radio (chọn 1)
-                                  </SelectItem>
-                                  <SelectItem value="checkbox">
-                                    Checkbox (chọn nhiều)
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
+                              />
                             )}
                           />
+                          <FieldError error={errors.salaryMin} />
                         </div>
-
-                        <div className="col-span-1 hidden sm:flex justify-end pt-7">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            onClick={() => remove(index)}
-                            className="text-red-400 hover:bg-red-50 hover:text-red-600 h-11 w-11 rounded-xl"
-                          >
-                            <Trash2 size={18} />
-                          </Button>
-                        </div>
-                      </div>
-
-                      {(watch(`fields.${index}.fieldType`) === 'select' ||
-                        watch(`fields.${index}.fieldType`) === 'radio' ||
-                        watch(`fields.${index}.fieldType`) === 'checkbox') && (
-                        <div className="mt-5 ml-0 sm:ml-16 p-4 bg-gray-50/50 rounded-xl border border-gray-100">
-                          <div className="flex justify-between items-center mb-3">
-                            <Label className="text-sm font-medium text-gray-600">
-                              Các lựa chọn có thể chọn
-                            </Label>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                const opts =
-                                  watch(`fields.${index}.options`) || [];
-                                const currentField = form.getValues(
-                                  `fields.${index}`,
-                                );
-                                update(index, {
-                                  ...currentField,
-                                  options: [...opts, ''],
-                                });
-                              }}
-                              className="h-8 text-xs rounded-lg"
-                            >
-                              <Plus size={14} className="mr-1" /> Thêm option
-                            </Button>
-                          </div>
-                          <div className="space-y-3">
-                            {(watch(`fields.${index}.options`) || []).map(
-                              (_, optIdx) => (
-                                <div
-                                  key={optIdx}
-                                  className="flex gap-3 items-center"
-                                >
-                                  <div className="w-4 flex flex-col items-center">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-gray-300"></div>
-                                  </div>
-                                  <Input
-                                    {...register(
-                                      `fields.${index}.options.${optIdx}`,
-                                    )}
-                                    placeholder={`Lựa chọn ${optIdx + 1}`}
-                                    className="h-10 rounded-lg flex-1"
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    onClick={() => {
-                                      const opts =
-                                        watch(`fields.${index}.options`) || [];
-                                      const currentField = form.getValues(
-                                        `fields.${index}`,
-                                      );
-                                      opts.splice(optIdx, 1);
-                                      update(index, {
-                                        ...currentField,
-                                        options: opts,
-                                      });
-                                    }}
-                                    className="h-10 w-10 text-gray-400 hover:text-red-500 rounded-lg"
-                                  >
-                                    &times;
-                                  </Button>
-                                </div>
-                              ),
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="mt-5 ml-0 sm:ml-16 pt-4 border-t border-gray-100">
-                        <Controller
-                          control={control}
-                          name={`fields.${index}.isRequired`}
-                          render={({ field: reqField }) => (
-                            <div className="flex items-center space-x-2">
-                              <Checkbox
-                                id={`req-${index}`}
-                                checked={reqField.value}
-                                onCheckedChange={reqField.onChange}
+                        <span className="text-gray-400 font-medium mt-3">-</span>
+                        <div className="flex-1">
+                          <Controller
+                            control={control}
+                            name="salaryMax"
+                            render={({ field: { onChange, value, ...field } }) => (
+                              <Input
+                                {...field}
+                                type="text"
+                                placeholder="Đến"
+                                className={`h-11 bg-white ${errors.salaryMax ? 'border-red-500' : ''}`}
+                                value={value ? new Intl.NumberFormat('en-US').format(value) : ''}
+                                onChange={(e) => {
+                                  const rawValue = e.target.value.replace(/[^0-9]/g, '');
+                                  onChange(rawValue ? Number(rawValue) : undefined);
+                                }}
                               />
-                              <label
-                                htmlFor={`req-${index}`}
-                                className="text-sm font-medium text-gray-600 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                              >
-                                Bắt buộc trả lời câu hỏi này
-                              </label>
-                            </div>
-                          )}
-                        />
+                            )}
+                          />
+                          <FieldError error={errors.salaryMax} />
+                        </div>
                       </div>
-                    </Card>
-                  ))}
-
-                  {customFields.length === 0 && (
-                    <div className="text-center py-16 bg-white border-2 border-dashed border-gray-200 rounded-3xl">
-                      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <ClipboardList className="text-gray-400" size={28} />
-                      </div>
-                      <h3 className="text-lg font-medium text-gray-900 mb-1">
-                        Chưa có câu hỏi phụ
-                      </h3>
-                      <p className="text-gray-500 text-sm max-w-sm mx-auto mb-6">
-                        Thêm các câu hỏi ngắn để yêu cầu ứng viên cung cấp thêm
-                        thông tin chứng chỉ, số năm kinh nghiệm...
-                      </p>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() =>
-                          append({
-                            label: '',
-                            fieldType: 'text',
-                            isRequired: false,
-                            options: [],
-                          })
-                        }
-                        className="rounded-xl"
-                      >
-                        Thêm câu hỏi đầu tiên
-                      </Button>
                     </div>
-                  )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-700">
+                      Ngày hết hạn bài viết{' '}
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      type="date"
+                      {...register('expiredAt')}
+                      min={new Date().toISOString().split('T')[0]}
+                      className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.expiredAt ? 'border-red-500' : ''}`}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                      <CheckCircle size={12} className="text-green-500" /> Tin sẽ
+                      tự động ẩn sau ngày này
+                    </p>
+                    <FieldError error={errors.expiredAt} />
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
 
-          {/* Footer Controls */}
-          <div className="p-6 sm:px-10 border-t bg-gray-50/80 flex justify-between items-center rounded-b-2xl">
-            {currentStep > 0 ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handlePrevStep}
-                className="h-12 px-6 rounded-xl font-medium"
-              >
-                Quay lại
-              </Button>
-            ) : (
-              <div></div>
-            )}
+              {/* STEP 2: ĐỊA ĐIỂM & CA LÀM */}
+              {currentStep === 1 && (
+                <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
+                  <h2 className="text-xl font-semibold flex items-center gap-2 mb-6">
+                    <MapPin className="text-primary" /> Thông tin làm việc
+                  </h2>
 
-            {currentStep < steps.length - 1 ? (
-              <Button
-                type="button"
-                onClick={handleNextStep}
-                className="h-12 px-8 rounded-xl font-medium bg-primary hover:bg-primary/90 text-white shadow-md"
-              >
-                Tiếp tục
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleSubmit(onSubmit)}
-                disabled={isSubmitting}
-                className="h-12 px-10 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="animate-spin" size={18} /> AI đang kiểm duyệt tin...
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle size={18} /> Đăng tin tuyển dụng
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-        </Card>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-700">
+                      Ca làm việc <span className="text-red-500">*</span>
+                    </Label>
+                    <Controller
+                      control={control}
+                      name="workingShift"
+                      render={({ field }) => (
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || ''}
+                          modal={false}
+                        >
+                          <SelectTrigger
+                            className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.workingShift ? 'border-red-500' : ''}`}
+                          >
+                            <SelectValue placeholder="Chọn ca làm việc" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="MORNING">Ca sáng</SelectItem>
+                            <SelectItem value="AFTERNOON">Ca chiều</SelectItem>
+                            <SelectItem value="NIGHT">Ca tối</SelectItem>
+                            <SelectItem value="FULL_DAY">
+                              Toàn thời gian
+                            </SelectItem>
+                            <SelectItem value="FLEXIBLE">Linh hoạt</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                    <FieldError error={errors.workingShift} />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">
+                        Tỉnh/Thành phố <span className="text-red-500">*</span>
+                      </Label>
+                      <Controller
+                        control={control}
+                        name="province"
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={(val) => {
+                              field.onChange(val);
+                              setValue('district', '');
+                            }}
+                            value={field.value || ''}
+                            disabled={loadingProvince}
+                            modal={false}
+                          >
+                            <SelectTrigger
+                              className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.province ? 'border-red-500' : ''}`}
+                            >
+                              <SelectValue
+                                placeholder={
+                                  loadingProvince
+                                    ? 'Đang tải...'
+                                    : 'Chọn tỉnh/thành phố'
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {provinces.map((p) => (
+                                <SelectItem key={p.code} value={p.name}>
+                                  {p.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <FieldError error={errors.province} />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label className="text-sm font-semibold text-gray-700">
+                        Quận/Huyện <span className="text-red-500">*</span>
+                      </Label>
+                      <Controller
+                        control={control}
+                        name="district"
+                        render={({ field }) => (
+                          <Select
+                            key={watchProvince}
+                            onValueChange={field.onChange}
+                            value={field.value || ''}
+                            disabled={!watchProvince || loadingDistrict}
+                            modal={false}
+                          >
+                            <SelectTrigger
+                              className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.district ? 'border-red-500' : ''}`}
+                            >
+                              <SelectValue
+                                placeholder={
+                                  !watchProvince
+                                    ? 'Chọn tỉnh trước'
+                                    : loadingDistrict
+                                      ? 'Đang tải...'
+                                      : 'Chọn quận/huyện'
+                                }
+                              />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {districts.map((d) => (
+                                <SelectItem key={d.code} value={d.name}>
+                                  {d.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                      <FieldError error={errors.district} />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-semibold text-gray-700">
+                      Địa chỉ cụ thể (tùy chọn)
+                    </Label>
+                    <Input
+                      {...register('address')}
+                      className="h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50"
+                      placeholder="Số nhà, đường, ngõ..."
+                    />
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Footer Controls */}
+            <div className="p-6 sm:px-10 border-t bg-gray-50/80 flex justify-between items-center rounded-b-2xl">
+              {currentStep > 0 ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handlePrevStep}
+                  className="h-12 px-6 rounded-xl font-medium"
+                >
+                  Quay lại
+                </Button>
+              ) : (
+                <div></div>
+              )}
+
+              {currentStep < steps.length - 1 ? (
+                <Button
+                  type="button"
+                  onClick={handleNextStep}
+                  className="h-12 px-8 rounded-xl font-medium bg-primary hover:bg-primary/90 text-white shadow-md"
+                >
+                  Tiếp tục
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleSubmit(onSubmit)}
+                  disabled={isSubmitting}
+                  className="h-12 px-10 rounded-xl font-semibold bg-primary hover:bg-primary/90 text-white shadow-lg flex items-center gap-2"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="animate-spin" size={18} /> AI đang kiểm duyệt tin...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle size={18} /> Đăng tin tuyển dụng
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+          </Card>
+        </div>
       </div>
-    </div>
+
+      {showSpamModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl animate-in fade-in zoom-in duration-300 border-t-4 border-yellow-500">
+            <div className="flex justify-between items-start mb-4">
+              <h2 className="text-xl font-bold text-amber-600 flex items-center gap-2">
+                <span className="bg-amber-100 p-2 rounded-full">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </span>
+                Tin có dấu hiệu vi phạm
+              </h2>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full hover:bg-gray-100"
+                onClick={() => setShowSpamModal(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="py-4 space-y-4 text-gray-700">
+              <p className="font-medium text-lg text-gray-900">
+                AI của chúng tôi đã phát hiện bài viết của bạn có dấu hiệu Spam hoặc nội dung không hợp lệ.
+              </p>
+              <p>
+                Vui lòng kiểm tra và chỉnh sửa lại các thông tin của công việc:
+              </p>
+              <ul className="list-disc list-inside space-y-2 text-sm ml-2">
+                <li>Mô tả công việc quá ngắn hoặc chứa ký tự vô nghĩa.</li>
+                <li>Chứa quá nhiều từ khóa quảng cáo, lặp lại.</li>
+                <li>Các thông tin không rõ ràng hoặc không phù hợp với chuẩn mực tuyển dụng.</li>
+              </ul>
+            </div>
+            <div className="mt-6 flex justify-end">
+              <Button
+                onClick={() => setShowSpamModal(false)}
+                className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-6 font-medium shadow-md transition-colors"
+              >
+                Chỉnh sửa bài viết
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
+
