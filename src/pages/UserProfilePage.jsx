@@ -11,7 +11,10 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { MSG } from '@/shared/constants/messages';
 import { User, Loader2, Camera } from 'lucide-react';
 import { WorkerProfileView } from '@/features/users/components/WorkerProfileView';
-import { useMyApplications, useCancelApplyJob } from '@/features/jobs/api/useJobs';
+import {
+  useMyApplications,
+  useCancelApplyJob,
+} from '@/features/jobs/api/useJobs';
 import {
   useUpdateUserInfo,
   useChangePassword,
@@ -31,7 +34,7 @@ import {
 
 const MENU = [
   { key: 'view', label: 'Thông tin cá nhân' },
-  { key: 'worker-profile', label: 'Cài đặt gợi ý việc làm', workerOnly: true },
+  { key: 'worker-profile', label: 'Hồ sơ lao động', workerOnly: true },
   { key: 'edit', label: 'Chỉnh sửa hồ sơ' },
   { key: 'password', label: 'Đổi mật khẩu' },
   { key: 'history', label: 'Lịch sử ứng tuyển', workerOnly: true },
@@ -71,7 +74,8 @@ export const UserProfilePage = () => {
   const { mutate: updateProfile, isPending: isUpdatingProfile } =
     useUpdateUserInfo();
 
-  const { data: applications, isLoading: isLoadingApplications } = useMyApplications();
+  const { data: applications, isLoading: isLoadingApplications } =
+    useMyApplications();
   const { mutate: cancelApply, isPending: isCanceling } = useCancelApplyJob();
 
   const handleCancelApplication = () => {
@@ -82,10 +86,11 @@ export const UserProfilePage = () => {
         setCancelJobId(null);
       },
       onError: (err) => {
-        const msg = err?.response?.data?.message || 'Có lỗi xảy ra khi hủy ứng tuyển';
+        const msg =
+          err?.response?.data?.message || 'Có lỗi xảy ra khi hủy ứng tuyển';
         toast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
         setCancelJobId(null);
-      }
+      },
     });
   };
 
@@ -313,10 +318,11 @@ export const UserProfilePage = () => {
                 <button
                   key={item.key}
                   onClick={() => setActive(item.key)}
-                  className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium cursor-pointer ${active === item.key
+                  className={`w-full text-left px-4 py-2 rounded-xl text-sm font-medium cursor-pointer ${
+                    active === item.key
                       ? 'bg-primary/10 text-foreground'
                       : 'text-muted-foreground hover:bg-gray-100'
-                    }`}
+                  }`}
                 >
                   {item.label}
                 </button>
@@ -479,18 +485,36 @@ export const UserProfilePage = () => {
                       className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 border rounded-xl hover:bg-gray-50 transition-colors"
                     >
                       <div>
-                        <Link to={`/job/${app.job.id}`} className="font-semibold text-lg text-primary hover:underline">
+                        <Link
+                          to={`/job/${app.job.id}`}
+                          className="font-semibold text-lg text-primary hover:underline"
+                        >
                           {app.job.title}
                         </Link>
                         <p className="text-sm text-muted-foreground mt-1">
                           {app.job.company?.name || 'Công ty ẩn danh'}
                         </p>
                         <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <Badge variant={app.status === 'APPLIED' ? 'default' : app.status === 'CANCELLED' ? 'secondary' : 'outline'}>
-                            {app.status === 'APPLIED' ? 'Đã ứng tuyển' : app.status === 'CANCELLED' ? 'Đã hủy' : app.status}
+                          <Badge
+                            variant={
+                              app.status === 'APPLIED'
+                                ? 'default'
+                                : app.status === 'CANCELLED'
+                                  ? 'secondary'
+                                  : 'outline'
+                            }
+                          >
+                            {app.status === 'APPLIED'
+                              ? 'Đã ứng tuyển'
+                              : app.status === 'CANCELLED'
+                                ? 'Đã hủy'
+                                : app.status}
                           </Badge>
                           <span className="text-xs text-muted-foreground">
-                            Ngày nộp: {new Date(app.updatedAt).toLocaleDateString('vi-VN')}
+                            Ngày nộp:{' '}
+                            {new Date(app.updatedAt).toLocaleDateString(
+                              'vi-VN',
+                            )}
                           </span>
                         </div>
                       </div>
@@ -503,7 +527,9 @@ export const UserProfilePage = () => {
                           onClick={() => setCancelJobId(app.job.id)}
                           disabled={isCanceling}
                         >
-                          {isCanceling ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          {isCanceling ? (
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          ) : null}
                           Hủy ứng tuyển
                         </Button>
                       )}

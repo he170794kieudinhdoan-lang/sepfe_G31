@@ -83,8 +83,8 @@ const CommonInfoJob = ({ job, className }) => {
       <div className="flex flex-col my-4 text-center gap-1">
         <CompactInfoItem
           icon={<Users className="h-5 w-5" />}
-          label={'Số lượng'}
-          value={job.ageMin}
+          label={'Số lượng tuyển'}
+          value={`${job.quantity || 0} người`}
         />
       </div>
 
@@ -95,6 +95,14 @@ const CommonInfoJob = ({ job, className }) => {
           value={genderDisplay}
         />
       </div>
+
+      {/* <div className="flex flex-col  text-center gap-1">
+        <CompactInfoItem
+          icon={<Users className="h-5 w-5" />}
+          label="Lượt ứng tuyển"
+          value={job._count?.applications || 0}
+        />
+      </div> */}
     </Card>
   );
 };

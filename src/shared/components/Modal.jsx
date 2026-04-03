@@ -1,3 +1,4 @@
+import { X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -17,19 +18,32 @@ export const Modal = ({
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30  pt-20 overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm pt-20 overflow-y-auto">
       <div
         className={cn(
-          'w-full rounded-2xl bg-white shadow-2xl border',
+          'w-full rounded-2xl bg-white shadow-2xl border border-slate-200 relative',
           variant === 'confirm' ? 'max-w-lg' : 'max-w-4xl',
         )}
       >
-        {/* Header chỉ hiển thị khi confirm */}
-        {variant === 'confirm' && (
-          <div className="p-6 space-y-2 border-b">
-            <h3 className="text-lg font-semibold">{title}</h3>
+        {/* Close button (X) - Always show if onClose is provided */}
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors z-60"
+            aria-label="Close modal"
+          >
+            <X size={20} />
+          </button>
+        )}
+
+        {/* Header - Show if title is provided */}
+        {title && (
+          <div className="p-6 space-y-1.5 border-b border-slate-100">
+            <h3 className="text-xl font-bold text-slate-800">{title}</h3>
             {description ? (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-sm text-slate-500 leading-relaxed">
+                {description}
+              </p>
             ) : null}
           </div>
         )}

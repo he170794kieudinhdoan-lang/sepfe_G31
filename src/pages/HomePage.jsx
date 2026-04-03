@@ -430,6 +430,8 @@ export function HomePage() {
 
   const { data: newestJobs, isLoading } = useSearchJobs({ limit });
 
+  console.log(newestJobs);
+
   return (
     <div className="bg-background min-h-full">
       {/* PROFESSIONAL YELLOW-THEMED HERO SECTION */}
@@ -691,6 +693,11 @@ export function HomePage() {
                                   {job.province}
                                 </p>
                               </div>
+                            </div>
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="font-medium text-sm">
+                                {job?.occupation?.name}
+                              </span>
                             </div>
                           </div>
                         </div>

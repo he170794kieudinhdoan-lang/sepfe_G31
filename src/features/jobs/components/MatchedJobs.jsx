@@ -140,143 +140,6 @@ export const MatchedJobs = () => {
                 const matchPercentage = Math.round(scores.finalScore * 100);
 
                 return (
-                  // <Popover key={job.id} open={openId === job.id}>
-                  //   <PopoverTrigger asChild>
-                  //     <div
-                  //       onMouseEnter={() => setOpenId(job.id)}
-                  //       onMouseLeave={() => setOpenId(null)}
-                  //       className="relative cursor-pointer"
-                  //     >
-                  //       <JobCard
-                  //         job={{ ...job, company, occupationName }}
-                  //         aiSuggest
-                  //         matchPercentage={matchPercentage}
-                  //       />
-                  //     </div>
-                  //   </PopoverTrigger>
-
-                  //   <PopoverContent
-                  //     className="w-[380px] p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl"
-                  //     side="left"
-                  //     sideOffset={0}
-                  //     onMouseEnter={() => setOpenId(job.id)}
-                  //     onMouseLeave={() => setOpenId(null)}
-                  //   >
-                  //     <div className="p-5 space-y-5">
-                  //       {/* Header */}
-                  //       <div className="flex gap-4">
-                  //         <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
-                  //           <ImageWithFallback
-                  //             src={company?.logoUrl}
-                  //             alt={company?.name}
-                  //             className="h-full w-full object-contain"
-                  //           />
-                  //         </div>
-                  //         <div className="flex-1 min-w-0">
-                  //           <h4 className="text-base font-bold text-slate-900 line-clamp-2 leading-tight">
-                  //             {job.title}
-                  //           </h4>
-                  //           <div className="flex flex-col mt-1 gap-1">
-                  //             <p className="text-xs font-semibold text-slate-500">
-                  //               {company?.name}
-                  //             </p>
-                  //             <p className="text-[11px] font-medium text-indigo-600 bg-indigo-50 w-fit px-2 py-0.5 rounded-md">
-                  //               {occupationName}
-                  //             </p>
-                  //           </div>
-                  //         </div>
-                  //       </div>
-
-                  //       {/* AI Matching Details */}
-                  //       <div className="bg-indigo-50/50 rounded-xl p-4 border border-indigo-100/50">
-                  //         <div className="flex items-center gap-2 mb-3">
-                  //           <Sparkles className="w-4 h-4 text-indigo-600" />
-                  //           <span className="text-xs font-bold text-indigo-900">
-                  //             Chi tiết độ phù hợp AI
-                  //           </span>
-                  //           <Badge className="ml-auto bg-indigo-600 border-0">
-                  //             {matchPercentage}%
-                  //           </Badge>
-                  //         </div>
-
-                  //         <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                  //           <MatchScoreItem
-                  //             label="Kỹ năng"
-                  //             score={scores.skillScore}
-                  //           />
-                  //           <MatchScoreItem
-                  //             label="Lương"
-                  //             score={scores.salaryScore}
-                  //           />
-                  //           <MatchScoreItem
-                  //             label="Địa điểm"
-                  //             score={scores.locationScore}
-                  //           />
-                  //           <MatchScoreItem
-                  //             label="Ca làm"
-                  //             score={scores.shiftScore}
-                  //           />
-                  //           <MatchScoreItem
-                  //             label="Phúc lợi"
-                  //             score={scores.benefitScore}
-                  //           />
-                  //           <MatchScoreItem
-                  //             label="Giới tính"
-                  //             score={scores.genderScore}
-                  //           />
-                  //           <MatchScoreItem
-                  //             label="Độ tuổi"
-                  //             score={scores.ageScore}
-                  //           />
-                  //         </div>
-                  //       </div>
-
-                  //       {/* Quick Info */}
-                  //       <div className="space-y-3">
-                  //         <div className="flex gap-2">
-                  //           <Badge
-                  //             variant="secondary"
-                  //             className="rounded-lg text-xs font-bold"
-                  //           >
-                  //             {formatSalary(job.salaryMin, job.salaryMax)}
-                  //           </Badge>
-                  //           {job.workingShift && (
-                  //             <Badge
-                  //               variant="outline"
-                  //               className="border-slate-200 text-slate-500 rounded-lg text-xs font-medium bg-slate-50 gap-1 flex items-center"
-                  //             >
-                  //               <Clock className="w-3.5 h-3.5" />
-                  //               <span>
-                  //                 {SHIFTS.find(
-                  //                   (s) => s.value === job.workingShift,
-                  //                 )?.label || job.workingShift}
-                  //               </span>
-                  //             </Badge>
-                  //           )}
-                  //         </div>
-                  //         <div className="flex items-center gap-2 text-xs text-slate-600">
-                  //           <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  //           <span>
-                  //             {job.district ? `${job.district}, ` : ''}
-                  //             {job.province}
-                  //           </span>
-                  //         </div>
-                  //       </div>
-
-                  //       {/* Actions */}
-                  //       <div className="flex gap-3 pt-2">
-                  //         <Button
-                  //           className="flex-1 rounded-xl h-10 font-bold bg-indigo-600 hover:bg-indigo-700"
-                  //           asChild
-                  //         >
-                  //           <Link to={`/job/${job.id}`}>Xem chi tiết</Link>
-                  //         </Button>
-                  //         <SaveButton job={job} />
-                  //       </div>
-                  //     </div>
-                  //   </PopoverContent>
-                  // </Popover>
-
                   <Popover key={job.id} open={openId === job.id}>
                     <PopoverAnchor asChild>
                       <div className="relative">
@@ -354,6 +217,11 @@ export const MatchedJobs = () => {
                                     {job.province}
                                   </p>
                                 </div>
+                              </div>
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="font-medium text-sm">
+                                  {occupationName}
+                                </span>
                               </div>
                             </div>
                           </div>

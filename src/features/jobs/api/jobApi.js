@@ -134,6 +134,12 @@ export const getMatchedJobsApi = async (limit = 10) => {
   return await apiClient.get('/ai-matching/jobs', { params: { limit } });
 };
 
+export const getMatchedWorkersApi = async (jobId, limit = 10) => {
+  return await apiClient.get('/ai-matching/workers', {
+    params: { jobId, limit },
+  });
+};
+
 export const getWeights = async () => {
   return await apiClient.get('/ai-matching/weights');
 };
