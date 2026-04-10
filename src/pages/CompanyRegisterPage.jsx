@@ -16,7 +16,6 @@ import {
   Loader2,
   Image as ImageIcon,
   Check,
-  X,
   Bold,
   Italic,
   Underline as UnderlineIcon,
@@ -670,18 +669,6 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
   return (
     <div className={`space-y-6 ${isModal ? 'pb-6' : ''}`}>
-      {isModal && (
-        <div className="flex justify-end pt-2 pr-2">
-          <button
-            type="button"
-            onClick={onBack}
-            className="rounded-full p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800 transition-colors"
-          >
-            <X size={22} />
-          </button>
-        </div>
-      )}
-
       <div
         className={`mx-auto w-full ${isModal
           ? 'max-w-4xl px-2 pb-4 md:px-6 md:pb-6'
