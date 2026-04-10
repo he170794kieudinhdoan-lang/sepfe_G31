@@ -9,6 +9,8 @@ import { MapPin, Star, Globe, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { useGetCompaniesById } from '../api/useGetCompanies';
+import { useSearchJobs } from '@/features/jobs/api/useJobs';
+import { JobCardHorizontal } from '@/features/jobs/components/JobCardHorizontal';
 import {
   useGetCompanyReviews,
   useCreateCompanyReview,
@@ -23,6 +25,7 @@ import parse from 'html-react-parser';
 // Tab navigation
 const TABS = [
   { key: 'info', label: 'Thông tin' },
+  { key: 'jobs', label: 'Việc làm' },
   { key: 'reviews', label: 'Đánh giá' },
 ];
 
@@ -41,6 +44,7 @@ export const CompanyDetailPage = () => {
   const { id } = useParams();
   const { user, isAuthenticated } = useAuth();
   const { toast } = useToast();
+  const companyId = Number(id);
 
   const [activeTab, setActiveTab] = useState('info');
 
@@ -53,6 +57,11 @@ export const CompanyDetailPage = () => {
   // Fetch data
   const { data: company, isLoading: companyLoading } = useGetCompaniesById(id);
   const { data: reviews = [], isLoading: reviewsLoading } = useGetCompanyReviews(id);
+  const { data: companyJobsData, isLoading: jobsLoading } = useSearchJobs(
+    { companyId, limit: 12, allStatus: false },
+    { enabled: Number.isFinite(companyId) },
+  );
+  const companyJobs = companyJobsData?.items || companyJobsData?.data || [];
 
   // Mutations
   const createMutation = useCreateCompanyReview(Number(id));
@@ -114,7 +123,7 @@ export const CompanyDetailPage = () => {
   // ============ LOADING / ERROR ============
   if (companyLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] text-slate-500">
+      <div className="flex items-center justify-center min-h-75 text-slate-500">
         Đang tải thông tin công ty...
       </div>
     );
@@ -204,6 +213,33 @@ export const CompanyDetailPage = () => {
               <span className="text-muted-foreground">Mã số thuế: </span>
               <span className="font-semibold">{company.taxCode}</span>
             </p>
+          )}
+        </Card>
+      )}
+
+      {/* ===== TAB: VIỆC LÀM ===== */}
+      {activeTab === 'jobs' && (
+        <Card className="p-6 rounded-xl shadow-sm border-0">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold">Việc làm đang tuyển</h3>
+            <span className="text-sm text-muted-foreground">
+              {jobsLoading ? 'Đang tải...' : `${companyJobs.length} job`}
+            </span>
+          </div>
+
+          {jobsLoading ? (
+            <p className="text-muted-foreground text-sm">Đang tải danh sách việc làm...</p>
+          ) : companyJobs.length === 0 ? (
+            <EmptyState
+              title="Chưa có việc làm nào"
+              description="Công ty này hiện chưa đăng job công khai nào."
+            />
+          ) : (
+            <div className="space-y-4">
+              {companyJobs.map((job) => (
+                <JobCardHorizontal key={job.id} job={job} />
+              ))}
+            </div>
           )}
         </Card>
       )}

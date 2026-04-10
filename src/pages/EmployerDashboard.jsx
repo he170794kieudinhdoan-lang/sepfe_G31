@@ -24,7 +24,6 @@ import { EditJobPage } from '@/pages/EditJobPage';
 import {
   ChevronLeft,
   ChevronRight,
-  X,
   Briefcase,
   Users,
   Eye,
@@ -658,6 +657,10 @@ export const EmployerDashboard = () => {
   // Applicant details
   const [applicantDetail, setApplicantDetail] = useState(null);
   const [applicantStatus, setApplicantStatus] = useState('');
+  const [selectedApplicantIds, setSelectedApplicantIds] = useState(new Set());
+  const [bulkInviteOpen, setBulkInviteOpen] = useState(false);
+  const [bulkInviteSending, setBulkInviteSending] = useState(false);
+  const [bulkInviteMessage, setBulkInviteMessage] = useState('');
 
   // Filtering states
   const [jobSearchText, setJobSearchText] = useState('');
@@ -687,12 +690,65 @@ export const EmployerDashboard = () => {
   const { mutate: deleteJob } = useDeleteJob();
   const { mutate: updateApplicantStatus } = useUpdateApplicationStatus();
   const createBoostCheckoutMutation = useCreateBoostCheckout();
+  const { mutateAsync: createConversation } = useGetOrCreateConversation();
+  const { mutateAsync: sendMessage } = useSendMessage();
 
   const applicantsList = applicationsResult?.data || [];
   const filteredApplicants = applicantsList.filter((a) => {
     if (a.status === 'CANCELLED') return false;
     return statusFilter ? a.status === statusFilter : true;
   });
+
+  const getApplicantUserId = (applicant) =>
+    applicant?.user?.id ?? applicant?.userId ?? null;
+
+  const buildBulkInterviewMessage = () => {
+    const selectedJob = allJobs.find(
+      (j) => String(j.id) === String(selectedJobIdFilter),
+    );
+
+    if (selectedJob) {
+      const jobUrl = `${window.location.origin}/job/${selectedJob.id}`;
+      return `Chào bạn, cảm ơn bạn đã ứng tuyển vị trí "${selectedJob.title}". Chúng tôi muốn mời bạn tham gia phỏng vấn. Bạn vui lòng xem lại mô tả công việc tại ${jobUrl} và phản hồi giúp chúng tôi thời gian phù hợp nhé.`;
+    }
+
+    return 'Chào bạn, cảm ơn bạn đã ứng tuyển vào công ty chúng tôi. Chúng tôi muốn mời bạn tham gia phỏng vấn. Bạn vui lòng phản hồi khung thời gian phù hợp để chúng tôi sắp xếp nhé.';
+  };
+
+  const toggleApplicantSelection = (userId) => {
+    if (!userId) return;
+
+    setSelectedApplicantIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(userId)) {
+        next.delete(userId);
+      } else {
+        next.add(userId);
+      }
+      return next;
+    });
+  };
+
+  const toggleSelectAllApplicants = () => {
+    const visibleIds = filteredApplicants
+      .map((a) => getApplicantUserId(a))
+      .filter(Boolean);
+
+    setSelectedApplicantIds((prev) => {
+      const allSelected =
+        visibleIds.length > 0 && visibleIds.every((id) => prev.has(id));
+      return allSelected ? new Set() : new Set(visibleIds);
+    });
+  };
+
+  const openBulkInviteModal = () => {
+    if (selectedApplicantIds.size === 0) {
+      toast('Vui lòng chọn ít nhất 1 ứng viên', 'error');
+      return;
+    }
+    setBulkInviteMessage(buildBulkInterviewMessage());
+    setBulkInviteOpen(true);
+  };
 
   const jobs = searchResult?.items || [];
   // Nếu fetchAll=true trả về mảng trực tiếp hoặc trả về object chứa items/data
@@ -715,6 +771,18 @@ export const EmployerDashboard = () => {
       setCompanyModalOpen(true);
     }
   }, [company, loadingCompany]);
+
+  useEffect(() => {
+    const visibleIds = new Set(
+      filteredApplicants.map((a) => getApplicantUserId(a)).filter(Boolean),
+    );
+
+    setSelectedApplicantIds((prev) => {
+      const next = new Set([...prev].filter((id) => visibleIds.has(id)));
+      if (next.size === prev.size) return prev;
+      return next;
+    });
+  }, [applicationsResult, statusFilter, selectedJobIdFilter]);
 
   const handleDeleteJob = () => {
     if (!deleteConfirm || !company?.id) return;
@@ -868,15 +936,85 @@ export const EmployerDashboard = () => {
     toast('Đã tải xuống file Danh_sach_ung_vien.csv', 'success');
   };
 
-  const handleSaveApplicantStatus = () => {
-    if (!applicantStatus || !applicantDetail) return;
+  const handleSendBulkInterviewInvite = async () => {
+    const message = bulkInviteMessage.trim();
+    if (!message) {
+      toast('Vui lòng nhập nội dung tin nhắn', 'error');
+      return;
+    }
+
+    if (selectedApplicantIds.size === 0) {
+      toast('Vui lòng chọn ít nhất 1 ứng viên', 'error');
+      return;
+    }
+
+    setBulkInviteSending(true);
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    try {
+      const selectedIds = Array.from(selectedApplicantIds);
+      const BATCH_SIZE = 8;
+
+      for (let i = 0; i < selectedIds.length; i += BATCH_SIZE) {
+        const batch = selectedIds.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+          batch.map(async (userId) => {
+            const conv = await createConversation({ participantId: userId });
+            if (!conv?.id) {
+              throw new Error('Không tạo được hội thoại');
+            }
+            await sendMessage({ id: conv.id, content: message });
+          }),
+        );
+
+        results.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            successCount += 1;
+          } else {
+            failedCount += 1;
+          }
+        });
+      }
+
+      if (successCount > 0) {
+        toast(`Đã gửi lời mời phỏng vấn cho ${successCount} ứng viên`, 'success');
+      }
+
+      if (failedCount > 0) {
+        toast(`${failedCount} ứng viên gửi thất bại, vui lòng thử lại`, 'error');
+      }
+
+      setBulkInviteOpen(false);
+      setSelectedApplicantIds(new Set());
+    } finally {
+      setBulkInviteSending(false);
+    }
+  };
+
+  const handleApplicantDecision = (nextStatus) => {
+    if (!applicantDetail) return;
+
+    const isFinalStatus =
+      applicantDetail.status === 'SUITABLE' ||
+      applicantDetail.status === 'UNSUITABLE';
+
+    if (isFinalStatus) {
+      toast('Ứng viên đã ở trạng thái cuối, không thể cập nhật thêm', 'error');
+      return;
+    }
+
+    setApplicantStatus(nextStatus);
 
     updateApplicantStatus(
-      { applicationId: applicantDetail.id, status: applicantStatus },
+      { applicationId: applicantDetail.id, status: nextStatus },
       {
         onSuccess: () => {
           toast('Cập nhật trạng thái thành công', 'success');
-          setApplicantDetail(null);
+          setApplicantDetail((prev) =>
+            prev ? { ...prev, status: nextStatus } : prev,
+          );
         },
         onError: (error) => {
           const message = error?.response?.data?.message || 'Cập nhật thất bại';
@@ -893,7 +1031,7 @@ export const EmployerDashboard = () => {
         {!isModal && (
           <Card className="p-4 rounded-2xl shadow-sm border-slate-100 flex flex-wrap gap-3">
             <select
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[200px] outline-none focus:border-primary transition-all"
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-50 outline-none focus:border-primary transition-all"
               value={selectedJobIdFilter}
               onChange={(e) => setSelectedJobIdFilter(e.target.value)}
             >
@@ -907,13 +1045,12 @@ export const EmployerDashboard = () => {
                 ))}
             </select>
             <select
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-[150px] outline-none"
+              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-37.5 outline-none"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
               <option value="">Trạng thái</option>
               <option value="APPLIED">Chờ xử lý</option>
-              <option value="VIEWED">Đã xem</option>
               <option value="SUITABLE">Phù hợp</option>
               <option value="UNSUITABLE">Không phù hợp</option>
             </select>
@@ -931,15 +1068,48 @@ export const EmployerDashboard = () => {
           />
         ) : (
           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+            <Card className="p-3 rounded-2xl shadow-sm border-slate-100">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <Checkbox
+                    checked={
+                      filteredApplicants.length > 0 &&
+                      filteredApplicants.every((a) =>
+                        selectedApplicantIds.has(getApplicantUserId(a)),
+                      )
+                    }
+                    onCheckedChange={toggleSelectAllApplicants}
+                    className="w-5 h-5 rounded-md"
+                  />
+                  <span className="text-sm text-slate-700 font-medium">
+                    Chọn tất cả ứng viên đang hiển thị ({filteredApplicants.length})
+                  </span>
+                </div>
+                <span className="text-sm text-slate-500 font-medium">
+                  Đã chọn: {selectedApplicantIds.size}
+                </span>
+              </div>
+            </Card>
+
             {filteredApplicants.map((a) => (
               <Card
                 key={a.id}
-                className={`p-4 rounded-2xl shadow-sm border transition-all cursor-pointer hover:border-primary hover:shadow-md ${applicantDetail?.id === a.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-slate-100'}`}
+                className={`p-4 pl-12 rounded-2xl shadow-sm border transition-all cursor-pointer hover:border-primary hover:shadow-md relative ${applicantDetail?.id === a.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-slate-100'}`}
                 onClick={() => {
                   setApplicantDetail(a);
                   setApplicantStatus(a.status);
                 }}
               >
+                <div className="absolute top-4 left-4">
+                  <Checkbox
+                    checked={selectedApplicantIds.has(getApplicantUserId(a))}
+                    onCheckedChange={() =>
+                      toggleApplicantSelection(getApplicantUserId(a))
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-5 h-5 rounded-md"
+                  />
+                </div>
                 <div className="flex justify-between items-start gap-4">
                   <div className="flex items-center gap-4">
                     <img
@@ -983,19 +1153,21 @@ export const EmployerDashboard = () => {
         variant="custom"
       >
         {applicantDetail && (
+          (() => {
+            const isFinalStatus =
+              applicantDetail.status === 'SUITABLE' ||
+              applicantDetail.status === 'UNSUITABLE';
+            const shouldHideActionButtons =
+              isFinalStatus ||
+              applicantStatus === 'SUITABLE' ||
+              applicantStatus === 'UNSUITABLE';
+
+            return (
           <div className="p-6">
             <div className="flex justify-between items-start mb-6">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <Users className="text-primary" /> Thông tin ứng viên
               </h3>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="rounded-full h-8 w-8 hover:bg-slate-100"
-                onClick={() => setApplicantDetail(null)}
-              >
-                <X size={18} />
-              </Button>
             </div>
 
             <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
@@ -1125,54 +1297,32 @@ export const EmployerDashboard = () => {
                 <p className="text-sm font-semibold text-slate-800">
                   Cập nhật trạng thái ứng viên
                 </p>
-                <Button
-                  className="rounded-xl px-6 font-semibold shadow-sm"
-                  onClick={handleSaveApplicantStatus}
-                >
-                  Lưu lại
-                </Button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  {
-                    value: 'APPLIED',
-                    label: 'Chờ xử lý',
-                    activeClass:
-                      'border-yellow-500 bg-yellow-50 text-yellow-700 ring-1 ring-yellow-500',
-                  },
-                  {
-                    value: 'VIEWED',
-                    label: 'Đã xem hồ sơ',
-                    activeClass:
-                      'border-blue-500 bg-blue-50 text-blue-700 ring-1 ring-blue-500',
-                  },
-                  {
-                    value: 'SUITABLE',
-                    label: 'Phù hợp',
-                    activeClass:
-                      'border-green-500 bg-green-50 text-green-700 ring-1 ring-green-500',
-                  },
-                  {
-                    value: 'UNSUITABLE',
-                    label: 'Không phù hợp',
-                    activeClass:
-                      'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500',
-                  },
-                ].map((status) => (
+              {shouldHideActionButtons && (
+                <p className="mb-3 text-xs text-slate-500">
+                  Đã chốt trạng thái ứng viên. Các nút cập nhật đã được ẩn.
+                </p>
+              )}
+              {!shouldHideActionButtons && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button
-                    key={status.value}
-                    onClick={() => setApplicantStatus(status.value)}
-                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
-                        ? status.activeClass
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                      }`}
+                    onClick={() => handleApplicantDecision('SUITABLE')}
+                    className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center border-green-500 bg-green-50 text-green-700 ring-1 ring-green-500 hover:bg-green-100"
                   >
-                    {status.label}
+                    Phù hợp
                   </button>
-                ))}
-              </div>
+                  <button
+                    onClick={() => handleApplicantDecision('UNSUITABLE')}
+                    className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500 hover:bg-red-100"
+                  >
+                    Không phù hợp
+                  </button>
+                </div>
+              )}
             </div>
           </div>
+            );
+          })()
         )}
       </Modal>
     </div>
@@ -1250,10 +1400,10 @@ export const EmployerDashboard = () => {
                       <img
                         src={company.logoUrl}
                         alt="logo"
-                        className="w-[72px] h-[72px] rounded-[18px] border border-slate-100 object-cover shadow-sm bg-white"
+                        className="w-18 h-18 rounded-[18px] border border-slate-100 object-cover shadow-sm bg-white"
                       />
                     ) : (
-                      <div className="w-[72px] h-[72px] rounded-[18px] bg-primary/5 flex items-center justify-center border border-primary/10 shadow-sm">
+                      <div className="w-18 h-18 rounded-[18px] bg-primary/5 flex items-center justify-center border border-primary/10 shadow-sm">
                         <Building className="w-8 h-8 text-primary/60" />
                       </div>
                     )}
@@ -1429,7 +1579,7 @@ export const EmployerDashboard = () => {
                           className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors gap-4"
                         >
                           <div>
-                            <p className="font-semibold text-slate-800 truncate max-w-[200px] sm:max-w-xs">
+                            <p className="font-semibold text-slate-800 truncate max-w-50 sm:max-w-xs">
                               {job.title}
                             </p>
                             <div className="flex gap-2 mt-2 text-xs font-medium">
@@ -1672,7 +1822,7 @@ export const EmployerDashboard = () => {
                                 )}
                               </td>
                               <td className="px-4 text-center">
-                                <div className="flex justify-start gap-2 w-[310px] mx-auto">
+                                <div className="flex justify-start gap-2 w-77.5 mx-auto">
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -1786,13 +1936,24 @@ export const EmployerDashboard = () => {
                     Xem và quản lý các hồ sơ đã nộp vào công ty bạn.
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  className="rounded-xl gap-2 shadow-sm border-slate-200 font-medium"
-                  onClick={handleExportApplicants}
-                >
-                  <Download size={16} /> Xuất dữ liệu
-                </Button>
+                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    className="rounded-xl gap-2 shadow-sm border-slate-200 font-medium w-full sm:w-auto"
+                    onClick={openBulkInviteModal}
+                    disabled={selectedApplicantIds.size === 0}
+                  >
+                    <Send size={16} />
+                    Mời phỏng vấn ({selectedApplicantIds.size})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="rounded-xl gap-2 shadow-sm border-slate-200 font-medium w-full sm:w-auto"
+                    onClick={handleExportApplicants}
+                  >
+                    <Download size={16} /> Xuất dữ liệu
+                  </Button>
+                </div>
               </div>
 
               {renderApplicantManagement(false)}
@@ -1993,6 +2154,32 @@ export const EmployerDashboard = () => {
               <p className="font-bold text-slate-800 mt-2">300.000đ</p>
             </div>
           </label>
+        </div>
+      </Modal>
+
+      <Modal
+        open={bulkInviteOpen}
+        title="Gửi lời mời phỏng vấn"
+        description={`Bạn đang chọn ${selectedApplicantIds.size} ứng viên. Nội dung dưới đây sẽ được gửi qua chat.`}
+        onClose={() => {
+          if (!bulkInviteSending) {
+            setBulkInviteOpen(false);
+          }
+        }}
+        onConfirm={handleSendBulkInterviewInvite}
+        confirmLabel={bulkInviteSending ? 'Đang gửi...' : 'Gửi lời mời'}
+        cancelLabel="Hủy"
+        confirmDisabled={bulkInviteSending || !bulkInviteMessage.trim()}
+      >
+        <div className="space-y-2 mt-4">
+          <p className="text-sm font-medium text-slate-700">Nội dung tin nhắn</p>
+          <Textarea
+            value={bulkInviteMessage}
+            onChange={(e) => setBulkInviteMessage(e.target.value)}
+            rows={6}
+            placeholder="Nhập nội dung mời phỏng vấn"
+            className="rounded-xl border-slate-200"
+          />
         </div>
       </Modal>
 
