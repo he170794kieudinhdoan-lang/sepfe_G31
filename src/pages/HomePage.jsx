@@ -136,8 +136,9 @@ function SearchBarPopover({
   const { data: provincess } = useGetProvinces();
   const { data: wardss } = useGetWards(wards);
   const nav = useNavigate();
-  const handleSearch = () => {
-    const trimmedKeyword = keyword.trim();
+  const handleSearch = (overrideKeyword) => {
+    const finalKeyword = typeof overrideKeyword === 'string' ? overrideKeyword : keyword;
+    const trimmedKeyword = finalKeyword.trim();
     if (trimmedKeyword === '' && !province && !wardsName) {
       return;
     }
@@ -359,8 +360,9 @@ function SearchBarPopover({
                     className="w-full text-left rounded-xl px-3 py-2 hover:bg-muted text-sm  cursor-pointer"
                     onMouseDown={(e) => e.preventDefault()}
                     onClick={() => {
-                      setDistrict(k);
+                      setKeyword(k);
                       setOpen(false);
+                      handleSearch(k);
                     }}
                   >
                     {k}

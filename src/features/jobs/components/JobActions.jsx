@@ -19,6 +19,9 @@ export const JobAction = ({
   const isSaved = Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job?.id);
   const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
 
+  // Chỉ hiện nút Ứng tuyển khi: chưa đăng nhập (để nhắc login) HOẶC là WORKER
+  const canSeeApplyButton = !isAuthenticated || user?.role === 'WORKER';
+
   const handleSaveToggle = () => {
     if (!job?.id) return;
     if (isSaved) {
@@ -30,19 +33,21 @@ export const JobAction = ({
 
   return (
     <div className={cn('flex gap-3 ', className)}>
-      <Button
-        variant="default"
-        onClick={onApply}
-        className={cn(
-          'rounded-xl px-8 h-12 shadow-md shadow-primary/20',
-          fullWidth && 'flex-1',
-        )}
-      >
-        <Send className="h-4 w-4 mr-2" />
-        Ứng tuyển ngay
-      </Button>
+      {canSeeApplyButton && (
+        <Button
+          variant="default"
+          onClick={onApply}
+          className={cn(
+            'rounded-xl px-8 h-12 shadow-md shadow-primary/20',
+            fullWidth && 'flex-1',
+          )}
+        >
+          <Send className="h-4 w-4 mr-2" />
+          Ứng tuyển ngay
+        </Button>
+      )}
 
-      {isAuthenticated && (
+      {isAuthenticated && user?.role === 'WORKER' && (
         <Button
           variant="outline"
           onClick={handleSaveToggle}
