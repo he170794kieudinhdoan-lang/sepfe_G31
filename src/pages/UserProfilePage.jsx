@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -49,12 +49,18 @@ const ROLE_LABEL = {
 
 export const UserProfilePage = () => {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const { toast } = useToast();
   const { user, isLoading } = useAuth();
 
   const isOwnProfile = !id;
 
-  const [active, setActive] = useState('view');
+  const [active, setActive] = useState(() => searchParams.get('tab') || 'view');
+
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab) setActive(tab);
+  }, [searchParams]);
   const [editForm, setEditForm] = useState({});
   const [pw, setPw] = useState({ current: '', new: '', confirm: '' });
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);

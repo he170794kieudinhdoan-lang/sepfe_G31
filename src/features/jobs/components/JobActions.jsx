@@ -8,6 +8,7 @@ export const JobAction = ({
   job,
   fullWidth = false,
   onApply,
+  hasApplied = false,
   className,
 }) => {
   const { isAuthenticated, user } = useAuth();
@@ -35,15 +36,17 @@ export const JobAction = ({
     <div className={cn('flex gap-3 ', className)}>
       {canSeeApplyButton && (
         <Button
-          variant="default"
-          onClick={onApply}
+          variant={hasApplied ? 'secondary' : 'default'}
+          onClick={hasApplied ? undefined : onApply}
+          disabled={hasApplied}
           className={cn(
-            'rounded-xl px-8 h-12 shadow-md shadow-primary/20',
+            'rounded-xl px-8 h-12 shadow-md',
+            !hasApplied && 'shadow-primary/20',
             fullWidth && 'flex-1',
           )}
         >
           <Send className="h-4 w-4 mr-2" />
-          Ứng tuyển ngay
+          {hasApplied ? 'Đã ứng tuyển' : 'Ứng tuyển ngay'}
         </Button>
       )}
 

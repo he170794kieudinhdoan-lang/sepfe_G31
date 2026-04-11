@@ -232,12 +232,13 @@ export const useApplyJobMutation = () => {
   });
 };
 
-export const useMyApplications = () => {
+export const useMyApplications = (options = {}) => {
   return useQuery({
     queryKey: ['my-applications'],
     queryFn: getMyApplicationsApi,
     staleTime: 2 * 60 * 1000,
     retry: 1,
+    ...options,
   });
 };
 
