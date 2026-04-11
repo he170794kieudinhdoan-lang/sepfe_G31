@@ -10,12 +10,12 @@ import { ReportJobModal } from '@/features/jobs/components/ReportJobModal';
 import { CompanyInfo } from '@/features/jobs/components/CompanyInfo';
 import { JobDetailContent } from '@/features/jobs/components/JobDetailContent';
 import { Card } from '@/components/ui/card';
-
 import { JobDetailSkeleton } from '@/features/jobs/components/JobDetailSkeleton';
 import { JobCardHorizontalSkeleton } from '@/features/jobs/components/JobCardHorizontalSkeleton';
-import { SearchX, ArrowLeft, User, Users, CircleUser } from 'lucide-react';
+import { SearchX, ArrowLeft, ClipboardList } from 'lucide-react';
 import { useGetOrCreateConversation } from '@/features/chat/api/useChat';
 import { useAuth } from '@/shared/contexts/AuthContext';
+import { useGetWorkerProfile } from '@/features/users/api/useUser';
 import {
   Dialog,
   DialogContent,
@@ -25,6 +25,18 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 
+// Các trường bắt buộc để coi profile là "đầy đủ"
+const isWorkerProfileComplete = (profile) => {
+  if (!profile) return false;
+  return !!(
+    profile.occupationId &&
+    profile.shift &&
+    profile.province &&
+    profile.ward &&
+    profile.gender
+  );
+};
+
 export const JobDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -32,28 +44,45 @@ export const JobDetailPage = () => {
   const applicantCount =
     Number(job?._count?.applications ?? job?.applications?.length ?? 0) || 0;
 
-  // TODO: Khi integrate auth, thay bằng const { user } = useAuth();
-  const hasApplied = false;
   const hasReported = false;
 
   const { data: relatedJobs, isLoading: isRelatedLoading } = useRelatedJobs(id);
   const { mutate: createConversation } = useGetOrCreateConversation();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+
+  const isWorker = user?.role === 'WORKER';
+
+  // Chỉ fetch worker profile khi user đã đăng nhập và là WORKER
+  const { data: workerProfile } = useGetWorkerProfile({
+    enabled: isAuthenticated && isWorker,
+  });
+
+  const profileComplete = isWorkerProfileComplete(workerProfile);
 
   const [applyOpen, setApplyOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
+  const [incompleteProfileOpen, setIncompleteProfileOpen] = useState(false);
 
   const handleCreateConversation = (companyOwnerId) => {
     createConversation({ participantId: companyOwnerId });
   };
 
   const handleApplyClick = () => {
-    if (isAuthenticated) {
-      setApplyOpen(true);
-    } else {
+    // Chưa đăng nhập → nhắc đăng nhập
+    if (!isAuthenticated) {
       setLoginPromptOpen(true);
+      return;
     }
+    // Đã đăng nhập nhưng không phải WORKER → không làm gì (nút đã bị ẩn ở JobActions)
+    if (!isWorker) return;
+    // Là WORKER nhưng profile chưa đầy đủ → nhắc hoàn thiện profile
+    if (!profileComplete) {
+      setIncompleteProfileOpen(true);
+      return;
+    }
+    // Đủ điều kiện → mở modal ứng tuyển
+    setApplyOpen(true);
   };
 
   if (isLoading) {
@@ -143,6 +172,7 @@ export const JobDetailPage = () => {
         jobId={id}
       />
 
+      {/* Popup: chưa đăng nhập */}
       <Dialog open={loginPromptOpen} onOpenChange={setLoginPromptOpen}>
         <DialogContent>
           <DialogHeader>
@@ -155,6 +185,39 @@ export const JobDetailPage = () => {
             <Button variant="outline" onClick={() => setLoginPromptOpen(false)}>Hủy</Button>
             <Button asChild>
               <Link to="/auth/login" state={{ from: `/job/${id}` }}>Đến trang đăng nhập</Link>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Popup: profile chưa đầy đủ */}
+      <Dialog open={incompleteProfileOpen} onOpenChange={setIncompleteProfileOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100">
+                <ClipboardList className="h-5 w-5 text-orange-500" />
+              </div>
+              <DialogTitle>Hồ sơ chưa đầy đủ</DialogTitle>
+            </div>
+            <DialogDescription className="pt-1">
+              Bạn cần hoàn thiện hồ sơ cá nhân trước khi ứng tuyển. Vui lòng điền đầy đủ các thông tin:{' '}
+              <span className="font-medium text-foreground">
+                nghề nghiệp, ca làm việc, tỉnh/thành, phường/xã và giới tính
+              </span>.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2">
+            <Button variant="outline" onClick={() => setIncompleteProfileOpen(false)}>
+              Để sau
+            </Button>
+            <Button
+              onClick={() => {
+                setIncompleteProfileOpen(false);
+                navigate(workerProfile ? '/profile' : '/worker/setup-profile');
+              }}
+            >
+              Hoàn thiện hồ sơ ngay
             </Button>
           </DialogFooter>
         </DialogContent>
