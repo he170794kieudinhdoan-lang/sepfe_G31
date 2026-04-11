@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { MSG } from '@/shared/constants/messages';
-import { useJobDetail, useRelatedJobs } from '@/features/jobs/api/useJobs';
+import { useJobDetail, useRelatedJobs, useMyApplications } from '@/features/jobs/api/useJobs';
 import { JobDetailHeader } from '@/features/jobs/components/JobDetailHeader';
 import { RelatedJobList } from '@/features/jobs/components/RelatedJobList';
 import { ApplyJobModal } from '@/features/jobs/components/ApplyJobModal';
@@ -56,6 +56,12 @@ export const JobDetailPage = () => {
   const { data: workerProfile } = useGetWorkerProfile({
     enabled: isAuthenticated && isWorker,
   });
+
+  const { data: myApplications } = useMyApplications({ enabled: isAuthenticated && isWorker });
+  const hasApplied =
+    isWorker &&
+    Array.isArray(myApplications) &&
+    myApplications.some((app) => String(app.jobId) === String(id));
 
   const profileComplete = isWorkerProfileComplete(workerProfile);
 
@@ -126,7 +132,7 @@ export const JobDetailPage = () => {
     <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <JobDetailHeader job={job} onApply={handleApplyClick} />
+          <JobDetailHeader job={job} onApply={handleApplyClick} hasApplied={hasApplied} />
         </div>
 
         <div className="lg:col-span-1 lg:row-span-2">
@@ -147,6 +153,7 @@ export const JobDetailPage = () => {
               job={job}
               onApply={handleApplyClick}
               onReport={() => setReportOpen(true)}
+              hasApplied={hasApplied}
             />
 
             <h2 className="text-lg font-semibold ">Việc làm liên quan</h2>
@@ -163,7 +170,7 @@ export const JobDetailPage = () => {
         </div>
       </div>
 
-      <ApplyJobModal open={applyOpen} onClose={() => setApplyOpen(false)} jobId={id} />
+      <ApplyJobModal open={applyOpen} onClose={() => setApplyOpen(false)} jobId={id} jobTitle={job?.title} />
 
       <ReportJobModal
         open={reportOpen}

@@ -18,7 +18,7 @@ const InfoItem = ({ icon, label, value }) => (
   </div>
 );
 
-export const JobDetailHeader = ({ job, onApply, onSave }) => {
+export const JobDetailHeader = ({ job, onApply, onSave, hasApplied }) => {
   console.log(job);
 
   const salaryDisplay = formatSalary(job.salaryMin, job.salaryMax, 'full');
@@ -70,7 +70,7 @@ export const JobDetailHeader = ({ job, onApply, onSave }) => {
           </span>
         </div>
 
-        <JobAction job={job} fullWidth onApply={onApply} onSave={onSave} />
+        <JobAction job={job} fullWidth onApply={onApply} onSave={onSave} hasApplied={hasApplied} />
       </Card>
     </>
   );

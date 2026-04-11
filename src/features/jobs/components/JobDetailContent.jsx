@@ -15,7 +15,7 @@ const Section = ({ title, children, icon: Icon }) => (
   </div>
 );
 
-export const JobDetailContent = ({ job, onApply, onReport }) => {
+export const JobDetailContent = ({ job, onApply, onReport, hasApplied }) => {
   return (
     <div className="flex gap-4 flex-col">
       <Section title="Chi tiết tuyển dụng" icon={FileText}>
@@ -36,7 +36,7 @@ export const JobDetailContent = ({ job, onApply, onReport }) => {
         </div>
       </Section>
 
-      <JobAction job={job} onApply={onApply} className="py-2" />
+      <JobAction job={job} onApply={onApply} hasApplied={hasApplied} className="py-2" />
 
       <div className="flex items-start gap-3 p-4 bg-orange-50/50 border border-orange-100 rounded-xl text-sm transition-all duration-300">
         <Info className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
