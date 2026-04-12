@@ -76,6 +76,7 @@ import { NotificationBellPopover } from '@/features/notifications/components/Not
 import { useEmployerOverview } from '@/features/statistics/api/useStatistics';
 import { ApplicationFunnelWidget } from '@/features/statistics/components/ApplicationFunnelWidget';
 import { EmployerPaymentsWidget } from '@/features/statistics/components/EmployerPaymentsWidget';
+import { X } from "lucide-react";
 
 const EMPLOYER_MENU = [
   { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
@@ -799,7 +800,7 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
               >
                 <div className="absolute top-4 left-4">
                   <Checkbox
-                    checked={selectedApplicantIds.has(getApplicantUserId(a))}
+                    // checked={selectedApplicantIds.has(getApplicantUserId(a))}
                     onCheckedChange={() =>
                       toggleApplicantSelection(getApplicantUserId(a))
                     }
@@ -1796,7 +1797,7 @@ export const EmployerDashboard = () => {
         </div>
       </Modal>
 
-      <Modal
+      {/* <Modal
         open={bulkInviteOpen}
         title="Gửi lời mời phỏng vấn"
         description={`Bạn đang chọn ${selectedApplicantIds.size} ứng viên. Nội dung dưới đây sẽ được gửi qua chat.`}
@@ -1820,7 +1821,7 @@ export const EmployerDashboard = () => {
             className="rounded-xl border-slate-200"
           />
         </div>
-      </Modal>
+      </Modal> */}
 
       <MatchedWorkersModal
         jobId={matchedJobId}
