@@ -110,7 +110,6 @@ export const AdminDashboard = () => {
 
   const kpi = [
     { label: 'Tổng người dùng', value: statsData?.users?.total || 0 },
-    { label: 'Nhà tuyển dụng', value: statsData?.users?.employers || 0 },
     { label: 'Tổng doanh nghiệp', value: statsData?.companies?.total || 0 },
     { label: 'Tổng doanh thu (VNĐ)', value: new Intl.NumberFormat('vi-VN').format(statsData?.payments?.totalRevenue || 0) },
   ];
@@ -175,43 +174,6 @@ export const AdminDashboard = () => {
     );
   };
 
-  const renderChart = () => {
-    const labels = statsData?.charts?.labels?.length ? statsData.charts.labels : Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`);
-    const newUsers = statsData?.charts?.newUsers || new Array(12).fill(0);
-    const revenue = statsData?.charts?.revenue || new Array(12).fill(0);
-    const maxUsers = Math.max(...newUsers, 1);
-    const maxRev = Math.max(...revenue, 1);
-
-    return (
-      <div className={`flex h-full w-full items-end justify-between px-2 sm:px-4 pb-2 pt-6 gap-1 ${loadingStats ? 'animate-pulse opacity-50' : ''}`}>
-        {labels.map((label, idx) => {
-          const count = newUsers[idx] || 0;
-          const rev = revenue[idx] || 0;
-          const userHeight = count === 0 ? 0 : Math.max(5, (count / maxUsers) * 100);
-          const revHeight = rev === 0 ? 0 : Math.max(5, (rev / maxRev) * 100);
-
-          return (
-            <div key={label} className="flex flex-col items-center justify-end w-full h-full relative group">
-              <div className="flex items-end justify-center w-full gap-0.5 h-full border-b border-slate-100">
-                <div
-                  className={`w-1.5 sm:w-2 rounded-t-sm transition-all group-hover:opacity-80 ${count > 0 ? 'bg-blue-500' : 'bg-transparent'}`}
-                  style={{ height: `${userHeight}%` }}
-                  title={`Người dùng mới: ${count}`}
-                />
-                <div
-                  className={`w-1.5 sm:w-2 rounded-t-sm transition-all group-hover:opacity-80 ${rev > 0 ? 'bg-emerald-500' : 'bg-transparent'}`}
-                  style={{ height: `${revHeight}%` }}
-                  title={`Doanh thu: ${new Intl.NumberFormat('vi-VN').format(rev)}đ`}
-                />
-              </div>
-              <span className="text-[9px] text-slate-500 font-medium mt-2 whitespace-nowrap shrink-0">{label.replace('Tháng ', 'T')}</span>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   useEffect(() => {
     if (weightsData && Array.isArray(weightsData)) {
       const newWeights = { ...aiWeights };
@@ -238,7 +200,6 @@ export const AdminDashboard = () => {
     { key: 'moderation', label: 'Duyệt công việc' },
     { key: 'sectors', label: 'Quản lý ngành nghề' },
     { key: 'occupations', label: 'Quản lý nghề nghiệp' },
-    { key: 'stats', label: 'Thống kê hệ thống' },
     { key: 'terms', label: 'Điều khoản' },
     { key: 'ai_weights', label: 'Cấu hình AI' },
   ];
@@ -552,7 +513,7 @@ export const AdminDashboard = () => {
     >
       {active === 'overview' && (
         <div className="space-y-6">
-          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             {kpi.map((item) => (
               <Card key={item.label} className="p-5">
                 <p className="text-sm text-muted-foreground">{item.label}</p>
@@ -1043,37 +1004,6 @@ export const AdminDashboard = () => {
               onPageChange={setOccupationPage}
             />
           </Card>
-        </div>
-      )}
-
-      {active === 'stats' && (
-        <div className="space-y-6">
-          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {kpi.map((item) => (
-              <Card key={item.label} className="p-5">
-                <p className="text-sm text-muted-foreground">{item.label}</p>
-                <p className="text-2xl font-bold mt-2">{item.value}</p>
-              </Card>
-            ))}
-          </div>
-          <Card className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold">Thống kê tăng trưởng</h3>
-              <div className="flex gap-3 text-xs font-medium">
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-blue-500"></div>Người dùng mới</span>
-                <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div>Doanh thu</span>
-              </div>
-            </div>
-            <div className="h-60 rounded-xl bg-slate-50 border border-slate-100 p-2">
-              {renderChart()}
-            </div>
-          </Card>
-          {false && (
-            <EmptyState
-              title={MSG.MSG_STATS_EMPTY}
-              description="Chưa có dữ liệu hệ thống."
-            />
-          )}
         </div>
       )}
 
