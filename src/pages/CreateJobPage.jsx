@@ -547,7 +547,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                     <Input
                       {...register('title')}
                       className={`h-12 rounded-xl bg-gray-50 border-gray-200 hover:border-primary/50 focus:bg-white transition-colors ${errors.title ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                      placeholder="VD: Tuyển gấp kỹ sư phần mềm Javascript"
+                      placeholder="VD: Tuyển công nhân cơ khí - chế tạo máy CNC"
                     />
                     <FieldError error={errors.title} />
                   </div>

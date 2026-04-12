@@ -76,11 +76,11 @@ import { NotificationBellPopover } from '@/features/notifications/components/Not
 import { useEmployerOverview } from '@/features/statistics/api/useStatistics';
 import { ApplicationFunnelWidget } from '@/features/statistics/components/ApplicationFunnelWidget';
 import { EmployerPaymentsWidget } from '@/features/statistics/components/EmployerPaymentsWidget';
+import { X } from "lucide-react";
 
 const EMPLOYER_MENU = [
   { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
   { key: 'jobs', label: 'Tin tuyển dụng', icon: Briefcase },
-  { key: 'applicants', label: 'Ứng viên', icon: Users },
   { key: 'stats', label: 'Thống kê', icon: BarChart3 },
   { key: 'chat', label: 'Tin nhắn', icon: MessageCircle, path: '/chat' },
   { key: 'home', label: 'Trang chủ', icon: Home, path: '/' },
@@ -639,213 +639,28 @@ const MatchedWorkersModal = ({ jobId, onClose }) => {
   );
 };
 
-export const EmployerDashboard = () => {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [active, setActive] = useState('overview');
-  const [companyModalOpen, setCompanyModalOpen] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [boostModalOpen, setBoostModalOpen] = useState(false);
-  const [selectedBoostJob, setSelectedBoostJob] = useState(null);
-  const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
-  const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
-  const [editJobId, setEditJobId] = useState(null);
-  const [matchedJobId, setMatchedJobId] = useState(null);
-
-  // Applicant details
-  const [applicantDetail, setApplicantDetail] = useState(null);
-  const [applicantStatus, setApplicantStatus] = useState('');
-  const [selectedApplicantIds, setSelectedApplicantIds] = useState(new Set());
-  const [bulkInviteOpen, setBulkInviteOpen] = useState(false);
-  const [bulkInviteSending, setBulkInviteSending] = useState(false);
-  const [bulkInviteMessage, setBulkInviteMessage] = useState('');
-
-  // Filtering states
-  const [jobSearchText, setJobSearchText] = useState('');
-  const [selectedJobIdFilter, setSelectedJobIdFilter] = useState('');
+const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
+  const { data: applicationsResult, isLoading } = useEmployerApplications(jobId || undefined);
+  const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-
-  // Real API integration
-  const [jobPage, setJobPage] = useState(1);
-  const { data: company, isLoading: loadingCompany } = useGetMyCompany();
-  const { data: overview, isLoading: loadingOverview } = useEmployerOverview();
-  const { data: searchResult, isLoading: loadingJobs } = useJobsForEmployer({
-    allStatus: true,
-    page: jobPage,
-    limit: 10,
-  });
-
-  // Query tất cả công việc (không phân trang) để hiển thị đầy đủ trong các Select box Dropdown
-  const { data: allJobsResult } = useJobsForEmployer({
-    allStatus: true,
-    fetchAll: true,
-  });
-
-  // Real applicants data
-  const { data: applicationsResult, isLoading: loadingApplications } =
-    useEmployerApplications(selectedJobIdFilter || undefined);
-
-  const { mutate: deleteJob } = useDeleteJob();
-  const { mutate: updateApplicantStatus } = useUpdateApplicationStatus();
-  const createBoostCheckoutMutation = useCreateBoostCheckout();
-  const { mutateAsync: createConversation } = useGetOrCreateConversation();
-  const { mutateAsync: sendMessage } = useSendMessage();
+  const [page, setPage] = useState(1);
+  const limit = 5;
 
   const applicantsList = applicationsResult?.data || [];
+
   const filteredApplicants = applicantsList.filter((a) => {
     if (a.status === 'CANCELLED') return false;
-    return statusFilter ? a.status === statusFilter : true;
+    if (statusFilter && a.status !== statusFilter) return false;
+    if (searchText && !(a.user?.fullName || '').toLowerCase().includes(searchText.toLowerCase())) return false;
+    return true;
   });
 
-  const getApplicantUserId = (applicant) =>
-    applicant?.user?.id ?? applicant?.userId ?? null;
+  const totalPages = Math.ceil(filteredApplicants.length / limit) || 1;
+  const paginatedApplicants = filteredApplicants.slice((page - 1) * limit, page * limit);
 
-  const buildBulkInterviewMessage = () => {
-    const selectedJob = allJobs.find(
-      (j) => String(j.id) === String(selectedJobIdFilter),
-    );
+  const { toast } = useToast();
 
-    if (selectedJob) {
-      const jobUrl = `${window.location.origin}/job/${selectedJob.id}`;
-      return `Chào bạn, cảm ơn bạn đã ứng tuyển vị trí "${selectedJob.title}". Chúng tôi muốn mời bạn tham gia phỏng vấn. Bạn vui lòng xem lại mô tả công việc tại ${jobUrl} và phản hồi giúp chúng tôi thời gian phù hợp nhé.`;
-    }
-
-    return 'Chào bạn, cảm ơn bạn đã ứng tuyển vào công ty chúng tôi. Chúng tôi muốn mời bạn tham gia phỏng vấn. Bạn vui lòng phản hồi khung thời gian phù hợp để chúng tôi sắp xếp nhé.';
-  };
-
-  const toggleApplicantSelection = (userId) => {
-    if (!userId) return;
-
-    setSelectedApplicantIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(userId)) {
-        next.delete(userId);
-      } else {
-        next.add(userId);
-      }
-      return next;
-    });
-  };
-
-  const toggleSelectAllApplicants = () => {
-    const visibleIds = filteredApplicants
-      .map((a) => getApplicantUserId(a))
-      .filter(Boolean);
-
-    setSelectedApplicantIds((prev) => {
-      const allSelected =
-        visibleIds.length > 0 && visibleIds.every((id) => prev.has(id));
-      return allSelected ? new Set() : new Set(visibleIds);
-    });
-  };
-
-  const openBulkInviteModal = () => {
-    if (selectedApplicantIds.size === 0) {
-      toast('Vui lòng chọn ít nhất 1 ứng viên', 'error');
-      return;
-    }
-    setBulkInviteMessage(buildBulkInterviewMessage());
-    setBulkInviteOpen(true);
-  };
-
-  const jobs = searchResult?.items || [];
-  // Nếu fetchAll=true trả về mảng trực tiếp hoặc trả về object chứa items/data
-  const allJobs = Array.isArray(allJobsResult)
-    ? allJobsResult
-    : allJobsResult?.items || allJobsResult?.data || [];
-  const totalPages = searchResult?.meta?.totalPage || 1;
-
-  useEffect(() => {
-    if (user?.id) {
-      queryClient.invalidateQueries({ queryKey: ['my-company'] });
-      queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
-      queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
-    }
-  }, [user?.id, queryClient]);
-
-  useEffect(() => {
-    if (loadingCompany) return;
-    if (!company?.id) {
-      setCompanyModalOpen(true);
-    }
-  }, [company, loadingCompany]);
-
-  useEffect(() => {
-    const visibleIds = new Set(
-      filteredApplicants.map((a) => getApplicantUserId(a)).filter(Boolean),
-    );
-
-    setSelectedApplicantIds((prev) => {
-      const next = new Set([...prev].filter((id) => visibleIds.has(id)));
-      if (next.size === prev.size) return prev;
-      return next;
-    });
-  }, [applicationsResult, statusFilter, selectedJobIdFilter]);
-
-  const handleDeleteJob = () => {
-    if (!deleteConfirm || !company?.id) return;
-    deleteJob(
-      { companyId: company.id, jobId: deleteConfirm.id },
-      {
-        onSuccess: () => {
-          toast('Xóa tin tuyển dụng thành công', 'success');
-          setDeleteConfirm(null);
-        },
-        onError: (error) => {
-          const message = error?.response?.data?.message || 'Xóa tin thất bại';
-          toast(Array.isArray(message) ? message.join(', ') : message, 'error');
-        },
-      },
-    );
-  };
-
-  const handleBoostCheckout = async () => {
-    if (!selectedBoostJob?.id) {
-      toast('Không xác định được job cần boost', 'error');
-      return;
-    }
-
-    try {
-      const checkoutRes = await createBoostCheckoutMutation.mutateAsync({
-        jobId: selectedBoostJob.id,
-        payload: {
-          packageDays: selectedBoostPackageDays,
-        },
-      });
-
-      const checkout = checkoutRes?.data || checkoutRes;
-      const paymentOrderId = checkout?.paymentOrderId;
-      if (!paymentOrderId) {
-        throw new Error('Không lấy được mã đơn thanh toán');
-      }
-
-      const checkoutUrl = checkout?.paymentUrl;
-      if (checkoutUrl) {
-        window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
-      }
-
-      setBoostModalOpen(false);
-      setSelectedBoostJob(null);
-
-      const paymentCode = checkout?.paymentCode;
-      toast(
-        paymentCode
-          ? `Đã tạo thanh toán. Chuyển khoản đúng nội dung: ${paymentCode}. Hệ thống sẽ tự boost sau khi SePay gửi webhook.`
-          : 'Đã tạo thanh toán boost. Hệ thống sẽ tự cập nhật sau khi SePay xác nhận.',
-        'success',
-      );
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Thanh toán boost thất bại';
-      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
-    }
-  };
-
-  const handleExportApplicants = () => {
+  const handleExport = () => {
     if (!filteredApplicants || filteredApplicants.length === 0) {
       toast('Không có dữ liệu ứng viên để xuất', 'error');
       return;
@@ -936,173 +751,56 @@ export const EmployerDashboard = () => {
     toast('Đã tải xuống file Danh_sach_ung_vien.csv', 'success');
   };
 
-  const handleSendBulkInterviewInvite = async () => {
-    const message = bulkInviteMessage.trim();
-    if (!message) {
-      toast('Vui lòng nhập nội dung tin nhắn', 'error');
-      return;
-    }
+  return (
+    <Modal open={!!jobId} onClose={onClose} title="Danh sách ứng viên của công việc" variant="custom">
+      <div className="p-6">
+        <div className="flex flex-col sm:flex-row gap-4 mb-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+            <Input
+              placeholder="Tìm theo tên..."
+              value={searchText}
+              onChange={(e) => { setSearchText(e.target.value); setPage(1); }}
+              className="pl-9 rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
+            />
+          </div>
+          <select
+            className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 outline-none"
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="APPLIED">Chờ xử lý</option>
+            <option value="SUITABLE">Phù hợp</option>
+            <option value="UNSUITABLE">Không phù hợp</option>
+          </select>
+          <Button
+            variant="outline"
+            className="rounded-xl gap-2 bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
+            onClick={handleExport}
+            disabled={filteredApplicants.length === 0}
+          >
+            <Download size={16} /> Xuất file CSV
+          </Button>
+        </div>
 
-    if (selectedApplicantIds.size === 0) {
-      toast('Vui lòng chọn ít nhất 1 ứng viên', 'error');
-      return;
-    }
-
-    setBulkInviteSending(true);
-
-    let successCount = 0;
-    let failedCount = 0;
-
-    try {
-      const selectedIds = Array.from(selectedApplicantIds);
-      const BATCH_SIZE = 8;
-
-      for (let i = 0; i < selectedIds.length; i += BATCH_SIZE) {
-        const batch = selectedIds.slice(i, i + BATCH_SIZE);
-        const results = await Promise.allSettled(
-          batch.map(async (userId) => {
-            const conv = await createConversation({ participantId: userId });
-            if (!conv?.id) {
-              throw new Error('Không tạo được hội thoại');
-            }
-            await sendMessage({ id: conv.id, content: message });
-          }),
-        );
-
-        results.forEach((result) => {
-          if (result.status === 'fulfilled') {
-            successCount += 1;
-          } else {
-            failedCount += 1;
-          }
-        });
-      }
-
-      if (successCount > 0) {
-        toast(`Đã gửi lời mời phỏng vấn cho ${successCount} ứng viên`, 'success');
-      }
-
-      if (failedCount > 0) {
-        toast(`${failedCount} ứng viên gửi thất bại, vui lòng thử lại`, 'error');
-      }
-
-      setBulkInviteOpen(false);
-      setSelectedApplicantIds(new Set());
-    } finally {
-      setBulkInviteSending(false);
-    }
-  };
-
-  const handleApplicantDecision = (nextStatus) => {
-    if (!applicantDetail) return;
-
-    const isFinalStatus =
-      applicantDetail.status === 'SUITABLE' ||
-      applicantDetail.status === 'UNSUITABLE';
-
-    if (isFinalStatus) {
-      toast('Ứng viên đã ở trạng thái cuối, không thể cập nhật thêm', 'error');
-      return;
-    }
-
-    setApplicantStatus(nextStatus);
-
-    updateApplicantStatus(
-      { applicationId: applicantDetail.id, status: nextStatus },
-      {
-        onSuccess: () => {
-          toast('Cập nhật trạng thái thành công', 'success');
-          setApplicantDetail((prev) =>
-            prev ? { ...prev, status: nextStatus } : prev,
-          );
-        },
-        onError: (error) => {
-          const message = error?.response?.data?.message || 'Cập nhật thất bại';
-          toast(Array.isArray(message) ? message.join(', ') : message, 'error');
-        },
-      },
-    );
-  };
-
-  const renderApplicantManagement = (isModal = false) => (
-    <div className="flex flex-col gap-6">
-      {/* Filters + List */}
-      <div className={`space-y-4 transition-all w-full`}>
-        {!isModal && (
-          <Card className="p-4 rounded-2xl shadow-sm border-slate-100 flex flex-wrap gap-3">
-            <select
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-50 outline-none focus:border-primary transition-all"
-              value={selectedJobIdFilter}
-              onChange={(e) => setSelectedJobIdFilter(e.target.value)}
-            >
-              <option value="">-- Lọc theo công việc --</option>
-              {allJobs
-                .filter((j) => j.status !== 'DELETED')
-                .map((j) => (
-                  <option key={j.id} value={j.id}>
-                    {j.title}
-                  </option>
-                ))}
-            </select>
-            <select
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 flex-1 min-w-37.5 outline-none"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-            >
-              <option value="">Trạng thái</option>
-              <option value="APPLIED">Chờ xử lý</option>
-              <option value="SUITABLE">Phù hợp</option>
-              <option value="UNSUITABLE">Không phù hợp</option>
-            </select>
-          </Card>
-        )}
-
-        {loadingApplications ? (
-          <div className="flex justify-center py-12">
+        {isLoading ? (
+          <div className="flex justify-center py-8">
             <Loader2 className="animate-spin text-primary" />
           </div>
-        ) : applicantsList.length === 0 ? (
-          <EmptyState
-            title="Chưa có ứng viên nào."
-            description="Khi có ứng viên nộp hồ sơ, dữ liệu sẽ hiển thị ở đây."
-          />
+        ) : paginatedApplicants.length === 0 ? (
+          <EmptyState title="Không tìm thấy ứng viên nào" description="Bạn vui lòng thử đổi bộ lọc khác." />
         ) : (
-          <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
-            <Card className="p-3 rounded-2xl shadow-sm border-slate-100">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    checked={
-                      filteredApplicants.length > 0 &&
-                      filteredApplicants.every((a) =>
-                        selectedApplicantIds.has(getApplicantUserId(a)),
-                      )
-                    }
-                    onCheckedChange={toggleSelectAllApplicants}
-                    className="w-5 h-5 rounded-md"
-                  />
-                  <span className="text-sm text-slate-700 font-medium">
-                    Chọn tất cả ứng viên đang hiển thị ({filteredApplicants.length})
-                  </span>
-                </div>
-                <span className="text-sm text-slate-500 font-medium">
-                  Đã chọn: {selectedApplicantIds.size}
-                </span>
-              </div>
-            </Card>
-
-            {filteredApplicants.map((a) => (
+          <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+            {paginatedApplicants.map(a => (
               <Card
                 key={a.id}
-                className={`p-4 pl-12 rounded-2xl shadow-sm border transition-all cursor-pointer hover:border-primary hover:shadow-md relative ${applicantDetail?.id === a.id ? 'border-primary bg-primary/5 ring-1 ring-primary/20' : 'border-slate-100'}`}
-                onClick={() => {
-                  setApplicantDetail(a);
-                  setApplicantStatus(a.status);
-                }}
+                className="p-4 rounded-2xl shadow-sm border border-slate-100 transition-all cursor-pointer hover:border-primary hover:shadow-md"
+                onClick={() => onOpenDetail(a)}
               >
                 <div className="absolute top-4 left-4">
                   <Checkbox
-                    checked={selectedApplicantIds.has(getApplicantUserId(a))}
+                    // checked={selectedApplicantIds.has(getApplicantUserId(a))}
                     onCheckedChange={() =>
                       toggleApplicantSelection(getApplicantUserId(a))
                     }
@@ -1133,9 +831,7 @@ export const EmployerDashboard = () => {
                     <ApplicantStatusBadge status={a.status} />
                     <p className="text-xs text-slate-400 mt-2 flex items-center justify-end gap-1">
                       <Clock size={12} />{' '}
-                      {new Date(
-                        a.updatedAt || a.createdAt || new Date(),
-                      ).toLocaleDateString('vi-VN')}
+                      {new Date(a.updatedAt || a.createdAt || new Date()).toLocaleDateString('vi-VN')}
                     </p>
                   </div>
                 </div>
@@ -1143,190 +839,176 @@ export const EmployerDashboard = () => {
             ))}
           </div>
         )}
-      </div>
 
-      {/* Right Side: Detail Viewer Modal */}
-      <Modal
-        open={!!applicantDetail}
-        onClose={() => setApplicantDetail(null)}
-        title="Chi tiết hồ sơ ứng viên"
-        variant="custom"
-      >
-        {applicantDetail && (
-          (() => {
-            const isFinalStatus =
-              applicantDetail.status === 'SUITABLE' ||
-              applicantDetail.status === 'UNSUITABLE';
-            const shouldHideActionButtons =
-              isFinalStatus ||
-              applicantStatus === 'SUITABLE' ||
-              applicantStatus === 'UNSUITABLE';
-
-            return (
-          <div className="p-6">
-            <div className="flex justify-between items-start mb-6">
-              <h3 className="font-bold text-lg flex items-center gap-2">
-                <Users className="text-primary" /> Thông tin ứng viên
-              </h3>
-            </div>
-
-            <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
-              <img
-                src={
-                  applicantDetail.user?.avatar ||
-                  `https://ui-avatars.com/api/?name=${encodeURIComponent(applicantDetail.user?.fullName || 'User')}&background=e0e7ff&color=4338ca`
-                }
-                className="w-20 h-20 rounded-2xl shadow-sm object-cover"
-                alt="avatar"
-              />
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">
-                  {applicantDetail.user?.fullName}
-                </h2>
-                <div className="text-sm text-slate-500 mt-2 space-y-1">
-                  <p className="flex items-center gap-2">
-                    <Phone size={14} className="text-primary" />
-                    <span className="font-medium text-slate-700">
-                      {applicantDetail.user?.phone || 'Chưa cập nhật SĐT'}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="py-6 space-y-4 max-h-[50vh] overflow-y-auto pr-2">
-              <div>
-                <p className="text-sm font-medium text-slate-500">
-                  Vị trí ứng tuyển
-                </p>
-                <p className="font-semibold text-slate-800 mt-1">
-                  {applicantDetail.job?.title}
-                </p>
-              </div>
-
-              {/* Worker Profile Info */}
-              <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-700 mt-4 border border-slate-100">
-                <h4 className="font-semibold mb-3">Thông tin hồ sơ cá nhân</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-slate-500 text-xs">Giới tính</p>
-                    <p className="font-medium mt-1">
-                      {applicantDetail.user?.workerProfile?.gender === 'MALE'
-                        ? 'Nam'
-                        : applicantDetail.user?.workerProfile?.gender ===
-                          'FEMALE'
-                          ? 'Nữ'
-                          : 'Chưa cập nhật'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs">Năm sinh</p>
-                    <p className="font-medium mt-1">
-                      {applicantDetail.user?.workerProfile?.birthYear ||
-                        'Chưa cập nhật'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs">Ca làm mong muốn</p>
-                    <p className="font-medium mt-1">
-                      {{
-                        MORNING: 'Ca sáng',
-                        AFTERNOON: 'Ca chiều',
-                        EVENING: 'Ca tối',
-                        FULL_DAY: 'Cả ngày',
-                        FLEXIBLE: 'Linh hoạt',
-                      }[applicantDetail.user?.workerProfile?.shift] ||
-                        applicantDetail.user?.workerProfile?.shift ||
-                        'Chưa cập nhật'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs">Khu vực</p>
-                    <p className="font-medium mt-1">
-                      {applicantDetail.user?.workerProfile?.province ||
-                        'Chưa cập nhật'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs">
-                      Công việc đã từng làm
-                    </p>
-                    <p className="font-medium mt-1">
-                      {applicantDetail.user?.workerProfile?.occupation?.name ||
-                        'Chưa cập nhật'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs">Năm kinh nghiệm</p>
-                    <p className="font-medium mt-1">
-                      {applicantDetail.user?.workerProfile?.experienceYear
-                        ? `${applicantDetail.user?.workerProfile?.experienceYear} năm`
-                        : 'Chưa có'}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-slate-500 text-xs">
-                      Mức lương mong muốn
-                    </p>
-                    <p className="font-medium mt-1">
-                      {applicantDetail.user?.workerProfile?.expectedSalary
-                        ? `${(applicantDetail.user.workerProfile.expectedSalary / 1000000).toFixed(0)}Tr`
-                        : 'Thỏa thuận'}
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-4 pt-4 border-t border-slate-200">
-                  <p className="text-slate-500 text-xs mb-1">
-                    Giới thiệu bản thân (Bio)
-                  </p>
-                  <p className="font-medium whitespace-pre-wrap text-slate-700">
-                    {applicantDetail.user?.workerProfile?.bio ? (
-                      applicantDetail.user.workerProfile.bio
-                    ) : (
-                      <span className="italic text-slate-400">
-                        Chưa cập nhật
-                      </span>
-                    )}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="pt-6 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-2xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                <p className="text-sm font-semibold text-slate-800">
-                  Cập nhật trạng thái ứng viên
-                </p>
-              </div>
-              {shouldHideActionButtons && (
-                <p className="mb-3 text-xs text-slate-500">
-                  Đã chốt trạng thái ứng viên. Các nút cập nhật đã được ẩn.
-                </p>
-              )}
-              {!shouldHideActionButtons && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <button
-                    onClick={() => handleApplicantDecision('SUITABLE')}
-                    className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center border-green-500 bg-green-50 text-green-700 ring-1 ring-green-500 hover:bg-green-100"
-                  >
-                    Phù hợp
-                  </button>
-                  <button
-                    onClick={() => handleApplicantDecision('UNSUITABLE')}
-                    className="px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500 hover:bg-red-100"
-                  >
-                    Không phù hợp
-                  </button>
-                </div>
-              )}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm text-slate-500">Trang {page} / {totalPages}</span>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1} className="rounded-lg"><ChevronLeft size={16} /></Button>
+              <Button variant="outline" size="sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages} className="rounded-lg"><ChevronRight size={16} /></Button>
             </div>
           </div>
-            );
-          })()
         )}
-      </Modal>
-    </div>
+      </div>
+    </Modal>
   );
+};
+
+export const EmployerDashboard = () => {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [active, setActive] = useState('overview');
+  const [companyModalOpen, setCompanyModalOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [boostModalOpen, setBoostModalOpen] = useState(false);
+  const [selectedBoostJob, setSelectedBoostJob] = useState(null);
+  const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
+  const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
+  const [editJobId, setEditJobId] = useState(null);
+  const [matchedJobId, setMatchedJobId] = useState(null);
+  const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
+
+  // Applicant details
+  const [applicantDetail, setApplicantDetail] = useState(null);
+  const [applicantStatus, setApplicantStatus] = useState('');
+
+  // Filtering states
+  const [jobSearchText, setJobSearchText] = useState('');
+  const [selectedJobIdFilter, setSelectedJobIdFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+
+  // Real API integration
+  const [jobPage, setJobPage] = useState(1);
+  const { data: company, isLoading: loadingCompany } = useGetMyCompany();
+  const { data: overview, isLoading: loadingOverview } = useEmployerOverview();
+  const { data: searchResult, isLoading: loadingJobs } = useJobsForEmployer({
+    allStatus: true,
+    page: jobPage,
+    limit: 10,
+  });
+
+  // Query tất cả công việc (không phân trang) để hiển thị đầy đủ trong các Select box Dropdown
+  const { data: allJobsResult } = useJobsForEmployer({
+    allStatus: true,
+    fetchAll: true,
+  });
+
+  // Real applicants data
+  const { data: applicationsResult, isLoading: loadingApplications } =
+    useEmployerApplications(selectedJobIdFilter || undefined);
+
+  const { mutate: deleteJob } = useDeleteJob();
+  const { mutate: updateApplicantStatus } = useUpdateApplicationStatus();
+  const createBoostCheckoutMutation = useCreateBoostCheckout();
+
+  const applicantsList = applicationsResult?.data || [];
+  const filteredApplicants = applicantsList.filter((a) => {
+    if (a.status === 'CANCELLED') return false;
+    return statusFilter ? a.status === statusFilter : true;
+  });
+
+  const jobs = searchResult?.items || [];
+  // Nếu fetchAll=true trả về mảng trực tiếp hoặc trả về object chứa items/data
+  const allJobs = Array.isArray(allJobsResult)
+    ? allJobsResult
+    : allJobsResult?.items || allJobsResult?.data || [];
+  const totalPages = searchResult?.meta?.totalPage || 1;
+
+  useEffect(() => {
+    if (user?.id) {
+      queryClient.invalidateQueries({ queryKey: ['my-company'] });
+      queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
+      queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
+    }
+  }, [user?.id, queryClient]);
+
+  useEffect(() => {
+    if (loadingCompany) return;
+    if (!company?.id) {
+      setCompanyModalOpen(true);
+    }
+  }, [company, loadingCompany]);
+
+  const handleDeleteJob = () => {
+    if (!deleteConfirm || !company?.id) return;
+    deleteJob(
+      { companyId: company.id, jobId: deleteConfirm.id },
+      {
+        onSuccess: () => {
+          toast('Xóa tin tuyển dụng thành công', 'success');
+          setDeleteConfirm(null);
+        },
+        onError: (error) => {
+          const message = error?.response?.data?.message || 'Xóa tin thất bại';
+          toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+        },
+      },
+    );
+  };
+
+  const handleBoostCheckout = async () => {
+    if (!selectedBoostJob?.id) {
+      toast('Không xác định được job cần boost', 'error');
+      return;
+    }
+
+    try {
+      const checkoutRes = await createBoostCheckoutMutation.mutateAsync({
+        jobId: selectedBoostJob.id,
+        payload: {
+          packageDays: selectedBoostPackageDays,
+        },
+      });
+
+      const checkout = checkoutRes?.data || checkoutRes;
+      const paymentOrderId = checkout?.paymentOrderId;
+      if (!paymentOrderId) {
+        throw new Error('Không lấy được mã đơn thanh toán');
+      }
+
+      const checkoutUrl = checkout?.paymentUrl;
+      if (checkoutUrl) {
+        window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+      }
+
+      setBoostModalOpen(false);
+      setSelectedBoostJob(null);
+
+      const paymentCode = checkout?.paymentCode;
+      toast(
+        paymentCode
+          ? `Đã tạo thanh toán. Chuyển khoản đúng nội dung: ${paymentCode}. Hệ thống sẽ tự boost sau khi SePay gửi webhook.`
+          : 'Đã tạo thanh toán boost. Hệ thống sẽ tự cập nhật sau khi SePay xác nhận.',
+        'success',
+      );
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Thanh toán boost thất bại';
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    }
+  };
+
+  const handleSaveApplicantStatus = () => {
+    if (!applicantStatus || !applicantDetail) return;
+
+    updateApplicantStatus(
+      { applicationId: applicantDetail.id, status: applicantStatus },
+      {
+        onSuccess: () => {
+          toast('Cập nhật trạng thái thành công', 'success');
+          setApplicantDetail(null);
+        },
+        onError: (error) => {
+          const message = error?.response?.data?.message || 'Cập nhật thất bại';
+          toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+        },
+      },
+    );
+  };
 
   const hasNoCompany = !company?.id;
   const isRejected = company?.id && company?.status === 'REJECTED';
@@ -1589,9 +1271,7 @@ export const EmployerDashboard = () => {
                               </span>
                               <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
                                 <DollarSign size={12} />{' '}
-                                {job.salaryMin > 0 || job.salaryMax > 0
-                                  ? `${job.salaryMin > 0 ? (job.salaryMin / 1000000).toFixed(0) : '0'}M - ${job.salaryMax > 0 ? (job.salaryMax / 1000000).toFixed(0) : '0'}M`
-                                  : 'Thỏa thuận'}
+                                {formatSalary(job.salaryMin, job.salaryMax, 'compact')}
                               </span>
                             </div>
                           </div>
@@ -1701,7 +1381,7 @@ export const EmployerDashboard = () => {
                     <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-100">
                       <tr>
                         <th className="py-4 px-4 rounded-tl-xl whitespace-nowrap">
-                          Vị trí tuyển dụng
+                          Tiêu đề công việc
                         </th>
                         <th className="px-4 whitespace-nowrap text-center">
                           Trạng thái
@@ -1769,9 +1449,7 @@ export const EmployerDashboard = () => {
                                   </span>
                                   <span className="flex items-center gap-1 text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">
                                     <DollarSign size={12} />{' '}
-                                    {job.salaryMin > 0 || job.salaryMax > 0
-                                      ? `${job.salaryMin ? (job.salaryMin / 1000000).toFixed(0) : '0'}M - ${job.salaryMax ? (job.salaryMax / 1000000).toFixed(0) : '0'}M`
-                                      : 'Thỏa thuận'}
+                                    {formatSalary(job.salaryMin, job.salaryMax, 'compact')}
                                   </span>
                                 </div>
                               </td>
@@ -1828,8 +1506,7 @@ export const EmployerDashboard = () => {
                                     size="sm"
                                     className="h-8 rounded-lg text-primary hover:bg-primary/5 transition-all border-slate-200 font-medium"
                                     onClick={() => {
-                                      setActive('applicants');
-                                      setSelectedJobIdFilter(String(job.id));
+                                      setApplicantsModalJobId(job.id);
                                     }}
                                   >
                                     Xem ứng viên
@@ -1920,43 +1597,6 @@ export const EmployerDashboard = () => {
                   </div>
                 )}
               </Card>
-            </div>
-          )}
-
-          {/* APPLICANTS TAB */}
-          {active === 'applicants' && (
-            <div className="space-y-6 animate-in fade-in py-2 overflow-y-auto pb-6">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-800">
-                    Danh sách ứng viên
-                  </h2>
-                  <p className="text-slate-500 text-sm mt-1">
-                    {' '}
-                    Xem và quản lý các hồ sơ đã nộp vào công ty bạn.
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
-                  <Button
-                    variant="outline"
-                    className="rounded-xl gap-2 shadow-sm border-slate-200 font-medium w-full sm:w-auto"
-                    onClick={openBulkInviteModal}
-                    disabled={selectedApplicantIds.size === 0}
-                  >
-                    <Send size={16} />
-                    Mời phỏng vấn ({selectedApplicantIds.size})
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="rounded-xl gap-2 shadow-sm border-slate-200 font-medium w-full sm:w-auto"
-                    onClick={handleExportApplicants}
-                  >
-                    <Download size={16} /> Xuất dữ liệu
-                  </Button>
-                </div>
-              </div>
-
-              {renderApplicantManagement(false)}
             </div>
           )}
 
@@ -2157,7 +1797,7 @@ export const EmployerDashboard = () => {
         </div>
       </Modal>
 
-      <Modal
+      {/* <Modal
         open={bulkInviteOpen}
         title="Gửi lời mời phỏng vấn"
         description={`Bạn đang chọn ${selectedApplicantIds.size} ứng viên. Nội dung dưới đây sẽ được gửi qua chat.`}
@@ -2181,12 +1821,223 @@ export const EmployerDashboard = () => {
             className="rounded-xl border-slate-200"
           />
         </div>
-      </Modal>
+      </Modal> */}
 
       <MatchedWorkersModal
         jobId={matchedJobId}
         onClose={() => setMatchedJobId(null)}
       />
+
+      <JobApplicantsModal
+        jobId={applicantsModalJobId}
+        onClose={() => setApplicantsModalJobId(null)}
+        onOpenDetail={(a) => {
+          setApplicantDetail(a);
+          setApplicantStatus(a.status);
+        }}
+      />
+
+      <Modal
+        open={!!applicantDetail}
+        onClose={() => setApplicantDetail(null)}
+        title="Chi tiết hồ sơ ứng viên"
+        variant="custom"
+        className="z-[60]"
+      >
+        {applicantDetail && (
+          <div className="p-6">
+            <div className="flex justify-between items-start mb-6">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Users className="text-primary" /> Thông tin ứng viên
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="rounded-full h-8 w-8 hover:bg-slate-100"
+                onClick={() => setApplicantDetail(null)}
+              >
+                <X size={18} />
+              </Button>
+            </div>
+
+            <div className="flex items-center gap-5 pb-6 border-b border-slate-100">
+              <img
+                src={
+                  applicantDetail.user?.avatar ||
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(applicantDetail.user?.fullName || 'User')}&background=e0e7ff&color=4338ca`
+                }
+                className="w-20 h-20 rounded-2xl shadow-sm object-cover"
+                alt="avatar"
+              />
+              <div>
+                <h2 className="text-xl font-bold text-slate-800">
+                  {applicantDetail.user?.fullName}
+                </h2>
+                <div className="text-sm text-slate-500 mt-2 space-y-1">
+                  <p className="flex items-center gap-2">
+                    <Phone size={14} className="text-primary" />
+                    <span className="font-medium text-slate-700">
+                      {applicantDetail.user?.phone || 'Chưa cập nhật SĐT'}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="py-6 space-y-4 max-h-[50vh] overflow-y-auto pr-2">
+              <div>
+                <p className="text-sm font-medium text-slate-500">
+                  Vị trí ứng tuyển
+                </p>
+                <p className="font-semibold text-slate-800 mt-1">
+                  {applicantDetail.job?.title}
+                </p>
+              </div>
+
+              {/* Worker Profile Info */}
+              <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-700 mt-4 border border-slate-100">
+                <h4 className="font-semibold mb-3">Thông tin hồ sơ cá nhân</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-slate-500 text-xs">Giới tính</p>
+                    <p className="font-medium mt-1">
+                      {applicantDetail.user?.workerProfile?.gender === 'MALE'
+                        ? 'Nam'
+                        : applicantDetail.user?.workerProfile?.gender ===
+                          'FEMALE'
+                          ? 'Nữ'
+                          : 'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Năm sinh</p>
+                    <p className="font-medium mt-1">
+                      {applicantDetail.user?.workerProfile?.birthYear ||
+                        'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Ca làm mong muốn</p>
+                    <p className="font-medium mt-1">
+                      {{
+                        MORNING: 'Ca sáng',
+                        AFTERNOON: 'Ca chiều',
+                        EVENING: 'Ca tối',
+                        FULL_DAY: 'Cả ngày',
+                        FLEXIBLE: 'Linh hoạt',
+                      }[applicantDetail.user?.workerProfile?.shift] ||
+                        applicantDetail.user?.workerProfile?.shift ||
+                        'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Khu vực</p>
+                    <p className="font-medium mt-1">
+                      {applicantDetail.user?.workerProfile?.province ||
+                        'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">
+                      Công việc đã từng làm
+                    </p>
+                    <p className="font-medium mt-1">
+                      {applicantDetail.user?.workerProfile?.occupation?.name ||
+                        'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">Năm kinh nghiệm</p>
+                    <p className="font-medium mt-1">
+                      {applicantDetail.user?.workerProfile?.experienceYear
+                        ? `${applicantDetail.user?.workerProfile?.experienceYear} năm`
+                        : 'Chưa có'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 text-xs">
+                      Mức lương mong muốn
+                    </p>
+                    <p className="font-medium mt-1">
+                      {applicantDetail.user?.workerProfile?.expectedSalary
+                        ? `${(applicantDetail.user.workerProfile.expectedSalary / 1000000).toFixed(0)}Tr`
+                        : 'Thỏa thuận'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t border-slate-200">
+                  <p className="text-slate-500 text-xs mb-1">
+                    Giới thiệu bản thân (Bio)
+                  </p>
+                  <p className="font-medium whitespace-pre-wrap text-slate-700">
+                    {applicantDetail.user?.workerProfile?.bio ? (
+                      applicantDetail.user.workerProfile.bio
+                    ) : (
+                      <span className="italic text-slate-400">
+                        Chưa cập nhật
+                      </span>
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-2xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                <p className="text-sm font-semibold text-slate-800">
+                  Cập nhật trạng thái ứng viên
+                  {['SUITABLE', 'UNSUITABLE'].includes(applicantDetail.status) && (
+                    <span className="ml-2 text-xs font-normal text-slate-500 italic block sm:inline">
+                      (Đã chốt kết quả, không thể thay đổi)
+                    </span>
+                  )}
+                </p>
+                <Button
+                  className="rounded-xl px-6 font-semibold shadow-sm"
+                  onClick={handleSaveApplicantStatus}
+                  disabled={['SUITABLE', 'UNSUITABLE'].includes(applicantDetail.status)}
+                >
+                  Lưu lại
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {[
+                  {
+                    value: 'APPLIED',
+                    label: 'Chờ xử lý',
+                    activeClass:
+                      'border-yellow-500 bg-yellow-50 text-yellow-700 ring-1 ring-yellow-500',
+                  },
+                  {
+                    value: 'SUITABLE',
+                    label: 'Phù hợp',
+                    activeClass:
+                      'border-green-500 bg-green-50 text-green-700 ring-1 ring-green-500',
+                  },
+                  {
+                    value: 'UNSUITABLE',
+                    label: 'Không phù hợp',
+                    activeClass:
+                      'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500',
+                  },
+                ].map((status) => (
+                  <button
+                    key={status.value}
+                    onClick={() => setApplicantStatus(status.value)}
+                    disabled={['SUITABLE', 'UNSUITABLE'].includes(applicantDetail.status)}
+                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
+                      ? status.activeClass
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                      } ${['SUITABLE', 'UNSUITABLE'].includes(applicantDetail.status) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    {status.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
     </DashboardLayout>
   );
 };

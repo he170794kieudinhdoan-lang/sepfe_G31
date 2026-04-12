@@ -14,11 +14,12 @@ export const Modal = ({
   tone = 'default',
   variant = 'confirm', // thêm dòng này
   confirmDisabled = false,
+  className,
 }) => {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm pt-20 overflow-y-auto">
+    <div className={cn("fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm pt-20 overflow-y-auto", className)}>
       <div
         className={cn(
           'w-full rounded-2xl bg-white shadow-2xl border border-slate-200 relative',
