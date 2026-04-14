@@ -125,18 +125,6 @@ const schema = z
     province: z.string().min(1, 'Vui lòng chọn Tỉnh/Thành phố'),
     district: z.string().min(1, 'Vui lòng chọn Quận/Huyện'),
     address: z.string().optional(),
-
-    // Step 3: Form ứng tuyển
-    fields: z
-      .array(
-        z.object({
-          label: z.string().min(1, 'Vui lòng nhập nội dung câu hỏi'),
-          fieldType: z.string(),
-          isRequired: z.boolean(),
-          options: z.array(z.string()).optional(),
-        }),
-      )
-      .optional(),
   })
   .superRefine((data, ctx) => {
     if (data.ageMin && data.ageMax && data.ageMin > data.ageMax) {
@@ -204,7 +192,6 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
       province: '',
       district: '',
       address: '',
-      fields: [],
     },
   });
 
@@ -337,18 +324,6 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
       ageMax: data.ageMax,
       salaryMin: data.salaryMin,
       salaryMax: data.salaryMax,
-      fields:
-        data.fields?.map((f) => ({
-          label: f.label,
-          fieldType: f.fieldType,
-          isRequired: f.isRequired,
-          options:
-            f.fieldType === 'select' ||
-              f.fieldType === 'radio' ||
-              f.fieldType === 'checkbox'
-              ? JSON.stringify(f.options.filter((opt) => opt.trim() !== ''))
-              : undefined,
-        })) || [],
     };
 
     createJob(payload, {

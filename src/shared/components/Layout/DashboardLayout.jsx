@@ -82,14 +82,6 @@ export const DashboardLayout = ({
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <div className="hidden md:flex items-center gap-2 rounded-full border bg-gray-50 px-3 py-2 mr-2">
-                  <Search className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-4 p-0"
-                    placeholder="Tìm nhanh"
-                  />
-                </div>
-
                 <Button
                   variant="ghost"
                   size="icon"
@@ -116,18 +108,26 @@ export const DashboardLayout = ({
                 </Button>
 
                 {topbarBell || (
-                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary-muted hover:text-primary transition">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full hover:bg-primary-muted hover:text-primary transition"
+                  >
                     <Bell className="h-5 w-5 text-gray-700" />
                   </Button>
                 )}
                 <div className="relative z-50">
-                  <button 
+                  <button
                     onClick={() => setAvatarOpen(!avatarOpen)}
                     className="flex items-center gap-2 rounded-full border bg-white shadow-sm px-3 py-1.5 hover:bg-gray-50 transition"
                   >
                     <div className="h-7 w-7 rounded-full bg-primary-muted flex items-center justify-center shrink-0">
                       {user?.avatar ? (
-                        <img src={user.avatar} alt="Avatar" className="h-full w-full rounded-full object-cover" />
+                        <img
+                          src={user.avatar}
+                          alt="Avatar"
+                          className="h-full w-full rounded-full object-cover"
+                        />
                       ) : (
                         <User className="h-4 w-4 text-primary" />
                       )}
@@ -135,34 +135,58 @@ export const DashboardLayout = ({
                     <span className="text-sm font-semibold max-w-[120px] truncate">
                       {user?.fullName || 'User'}
                     </span>
-                    <ChevronDown className={cn("ml-1 h-4 w-4 text-gray-500 transition-transform duration-200", avatarOpen && "rotate-180")} />
+                    <ChevronDown
+                      className={cn(
+                        'ml-1 h-4 w-4 text-gray-500 transition-transform duration-200',
+                        avatarOpen && 'rotate-180',
+                      )}
+                    />
                   </button>
 
                   {avatarOpen && (
                     <>
-                      <div className="fixed inset-0 z-40" onClick={() => setAvatarOpen(false)} />
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setAvatarOpen(false)}
+                      />
                       <div className="absolute right-0 top-full mt-2 w-56 rounded-xl bg-white py-2 shadow-xl border border-gray-100 z-50">
                         <div className="px-4 py-3 border-b border-gray-100">
-                          <p className="text-sm font-semibold text-gray-900 truncate">{user?.fullName || 'User'}</p>
-                          <p className="text-xs text-gray-500 truncate mt-0.5">{user?.email || ''}</p>
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {user?.fullName || 'User'}
+                          </p>
+                          <p className="text-xs text-gray-500 truncate mt-0.5">
+                            {user?.email || ''}
+                          </p>
                           {user?.roleType && (
                             <span className="inline-block mt-1.5 px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-primary-muted text-primary">
                               {user.roleType}
                             </span>
                           )}
                         </div>
-                        
+
                         <div className="py-1">
-                          <Link to="/" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition" onClick={() => setAvatarOpen(false)}>
+                          <Link
+                            to="/"
+                            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"
+                            onClick={() => setAvatarOpen(false)}
+                          >
                             Về trang người tìm việc (Trang chủ)
                           </Link>
                           {user?.roleType === 'EMPLOYER' && (
-                            <Link to="/employer" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition" onClick={() => setAvatarOpen(false)}>
+                            <Link
+                              to="/employer"
+                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"
+                              onClick={() => setAvatarOpen(false)}
+                            >
                               Trang Nhà Tuyển Dụng
                             </Link>
                           )}
                           {user?.roleType === 'ADMIN' && (
-                            <Link to="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition" onClick={() => setAvatarOpen(false)}>
+                            <Link
+                              to="/admin"
+                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"
+                              onClick={() => setAvatarOpen(false)}
+                            >
                               Trang Quản Trị Viên
                             </Link>
                           )}
@@ -170,7 +194,7 @@ export const DashboardLayout = ({
                         </div>
 
                         <div className="border-t border-gray-100 my-1" />
-                        
+
                         <button
                           onClick={handleLogout}
                           className="w-full text-left px-4 py-2 text-sm text-red-600 font-medium hover:bg-red-50 transition"

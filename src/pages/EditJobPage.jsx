@@ -5,23 +5,53 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { z } from 'zod';
 
-const step0Schema = z.object({
-  occupationId: z.coerce.number().min(1, 'Vui lòng chọn ngành nghề'),
-  title: z.string().min(5, 'Tiêu đề phải có ít nhất 5 ký tự'),
-  description: z.string().min(20, 'Mô tả phải có ít nhất 20 ký tự'),
-  quantity: z.coerce.number().min(1, 'Số lượng tuyển phải lớn hơn 0'),
-  ageMin: z.preprocess((v) => v === '' || v === null ? undefined : Number(v), z.number().min(18, 'Tuổi tối thiểu phải từ 18').optional()),
-  ageMax: z.preprocess((v) => v === '' || v === null ? undefined : Number(v), z.number().min(18, 'Tuổi tối đa phải từ 18').optional()),
-  salaryMin: z.preprocess((v) => v === '' || v === null ? undefined : Number(v), z.number().min(0, 'Lương không được âm').max(100000000, 'Lương không được quá 100.000.000').optional()),
-  salaryMax: z.preprocess((v) => v === '' || v === null ? undefined : Number(v), z.number().min(0, 'Lương không được âm').max(100000000, 'Lương không được quá 100.000.000').optional()),
-}).superRefine((data, ctx) => {
-  if (data.ageMin && data.ageMax && data.ageMin > data.ageMax) {
-    ctx.addIssue({ path: ['ageMax'], message: 'Tuổi tối đa không được nhỏ hơn tuổi tối thiểu', code: 'custom' });
-  }
-  if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
-    ctx.addIssue({ path: ['salaryMax'], message: 'Lương tối đa không được nhỏ hơn lương tối thiểu', code: 'custom' });
-  }
-});
+const step0Schema = z
+  .object({
+    occupationId: z.coerce.number().min(1, 'Vui lòng chọn ngành nghề'),
+    title: z.string().min(5, 'Tiêu đề phải có ít nhất 5 ký tự'),
+    description: z.string().min(20, 'Mô tả phải có ít nhất 20 ký tự'),
+    quantity: z.coerce.number().min(1, 'Số lượng tuyển phải lớn hơn 0'),
+    ageMin: z.preprocess(
+      (v) => (v === '' || v === null ? undefined : Number(v)),
+      z.number().min(18, 'Tuổi tối thiểu phải từ 18').optional(),
+    ),
+    ageMax: z.preprocess(
+      (v) => (v === '' || v === null ? undefined : Number(v)),
+      z.number().min(18, 'Tuổi tối đa phải từ 18').optional(),
+    ),
+    salaryMin: z.preprocess(
+      (v) => (v === '' || v === null ? undefined : Number(v)),
+      z
+        .number()
+        .min(0, 'Lương không được âm')
+        .max(100000000, 'Lương không được quá 100.000.000')
+        .optional(),
+    ),
+    salaryMax: z.preprocess(
+      (v) => (v === '' || v === null ? undefined : Number(v)),
+      z
+        .number()
+        .min(0, 'Lương không được âm')
+        .max(100000000, 'Lương không được quá 100.000.000')
+        .optional(),
+    ),
+  })
+  .superRefine((data, ctx) => {
+    if (data.ageMin && data.ageMax && data.ageMin > data.ageMax) {
+      ctx.addIssue({
+        path: ['ageMax'],
+        message: 'Tuổi tối đa không được nhỏ hơn tuổi tối thiểu',
+        code: 'custom',
+      });
+    }
+    if (data.salaryMin && data.salaryMax && data.salaryMin > data.salaryMax) {
+      ctx.addIssue({
+        path: ['salaryMax'],
+        message: 'Lương tối đa không được nhỏ hơn lương tối thiểu',
+        code: 'custom',
+      });
+    }
+  });
 
 const step1Schema = z.object({
   workingShift: z.string().min(1, 'Vui lòng chọn ca làm việc'),
@@ -29,31 +59,12 @@ const step1Schema = z.object({
   district: z.string().min(1, 'Vui lòng chọn Quận/Huyện'),
 });
 
-const step2Schema = z.object({
-  fields: z.array(
-    z.object({
-      label: z.string().min(1, 'Vui lòng nhập nội dung câu hỏi'),
-      fieldType: z.string(),
-      options: z.array(z.string()).optional(),
-    })
-  ).superRefine((fields, ctx) => {
-    fields.forEach((f, i) => {
-      if (['select', 'radio', 'checkbox'].includes(f.fieldType)) {
-        const validOpts = (f.options || []).filter(o => o?.trim());
-        if (validOpts.length < 2) {
-          ctx.addIssue({ path: [i, 'options'], message: `Câu hỏi số ${i + 1} phải có ít nhất 2 lựa chọn hợp lệ`, code: 'custom' });
-        }
-      }
-    });
-  }).optional(),
-});
-
 import { useUpdateJob } from '@/features/jobs/useJobMutation';
 import { useJobDetail } from '@/features/jobs/api/useJobs';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { apiClient } from '@/shared/api/apiClient';
 import { useProvinces } from '@/shared/hooks/useProvinces';
-import { X } from 'lucide-react';
+import { X, PenTool, MapPin, CheckCircle } from 'lucide-react';
 export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
   const { jobId: paramsId } = useParams();
   const jobId = jobIdProp || paramsId;
@@ -62,9 +73,8 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
   const { toast } = useToast();
 
   const steps = [
-    'Ngành nghề & Thông tin',
-    'Địa điểm & Ca làm',
-    'Form ứng tuyển',
+    { title: 'Ngành nghề & Thông tin', icon: PenTool },
+    { title: 'Địa điểm & Ca làm', icon: MapPin },
   ];
   const { data: jobDetail, isLoading } = useJobDetail(Number(jobId));
   const { mutate: updateJob, isPending } = useUpdateJob();
@@ -92,7 +102,6 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
     ageMax: '',
     salaryMin: '',
     salaryMax: '',
-    fields: [],
   });
   const prevStep = () => {
     if (currentStep > 0) {
@@ -107,33 +116,30 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
 
   const FieldError = ({ error }) => {
     if (!error) return null;
-    return (
-      <p className="text-red-500 text-xs mt-1.5 font-medium">{error}</p>
-    );
+    return <p className="text-red-500 text-xs mt-1.5 font-medium">{error}</p>;
   };
 
   const validateStep = (stepIndex) => {
     setErrorMessage('');
-    
+
     // sectorId is independent of the form block
     if (stepIndex === 0 && !selectedSector) {
-      setErrors({ sectorId: "Vui lòng chọn lĩnh vực." });
+      setErrors({ sectorId: 'Vui lòng chọn lĩnh vực.' });
       return false;
     }
 
     let schemaToValidate;
     if (stepIndex === 0) schemaToValidate = step0Schema;
     if (stepIndex === 1) schemaToValidate = step1Schema;
-    if (stepIndex === 2) schemaToValidate = step2Schema;
 
     if (schemaToValidate) {
       const result = schemaToValidate.safeParse(form);
       if (!result.success) {
         const fieldErrors = {};
-        result.error.issues.forEach(issue => {
+        result.error.issues.forEach((issue) => {
           const path = issue.path.join('.');
           if (!fieldErrors[path]) {
-             fieldErrors[path] = issue.message;
+            fieldErrors[path] = issue.message;
           }
         });
         setErrors(fieldErrors);
@@ -171,19 +177,6 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
       ageMax: jobDetail.ageMax || '',
       salaryMin: jobDetail.salaryMin || '',
       salaryMax: jobDetail.salaryMax || '',
-      fields:
-        jobDetail.applyForms?.[0]?.fields?.map((f) => ({
-          id: f.id,
-          label: f.label,
-          fieldType: f.fieldType,
-          isRequired: f.isRequired,
-          options:
-            f.fieldType === 'select' ||
-            f.fieldType === 'radio' ||
-            f.fieldType === 'checkbox'
-              ? JSON.parse(f.options || '[]')
-              : [],
-        })) || [],
     });
 
     const foundSector = sectors.find((sector) =>
@@ -299,19 +292,6 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
         form.salaryMax !== null
           ? Number(form.salaryMax)
           : null,
-
-      fields: form.fields.map((f) => ({
-        id: f.id, // nếu có
-        label: f.label,
-        fieldType: f.fieldType,
-        isRequired: f.isRequired,
-        options:
-          f.fieldType === 'select' ||
-          f.fieldType === 'radio' ||
-          f.fieldType === 'checkbox'
-            ? JSON.stringify(f.options.filter((opt) => opt.trim() !== ''))
-            : undefined,
-      })),
     };
 
     updateJob(
@@ -362,36 +342,44 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
         </div>
 
         {/* Stepper */}
-        <div className="flex items-center mb-8">
-          {steps.map((step, index) => {
-            const active = index === currentStep;
-            const done = index < currentStep;
+        <div className="flex justify-between items-center mb-10 relative">
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-gray-200 rounded-full z-0" />
+          <div
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-primary rounded-full z-0 transition-all duration-500 ease-in-out"
+            style={{ width: `${(currentStep / (steps.length - 1)) * 100}%` }}
+          />
+
+          {steps.map((step, idx) => {
+            const StepIcon = step.icon;
+            const isActive = idx === currentStep;
+            const isCompleted = idx < currentStep;
 
             return (
-              <div key={index} className="flex items-center flex-1">
+              <div
+                key={idx}
+                className="relative z-10 flex flex-col items-center gap-2"
+              >
                 <div
-                  className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium
-                    ${
-                      active
-                        ? 'bg-primary text-white'
-                        : done
-                          ? 'bg-green-500 text-white'
-                          : 'bg-gray-200 text-gray-600'
-                    }
-                    `}
+                  className={`w-12 h-12 rounded-full flex items-center justify-center border-4 shadow-sm transition-all duration-300
+                                  ${
+                                    isActive
+                                      ? 'bg-primary border-primary/20 text-white scale-110'
+                                      : isCompleted
+                                        ? 'bg-primary border-primary text-white'
+                                        : 'bg-white border-gray-200 text-gray-400'
+                                  }`}
                 >
-                  {done ? '✓' : index + 1}
+                  {isCompleted ? (
+                    <CheckCircle size={20} />
+                  ) : (
+                    <StepIcon size={20} />
+                  )}
                 </div>
-
                 <span
-                  className={`ml-2 text-sm ${active ? 'font-semibold' : 'text-muted-foreground'}`}
+                  className={`text-sm font-medium ${isActive ? 'text-primary' : isCompleted ? 'text-gray-900' : 'text-gray-400'}`}
                 >
-                  {step}
+                  {step.title}
                 </span>
-
-                {index !== steps.length - 1 && (
-                  <div className="flex-1 h-[2px] bg-gray-200 mx-4" />
-                )}
               </div>
             );
           })}
@@ -404,63 +392,67 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
         <Card className="p-8 rounded-xl shadow-sm min-h-[450px]">
           {/* STEP 1 */}
           {currentStep === 0 && (
-            <div className="space-y-6 max-w-xl">
-              <div>
-                <label className="text-sm font-medium">Lĩnh vực *</label>
-                <select
-                  className={`w-full mt-1 rounded-xl border px-3 py-2 text-sm bg-white ${errors.sectorId ? 'border-red-500' : ''}`}
-                  value={selectedSector}
-                  onChange={(e) => {
-                    setSelectedSector(e.target.value);
-                    setForm({ ...form, occupationId: '' });
-                    setErrors({ ...errors, sectorId: undefined });
-                  }}
-                  disabled={loadingSector}
-                >
-                  <option value="">
-                    {loadingSector ? 'Đang tải...' : 'Chọn lĩnh vực'}
-                  </option>
-
-                  {sectors.map((sector) => (
-                    <option key={sector.id} value={sector.id}>
-                      {sector.name}
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-sm font-medium">Lĩnh vực *</label>
+                  <select
+                    className={`w-full mt-1 h-11 rounded-xl border px-3 text-sm bg-white hover:border-primary/50 transition-colors ${errors.sectorId ? 'border-red-500' : ''}`}
+                    value={selectedSector}
+                    onChange={(e) => {
+                      setSelectedSector(e.target.value);
+                      setForm({ ...form, occupationId: '' });
+                      setErrors({ ...errors, sectorId: undefined });
+                    }}
+                    disabled={loadingSector}
+                  >
+                    <option value="">
+                      {loadingSector ? 'Đang tải...' : 'Chọn lĩnh vực'}
                     </option>
-                  ))}
-                </select>
-                <FieldError error={errors.sectorId} />
+                    {sectors.map((sector) => (
+                      <option key={sector.id} value={sector.id}>
+                        {sector.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError error={errors.sectorId} />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium">Ngành nghề *</label>
+                  <select
+                    className={`w-full mt-1 h-11 rounded-xl border px-3 text-sm bg-white hover:border-primary/50 transition-colors ${errors.occupationId ? 'border-red-500' : ''}`}
+                    value={form.occupationId}
+                    onChange={(e) => {
+                      setForm({
+                        ...form,
+                        occupationId: Number(e.target.value),
+                      });
+                      setErrors({ ...errors, occupationId: undefined });
+                    }}
+                    disabled={!selectedSector || loadingOccupation}
+                  >
+                    <option value="">
+                      {!selectedSector
+                        ? 'Chọn lĩnh vực trước'
+                        : loadingOccupation
+                          ? 'Đang tải...'
+                          : 'Chọn ngành nghề'}
+                    </option>
+                    {occupations.map((occupation) => (
+                      <option key={occupation.id} value={occupation.id}>
+                        {occupation.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError error={errors.occupationId} />
+                </div>
               </div>
 
-              <div>
-                <label className="text-sm font-medium">Ngành nghề *</label>
-                <select
-                  className={`w-full mt-1 rounded-xl border px-3 py-2 text-sm bg-white ${errors.occupationId ? 'border-red-500' : ''}`}
-                  value={form.occupationId}
-                  onChange={(e) => {
-                    setForm({ ...form, occupationId: Number(e.target.value) });
-                    setErrors({ ...errors, occupationId: undefined });
-                  }}
-                  disabled={!selectedSector || loadingOccupation}
-                >
-                  <option value="">
-                    {!selectedSector
-                      ? 'Chọn lĩnh vực trước'
-                      : loadingOccupation
-                        ? 'Đang tải...'
-                        : 'Chọn ngành nghề'}
-                  </option>
-
-                  {occupations.map((occupation) => (
-                    <option key={occupation.id} value={occupation.id}>
-                      {occupation.name}
-                    </option>
-                  ))}
-                </select>
-                <FieldError error={errors.occupationId} />
-              </div>
-              <div>
+              <div className="space-y-2">
                 <label className="text-sm font-medium">Tiêu đề *</label>
                 <Input
-                  className={errors.title ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                  className={`h-11 rounded-xl hover:border-primary/50 transition-colors ${errors.title ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                   value={form.title}
                   onChange={(e) => {
                     setForm({ ...form, title: e.target.value });
@@ -470,10 +462,10 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                 <FieldError error={errors.title} />
               </div>
 
-              <div>
+              <div className="space-y-2">
                 <label className="text-sm font-medium">Mô tả *</label>
                 <textarea
-                  className={`w-full rounded-xl border px-4 py-3 text-sm ${errors.description ? 'border-red-500 focus-visible:outline-red-500' : ''}`}
+                  className={`w-full rounded-xl border px-4 py-3 text-sm min-h-[140px] hover:border-primary/50 transition-colors ${errors.description ? 'border-red-500 focus-visible:outline-red-500' : ''}`}
                   rows={4}
                   value={form.description}
                   onChange={(e) => {
@@ -484,95 +476,130 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                 <FieldError error={errors.description} />
               </div>
 
-              <div>
-                <label className="text-sm font-medium">Số lượng tuyển *</label>
-                <Input
-                  className={errors.quantity ? 'border-red-500 focus-visible:ring-red-500' : ''}
-                  type="number"
-                  value={form.quantity}
-                  onChange={(e) => {
-                    setForm({ ...form, quantity: e.target.value });
-                    setErrors({ ...errors, quantity: undefined });
-                  }}
-                />
-                <FieldError error={errors.quantity} />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Giới tính yêu cầu</label>
-                <select
-                  className="w-full rounded-xl border px-3 py-2 text-sm"
-                  value={form.genderRequirement}
-                  onChange={(e) =>
-                    setForm({ ...form, genderRequirement: e.target.value })
-                  }
-                >
-                  <option value="">Không yêu cầu</option>
-                  <option value="MALE">Nam</option>
-                  <option value="FEMALE">Nữ</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Tuổi tối thiểu</label>
-                  <Input
-                    className={errors.ageMin ? 'border-red-500 focus-visible:ring-red-500' : ''}
-                    type="number"
-                    value={form.ageMin}
-                    onChange={(e) => {
-                      setForm({ ...form, ageMin: e.target.value });
-                      setErrors({ ...errors, ageMin: undefined });
-                    }}
-                  />
-                  <FieldError error={errors.ageMin} />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium">Tuổi tối đa</label>
-                  <Input
-                    className={errors.ageMax ? 'border-red-500 focus-visible:ring-red-500' : ''}
-                    type="number"
-                    value={form.ageMax}
-                    onChange={(e) => {
-                      setForm({ ...form, ageMax: e.target.value });
-                      setErrors({ ...errors, ageMax: undefined });
-                    }}
-                  />
-                  <FieldError error={errors.ageMax} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="text-sm font-medium">
-                    Lương tối thiểu (VND)
+                    Số lượng tuyển *
                   </label>
                   <Input
-                    className={errors.salaryMin ? 'border-red-500 focus-visible:ring-red-500' : ''}
+                    className={`h-11 mt-1 rounded-xl hover:border-primary/50 transition-colors ${errors.quantity ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                     type="number"
-                    value={form.salaryMin}
+                    value={form.quantity}
                     onChange={(e) => {
-                      setForm({ ...form, salaryMin: e.target.value });
-                      setErrors({ ...errors, salaryMin: undefined });
+                      setForm({ ...form, quantity: e.target.value });
+                      setErrors({ ...errors, quantity: undefined });
                     }}
                   />
-                  <FieldError error={errors.salaryMin} />
+                  <FieldError error={errors.quantity} />
                 </div>
 
                 <div>
                   <label className="text-sm font-medium">
-                    Lương tối đa (VND)
+                    Giới tính yêu cầu
                   </label>
-                  <Input
-                    className={errors.salaryMax ? 'border-red-500 focus-visible:ring-red-500' : ''}
-                    type="number"
-                    value={form.salaryMax}
-                    onChange={(e) => {
-                      setForm({ ...form, salaryMax: e.target.value });
-                      setErrors({ ...errors, salaryMax: undefined });
-                    }}
-                  />
-                  <FieldError error={errors.salaryMax} />
+                  <select
+                    className="w-full mt-1 h-11 rounded-xl border px-3 text-sm bg-white hover:border-primary/50 transition-colors"
+                    value={form.genderRequirement}
+                    onChange={(e) =>
+                      setForm({ ...form, genderRequirement: e.target.value })
+                    }
+                  >
+                    <option value="">Không yêu cầu</option>
+                    <option value="MALE">Nam</option>
+                    <option value="FEMALE">Nữ</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-5 bg-gray-50 border border-gray-100 rounded-2xl">
+                <div>
+                  <label className="text-sm font-medium mb-3 block">
+                    Độ tuổi yêu cầu
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <Input
+                        className={`h-11 bg-white hover:border-primary/50 transition-colors ${errors.ageMin ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                        type="number"
+                        placeholder="Từ (Tối thiểu 18)"
+                        value={form.ageMin}
+                        onChange={(e) => {
+                          setForm({ ...form, ageMin: e.target.value });
+                          setErrors({ ...errors, ageMin: undefined });
+                        }}
+                      />
+                      <FieldError error={errors.ageMin} />
+                    </div>
+                    <span className="text-gray-400 font-medium">-</span>
+                    <div className="flex-1">
+                      <Input
+                        className={`h-11 bg-white hover:border-primary/50 transition-colors ${errors.ageMax ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                        type="number"
+                        placeholder="Đến"
+                        value={form.ageMax}
+                        onChange={(e) => {
+                          setForm({ ...form, ageMax: e.target.value });
+                          setErrors({ ...errors, ageMax: undefined });
+                        }}
+                      />
+                      <FieldError error={errors.ageMax} />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-3 block">
+                    Mức lương yêu cầu (VND)
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <Input
+                        className={`h-11 bg-white hover:border-primary/50 transition-colors ${errors.salaryMin ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                        type="text"
+                        placeholder="Từ (Tối thiểu 0)"
+                        value={
+                          form.salaryMin
+                            ? new Intl.NumberFormat('en-US').format(
+                                form.salaryMin,
+                              )
+                            : ''
+                        }
+                        onChange={(e) => {
+                          const rawValue = e.target.value.replace(
+                            /[^0-9]/g,
+                            '',
+                          );
+                          setForm({ ...form, salaryMin: rawValue });
+                          setErrors({ ...errors, salaryMin: undefined });
+                        }}
+                      />
+                      <FieldError error={errors.salaryMin} />
+                    </div>
+                    <span className="text-gray-400 font-medium">-</span>
+                    <div className="flex-1">
+                      <Input
+                        className={`h-11 bg-white hover:border-primary/50 transition-colors ${errors.salaryMax ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
+                        type="text"
+                        placeholder="Đến"
+                        value={
+                          form.salaryMax
+                            ? new Intl.NumberFormat('en-US').format(
+                                form.salaryMax,
+                              )
+                            : ''
+                        }
+                        onChange={(e) => {
+                          const rawValue = e.target.value.replace(
+                            /[^0-9]/g,
+                            '',
+                          );
+                          setForm({ ...form, salaryMax: rawValue });
+                          setErrors({ ...errors, salaryMax: undefined });
+                        }}
+                      />
+                      <FieldError error={errors.salaryMax} />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -580,285 +607,101 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
 
           {/* STEP 2 */}
           {currentStep === 1 && (
-            <div className="space-y-6 max-w-xl">
-              <div>
-                <label className="text-sm font-medium">Ca làm *</label>
-                <select
-                  className={`w-full rounded-xl border px-3 py-2 text-sm ${errors.workingShift ? 'border-red-500' : ''}`}
-                  value={form.workingShift}
-                  onChange={(e) => {
-                    setForm({ ...form, workingShift: e.target.value });
-                    setErrors({ ...errors, workingShift: undefined });
-                  }}
-                >
-                  <option value="">Chọn ca</option>
-                  <option value="MORNING">Ca sáng</option>
-                  <option value="AFTERNOON">Ca chiều</option>
-                  <option value="NIGHT">Ca tối</option>
-                  <option value="FULL_DAY">Toàn thời gian</option>
-                  <option value="FLEXIBLE">Linh hoạt</option>
-                </select>
-                <FieldError error={errors.workingShift} />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Địa chỉ</label>
-                <Input
-                  value={form.address}
-                  onChange={(e) =>
-                    setForm({ ...form, address: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">Tỉnh/Thành phố *</label>
-                <select
-                  className={`w-full rounded-xl border px-3 py-2 text-sm ${errors.province ? 'border-red-500' : ''}`}
-                  value={form.province}
-                  onChange={(e) => {
-                    setForm({
-                      ...form,
-                      province: e.target.value,
-                      district: '',
-                    });
-                    setErrors({ ...errors, province: undefined });
-                  }}
-                  disabled={loadingProvince}
-                >
-                  <option value="">
-                    {loadingProvince ? 'Đang tải...' : 'Chọn tỉnh/thành phố'}
-                  </option>
-
-                  {provinces.map((province) => (
-                    <option key={province.code} value={province.name}>
-                      {province.name}
-                    </option>
-                  ))}
-                </select>
-                <FieldError error={errors.province} />
-              </div>
-
-              {/* District */}
-              <div>
-                <label className="text-sm font-medium">Quận/Huyện *</label>
-                <select
-                  className={`w-full rounded-xl border px-3 py-2 text-sm ${errors.district ? 'border-red-500' : ''}`}
-                  value={form.district}
-                  onChange={(e) => {
-                    setForm({ ...form, district: e.target.value });
-                    setErrors({ ...errors, district: undefined });
-                  }}
-                  disabled={!form.province || loadingDistrict}
-                >
-                  <option value="">
-                    {!form.province
-                      ? 'Chọn tỉnh trước'
-                      : loadingDistrict
-                        ? 'Đang tải...'
-                        : 'Chọn quận/huyện'}
-                  </option>
-
-                  {districts.map((district) => (
-                    <option key={district.code} value={district.name}>
-                      {district.name}
-                    </option>
-                  ))}
-                </select>
-                <FieldError error={errors.district} />
-              </div>
-            </div>
-          )}
-
-          {currentStep === 2 && (
-            <div className="space-y-8">
-              {/* Header */}
-              <div className="flex justify-between items-center">
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold">Câu hỏi ứng tuyển</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Thêm các câu hỏi để thu thập thông tin từ ứng viên
-                  </p>
+                  <label className="text-sm font-medium">Ca làm *</label>
+                  <select
+                    className={`w-full mt-1 h-11 rounded-xl border px-3 text-sm bg-white hover:border-primary/50 transition-colors ${errors.workingShift ? 'border-red-500' : ''}`}
+                    value={form.workingShift}
+                    onChange={(e) => {
+                      setForm({ ...form, workingShift: e.target.value });
+                      setErrors({ ...errors, workingShift: undefined });
+                    }}
+                  >
+                    <option value="">Chọn ca</option>
+                    <option value="MORNING">Ca sáng</option>
+                    <option value="AFTERNOON">Ca chiều</option>
+                    <option value="NIGHT">Ca tối</option>
+                    <option value="FULL_DAY">Toàn thời gian</option>
+                    <option value="FLEXIBLE">Linh hoạt</option>
+                  </select>
+                  <FieldError error={errors.workingShift} />
                 </div>
 
-                <Button
-                  type="button"
-                  onClick={() =>
-                    setForm({
-                      ...form,
-                      fields: [
-                        ...form.fields,
-                        {
-                          label: '',
-                          fieldType: 'text',
-                          isRequired: false,
-                          options: [],
-                        },
-                      ],
-                    })
-                  }
-                >
-                  + Thêm câu hỏi
-                </Button>
+                <div>
+                  <label className="text-sm font-medium">Địa chỉ</label>
+                  <Input
+                    className="mt-1 h-11 rounded-xl bg-white hover:border-primary/50 transition-colors"
+                    value={form.address}
+                    placeholder="Số nhà, đường, ngõ..."
+                    onChange={(e) =>
+                      setForm({ ...form, address: e.target.value })
+                    }
+                  />
+                </div>
               </div>
 
-              {/* List câu hỏi */}
-              {form.fields.map((field, index) => (
-                <Card
-                  key={index}
-                  className="p-6 rounded-2xl border shadow-sm space-y-6"
-                >
-                  {/* Dòng 1: Nội dung + Loại */}
-                  <div className="grid grid-cols-3 gap-4 items-end">
-                    <div className="col-span-2 space-y-2">
-                      <label className="text-sm font-medium">
-                        Nội dung câu hỏi
-                      </label>
-                      <Input
-                        placeholder="Ví dụ: Bạn có bao nhiêu năm kinh nghiệm?"
-                        value={field.label}
-                        onChange={(e) => {
-                          const updated = [...form.fields];
-                          updated[index].label = e.target.value;
-                          setForm({ ...form, fields: updated });
-                        }}
-                      />
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="text-sm font-medium">
+                    Tỉnh/Thành phố *
+                  </label>
+                  <select
+                    className={`w-full mt-1 h-11 rounded-xl border px-3 text-sm bg-white hover:border-primary/50 transition-colors ${errors.province ? 'border-red-500' : ''}`}
+                    value={form.province}
+                    onChange={(e) => {
+                      setForm({
+                        ...form,
+                        province: e.target.value,
+                        district: '',
+                      });
+                      setErrors({ ...errors, province: undefined });
+                    }}
+                    disabled={loadingProvince}
+                  >
+                    <option value="">
+                      {loadingProvince ? 'Đang tải...' : 'Chọn tỉnh/thành phố'}
+                    </option>
 
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">
-                        Loại câu trả lời
-                      </label>
-                      <select
-                        className="w-full rounded-xl border px-3 py-2 text-sm bg-white"
-                        value={field.fieldType}
-                        onChange={(e) => {
-                          const updated = [...form.fields];
-                          const newType = e.target.value;
-
-                          updated[index].fieldType = newType;
-
-                          if (
-                            newType === 'select' ||
-                            newType === 'radio' ||
-                            newType === 'checkbox'
-                          ) {
-                            if (!Array.isArray(updated[index].options)) {
-                              updated[index].options = [];
-                            }
-                          } else {
-                            updated[index].options = [];
-                          }
-
-                          setForm({ ...form, fields: updated });
-                        }}
-                      >
-                        <option value="text">Trả lời ngắn</option>
-                        <option value="textarea">Trả lời dài</option>
-                        <option value="select">Danh sách chọn</option>
-                        <option value="radio">Chọn một đáp án (Radio)</option>
-                        <option value="checkbox">
-                          Chọn nhiều đáp án (Checkbox)
-                        </option>
-                      </select>
-                    </div>
-                  </div>
-
-                  {/* Options */}
-                  {(field.fieldType === 'select' ||
-                    field.fieldType === 'radio' ||
-                    field.fieldType === 'checkbox') && (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">
-                          Danh sách lựa chọn
-                        </span>
-
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => {
-                            const updated = [...form.fields];
-                            updated[index].options.push('');
-                            setForm({ ...form, fields: updated });
-                          }}
-                        >
-                          + Thêm lựa chọn
-                        </Button>
-                      </div>
-
-                      {(Array.isArray(field.options) ? field.options : []).map(
-                        (opt, optIndex) => (
-                          <div
-                            key={optIndex}
-                            className="flex gap-3 items-center"
-                          >
-                            <Input
-                              placeholder={`Lựa chọn ${optIndex + 1}`}
-                              value={opt}
-                              onChange={(e) => {
-                                const updated = [...form.fields];
-                                updated[index].options[optIndex] =
-                                  e.target.value;
-                                setForm({ ...form, fields: updated });
-                              }}
-                            />
-
-                            <Button
-                              type="button"
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => {
-                                const updated = [...form.fields];
-                                updated[index].options.splice(optIndex, 1);
-                                setForm({ ...form, fields: updated });
-                              }}
-                            >
-                              ✕
-                            </Button>
-                          </div>
-                        ),
-                      )}
-                    </div>
-                  )}
-
-                  {/* Footer */}
-                  <div className="flex justify-between items-center pt-2 border-t">
-                    <label className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={field.isRequired}
-                        onChange={(e) => {
-                          const updated = [...form.fields];
-                          updated[index].isRequired = e.target.checked;
-                          setForm({ ...form, fields: updated });
-                        }}
-                      />
-                      Câu hỏi bắt buộc
-                    </label>
-
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        const updated = [...form.fields];
-                        updated.splice(index, 1);
-                        setForm({ ...form, fields: updated });
-                      }}
-                    >
-                      Xóa câu hỏi
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-
-              {form.fields.length === 0 && (
-                <div className="text-center text-sm text-muted-foreground py-10 border rounded-xl">
-                  Chưa có câu hỏi nào. Hãy thêm câu hỏi để bắt đầu.
+                    {provinces.map((province) => (
+                      <option key={province.code} value={province.name}>
+                        {province.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError error={errors.province} />
                 </div>
-              )}
+
+                {/* District */}
+                <div>
+                  <label className="text-sm font-medium">Quận/Huyện *</label>
+                  <select
+                    className={`w-full mt-1 h-11 rounded-xl border px-3 text-sm bg-white hover:border-primary/50 transition-colors ${errors.district ? 'border-red-500' : ''}`}
+                    value={form.district}
+                    onChange={(e) => {
+                      setForm({ ...form, district: e.target.value });
+                      setErrors({ ...errors, district: undefined });
+                    }}
+                    disabled={!form.province || loadingDistrict}
+                  >
+                    <option value="">
+                      {!form.province
+                        ? 'Chọn tỉnh trước'
+                        : loadingDistrict
+                          ? 'Đang tải...'
+                          : 'Chọn quận/huyện'}
+                    </option>
+
+                    {districts.map((district) => (
+                      <option key={district.code} value={district.name}>
+                        {district.name}
+                      </option>
+                    ))}
+                  </select>
+                  <FieldError error={errors.district} />
+                </div>
+              </div>
             </div>
           )}
         </Card>
