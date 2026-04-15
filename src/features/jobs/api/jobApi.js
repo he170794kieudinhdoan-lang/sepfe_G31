@@ -140,12 +140,12 @@ export const getMatchedWorkersApi = async (jobId, limit = 10) => {
   });
 };
 
-export const getWeights = async () => {
-  return await apiClient.get('/ai-matching/weights');
+export const getConfigs = async () => {
+  return await apiClient.get('/ai-matching/configs');
 };
 
-export const updateWeights = async (weights) => {
-  return await apiClient.put('/ai-matching/weights', { weights });
+export const updateConfigs = async (configs) => {
+  return await apiClient.put('/ai-matching/configs', { configs });
 };
 
 // ===== REPORT JOB =====

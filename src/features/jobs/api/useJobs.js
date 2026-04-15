@@ -22,8 +22,8 @@ import {
   updateApplicationStatus,
   getMatchedJobsApi,
   getMatchedWorkersApi,
-  getWeights,
-  updateWeights,
+  getConfigs,
+  updateConfigs,
   getAllJobReportsApi,
   updateJobReportStatusApi,
   getWarningJobsApi,
@@ -167,7 +167,6 @@ export const useConfirmBoostPayment = () => {
   });
 };
 
-
 // ===== OCCUPATIONS =====
 
 export const useGetSectorsWithOccupations = () => {
@@ -272,28 +271,28 @@ export const useMatchedWorkers = (jobId, limit = 10, options = {}) => {
   });
 };
 
-export const useGetAiWeights = () => {
+export const useGetAiConfigs = () => {
   return useQuery({
-    queryKey: ['ai-weights'],
-    queryFn: getWeights,
+    queryKey: ['ai-configs'],
+    queryFn: getConfigs,
   });
 };
 
-export const useUpdateAiWeights = () => {
+export const useUpdateAiConfigs = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: (weights) => updateWeights(weights),
+    mutationFn: (configs) => updateConfigs(configs),
     onSuccess: () => {
-      toast('Cập nhật trọng số AI thành công', 'success');
-      queryClient.invalidateQueries({ queryKey: ['ai-weights'] });
+      toast('Cập nhật cấu hình AI thành công', 'success');
+      queryClient.invalidateQueries({ queryKey: ['ai-configs'] });
     },
     onError: (error) => {
       console.error(error);
       const message =
         error?.response?.data?.message ||
-        'Có lỗi xảy ra khi cập nhật trọng số AI';
+        'Có lỗi xảy ra khi cập nhật cấu hình AI';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     },
   });
@@ -336,4 +335,3 @@ export const useUpdateJobStatus = () => {
     },
   });
 };
-

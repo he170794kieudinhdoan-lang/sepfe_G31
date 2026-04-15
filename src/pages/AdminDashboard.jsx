@@ -16,24 +16,39 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
 import { SectorManagementService } from '@/features/jobs/api/sectormanagement';
 import { OccupationManagementService } from '@/features/jobs/api/occupationmanagement';
-import { useGetAiWeights, useUpdateAiWeights } from '@/features/jobs';
-import { useGetAllUsersPaginated, useUpdateUserStatus } from '@/features/users/api/useUser';
+import { useGetAiConfigs, useUpdateAiConfigs } from '@/features/jobs';
+import {
+  useGetAllUsersPaginated,
+  useUpdateUserStatus,
+} from '@/features/users/api/useUser';
 import { AppPagination } from '@/shared/components/AppPagination';
-import { getWarningJobsApi, updateJobStatusApi } from '@/features/jobs/api/jobApi';
+import {
+  getWarningJobsApi,
+  updateJobStatusApi,
+} from '@/features/jobs/api/jobApi';
 import { useAdminStatistics } from '@/features/admin/api/useAdmin';
-
-
 
 const formatCompactVND = (value) => {
   if (!value) return '0';
   if (value >= 1_000_000_000) {
-    return (value / 1_000_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' Tỷ';
+    return (
+      (value / 1_000_000_000).toLocaleString('vi-VN', {
+        maximumFractionDigits: 1,
+      }) + ' Tỷ'
+    );
   }
   if (value >= 1_000_000) {
-    return (value / 1_000_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' Tr';
+    return (
+      (value / 1_000_000).toLocaleString('vi-VN', {
+        maximumFractionDigits: 1,
+      }) + ' Tr'
+    );
   }
   if (value >= 1_000) {
-    return (value / 1_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) + ' k';
+    return (
+      (value / 1_000).toLocaleString('vi-VN', { maximumFractionDigits: 1 }) +
+      ' k'
+    );
   }
   return value.toLocaleString('vi-VN');
 };
@@ -56,7 +71,8 @@ export const AdminDashboard = () => {
   const [userFilters, setUserFilters] = useState(initialUserFilters);
   const [userFiltersInput, setUserFiltersInput] = useState(initialUserFilters);
 
-  const { data: usersData, isLoading: isLoadingUsers } = useGetAllUsersPaginated(userFilters);
+  const { data: usersData, isLoading: isLoadingUsers } =
+    useGetAllUsersPaginated(userFilters);
   const usersList = usersData?.data || [];
   const totalPages = usersData?.totalPages || 1;
 
@@ -99,44 +115,65 @@ export const AdminDashboard = () => {
   const [loadingModeration, setLoadingModeration] = useState(false);
 
   // AI Matching Weights State
-  const { data: weightsData, isLoading: loadingWeights } = useGetAiWeights();
-  const updateWeightsMutation = useUpdateAiWeights();
-  const [aiWeights, setAiWeights] = useState({});
+  const { data: configsData, isLoading: loadingConfigs } = useGetAiConfigs();
+  const updateConfigsMutation = useUpdateAiConfigs();
+  const [aiConfigs, setAiConfigs] = useState({});
 
   const [aiLabels, setAiLabels] = useState({});
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const { data: statsData, isLoading: loadingStats } = useAdminStatistics({ year: selectedYear });
+  const { data: statsData, isLoading: loadingStats } = useAdminStatistics({
+    year: selectedYear,
+  });
 
   const kpi = [
     { label: 'Tổng người dùng', value: statsData?.users?.total || 0 },
     { label: 'Tổng doanh nghiệp', value: statsData?.companies?.total || 0 },
-    { label: 'Tổng doanh thu (VNĐ)', value: new Intl.NumberFormat('vi-VN').format(statsData?.payments?.totalRevenue || 0) },
+    {
+      label: 'Tổng doanh thu (VNĐ)',
+      value: new Intl.NumberFormat('vi-VN').format(
+        statsData?.payments?.totalRevenue || 0,
+      ),
+    },
   ];
 
   const renderUsersChart = () => {
-    const labels = statsData?.charts?.labels?.length ? statsData.charts.labels : Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`);
+    const labels = statsData?.charts?.labels?.length
+      ? statsData.charts.labels
+      : Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`);
     const newUsers = statsData?.charts?.newUsers || new Array(12).fill(0);
     const maxUsers = Math.max(...newUsers, 1);
 
     return (
-      <div className={`flex h-full w-full items-end justify-between px-2 sm:px-4 pb-2 pt-6 gap-2 ${loadingStats ? 'animate-pulse opacity-50' : ''}`}>
+      <div
+        className={`flex h-full w-full items-end justify-between px-2 sm:px-4 pb-2 pt-6 gap-2 ${loadingStats ? 'animate-pulse opacity-50' : ''}`}
+      >
         {labels.map((label, idx) => {
           const count = newUsers[idx] || 0;
-          const height = count === 0 ? 0 : Math.max(8, (count / maxUsers) * 100);
+          const height =
+            count === 0 ? 0 : Math.max(8, (count / maxUsers) * 100);
 
           return (
-            <div key={label} className="flex flex-col items-center justify-end w-full h-full relative group">
+            <div
+              key={label}
+              className="flex flex-col items-center justify-end w-full h-full relative group"
+            >
               <div className="flex flex-col items-center justify-end w-full max-w-[20px] h-full border-b border-slate-100">
                 <div
                   className={`relative w-full rounded-t-sm transition-all group-hover:opacity-80 ${count > 0 ? 'bg-blue-500' : 'bg-transparent'}`}
                   style={{ height: `${height}%` }}
                   title={`Người dùng mới: ${count}`}
                 >
-                  {count > 0 && <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] sm:text-[11px] whitespace-nowrap text-blue-600 font-bold">{count}</span>}
+                  {count > 0 && (
+                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] sm:text-[11px] whitespace-nowrap text-blue-600 font-bold">
+                      {count}
+                    </span>
+                  )}
                 </div>
               </div>
-              <span className="text-[10px] text-slate-500 font-medium mt-3 whitespace-nowrap shrink-0">{label.replace('Tháng ', 'T')}</span>
+              <span className="text-[10px] text-slate-500 font-medium mt-3 whitespace-nowrap shrink-0">
+                {label.replace('Tháng ', 'T')}
+              </span>
             </div>
           );
         })}
@@ -145,28 +182,41 @@ export const AdminDashboard = () => {
   };
 
   const renderRevenueChart = () => {
-    const labels = statsData?.charts?.labels?.length ? statsData.charts.labels : Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`);
+    const labels = statsData?.charts?.labels?.length
+      ? statsData.charts.labels
+      : Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`);
     const revenue = statsData?.charts?.revenue || new Array(12).fill(0);
     const maxRev = Math.max(...revenue, 1);
 
     return (
-      <div className={`flex h-full w-full items-end justify-between px-2 sm:px-4 pb-2 pt-6 gap-2 ${loadingStats ? 'animate-pulse opacity-50' : ''}`}>
+      <div
+        className={`flex h-full w-full items-end justify-between px-2 sm:px-4 pb-2 pt-6 gap-2 ${loadingStats ? 'animate-pulse opacity-50' : ''}`}
+      >
         {labels.map((label, idx) => {
           const rev = revenue[idx] || 0;
           const height = rev === 0 ? 0 : Math.max(8, (rev / maxRev) * 100);
 
           return (
-            <div key={label} className="flex flex-col items-center justify-end w-full h-full relative group">
+            <div
+              key={label}
+              className="flex flex-col items-center justify-end w-full h-full relative group"
+            >
               <div className="flex flex-col items-center justify-end w-full max-w-[20px] h-full border-b border-slate-100">
                 <div
                   className={`relative w-full rounded-t-sm transition-all group-hover:opacity-80 ${rev > 0 ? 'bg-emerald-500' : 'bg-transparent'}`}
                   style={{ height: `${height}%` }}
                   title={`Doanh thu: ${new Intl.NumberFormat('vi-VN').format(rev)}đ`}
                 >
-                  {rev > 0 && <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap text-emerald-600 font-bold">{formatCompactVND(rev)}</span>}
+                  {rev > 0 && (
+                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap text-emerald-600 font-bold">
+                      {formatCompactVND(rev)}
+                    </span>
+                  )}
                 </div>
               </div>
-              <span className="text-[10px] text-slate-500 font-medium mt-3 whitespace-nowrap shrink-0">{label.replace('Tháng ', 'T')}</span>
+              <span className="text-[10px] text-slate-500 font-medium mt-3 whitespace-nowrap shrink-0">
+                {label.replace('Tháng ', 'T')}
+              </span>
             </div>
           );
         })}
@@ -175,22 +225,22 @@ export const AdminDashboard = () => {
   };
 
   useEffect(() => {
-    if (weightsData && Array.isArray(weightsData)) {
-      const newWeights = { ...aiWeights };
+    if (configsData && Array.isArray(configsData)) {
+      const newConfigs = { ...aiConfigs };
       const newLabels = { ...aiLabels };
-      weightsData.forEach((item) => {
-        newWeights[item.key] = Math.round(item.weight * 100);
+      configsData.forEach((item) => {
+        newConfigs[item.key] = Math.round(item.value * 100);
         newLabels[item.key] = item.label;
       });
-      setAiWeights(newWeights);
+      setAiConfigs(newConfigs);
       setAiLabels(newLabels);
     }
-  }, [weightsData]);
+  }, [configsData]);
 
-  const totalAiWeight = Object.values(aiWeights).reduce(
-    (sum, val) => sum + Number(val),
-    0,
-  );
+  const totalAiWeight = Object.entries(aiConfigs).reduce((sum, [key, val]) => {
+    if (key === 'MIN_SCORE_THRESHOLD') return sum;
+    return sum + Number(val);
+  }, 0);
 
   const isLoading = false;
 
@@ -201,7 +251,7 @@ export const AdminDashboard = () => {
     { key: 'sectors', label: 'Quản lý ngành nghề' },
     { key: 'occupations', label: 'Quản lý nghề nghiệp' },
     { key: 'terms', label: 'Điều khoản' },
-    { key: 'ai_weights', label: 'Cấu hình AI' },
+    { key: 'ai_configs', label: ' Cấu hình trọng số AI' },
   ];
 
   const fetchSectors = async () => {
@@ -291,7 +341,6 @@ export const AdminDashboard = () => {
   useEffect(() => {
     setOccupationPage(1);
   }, [filterSectorId]);
-
 
   const fetchWarningJobs = async () => {
     try {
@@ -477,8 +526,6 @@ export const AdminDashboard = () => {
     }
   };
 
-
-
   const handleSaveTerms = async () => {
     if (!termsDraft.id) {
       toast('Không tìm thấy ID điều khoản để cập nhật', 'error');
@@ -501,7 +548,7 @@ export const AdminDashboard = () => {
     }
   };
 
-  console.log(weightsData);
+  console.log(configsData);
 
   return (
     <DashboardLayout
@@ -530,7 +577,11 @@ export const AdminDashboard = () => {
                   <input
                     type="number"
                     value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value) || new Date().getFullYear())}
+                    onChange={(e) =>
+                      setSelectedYear(
+                        Number(e.target.value) || new Date().getFullYear(),
+                      )
+                    }
                     className="border border-slate-300 focus:outline-blue-500 rounded-md px-3 py-1.5 w-24 text-center font-bold"
                     placeholder="2026"
                     min="2000"
@@ -541,7 +592,8 @@ export const AdminDashboard = () => {
               <div className="grid lg:grid-cols-2 gap-8">
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div> Biểu đồ người dùng mới
+                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>{' '}
+                    Biểu đồ người dùng mới
                   </div>
                   <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
                     {renderUsersChart()}
@@ -549,7 +601,8 @@ export const AdminDashboard = () => {
                 </div>
                 <div className="flex flex-col">
                   <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div> Biểu đồ doanh thu (VNĐ)
+                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>{' '}
+                    Biểu đồ doanh thu (VNĐ)
                   </div>
                   <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
                     {renderRevenueChart()}
@@ -560,30 +613,50 @@ export const AdminDashboard = () => {
 
             <div className="grid lg:grid-cols-3 gap-6">
               <Card className="p-6 w-full lg:col-span-3">
-                <h3 className="text-lg font-semibold mb-4">Các sự kiện cần chú ý trong tổng quan</h3>
+                <h3 className="text-lg font-semibold mb-4">
+                  Các sự kiện cần chú ý trong tổng quan
+                </h3>
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="flex items-center justify-between bg-slate-50 p-5 rounded-xl border border-slate-100">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-slate-800">Người dùng mới (7 ngày)</span>
-                      <span className="text-xs text-muted-foreground mt-1">Lượng tài khoản mới ghi nhận</span>
+                      <span className="text-sm font-semibold text-slate-800">
+                        Người dùng mới (7 ngày)
+                      </span>
+                      <span className="text-xs text-muted-foreground mt-1">
+                        Lượng tài khoản mới ghi nhận
+                      </span>
                     </div>
-                    <span className="font-bold text-2xl text-emerald-600">+{statsData?.users?.newUsers7Days || 0}</span>
+                    <span className="font-bold text-2xl text-emerald-600">
+                      +{statsData?.users?.newUsers7Days || 0}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between bg-orange-50 p-5 rounded-xl border border-orange-100">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-orange-800">C.ty đang đợi xét duyệt</span>
-                      <span className="text-xs text-orange-600 mt-1">Cần kiểm tra hồ sơ và mở tài khoản</span>
+                      <span className="text-sm font-semibold text-orange-800">
+                        Công ty đang đợi xét duyệt
+                      </span>
+                      <span className="text-xs text-orange-600 mt-1">
+                        Cần kiểm tra hồ sơ và mở tài khoản
+                      </span>
                     </div>
-                    <span className="font-bold text-2xl text-orange-600">{statsData?.companies?.pending || 0}</span>
+                    <span className="font-bold text-2xl text-orange-600">
+                      {statsData?.companies?.pending || 0}
+                    </span>
                   </div>
 
                   <div className="flex items-center justify-between bg-rose-50 p-5 rounded-xl border border-rose-100">
                     <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-rose-800">Báo cáo vi phạm việc làm</span>
-                      <span className="text-xs text-rose-600 mt-1">Các tin tuyển dụng chờ xem xét vi phạm</span>
+                      <span className="text-sm font-semibold text-rose-800">
+                        Báo cáo vi phạm việc làm
+                      </span>
+                      <span className="text-xs text-rose-600 mt-1">
+                        Các tin tuyển dụng chờ xem xét vi phạm
+                      </span>
                     </div>
-                    <span className="font-bold text-2xl text-rose-600">{statsData?.reports?.unresolved || 0}</span>
+                    <span className="font-bold text-2xl text-rose-600">
+                      {statsData?.reports?.unresolved || 0}
+                    </span>
                   </div>
                 </div>
               </Card>
@@ -598,7 +671,12 @@ export const AdminDashboard = () => {
             <select
               className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
               value={userFiltersInput.role}
-              onChange={(e) => setUserFiltersInput({ ...userFiltersInput, role: e.target.value })}
+              onChange={(e) =>
+                setUserFiltersInput({
+                  ...userFiltersInput,
+                  role: e.target.value,
+                })
+              }
             >
               <option value="">Role</option>
               <option value="WORKER">Worker</option>
@@ -608,7 +686,12 @@ export const AdminDashboard = () => {
             <select
               className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
               value={userFiltersInput.status}
-              onChange={(e) => setUserFiltersInput({ ...userFiltersInput, status: e.target.value })}
+              onChange={(e) =>
+                setUserFiltersInput({
+                  ...userFiltersInput,
+                  status: e.target.value,
+                })
+              }
             >
               <option value="">Status</option>
               <option value="ACTIVE">Active</option>
@@ -618,13 +701,23 @@ export const AdminDashboard = () => {
               type="date"
               className="max-w-[180px] rounded-full"
               value={userFiltersInput.fromDate}
-              onChange={(e) => setUserFiltersInput({ ...userFiltersInput, fromDate: e.target.value })}
+              onChange={(e) =>
+                setUserFiltersInput({
+                  ...userFiltersInput,
+                  fromDate: e.target.value,
+                })
+              }
             />
             <Input
               type="date"
               className="max-w-[180px] rounded-full"
               value={userFiltersInput.toDate}
-              onChange={(e) => setUserFiltersInput({ ...userFiltersInput, toDate: e.target.value })}
+              onChange={(e) =>
+                setUserFiltersInput({
+                  ...userFiltersInput,
+                  toDate: e.target.value,
+                })
+              }
             />
             <Button
               className="rounded-full px-6"
@@ -652,7 +745,7 @@ export const AdminDashboard = () => {
             <Skeleton className="h-[400px] w-full rounded-2xl" />
           ) : usersList.length === 0 ? (
             <EmptyState
-              title={MSG.MSG_USER_LIST_EMPTY || "Danh sách trống"}
+              title={MSG.MSG_USER_LIST_EMPTY || 'Danh sách trống'}
               description="Danh sách người dùng đang trống hoặc không có kết quả phù hợp."
             />
           ) : (
@@ -671,22 +764,35 @@ export const AdminDashboard = () => {
                   </thead>
                   <tbody>
                     {usersList.map((user) => (
-                      <tr key={user.id} className="border-b last:border-b-0 hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3 font-semibold text-slate-800">{user.name}</td>
+                      <tr
+                        key={user.id}
+                        className="border-b last:border-b-0 hover:bg-slate-50/50 transition-colors"
+                      >
+                        <td className="py-3 font-semibold text-slate-800">
+                          {user.name}
+                        </td>
                         <td className="text-slate-600">{user.email}</td>
-                        <td className="capitalize text-slate-600">{user.role?.toLowerCase() || ''}</td>
+                        <td className="capitalize text-slate-600">
+                          {user.role?.toLowerCase() || ''}
+                        </td>
                         <td>
                           <Badge
                             variant={
                               user.status === 'ACTIVE' ? 'default' : 'secondary'
                             }
-                            className={user.status === 'ACTIVE' ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20" : ""}
+                            className={
+                              user.status === 'ACTIVE'
+                                ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
+                                : ''
+                            }
                           >
                             {user.status === 'ACTIVE' ? 'Active' : 'Disabled'}
                           </Badge>
                         </td>
                         <td className="text-slate-600">
-                          {user.createdDate ? new Date(user.createdDate).toLocaleDateString() : ''}
+                          {user.createdDate
+                            ? new Date(user.createdDate).toLocaleDateString()
+                            : ''}
                         </td>
                         <td>
                           <Button
@@ -697,7 +803,10 @@ export const AdminDashboard = () => {
                               setUserStatusToUpdate({
                                 id: user.id,
                                 name: user.name,
-                                status: user.status === 'ACTIVE' ? 'DELETED' : 'ACTIVE'
+                                status:
+                                  user.status === 'ACTIVE'
+                                    ? 'DELETED'
+                                    : 'ACTIVE',
                               });
                               setConfirmOpen(true);
                             }}
@@ -1007,18 +1116,10 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {active === 'ai_weights' && (
+      {active === 'ai_configs' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">
-                Cấu hình Trọng số AI Matching
-              </h2>
-              <p className="text-sm text-muted-foreground mt-1">
-                Điều chỉnh phân bổ tỷ trọng phần trăm (thống nhất 100%) của các
-                tiêu chí quét ứng viên.
-              </p>
-            </div>
+            <div></div>
             <Button
               className="rounded-xl px-6"
               onClick={() => {
@@ -1026,31 +1127,40 @@ export const AdminDashboard = () => {
                   toast('Tổng trọng số phải chuẩn bằng 100%', 'error');
                   return;
                 }
-                const payload = Object.entries(aiWeights).map(([key, val]) => ({
+                const payload = Object.entries(aiConfigs).map(([key, val]) => ({
                   key,
-                  weight: Number(val) / 100,
+                  value: Number(val) / 100,
                 }));
-                updateWeightsMutation.mutate(payload);
+                updateConfigsMutation.mutate(payload);
               }}
-              disabled={updateWeightsMutation.isPending}
+              disabled={updateConfigsMutation.isPending}
             >
-              {updateWeightsMutation.isPending ? 'Đang lưu...' : 'Lưu cấu hình'}
+              {updateConfigsMutation.isPending ? 'Đang lưu...' : 'Lưu cấu hình'}
             </Button>
           </div>
 
-          {loadingWeights ? (
+          {loadingConfigs ? (
             <Skeleton className="h-[400px] w-full rounded-2xl" />
           ) : (
             <Card className="p-8 shadow-sm rounded-2xl">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
-                {Object.keys(aiWeights).map((key) => (
-                  <div key={key} className="space-y-3">
+                {Object.keys(aiConfigs).map((key) => (
+                  <div
+                    key={key}
+                    className={`space-y-3 ${key === 'MIN_SCORE_THRESHOLD' ? 'col-span-full border-t pt-6 mt-2' : ''}`}
+                  >
                     <div className="flex justify-between items-center">
                       <span className="font-semibold text-slate-700">
                         {aiLabels[key] || key}
+                        {/* {key === 'MIN_SCORE_THRESHOLD' && (
+                          <span className="block text-xs text-muted-foreground font-normal mt-1">
+                            Độ phù hợp từ ngưỡng này trở lên mới được xem là phù
+                            hợp.
+                          </span>
+                        )} */}
                       </span>
                       <span className="text-primary font-bold text-lg">
-                        {aiWeights[key]}%
+                        {aiConfigs[key]}%
                       </span>
                     </div>
                     <Input
@@ -1058,10 +1168,10 @@ export const AdminDashboard = () => {
                       className="w-full"
                       min="0"
                       max="100"
-                      value={aiWeights[key]}
+                      value={aiConfigs[key]}
                       onChange={(e) =>
-                        setAiWeights({
-                          ...aiWeights,
+                        setAiConfigs({
+                          ...aiConfigs,
                           [key]:
                             e.target.value === '' ? 0 : Number(e.target.value),
                         })
@@ -1180,16 +1290,20 @@ export const AdminDashboard = () => {
           try {
             await updateUserStatusMutation.mutateAsync({
               userId: userStatusToUpdate.id,
-              status: userStatusToUpdate.status
+              status: userStatusToUpdate.status,
             });
-            toast(`Đã ${userStatusToUpdate.status === 'ACTIVE' ? 'kích hoạt' : 'vô hiệu hóa'} tài khoản thành công`);
+            toast(
+              `Đã ${userStatusToUpdate.status === 'ACTIVE' ? 'kích hoạt' : 'vô hiệu hóa'} tài khoản thành công`,
+            );
             setConfirmOpen(false);
             setUserStatusToUpdate(null);
           } catch (error) {
             toast('Lỗi khi cập nhật trạng thái', 'error');
           }
         }}
-        confirmLabel={updateUserStatusMutation.isPending ? "Đang xử lý..." : "Xác nhận"}
+        confirmLabel={
+          updateUserStatusMutation.isPending ? 'Đang xử lý...' : 'Xác nhận'
+        }
         confirmDisabled={updateUserStatusMutation.isPending}
       />
 

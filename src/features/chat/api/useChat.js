@@ -14,7 +14,7 @@ export const useGetOrCreateConversation = () => {
       //toast('Thành công');
     },
     onError: (e) => {
-      toast(e?.message || 'Có lỗi xảy ra');
+      toast(e?.message || 'Có lỗi xảy ra', 'error');
     },
   });
 };
@@ -39,7 +39,7 @@ export const useSendMessage = () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (e) => {
-      toast(e.message);
+      toast(e.message || 'Gửi tin nhắn thất bại', 'error');
     },
   });
 };
@@ -62,7 +62,7 @@ export const useMarkAsRead = () => {
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     onError: (e) => {
-      toast(e.message);
+      toast(e.message || 'Cập nhật trạng thái đọc thất bại', 'error');
     },
   });
 };

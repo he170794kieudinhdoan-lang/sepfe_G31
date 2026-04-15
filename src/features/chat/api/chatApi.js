@@ -1,7 +1,7 @@
 import { apiClient } from '@/shared/api/apiClient';
 
 export const getOrCreateConversation = async (participantId) => {
-  return apiClient.post('/chat/conversations', { participantId });
+  return apiClient.post('/chat/conversations', { recipientId: participantId });
 };
 
 export const getUserConversations = async () => {

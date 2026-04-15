@@ -1,6 +1,12 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/card';
-import { Loader2, TrendingUp, Calendar, Filter, CircleDollarSign } from 'lucide-react';
+import {
+  Loader2,
+  TrendingUp,
+  Calendar,
+  Filter,
+  CircleDollarSign,
+} from 'lucide-react';
 import { useEmployerPayments } from '../api/useStatistics';
 
 export const EmployerPaymentsWidget = () => {
@@ -12,7 +18,9 @@ export const EmployerPaymentsWidget = () => {
   };
 
   const defaultTo = getLocalDateString(new Date());
-  const defaultFrom = getLocalDateString(new Date(new Date().getFullYear(), 0, 1));
+  const defaultFrom = getLocalDateString(
+    new Date(new Date().getFullYear(), 0, 1),
+  );
 
   const [dateRange, setDateRange] = useState({
     from: defaultFrom,
@@ -33,10 +41,14 @@ export const EmployerPaymentsWidget = () => {
   };
 
   const formatCurrency = (val) =>
-    new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+    new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+    }).format(val);
 
   const formatCurrencyK = (val) => {
-    if (val >= 1000000) return (val / 1000000).toFixed(1).replace(/\.0$/, '') + 'Tr';
+    if (val >= 1000000)
+      return (val / 1000000).toFixed(1).replace(/\.0$/, '') + 'Tr';
     if (val >= 1000) return (val / 1000).toFixed(0) + 'K';
     return val;
   };
@@ -44,7 +56,11 @@ export const EmployerPaymentsWidget = () => {
   const formatDateLabel = (isoDate, group) => {
     const d = new Date(isoDate);
     if (isNaN(d.getTime())) return isoDate; // Fallback
-    if (group === 'day') return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+    if (group === 'day')
+      return d.toLocaleDateString('vi-VN', {
+        day: '2-digit',
+        month: '2-digit',
+      });
     if (group === 'month') return `Tháng ${d.getMonth() + 1}`;
     if (group === 'year') return d.getFullYear().toString();
     // week -> dd/MM
@@ -52,9 +68,8 @@ export const EmployerPaymentsWidget = () => {
   };
 
   // Tính toán chiều cao các cột Bar Chart
-  const maxAmount = data.trends.length > 0 
-    ? Math.max(...data.trends.map((t) => t.amount)) 
-    : 0;
+  const maxAmount =
+    data.trends.length > 0 ? Math.max(...data.trends.map((t) => t.amount)) : 0;
 
   const handleDateChange = (field, value) => {
     setDateRange((prev) => ({ ...prev, [field]: value }));
@@ -62,12 +77,12 @@ export const EmployerPaymentsWidget = () => {
 
   return (
     <Card className="p-0 rounded-2xl shadow-sm border-slate-200 flex flex-col h-full bg-white overflow-hidden">
-      
       {/* HEADER: Title & Màng lọc */}
       <div className="px-6 py-5 border-b border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-slate-50/50">
         <div>
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <TrendingUp className="text-primary w-5 h-5" /> Dòng tiền Chi tiêu (Payment Trends)
+            <TrendingUp className="text-primary w-5 h-5" /> Dòng tiền Chi tiêu
+            (Payment Trends)
           </h3>
           <p className="text-slate-500 text-sm mt-0.5">
             Quản lý ngân sách đầu tư theo thời gian thực
@@ -79,7 +94,7 @@ export const EmployerPaymentsWidget = () => {
           {/* Lọc: Từ Ngày */}
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm focus-within:ring-2 ring-primary/20 transition-all">
             <Calendar size={16} className="text-slate-400" />
-            <input 
+            <input
               type="date"
               value={dateRange.from}
               onChange={(e) => handleDateChange('from', e.target.value)}
@@ -90,7 +105,7 @@ export const EmployerPaymentsWidget = () => {
           {/* Lọc: Đến Ngày */}
           <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-3 py-1.5 shadow-sm focus-within:ring-2 ring-primary/20 transition-all">
             <Calendar size={16} className="text-slate-400" />
-            <input 
+            <input
               type="date"
               value={dateRange.to}
               onChange={(e) => handleDateChange('to', e.target.value)}
@@ -122,17 +137,16 @@ export const EmployerPaymentsWidget = () => {
           </div>
         ) : (
           <div className="w-full h-full flex flex-col gap-8">
-            
             {/* TỔNG QUAN CHI TIÊU (Box Gold/Emerald nổi bật) */}
             <div className="w-full md:max-w-md bg-linear-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 shadow-lg shadow-emerald-500/20 text-white relative overflow-hidden group">
               {/* Vòng sáng decor */}
               <div className="absolute -top-20 -right-20 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none group-hover:scale-150 transition-transform duration-700"></div>
               <div className="absolute bottom-[-10px] right-2 w-24 h-24 bg-teal-400/30 rounded-full blur-xl pointer-events-none"></div>
-              
+
               <div className="relative z-10 flex items-center justify-between">
                 <div>
                   <p className="text-emerald-50 font-medium text-sm mb-1 opacity-90">
-                    Tổng ngân sách đã giải ngân
+                    Tổng ngân sách đã dùng
                   </p>
                   <p className="text-4xl font-black tracking-tight drop-shadow-sm">
                     {formatCurrency(data.totalSpent)}
@@ -148,14 +162,16 @@ export const EmployerPaymentsWidget = () => {
             {data.trends.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center py-12 text-slate-400 border border-dashed border-slate-200 rounded-2xl">
                 <TrendingUp className="w-12 h-12 mb-3 opacity-20" />
-                <p className="text-sm">Không có dữ liệu chi tiêu trong khoảng thời gian này</p>
+                <p className="text-sm">
+                  Không có dữ liệu chi tiêu trong khoảng thời gian này
+                </p>
               </div>
             ) : (
               <div className="flex-1 min-h-[300px] w-full mt-8 flex flex-col">
                 <h4 className="text-sm font-bold text-slate-700 mb-6 uppercase tracking-wider">
                   Biểu đồ Phân bổ chi tiêu
                 </h4>
-                
+
                 {/* Scrollable Container */}
                 <div className="w-full overflow-x-auto pb-6">
                   <div className="min-w-[500px] flex flex-col h-full">
@@ -164,37 +180,48 @@ export const EmployerPaymentsWidget = () => {
                       {/* Grid Lines mờ đằng sau */}
                       <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
                         {[...Array(5)].map((_, i) => (
-                            <div key={i} className="border-t border-slate-100 w-full h-0"></div>
+                          <div
+                            key={i}
+                            className="border-t border-slate-100 w-full h-0"
+                          ></div>
                         ))}
                       </div>
 
                       {data.trends.map((item, idx) => {
-                        const heightPercent = maxAmount > 0 ? (item.amount / maxAmount) * 100 : 0;
-                        
+                        const heightPercent =
+                          maxAmount > 0 ? (item.amount / maxAmount) * 100 : 0;
+
                         return (
-                          <div key={idx} className="relative flex-1 flex flex-col items-center justify-end h-full group z-10">
-                            
+                          <div
+                            key={idx}
+                            className="relative flex-1 flex flex-col items-center justify-end h-full group z-10"
+                          >
                             {/* Tooltip Hover */}
                             <div className="absolute bottom-full mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50 flex flex-col items-center">
                               <div className="bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-xl whitespace-nowrap">
-                                <span className="text-emerald-400">{formatDateLabel(item.period, groupBy)}</span>: {' '}
-                                {formatCurrency(item.amount)}
+                                <span className="text-emerald-400">
+                                  {formatDateLabel(item.period, groupBy)}
+                                </span>
+                                : {formatCurrency(item.amount)}
                               </div>
                               <div className="w-2 h-2 bg-slate-800 rotate-45 -mt-1"></div>
                             </div>
 
                             {/* Cột dữ liệu */}
-                            <div 
+                            <div
                               className="w-full max-w-[40px] bg-linear-to-t from-emerald-500 to-teal-400 rounded-t-lg relative transition-all duration-500 ease-out group-hover:brightness-110 shadow-sm"
-                              style={{ height: `${heightPercent}%`, minHeight: heightPercent > 0 ? '4px' : '0' }}
+                              style={{
+                                height: `${heightPercent}%`,
+                                minHeight: heightPercent > 0 ? '4px' : '0',
+                              }}
                             >
                               <div className="absolute top-0 w-full h-1 bg-white/30 rounded-t-lg"></div>
                             </div>
                           </div>
-                        )
+                        );
                       })}
                     </div>
-                    
+
                     {/* Trục X: Labels */}
                     <div className="flex items-center gap-1 sm:gap-2 pt-3">
                       {data.trends.map((item, idx) => (
