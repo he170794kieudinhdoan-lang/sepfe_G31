@@ -55,6 +55,7 @@ import {
   Edit,
   Trash2,
   Send,
+  Copy,
 } from 'lucide-react';
 import { useGetMyCompany } from '@/features/companies/api/useGetCompanies';
 import {
@@ -70,6 +71,7 @@ import {
   useGetOrCreateConversation,
   useSendMessage,
 } from '@/features/chat/api/useChat';
+import * as chatApi from '@/features/chat/api/chatApi';
 import { SHIFTS, GENDERS } from '@/shared/constants/enums';
 import { formatSalary } from '@/shared/utils/salaryUtils';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
@@ -84,6 +86,24 @@ const EMPLOYER_MENU = [
   { key: 'stats', label: 'Thống kê', icon: BarChart3 },
   { key: 'chat', label: 'Tin nhắn', icon: MessageCircle, path: '/chat' },
   { key: 'home', label: 'Trang chủ', icon: Home, path: '/' },
+];
+
+const BOOST_SUBSCRIPTION_PLANS = [
+  {
+    days: 7,
+    name: 'Starter 7 ngày',
+    description: 'Phù hợp test nhanh nhu cầu tuyển gấp trong tuần.',
+    price: 100000,
+    accent: 'border-slate-200 bg-white',
+  },
+  {
+    days: 30,
+    name: 'Growth 30 ngày',
+    description: 'Được chọn nhiều nhất. Hiển thị dài hạn và tiết kiệm hơn.',
+    price: 300000,
+    badge: 'Mua nhiều - tiết kiệm hơn',
+    accent: 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20',
+  },
 ];
 
 const buildKpiItems = (overview) => [
@@ -666,9 +686,14 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
   const { data: applicationsResult, isLoading } = useEmployerApplications(
     jobId || undefined,
   );
+  const { data: jobDetail } = useJobDetail(jobId || undefined);
   const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [page, setPage] = useState(1);
+  const [selectedApplicantIds, setSelectedApplicantIds] = useState(new Set());
+  const [bulkInviteOpen, setBulkInviteOpen] = useState(false);
+  const [bulkInviteSending, setBulkInviteSending] = useState(false);
+  const [bulkInviteMessage, setBulkInviteMessage] = useState('');
   const limit = 5;
 
   const applicantsList = applicationsResult?.data || [];
@@ -691,6 +716,141 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
   );
 
   const { toast } = useToast();
+
+  const isApplicantInvitable = (applicant) => applicant?.status === 'SUITABLE';
+
+  const getApplicantUserId = (applicant) => {
+    const rawId = applicant?.user?.userId ?? applicant?.user?.id ?? applicant?.user?._id;
+    if (rawId === null || rawId === undefined) return null;
+    return String(rawId);
+  };
+
+  const availableApplicantUserIds = filteredApplicants
+    .filter(isApplicantInvitable)
+    .map(getApplicantUserId)
+    .filter(Boolean);
+
+  const selectedCount = selectedApplicantIds.size;
+  const canSelectAll = availableApplicantUserIds.length > 0;
+  const isAllSelected =
+    canSelectAll && availableApplicantUserIds.every((id) => selectedApplicantIds.has(id));
+
+  useEffect(() => {
+    setSelectedApplicantIds((previous) => {
+      if (!previous.size) return previous;
+
+      const next = new Set(
+        Array.from(previous).filter((id) => availableApplicantUserIds.includes(id)),
+      );
+
+      return next.size === previous.size ? previous : next;
+    });
+  }, [jobId, availableApplicantUserIds]);
+
+  useEffect(() => {
+    if (!jobDetail?.title) return;
+    setBulkInviteMessage((prev) => {
+      if (prev.trim()) return prev;
+      return `Chào bạn, bên mình mời bạn tham gia phỏng vấn cho vị trí ${jobDetail.title}. Nếu bạn quan tâm, hãy phản hồi tin nhắn này để thống nhất lịch phỏng vấn nhé.`;
+    });
+  }, [jobDetail?.title]);
+
+  const toggleApplicantSelection = (applicantUserId) => {
+    if (!applicantUserId) return;
+
+    setSelectedApplicantIds((previous) => {
+      const next = new Set(previous);
+      if (next.has(applicantUserId)) {
+        next.delete(applicantUserId);
+      } else {
+        next.add(applicantUserId);
+      }
+      return next;
+    });
+  };
+
+  const toggleAllApplicants = () => {
+    if (!canSelectAll) return;
+
+    setSelectedApplicantIds((previous) => {
+      if (isAllSelected) {
+        const next = new Set(previous);
+        availableApplicantUserIds.forEach((id) => next.delete(id));
+        return next;
+      }
+
+      const next = new Set(previous);
+      availableApplicantUserIds.forEach((id) => next.add(id));
+      return next;
+    });
+  };
+
+  const handleSendBulkInterviewInvite = async () => {
+    if (!selectedApplicantIds.size) {
+      toast('Vui lòng chọn ít nhất 1 ứng viên.', 'error');
+      return;
+    }
+
+    const trimmedMessage = bulkInviteMessage.trim();
+    if (!trimmedMessage) {
+      toast('Vui lòng nhập nội dung lời mời phỏng vấn.', 'error');
+      return;
+    }
+
+    setBulkInviteSending(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    try {
+      const invitableApplicantIds = new Set(availableApplicantUserIds);
+      const selectedInvitableIds = Array.from(selectedApplicantIds).filter((id) =>
+        invitableApplicantIds.has(id),
+      );
+
+      if (!selectedInvitableIds.length) {
+        toast('Vui lòng chọn ứng viên Phù hợp để mời phỏng vấn.', 'error');
+        return;
+      }
+
+      const jobUrl = `${window.location.origin}/job/${jobId}`;
+      const finalMessage = `${trimmedMessage}\n\n🔗 Xem chi tiết công việc: ${jobUrl}`;
+
+      for (const rawUserId of selectedInvitableIds) {
+        try {
+          const participantIdNumber = Number(rawUserId);
+          const participantId = Number.isNaN(participantIdNumber)
+            ? rawUserId
+            : participantIdNumber;
+
+          const conversation = await chatApi.getOrCreateConversation(participantId);
+          if (!conversation?.id) {
+            failCount += 1;
+            continue;
+          }
+
+          await chatApi.sendMessage(conversation.id, finalMessage);
+          successCount += 1;
+        } catch {
+          failCount += 1;
+        }
+      }
+
+      if (successCount > 0) {
+        toast(
+          failCount > 0
+            ? `Đã gửi lời mời cho ${successCount} ứng viên, ${failCount} ứng viên gửi thất bại.`
+            : `Đã gửi lời mời phỏng vấn cho ${successCount} ứng viên.`,
+          failCount > 0 ? 'error' : 'success',
+        );
+        setBulkInviteOpen(false);
+        setSelectedApplicantIds(new Set());
+      } else {
+        toast('Không gửi được lời mời nào. Vui lòng thử lại.', 'error');
+      }
+    } finally {
+      setBulkInviteSending(false);
+    }
+  };
 
   const handleExport = () => {
     if (!filteredApplicants || filteredApplicants.length === 0) {
@@ -827,6 +987,26 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
           </Button>
         </div>
 
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+          <div className="flex items-center gap-3">
+            <Checkbox checked={isAllSelected} onCheckedChange={toggleAllApplicants} className="w-5 h-5 rounded-md" />
+            <span className="text-sm font-medium text-slate-700">
+              Chọn tất cả ứng viên Phù hợp ({availableApplicantUserIds.length})
+            </span>
+          </div>
+          <Button
+            size="sm"
+            className="rounded-xl gap-2"
+            onClick={() => setBulkInviteOpen(true)}
+            disabled={selectedCount === 0}
+          >
+            <Send size={14} /> Mời phỏng vấn hàng loạt ({selectedCount})
+          </Button>
+        </div>
+        <p className="mb-3 text-xs text-slate-500 italic">
+          Chỉ ứng viên có trạng thái Phù hợp mới có thể được chọn để mời phỏng vấn.
+        </p>
+
         {isLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="animate-spin text-primary" />
@@ -846,10 +1026,11 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
               >
                 <div className="absolute top-4 left-4">
                   <Checkbox
-                    // checked={selectedApplicantIds.has(getApplicantUserId(a))}
+                    checked={selectedApplicantIds.has(getApplicantUserId(a))}
                     onCheckedChange={() =>
                       toggleApplicantSelection(getApplicantUserId(a))
                     }
+                    disabled={!isApplicantInvitable(a)}
                     onClick={(e) => e.stopPropagation()}
                     className="w-5 h-5 rounded-md"
                   />
@@ -916,6 +1097,35 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
           </div>
         )}
       </div>
+
+      <Modal
+        open={bulkInviteOpen}
+        title="Gửi lời mời phỏng vấn"
+        description={`Bạn đang chọn ${selectedApplicantIds.size} ứng viên. Nội dung dưới đây sẽ được gửi qua chat.`}
+        onClose={() => {
+          if (!bulkInviteSending) {
+            setBulkInviteOpen(false);
+          }
+        }}
+        onConfirm={handleSendBulkInterviewInvite}
+        confirmLabel={bulkInviteSending ? 'Đang gửi...' : 'Gửi lời mời'}
+        cancelLabel="Hủy"
+        confirmDisabled={bulkInviteSending || !bulkInviteMessage.trim()}
+      >
+        <div className="space-y-2 mt-4">
+          <p className="text-sm font-medium text-slate-700">Nội dung tin nhắn</p>
+          <Textarea
+            value={bulkInviteMessage}
+            onChange={(e) => setBulkInviteMessage(e.target.value)}
+            rows={6}
+            placeholder="Nhập nội dung mời phỏng vấn"
+            className="rounded-xl border-slate-200"
+          />
+          <p className="text-xs text-slate-500">
+            Hệ thống sẽ tự đính kèm link công việc để ứng viên mở nhanh.
+          </p>
+        </div>
+      </Modal>
     </Modal>
   );
 };
@@ -931,6 +1141,7 @@ export const EmployerDashboard = () => {
   const [boostModalOpen, setBoostModalOpen] = useState(false);
   const [selectedBoostJob, setSelectedBoostJob] = useState(null);
   const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
+  const [boostCheckoutData, setBoostCheckoutData] = useState(null);
   const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
   const [editJobId, setEditJobId] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
@@ -1034,13 +1245,16 @@ export const EmployerDashboard = () => {
         throw new Error('Không lấy được mã đơn thanh toán');
       }
 
+      setBoostCheckoutData(checkout);
+
       const checkoutUrl = checkout?.paymentUrl;
       if (checkoutUrl) {
-        window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+        const popup = window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+        if (!popup) {
+          // Fallback khi popup bị chặn bởi trình duyệt
+          window.location.assign(checkoutUrl);
+        }
       }
-
-      setBoostModalOpen(false);
-      setSelectedBoostJob(null);
 
       const paymentCode = checkout?.paymentCode;
       toast(
@@ -1055,6 +1269,18 @@ export const EmployerDashboard = () => {
         error?.message ||
         'Thanh toán boost thất bại';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    }
+  };
+
+  const handleCopyPaymentCode = async () => {
+    const paymentCode = boostCheckoutData?.paymentCode;
+    if (!paymentCode) return;
+
+    try {
+      await navigator.clipboard.writeText(paymentCode);
+      toast('Đã sao chép nội dung chuyển khoản', 'success');
+    } catch {
+      toast('Không thể sao chép. Vui lòng sao chép thủ công.', 'error');
     }
   };
 
@@ -1768,56 +1994,127 @@ export const EmployerDashboard = () => {
 
       <Modal
         open={boostModalOpen}
-        title="Thanh toán boost tin tuyển dụng"
+        title="Mua subscription đẩy top"
         description={
           selectedBoostJob
-            ? `Thanh toán để đẩy top cho job: ${selectedBoostJob.title}`
-            : 'Chọn gói boost cho tin tuyển dụng'
+            ? `Chọn gói phù hợp để tăng hiển thị cho job: ${selectedBoostJob.title}`
+            : 'Chọn gói subscription cho tin tuyển dụng'
         }
         onClose={() => {
           setBoostModalOpen(false);
           setSelectedBoostJob(null);
+          setBoostCheckoutData(null);
         }}
         onConfirm={handleBoostCheckout}
         confirmLabel={
-          createBoostCheckoutMutation.isPending ? 'Đang xử lý...' : 'Thanh toán'
+          createBoostCheckoutMutation.isPending
+            ? 'Đang xử lý...'
+            : boostCheckoutData
+              ? 'Tạo lại mã thanh toán'
+              : 'Tiếp tục thanh toán'
         }
         cancelLabel="Hủy"
         confirmDisabled={createBoostCheckoutMutation.isPending}
       >
         <div className="space-y-4 mt-4">
-          <label className="flex items-start gap-4 p-4 rounded-xl border border-primary/30 bg-primary/5 cursor-pointer hover:bg-primary/10 transition-colors">
-            <input
-              type="radio"
-              name="pkg"
-              checked={selectedBoostPackageDays === 7}
-              onChange={() => setSelectedBoostPackageDays(7)}
-              className="mt-1 w-4 h-4 text-primary"
-            />
-            <div>
-              <p className="font-bold text-primary">Gói Đẩy Top 7 ngày 🔥</p>
-              <p className="text-sm text-slate-600 mt-1">
-                Hiển thị nổi bật trên trang chủ và đầu kết quả tìm kiếm.
-              </p>
-              <p className="font-bold text-slate-800 mt-2">100.000đ</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {BOOST_SUBSCRIPTION_PLANS.map((plan) => {
+              const isActive = selectedBoostPackageDays === plan.days;
+
+              return (
+                <label
+                  key={plan.days}
+                  className={`relative flex flex-col gap-2 p-4 rounded-2xl border cursor-pointer transition-all ${
+                    isActive
+                      ? 'border-primary ring-2 ring-primary/30 bg-primary/10'
+                      : plan.accent
+                  }`}
+                >
+                  {plan.badge && (
+                    <span className="absolute -top-2 right-3 rounded-full bg-primary text-white text-[10px] px-2 py-1 font-semibold tracking-wide">
+                      {plan.badge}
+                    </span>
+                  )}
+
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name="pkg"
+                      checked={isActive}
+                      onChange={() => setSelectedBoostPackageDays(plan.days)}
+                      className="mt-1 w-4 h-4 text-primary"
+                    />
+                    <div>
+                      <p className="font-bold text-slate-800">{plan.name}</p>
+                      <p className="text-sm text-slate-600 mt-1">{plan.description}</p>
+                    </div>
+                  </div>
+
+                  <p className="text-2xl font-extrabold text-slate-900">
+                    {plan.price.toLocaleString('vi-VN')}đ
+                  </p>
+                </label>
+              );
+            })}
+          </div>
+
+          {boostCheckoutData?.paymentCode && (
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-emerald-700">
+                    Mã thanh toán đã tạo thành công
+                  </p>
+                  <p className="text-xs text-emerald-600 mt-1">
+                    Chuyển khoản đúng nội dung bên dưới để hệ thống tự kích hoạt.
+                  </p>
+                </div>
+                <span className="text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 px-2 py-1">
+                  SePay
+                </span>
+              </div>
+
+              <div className="rounded-xl bg-white border border-emerald-100 p-3">
+                <p className="text-xs text-slate-500">Nội dung chuyển khoản</p>
+                <p className="font-bold text-slate-800 tracking-wide mt-1">
+                  {boostCheckoutData.paymentCode}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="rounded-lg border-emerald-200"
+                  onClick={handleCopyPaymentCode}
+                >
+                  <Copy size={14} className="mr-1" /> Sao chép nội dung
+                </Button>
+
+                {boostCheckoutData.paymentUrl && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-lg"
+                    onClick={() =>
+                      window.open(
+                        boostCheckoutData.paymentUrl,
+                        '_blank',
+                        'noopener,noreferrer',
+                      )
+                    }
+                  >
+                    Mở QR thanh toán
+                  </Button>
+                )}
+              </div>
             </div>
-          </label>
-          <label className="flex items-start gap-4 p-4 rounded-xl border border-slate-200 bg-slate-50 cursor-pointer hover:bg-slate-100 transition-colors">
-            <input
-              type="radio"
-              name="pkg"
-              checked={selectedBoostPackageDays === 30}
-              onChange={() => setSelectedBoostPackageDays(30)}
-              className="mt-1 w-4 h-4"
-            />
-            <div>
-              <p className="font-bold text-slate-700">Gói Đẩy Top 30 ngày ⭐</p>
-              <p className="text-sm text-slate-600 mt-1">
-                Tiết kiệm hơn 30% so với gói tuần.
-              </p>
-              <p className="font-bold text-slate-800 mt-2">300.000đ</p>
-            </div>
-          </label>
+          )}
+
+          <p className="text-xs text-slate-500">
+            Luu y: Neu ban da quet QR ma chua thay cap nhat ngay, he thong se dong bo sau khi SePay gui webhook.
+          </p>
         </div>
       </Modal>
 
@@ -2007,64 +2304,77 @@ export const EmployerDashboard = () => {
             </div>
 
             <div className="pt-6 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-2xl">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                <p className="text-sm font-semibold text-slate-800">
-                  Cập nhật trạng thái ứng viên
-                  {['SUITABLE', 'UNSUITABLE'].includes(
-                    applicantDetail.status,
-                  ) && (
-                    <span className="ml-2 text-xs font-normal text-slate-500 italic block sm:inline">
-                      (Đã chốt kết quả, không thể thay đổi)
-                    </span>
-                  )}
-                </p>
-                <Button
-                  className="rounded-xl px-6 font-semibold shadow-sm"
-                  onClick={handleSaveApplicantStatus}
-                  disabled={['SUITABLE', 'UNSUITABLE'].includes(
-                    applicantDetail.status,
-                  )}
-                >
-                  Lưu lại
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {[
-                  {
-                    value: 'APPLIED',
-                    label: 'Chờ xử lý',
-                    activeClass:
-                      'border-yellow-500 bg-yellow-50 text-yellow-700 ring-1 ring-yellow-500',
-                  },
-                  {
-                    value: 'SUITABLE',
-                    label: 'Phù hợp',
-                    activeClass:
-                      'border-green-500 bg-green-50 text-green-700 ring-1 ring-green-500',
-                  },
-                  {
-                    value: 'UNSUITABLE',
-                    label: 'Không phù hợp',
-                    activeClass:
-                      'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500',
-                  },
-                ].map((status) => (
-                  <button
-                    key={status.value}
-                    onClick={() => setApplicantStatus(status.value)}
-                    disabled={['SUITABLE', 'UNSUITABLE'].includes(
-                      applicantDetail.status,
-                    )}
-                    className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
-                      applicantStatus === status.value
-                        ? status.activeClass
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                    } ${['SUITABLE', 'UNSUITABLE'].includes(applicantDetail.status) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    {status.label}
-                  </button>
-                ))}
-              </div>
+              {(() => {
+                const isFinalized = ['SUITABLE', 'UNSUITABLE'].includes(
+                  applicantDetail.status,
+                );
+
+                if (isFinalized) {
+                  return (
+                    <div className="space-y-3">
+                      <p className="text-sm font-semibold text-slate-800">
+                        Kết quả đánh giá ứng viên
+                      </p>
+                      <div className="inline-flex">
+                        <ApplicantStatusBadge status={applicantDetail.status} />
+                      </div>
+                      <p className="text-xs text-slate-500 italic">
+                        Ứng viên đã được chốt kết quả, không thể cập nhật lại trạng thái.
+                      </p>
+                    </div>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                      <p className="text-sm font-semibold text-slate-800">
+                        Cập nhật trạng thái ứng viên
+                      </p>
+                      <Button
+                        className="rounded-xl px-6 font-semibold shadow-sm"
+                        onClick={handleSaveApplicantStatus}
+                      >
+                        Lưu lại
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {[
+                        {
+                          value: 'APPLIED',
+                          label: 'Chờ xử lý',
+                          activeClass:
+                            'border-yellow-500 bg-yellow-50 text-yellow-700 ring-1 ring-yellow-500',
+                        },
+                        {
+                          value: 'SUITABLE',
+                          label: 'Phù hợp',
+                          activeClass:
+                            'border-green-500 bg-green-50 text-green-700 ring-1 ring-green-500',
+                        },
+                        {
+                          value: 'UNSUITABLE',
+                          label: 'Không phù hợp',
+                          activeClass:
+                            'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500',
+                        },
+                      ].map((status) => (
+                        <button
+                          key={status.value}
+                          onClick={() => setApplicantStatus(status.value)}
+                          className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
+                            applicantStatus === status.value
+                              ? status.activeClass
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          {status.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
         )}

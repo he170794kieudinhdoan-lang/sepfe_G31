@@ -46,7 +46,7 @@ export const CompanyDetailPage = () => {
   const { toast } = useToast();
   const companyId = Number(id);
 
-  const [activeTab, setActiveTab] = useState('info');
+  const [activeTab, setActiveTab] = useState('jobs');
 
   // Modal states
   const [writeOpen, setWriteOpen] = useState(false);       // Mở modal viết review

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -18,6 +19,7 @@ const NOTIFICATION_POLLING_MS = 5000;
 
 export const NotificationBellPopover = () => {
     const { toast } = useToast();
+    const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
     const [open, setOpen] = useState(false);
 
@@ -67,6 +69,25 @@ export const NotificationBellPopover = () => {
                 toast(message, 'error');
             },
         });
+    };
+
+    const handleNotificationClick = (item) => {
+        if (!item.read) {
+            handleRead(item.id);
+        }
+
+        setOpen(false);
+
+        const target = String(item.url || '').trim();
+        if (!target) return;
+
+        if (/^https?:\/\//i.test(target)) {
+            window.location.assign(target);
+            return;
+        }
+
+        const pathname = target.startsWith('/') ? target : `/${target}`;
+        navigate(pathname);
     };
 
     return (
@@ -121,12 +142,7 @@ export const NotificationBellPopover = () => {
                                         <button
                                             type='button'
                                             className='flex-1 text-left cursor-pointer'
-                                            onClick={() => {
-                                                if (!item.read) {
-                                                    handleRead(item.id);
-                                                }
-                                                setOpen(false);
-                                            }}
+                                            onClick={() => handleNotificationClick(item)}
                                         >
                                             <p className='text-sm leading-5 line-clamp-2'>{item.content}</p>
                                             <p className='mt-1 text-xs text-muted-foreground'>{item.time}</p>
