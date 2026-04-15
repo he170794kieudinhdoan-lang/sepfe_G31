@@ -2,6 +2,16 @@ const getId = (item) => item?.id ?? item?._id ?? item?.notificationId;
 const getContent = (item) => item?.content ?? item?.message ?? item?.title ?? 'Bạn có thông báo mới.';
 const isRead = (item) => Boolean(item?.read ?? item?.isRead ?? item?.status === 'READ');
 const getCreatedAt = (item) => item?.createdAt ?? item?.sentAt ?? item?.updatedAt ?? item?.time;
+const getTargetUrl = (item) =>
+    item?.url
+    ?? item?.link
+    ?? item?.targetUrl
+    ?? item?.path
+    ?? item?.redirectUrl
+    ?? item?.metadata?.url
+    ?? item?.raw?.url
+    ?? item?.raw?.link
+    ?? null;
 
 export const formatNotificationTime = (value) => {
     if (!value) return '';
@@ -44,6 +54,7 @@ export const normalizeNotifications = (payload) => {
                 read: isRead(item),
                 createdAt,
                 time: formatNotificationTime(createdAt),
+                url: getTargetUrl(item),
                 raw: item,
             };
         })
