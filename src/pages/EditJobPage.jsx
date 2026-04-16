@@ -254,7 +254,7 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
     fetchDistricts();
   }, [form.province, provinces]);
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isLoading) return <div>Đang tải...</div>;
 
   const handleSubmit = () => {
     const isValid = validateStep(currentStep);

@@ -11,7 +11,7 @@ export const AppProvider = ({ children }) => {
     <Suspense
       fallback={
         <div className="h-screen w-screen flex items-center justify-center">
-          Loading...
+          Đang tải...
         </div>
       }
     >

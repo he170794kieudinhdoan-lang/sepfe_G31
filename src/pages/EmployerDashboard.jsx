@@ -1314,7 +1314,7 @@ export const EmployerDashboard = () => {
   if (loadingCompany) {
     return (
       <DashboardLayout
-        title="Employer Dashboard"
+        title="Bảng điều khiển nhà tuyển dụng"
         menu={EMPLOYER_MENU}
         activeKey={active}
         onSelect={setActive}
@@ -1329,7 +1329,7 @@ export const EmployerDashboard = () => {
 
   return (
     <DashboardLayout
-      title="Employer Dashboard"
+      title="Bảng điều khiển nhà tuyển dụng"
       menu={EMPLOYER_MENU}
       activeKey={active}
       onSelect={setActive}

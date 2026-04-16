@@ -855,7 +855,7 @@ export const JobSearchPage = () => {
             <div className="w-full max-w-6xl my-5 flex justify-end m-auto pr-10">
               <Select value={sortBy} onValueChange={(e) => setSortBy(e)}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Theme" />
+                  <SelectValue placeholder="Sắp xếp" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>

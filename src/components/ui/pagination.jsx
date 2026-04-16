@@ -55,7 +55,7 @@ function PaginationLink({ className, isActive, size = 'icon', ...props }) {
 function PaginationPrevious({ className, ...props }) {
   return (
     <PaginationLink
-      aria-label="Go to previous page"
+      aria-label="Về trang trước"
       size="icon"
       className={cn('', className)}
       {...props}
@@ -68,7 +68,7 @@ function PaginationPrevious({ className, ...props }) {
 function PaginationNext({ className, ...props }) {
   return (
     <PaginationLink
-      aria-label="Go to next page"
+      aria-label="Sang trang sau"
       size="icon"
       className={cn('', className)}
       {...props}
@@ -87,7 +87,7 @@ function PaginationEllipsis({ className, ...props }) {
       {...props}
     >
       <MoreHorizontalIcon className="size-4" />
-      <span className="sr-only">More pages</span>
+      <span className="sr-only">Nhiều trang hơn</span>
     </span>
   );
 }
