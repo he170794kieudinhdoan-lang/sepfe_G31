@@ -33,11 +33,12 @@ import { useToast } from '@/shared/contexts/ToastContext';
 
 // ===== JOB DETAIL =====
 
-export const useJobDetail = (jobId) => {
+export const useJobDetail = (jobId, options = {}) => {
   return useQuery({
     queryKey: ['job-detail', jobId],
     queryFn: () => getJobDetail(jobId),
     enabled: !!jobId,
+    ...options,
   });
 };
 

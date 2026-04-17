@@ -98,9 +98,20 @@ export const JobCard = ({
   };
 
   if (!job) return null;
+  const boostExpiredAt = job.boostExpiredAt ? new Date(job.boostExpiredAt) : null;
+  const isBoosted =
+    !!boostExpiredAt &&
+    !Number.isNaN(boostExpiredAt.getTime()) &&
+    boostExpiredAt > new Date();
 
   return (
-    <Card className="group relative z-0 p-4 shadow-sm hover:shadow-xl transition-all duration-300 rounded-2xl border border-slate-100 bg-white hover:z-20">
+    <Card
+      className={`group relative z-0 p-4 hover:shadow-xl transition-all duration-300 rounded-2xl border hover:z-20 ${
+        isBoosted
+          ? 'border-amber-300 bg-linear-to-br from-amber-50/80 via-white to-rose-50/60 shadow-md ring-1 ring-amber-200/60'
+          : 'border-slate-100 bg-white shadow-sm'
+      }`}
+    >
       <div className="flex gap-4">
         {/* Logo Section */}
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border border-slate-100 bg-white p-1 shadow-sm">
@@ -129,6 +140,11 @@ export const JobCard = ({
             </div>
 
             <div className="flex flex-col items-end gap-1 shrink-0 z-20">
+              {isBoosted && (
+                <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-0 px-2 py-0.5 text-[10px] font-extrabold tracking-wide gap-1">
+                  <Sparkles className="w-3 h-3" /> NỔI BẬT
+                </Badge>
+              )}
               {user && (
                 <Button
                   variant="ghost"
