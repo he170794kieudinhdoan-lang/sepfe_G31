@@ -13,6 +13,9 @@ import {
   updateCompanyReview,
   deleteCompanyReview,
   reportCompanyReview,
+  getReviewReports,
+  updateReviewReportStatusApi,
+  hideCompanyReviewApi,
 } from './getCompanies';
 
 export const useGetCompanies = () => {
@@ -162,5 +165,36 @@ export const useDeleteCompanyReview = (companyId) => {
 export const useReportCompanyReview = () => {
   return useMutation({
     mutationFn: ({ reviewId, payload }) => reportCompanyReview(reviewId, payload),
+  });
+};
+
+// ===== MANAGER: REVIEW REPORTS =====
+
+export const useGetReviewReports = (status, page = 1, limit = 50) => {
+  return useQuery({
+    queryKey: ['review-reports', status, page, limit],
+    queryFn: () => getReviewReports({ status, page, limit }),
+    keepPreviousData: true,
+  });
+};
+
+export const useUpdateReviewReportStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updateReviewReportStatusApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['review-reports'] });
+    },
+  });
+};
+
+export const useHideCompanyReview = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: hideCompanyReviewApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['review-reports'] });
+      queryClient.invalidateQueries({ queryKey: ['company-reviews'] });
+    },
   });
 };

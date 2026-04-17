@@ -5,7 +5,6 @@ import {
   useGetProvinces,
   useGetWards,
 } from '@/features/jobs/api/useJobs';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,9 +35,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { HeartIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Container } from '@/shared/components/Container';
+import { isWorkerRole } from '@/shared/utils/userRole';
 
 // ========================
 // CONSTANTS
@@ -124,25 +123,39 @@ import {
   useWishlist,
   useSaveJob,
   useUnsaveJob,
+  isWishlistTogglePending,
 } from '@/features/jobs/api/useWishlist';
 
 /** Job Card cho Search Results */
 const SearchJobCard = ({ job }) => {
   const [displayMoreButton, setDisplayMoreButton] = useState(false);
   const { user } = useAuth();
+  const isWorker = isWorkerRole(user);
 
-  // Wishlist Logic
-  const { data } = useWishlist({}, { enabled: !!user });
+  // Wishlist: chỉ worker mới dùng được
+  const { data } = useWishlist({}, { enabled: isWorker });
   const saveJobMutation = useSaveJob();
   const unsaveJobMutation = useUnsaveJob();
   const wishlist = data?.items || data || [];
   const isSaved =
-    Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job.id);
-  const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
+    Array.isArray(wishlist) &&
+    wishlist.some(
+      (item) =>
+        item.jobId === job.id ||
+        item.job?.id === job.id ||
+        String(item.jobId) === String(job.id),
+    );
+  const wishlistBusy = isWishlistTogglePending(
+    saveJobMutation,
+    unsaveJobMutation,
+    job.id,
+  );
 
   const handleWishlistToggle = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!isWorker) return;
 
     if (!user) {
       toast.error('Vui lòng đăng nhập để lưu việc làm');
@@ -163,7 +176,7 @@ const SearchJobCard = ({ job }) => {
       onMouseLeave={() => setDisplayMoreButton(false)}
     >
       <div className="flex">
-        <div className="p-5 flex-7">
+        <div className="min-w-0 flex-1 p-5">
           {/* HEADER */}
           <div className="flex items-start gap-3 mb-4">
             <div
@@ -195,99 +208,89 @@ const SearchJobCard = ({ job }) => {
             </div>
           </div>
 
-          <div className="flex items-center mt-8">
-            {/* BADGES */}
-            <div className="flex flex-wrap gap-2 mb-4">
-              <Badge
-                className="flex items-center gap-1 text-xs font-medium 
-                          px-3 py-1  bg-gray-100 text-gray-700 "
+          <div className="mt-3 space-y-1.5">
+            <div className="flex flex-wrap gap-1.5">
+              <span
+                className="inline-flex items-center gap-0.5 max-w-full rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700"
+                title={formatSalary(job.salaryMin, job.salaryMax)}
               >
-                <Wallet className="h-3 w-3" />
-                {formatSalary(job.salaryMin, job.salaryMax)}
-              </Badge>
+                <Wallet className="h-2.5 w-2.5 shrink-0 text-slate-500" />
+                <span className="truncate">
+                  {formatSalary(job.salaryMin, job.salaryMax)}
+                </span>
+              </span>
 
               {job.province && (
-                <Badge
-                  className="flex items-center gap-1 text-xs font-medium 
-                                px-3 py-1 rounded-lg 
-                                bg-gray-100 text-gray-700 
-                                border border-gray-200"
+                <span
+                  className="inline-flex max-w-[min(100%,11rem)] items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700"
+                  title={job.province}
                 >
-                  <MapPin className="h-3 w-3 text-primary" />
-                  {job.province}
-                </Badge>
+                  <MapPin className="h-2.5 w-2.5 shrink-0 text-primary" />
+                  <span className="truncate">{job.province}</span>
+                </span>
               )}
 
-              <Badge
-                className="flex items-center gap-1 text-xs font-medium 
-                        px-3 py-1 rounded-lg 
-                        bg-gray-100 text-gray-700 
-                        border border-gray-200"
-              >
-                <Timer className="h-3 w-3 text-primary" />
+              <span className="inline-flex items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700">
+                <Timer className="h-2.5 w-2.5 shrink-0 text-primary" />
                 {shiftLabel(job.workingShift)}
-              </Badge>
+              </span>
             </div>
-            {/* EXTRA INFO */}
-            <div className="flex gap-4 text-xs text-gray-500 mb-4">
-              <div>
-                {/* {job.genderRequirement && (
-                                <span className="flex items-center gap-1">
-                                    <Users className="h-3 w-3 text-yellow-600" />
-                                    {genderLabel(job.genderRequirement)}
-                                </span>
-                            )} */}
-              </div>
-              {(job.ageMin || job.ageMax) && (
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3 w-3 text-primary" />
-                  {job.ageMin && job.ageMax
-                    ? `${job.ageMin}-${job.ageMax} tuổi`
-                    : job.ageMin
-                      ? `Từ ${job.ageMin} tuổi`
-                      : `Đến ${job.ageMax} tuổi`}
-                </span>
-              )}
 
-              {job.quantity > 0 && (
-                <span className="flex items-center gap-1">
-                  <Briefcase className="h-3 w-3 text-primary" />
-                  {job.quantity} vị trí
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="flex w-full flex-2 items-end mb-5 gap-3">
-          <div
-            className={`transition-opacity duration-200 ${displayMoreButton || isSaved ? 'opacity-100' : 'opacity-0'}`}
-          >
-            <Button
-              variant="outline"
-              size="icon"
-              className={`rounded-full shadow-sm hover:shadow active:scale-95 transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : ''}`}
-              title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
-              onClick={handleWishlistToggle}
-              disabled={isPending}
-            >
-              <Heart
-                className={`h-5 w-5 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
-              />
-            </Button>
-          </div>
-          <div>
-            {displayMoreButton && (
-              <Button
-                size="sm"
-                className="flex items-center gap-1 animate-in rounded-full"
-                title="Ứng tuyển"
-                asChild
-              >
-                <Link to={`/job/${job.id}`}>Ứng tuyển</Link>
-              </Button>
+            {((job.ageMin || job.ageMax) || job.quantity > 0) && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
+                {(job.ageMin || job.ageMax) && (
+                  <span className="inline-flex items-center gap-0.5">
+                    <Calendar className="h-2.5 w-2.5 shrink-0 text-primary" />
+                    {job.ageMin && job.ageMax
+                      ? `${job.ageMin}–${job.ageMax} tuổi`
+                      : job.ageMin
+                        ? `Từ ${job.ageMin} tuổi`
+                        : `Đến ${job.ageMax} tuổi`}
+                  </span>
+                )}
+                {job.quantity > 0 && (
+                  <span className="inline-flex items-center gap-0.5">
+                    <Briefcase className="h-2.5 w-2.5 shrink-0 text-primary" />
+                    {job.quantity} vị trí
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>
+        {isWorker && (
+          <div className="flex w-full shrink-0 flex-col items-end justify-end gap-2 pb-5 pr-4 sm:w-auto sm:pr-5">
+            <div
+              className={`transition-opacity duration-200 ${displayMoreButton || isSaved ? 'opacity-100' : 'opacity-0'}`}
+            >
+              <Button
+                variant="outline"
+                size="icon"
+                className={`h-9 w-9 rounded-full shadow-sm hover:shadow active:scale-[0.98] transition-colors duration-150 ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : ''}`}
+                title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
+                onClick={handleWishlistToggle}
+                disabled={wishlistBusy}
+                aria-busy={wishlistBusy}
+              >
+                <Heart
+                  className={`h-4 w-4 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
+                />
+              </Button>
+            </div>
+            <div>
+              {displayMoreButton && (
+                <Button
+                  size="sm"
+                  className="flex h-8 items-center gap-1 rounded-full px-3 text-xs animate-in"
+                  title="Ứng tuyển"
+                  asChild
+                >
+                  <Link to={`/job/${job.id}`}>Ứng tuyển</Link>
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );

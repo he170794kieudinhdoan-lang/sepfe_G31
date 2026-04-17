@@ -10,6 +10,8 @@ import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
 
 export const DashboardLayout = ({
   title,
+  /** Dòng mô tả dưới tiêu đề (thay cho text cố định) */
+  subtitle,
   menu,
   activeKey,
   onSelect,
@@ -78,7 +80,8 @@ export const DashboardLayout = ({
               <div>
                 <h1 className="text-2xl font-bold">{title}</h1>
                 <p className="text-sm text-muted-foreground">
-                  Bảng điều khiển WorkLink
+                  {subtitle ??
+                    'Theo dõi hoạt động tài khoản và thao tác nhanh'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
