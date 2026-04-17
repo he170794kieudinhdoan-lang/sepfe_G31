@@ -1,5 +1,5 @@
 export const ProductList = ({ products }) => {
-  if (!products.length) return <div>No products found.</div>;
+  if (!products.length) return <div>Không tìm thấy sản phẩm.</div>;
 
   return (
     <ul className="space-y-4">

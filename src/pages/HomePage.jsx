@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, MapPin, X, Check } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -22,6 +22,7 @@ import {
   useGetProvinces,
   useGetWards,
   useSearchJobs,
+  useBoostedJobs,
 } from '@/features/jobs/api/useJobs';
 import {
   useWishlist,
@@ -47,6 +48,7 @@ const POPULAR_KEYWORDS = [
   'nhân viên kho',
   'phụ kho - bốc xếp',
 ];
+
 
 function JobCardSkeleton() {
   return (
@@ -447,8 +449,13 @@ export function HomePage() {
   };
 
   const { data: newestJobs, isLoading } = useSearchJobs({ limit });
-
-  console.log(newestJobs);
+  const { data: boostedJobs, isLoading: isBoostedLoading } = useBoostedJobs({
+    page: 1,
+    limit,
+  });
+  const displayedBoostedJobs = useMemo(() => {
+    return Array.isArray(boostedJobs?.items) ? boostedJobs.items : [];
+  }, [boostedJobs?.items]);
 
   return (
     <div className="bg-background min-h-full">
@@ -617,6 +624,24 @@ export function HomePage() {
       </section>
 
       <MatchedJobs />
+
+      {(isBoostedLoading || displayedBoostedJobs.length > 0) && (
+        <section className="container mx-auto px-6 py-6 space-y-6 max-w-7xl">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-bold">Việc làm nổi bật</h2>
+          </div>
+
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {isBoostedLoading
+              ? Array.from({ length: limit }).map((_, i) => (
+                  <JobCardSkeleton key={i} />
+                ))
+              : displayedBoostedJobs.map((job) => (
+                  <JobCard key={job.id} job={job} />
+                ))}
+          </div>
+        </section>
+      )}
 
       {/* FEATURED */}
       <section

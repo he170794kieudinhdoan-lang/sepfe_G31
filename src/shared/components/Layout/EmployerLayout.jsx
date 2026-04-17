@@ -14,7 +14,7 @@ export const EmployerLayout = () => {
 
     return (
         <DashboardLayout
-            title="Employer Dashboard"
+            title="Bảng điều khiển nhà tuyển dụng"
             menu={menu}
             activeKey="dashboard"
             onSelect={(key) => {

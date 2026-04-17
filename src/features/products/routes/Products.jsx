@@ -14,11 +14,11 @@ export const ProductsRoute = () => {
   }, []);
 
   if (loading)
-    return <div className="p-10 text-center">Loading products...</div>;
+    return <div className="p-10 text-center">Đang tải sản phẩm...</div>;
 
   return (
     <div className="max-w-2xl mx-auto py-10">
-      <h1 className="text-3xl font-bold mb-6">Marketplace</h1>
+      <h1 className="text-3xl font-bold mb-6">Sàn sản phẩm</h1>
       <ProductList products={products} />
     </div>
   );

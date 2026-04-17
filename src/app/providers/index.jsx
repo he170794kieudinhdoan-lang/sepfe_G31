@@ -32,6 +32,7 @@ export const AppProvider = ({ children }) => {
     <Suspense
       fallback={
         <div className="h-screen w-screen flex items-center justify-center">
+          Đang tải...
           <div className="h-8 w-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
         </div>
       }

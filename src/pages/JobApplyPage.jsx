@@ -22,11 +22,11 @@ export function JobApplyPage() {
         <div className="flex items-center justify-center h-screen">
             <Card className="w-full max-w-[70%]">
                 <CardHeader>
-                    <CardTitle>Login to your account</CardTitle>
+                    <CardTitle>Đăng nhập vào tài khoản</CardTitle>
                     <CardDescription>
-                        Enter your email below to login to your account
+                        Nhập email bên dưới để đăng nhập vào tài khoản của bạn
                     </CardDescription>
-                    <Button variant="link">Sign Up</Button>
+                    <Button variant="link">Đăng ký</Button>
                 </CardHeader>
                 <CardContent>
                     <form>
@@ -42,12 +42,12 @@ export function JobApplyPage() {
                             </div>
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
+                                    <Label htmlFor="password">Mật khẩu</Label>
                                     <a
                                         href="#"
                                         className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
                                     >
-                                        Forgot your password?
+                                        Quên mật khẩu?
                                     </a>
                                 </div>
                                 <Input id="password" type="password" required />
@@ -57,10 +57,10 @@ export function JobApplyPage() {
                 </CardContent>
                 <CardFooter className="flex-col gap-2">
                     <Button type="submit" className="w-full">
-                        Login
+                        Đăng nhập
                     </Button>
                     <Button variant="outline" className="w-full">
-                        Login with Google
+                        Đăng nhập với Google
                     </Button>
                 </CardFooter>
             </Card>

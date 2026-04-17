@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -98,16 +98,16 @@ const APPLICANTS_TAB_PAGE_SIZE = 10;
 const BOOST_SUBSCRIPTION_PLANS = [
   {
     days: 7,
-    name: 'Starter 7 ngày',
+    name: 'Gói nổi bật 7 ngày',
     description: 'Phù hợp test nhanh nhu cầu tuyển gấp trong tuần.',
-    price: 100000,
+    price: 10000,
     accent: 'border-slate-200 bg-white',
   },
   {
     days: 30,
-    name: 'Growth 30 ngày',
+    name: 'Gói nổi bật 30 ngày',
     description: 'Được chọn nhiều nhất. Hiển thị dài hạn và tiết kiệm hơn.',
-    price: 300000,
+    price: 20000,
     badge: 'Mua nhiều - tiết kiệm hơn',
     accent: 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20',
   },
@@ -1141,6 +1141,7 @@ export const EmployerDashboard = () => {
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [boostModalOpen, setBoostModalOpen] = useState(false);
+  const [boostPaymentModalOpen, setBoostPaymentModalOpen] = useState(false);
   const [selectedBoostJob, setSelectedBoostJob] = useState(null);
   const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
   const [boostCheckoutData, setBoostCheckoutData] = useState(null);
@@ -1182,6 +1183,20 @@ export const EmployerDashboard = () => {
   const { mutate: deleteJob } = useDeleteJob();
   const { mutate: updateApplicantStatus } = useUpdateApplicationStatus();
   const createBoostCheckoutMutation = useCreateBoostCheckout();
+  const boostWebhookHandledRef = useRef(false);
+  const { data: boostJobDetail } = useJobDetail(selectedBoostJob?.id, {
+    enabled: !!selectedBoostJob?.id && boostPaymentModalOpen,
+    refetchInterval: boostPaymentModalOpen ? 3000 : false,
+    refetchIntervalInBackground: true,
+  });
+
+  const resolvedBoostJobDetail = boostJobDetail?.data || boostJobDetail;
+  const boostPaymentConfirmed = (() => {
+    if (!resolvedBoostJobDetail?.boostExpiredAt || !resolvedBoostJobDetail?.isBoosted)
+      return false;
+    const expiredAt = new Date(resolvedBoostJobDetail.boostExpiredAt);
+    return !Number.isNaN(expiredAt.getTime()) && expiredAt > new Date();
+  })();
 
   const applicantsList = applicationsResult?.data || [];
   const filteredApplicants = applicantsList.filter((a) => {
@@ -1224,6 +1239,30 @@ export const EmployerDashboard = () => {
     }
   }, [company, loadingCompany]);
 
+  useEffect(() => {
+    if (!boostPaymentModalOpen) {
+      boostWebhookHandledRef.current = false;
+      return;
+    }
+
+    if (!boostPaymentConfirmed || boostWebhookHandledRef.current) {
+      return;
+    }
+
+    boostWebhookHandledRef.current = true;
+    toast('Thanh toán thành công. Tin đã được kích hoạt nổi bật.', 'success');
+    setBoostPaymentModalOpen(false);
+    setBoostCheckoutData(null);
+    setSelectedBoostJob(null);
+    queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
+    queryClient.invalidateQueries({ queryKey: ['boosted-jobs'] });
+  }, [
+    boostPaymentModalOpen,
+    boostPaymentConfirmed,
+    queryClient,
+    toast,
+  ]);
+
   const handleDeleteJob = () => {
     if (!deleteConfirm || !company?.id) return;
     deleteJob(
@@ -1262,15 +1301,8 @@ export const EmployerDashboard = () => {
       }
 
       setBoostCheckoutData(checkout);
-
-      const checkoutUrl = checkout?.paymentUrl;
-      if (checkoutUrl) {
-        const popup = window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
-        if (!popup) {
-          // Fallback khi popup bị chặn bởi trình duyệt
-          window.location.assign(checkoutUrl);
-        }
-      }
+      setBoostModalOpen(false);
+      setBoostPaymentModalOpen(true);
 
       const paymentCode = checkout?.paymentCode;
       toast(
@@ -1330,7 +1362,7 @@ export const EmployerDashboard = () => {
   if (loadingCompany) {
     return (
       <DashboardLayout
-        title={DASHBOARD_TITLE}
+        title="Bảng điều khiển nhà tuyển dụng"
         subtitle={DASHBOARD_SUBTITLE}
         menu={EMPLOYER_MENU}
         activeKey={active}
@@ -1346,7 +1378,7 @@ export const EmployerDashboard = () => {
 
   return (
     <DashboardLayout
-      title={DASHBOARD_TITLE}
+      title="Bảng điều khiển nhà tuyển dụng"
       subtitle={DASHBOARD_SUBTITLE}
       menu={EMPLOYER_MENU}
       activeKey={active}
@@ -1777,7 +1809,16 @@ export const EmployerDashboard = () => {
                               .toLowerCase()
                               .includes(jobSearchText.toLowerCase()),
                           )
-                          .map((job) => (
+                          .map((job) => {
+                            const boostExpiredAt = job.boostExpiredAt
+                              ? new Date(job.boostExpiredAt)
+                              : null;
+                            const isBoostedActive =
+                              !!boostExpiredAt &&
+                              !Number.isNaN(boostExpiredAt.getTime()) &&
+                              boostExpiredAt > new Date();
+
+                            return (
                             <tr
                               key={job.id}
                               className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors"
@@ -1819,12 +1860,12 @@ export const EmployerDashboard = () => {
                                 </span>
                               </td>
                               <td className="px-4 text-center">
-                                {job.isBoosted ? (
+                                {isBoostedActive ? (
                                   <Badge
                                     variant="secondary"
                                     className="bg-primary/15 text-primary border border-primary/25 hover:bg-primary/20 cursor-default font-medium"
                                   >
-                                    Đang Boost đến{' '}
+                                    Đang nổi bật đến{' '}
                                     {job.boostExpiredAt
                                       ? new Date(
                                           job.boostExpiredAt,
@@ -1839,11 +1880,13 @@ export const EmployerDashboard = () => {
                                     onClick={() => {
                                       setSelectedBoostJob(job);
                                       setSelectedBoostPackageDays(7);
+                                      setBoostCheckoutData(null);
+                                      setBoostPaymentModalOpen(false);
                                       setBoostModalOpen(true);
                                     }}
                                     disabled={job.status !== 'PUBLISHED'}
                                   >
-                                    Nâng cấp
+                                    Đăng tin nổi bật
                                   </Button>
                                 )}
                               </td>
@@ -1915,7 +1958,8 @@ export const EmployerDashboard = () => {
                                 </div>
                               </td>
                             </tr>
-                          ))
+                            );
+                          })
                       )}
                     </tbody>
                   </table>
@@ -2257,24 +2301,21 @@ export const EmployerDashboard = () => {
 
       <Modal
         open={boostModalOpen}
-        title="Mua subscription đẩy top"
+        title="Đăng tin nổi bật"
         description={
           selectedBoostJob
-            ? `Chọn gói phù hợp để tăng hiển thị cho job: ${selectedBoostJob.title}`
-            : 'Chọn gói subscription cho tin tuyển dụng'
+            ? `Chọn gói để tăng hiển thị cho tin: ${selectedBoostJob.title}`
+            : 'Chọn gói nổi bật cho tin tuyển dụng'
         }
         onClose={() => {
           setBoostModalOpen(false);
           setSelectedBoostJob(null);
-          setBoostCheckoutData(null);
         }}
         onConfirm={handleBoostCheckout}
         confirmLabel={
           createBoostCheckoutMutation.isPending
             ? 'Đang xử lý...'
-            : boostCheckoutData
-              ? 'Tạo lại mã thanh toán'
-              : 'Tiếp tục thanh toán'
+            : 'Tạo mã thanh toán'
         }
         cancelLabel="Hủy"
         confirmDisabled={createBoostCheckoutMutation.isPending}
@@ -2321,15 +2362,38 @@ export const EmployerDashboard = () => {
             })}
           </div>
 
-          {boostCheckoutData?.paymentCode && (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-3">
+          <p className="text-xs text-slate-500">
+            Luu y: Neu ban da quet QR ma chua thay cap nhat ngay, he thong se dong bo sau khi SePay gui webhook.
+          </p>
+        </div>
+      </Modal>
+
+      <Modal
+        open={boostPaymentModalOpen && !!boostCheckoutData}
+        title="Thanh toán tin nổi bật bằng QR"
+        description={
+          selectedBoostJob
+            ? `Quét QR để thanh toán cho job: ${selectedBoostJob.title}`
+            : 'Quét QR để hoàn tất thanh toán gói nổi bật'
+        }
+        onClose={() => {
+          setBoostPaymentModalOpen(false);
+          setBoostCheckoutData(null);
+          setSelectedBoostJob(null);
+        }}
+        variant="custom"
+        className="z-60 bg-black/60 backdrop-blur-md pt-12 px-4"
+      >
+        {boostCheckoutData && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-emerald-700">
                     Mã thanh toán đã tạo thành công
                   </p>
                   <p className="text-xs text-emerald-600 mt-1">
-                    Chuyển khoản đúng nội dung bên dưới để hệ thống tự kích hoạt.
+                    Chuyển khoản đúng nội dung để hệ thống tự kích hoạt tin nổi bật.
                   </p>
                 </div>
                 <span className="text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 px-2 py-1">
@@ -2344,41 +2408,63 @@ export const EmployerDashboard = () => {
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="rounded-lg border-emerald-200"
-                  onClick={handleCopyPaymentCode}
-                >
-                  <Copy size={14} className="mr-1" /> Sao chép nội dung
-                </Button>
-
-                {boostCheckoutData.paymentUrl && (
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="rounded-lg"
-                    onClick={() =>
-                      window.open(
-                        boostCheckoutData.paymentUrl,
-                        '_blank',
-                        'noopener,noreferrer',
-                      )
-                    }
-                  >
-                    Mở QR thanh toán
-                  </Button>
-                )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                <div className="rounded-xl bg-white border border-slate-200 p-3">
+                  <p className="text-xs text-slate-500">Gói đã chọn</p>
+                  <p className="font-semibold text-slate-800 mt-1">
+                    {selectedBoostPackageDays} ngày
+                  </p>
+                </div>
+                <div className="rounded-xl bg-white border border-slate-200 p-3">
+                  <p className="text-xs text-slate-500">Số tiền</p>
+                  <p className="font-semibold text-slate-800 mt-1">
+                    {(boostCheckoutData.amount || 0).toLocaleString('vi-VN')}đ
+                  </p>
+                </div>
               </div>
             </div>
-          )}
 
-          <p className="text-xs text-slate-500">
-            Luu y: Neu ban da quet QR ma chua thay cap nhat ngay, he thong se dong bo sau khi SePay gui webhook.
-          </p>
-        </div>
+            {boostCheckoutData.paymentUrl && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                <p className="text-sm font-semibold text-slate-700 mb-3">
+                  Quét QR để thanh toán
+                </p>
+                <div className="mx-auto w-64 h-64 rounded-xl border border-slate-200 bg-white p-2 flex items-center justify-center shadow-sm">
+                  <img
+                    src={boostCheckoutData.paymentUrl}
+                    alt="SePay QR"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2 justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="rounded-lg border-emerald-200"
+                onClick={handleCopyPaymentCode}
+              >
+                <Copy size={14} className="mr-1" /> Sao chép nội dung
+              </Button>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              Sau khi thanh toán, hệ thống sẽ chờ SePay callback để tự cập nhật DB và kích hoạt tin nổi bật.
+            </p>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
+              <Loader2 className={`h-4 w-4 ${boostPaymentConfirmed ? '' : 'animate-spin'} text-primary`} />
+              <p className="text-xs text-slate-600">
+                {boostPaymentConfirmed
+                  ? 'Đã xác nhận thanh toán từ SePay. Đang cập nhật giao diện...'
+                  : 'Đang chờ SePay xác nhận thanh toán...'}
+              </p>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* <Modal
@@ -2426,7 +2512,7 @@ export const EmployerDashboard = () => {
         onClose={() => setApplicantDetail(null)}
         title="Chi tiết hồ sơ ứng viên"
         variant="custom"
-        className="z-[60]"
+        className="z-60"
       >
         {applicantDetail && (
           <div className="p-6">
