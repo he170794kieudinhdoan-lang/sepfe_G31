@@ -24,22 +24,26 @@ import {
   Phone,
   User,
   Search,
+  MessageSquare,
 } from 'lucide-react';
 import {
   useGetCompanies,
   useGetCompaniesById,
   useGetCompaniesByStatus,
   useReviewCompany,
+  useGetReviewReports,
+  useUpdateReviewReportStatus,
+  useHideCompanyReview,
 } from '../api/useGetCompanies';
-import { useGetAllJobReports, useUpdateJobReportStatus, useGetWarningJobs, useUpdateJobStatus } from '@/features/jobs/api/useJobs';
+import { useGetAllJobReports, useUpdateJobReportStatus, useUpdateJobStatus } from '@/features/jobs/api/useJobs';
 
 // 1. Management Menu and Status Colors configuration
 const MANAGEMENT_MENU = [
   { key: 'all', label: 'Tất cả đơn' },
   { key: 'approvals', label: 'Đang xếp hàng duyệt' },
   { key: 'rejected', label: 'Đã từ chối' },
-  { key: 'job_warning', label: 'Công việc nghi vấn' },
   { key: 'job_reports', label: 'Báo cáo việc làm' },
+  { key: 'review_reports', label: 'Báo cáo đánh giá' },
 ];
 
 const STATUS_COLORS = {
@@ -57,6 +61,21 @@ const STATUS_COLORS = {
   },
 };
 
+const REPORT_REASON_LABELS = {
+  FRAUD: 'Lừa đảo',
+  INAPPROPRIATE_CONTENT: 'Nội dung không phù hợp',
+  SCAM: 'Lừa đảo/Đa cấp',
+  DUPLICATE: 'Tin tuyển dụng trùng lặp',
+  MISLEADING_INFO: 'Thông tin không đúng sự thật',
+  OTHER: 'Khác',
+};
+
+const REPORT_STATUS_LABELS = {
+  PENDING: 'Chờ xử lý',
+  RESOLVED: 'Đã giải quyết',
+  REJECTED: 'Đã từ chối',
+};
+
 export const ManagerDashboard = () => {
   const { toast } = useToast();
 
@@ -72,6 +91,13 @@ export const ManagerDashboard = () => {
   const [reportStatus, setReportStatus] = useState('PENDING');
   const [viewingReportId, setViewingReportId] = useState(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isApproveReportModalOpen, setIsApproveReportModalOpen] = useState(false);
+
+  // Review reports (UC 2.14.6 / 2.14.7)
+  const [reviewReportStatus, setReviewReportStatus] = useState('PENDING');
+  const [viewingReviewReportId, setViewingReviewReportId] = useState(null);
+  const [isReviewReportModalOpen, setIsReviewReportModalOpen] = useState(false);
+  const [isApproveReviewReportModalOpen, setIsApproveReviewReportModalOpen] = useState(false);
 
   // --- DATA FETCHING FROM API ---
   const { data: allCompanies = [], isLoading: isLoadingAll } = useGetCompanies();
@@ -85,12 +111,16 @@ export const ManagerDashboard = () => {
 
   const { data: listReportsData = [], isLoading: loadingReports } = useGetAllJobReports(reportStatus, 1, 50);
   const updateReportMutation = useUpdateJobReportStatus();
-
-  const { data: warningJobsData, isLoading: loadingWarningJobs } = useGetWarningJobs({ page: 1, limit: 100 });
   const updateJobStatusMutation = useUpdateJobStatus();
+
+  const { data: listReviewReportsData, isLoading: loadingReviewReports } =
+    useGetReviewReports(reviewReportStatus, 1, 50);
+  const updateReviewReportMutation = useUpdateReviewReportStatus();
+  const hideReviewMutation = useHideCompanyReview();
 
   // Find the viewing report in the list
   const viewingReport = listReportsData?.data?.find(r => r.id === viewingReportId);
+  const viewingReviewReport = listReviewReportsData?.data?.find(r => r.id === viewingReviewReportId);
 
   // Logic to select which list to display
   const dataMap = {
@@ -143,13 +173,64 @@ export const ManagerDashboard = () => {
     }
   };
 
-  const handleUpdateJobStatus = async (jobId, status) => {
+  const handleApproveReport = async () => {
+    if (!viewingReport) return;
     try {
-      await updateJobStatusMutation.mutateAsync({ id: jobId, status });
-      toast('Cập nhật trạng thái thành công');
-    } catch (e) {
-      console.error(e);
-      toast('Cập nhật thất bại', 'error');
+      if (viewingReport.job?.id) {
+        await updateJobStatusMutation.mutateAsync({
+          jobId: viewingReport.job.id,
+          status: 'DELETED',
+        });
+      }
+      await updateReportMutation.mutateAsync({
+        id: viewingReportId,
+        status: 'RESOLVED',
+      });
+
+      toast('Đã duyệt báo cáo và ẩn việc làm');
+      setIsApproveReportModalOpen(false);
+      setIsReportModalOpen(false);
+      setViewingReportId(null);
+    } catch (error) {
+      toast('Có lỗi xảy ra khi duyệt báo cáo', 'error');
+    }
+  };
+
+  // --- REVIEW REPORT HANDLERS (UC 2.14.6 / 2.14.7) ---
+  const handleReviewReportReject = async () => {
+    if (!viewingReviewReportId) return;
+    try {
+      await updateReviewReportMutation.mutateAsync({
+        id: viewingReviewReportId,
+        status: 'REJECTED',
+      });
+      toast('Đã từ chối báo cáo đánh giá');
+      setIsReviewReportModalOpen(false);
+      setViewingReviewReportId(null);
+    } catch (error) {
+      toast('Có lỗi xảy ra khi cập nhật báo cáo', 'error');
+    }
+  };
+
+  const handleApproveReviewReport = async () => {
+    if (!viewingReviewReport) return;
+    try {
+      if (viewingReviewReport.review?.id) {
+        await hideReviewMutation.mutateAsync({
+          reviewId: viewingReviewReport.review.id,
+        });
+      }
+      await updateReviewReportMutation.mutateAsync({
+        id: viewingReviewReportId,
+        status: 'RESOLVED',
+      });
+
+      toast('Đã duyệt báo cáo và ẩn đánh giá');
+      setIsApproveReviewReportModalOpen(false);
+      setIsReviewReportModalOpen(false);
+      setViewingReviewReportId(null);
+    } catch (error) {
+      toast('Có lỗi xảy ra khi duyệt báo cáo', 'error');
     }
   };
 
@@ -325,130 +406,6 @@ export const ManagerDashboard = () => {
   };
 
   // ==========================================================
-  // VIEW: WARNING JOBS MODERATION
-  // ==========================================================
-  const renderWarningJobs = () => {
-    const jobs = warningJobsData?.items || [];
-    return (
-      <div className="space-y-4">
-        <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-          <p className="text-sm text-slate-500 px-2 font-medium">
-            Phát hiện{' '}
-            <span className="text-amber-600 font-bold">{jobs.length}</span> công
-            việc có dấu hiệu vi phạm
-          </p>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {}}
-            className="rounded-lg h-9"
-          >
-            Tất cả (Warning)
-          </Button>
-        </div>
-
-        <Card className="rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50 text-slate-500 text-left text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-semibold">Công việc</th>
-                  <th className="px-6 py-4 font-semibold">Công ty</th>
-                  <th className="px-6 py-4 font-semibold">Nghề nghiệp</th>
-                  <th className="px-6 py-4 font-semibold">Ngày đăng</th>
-                  <th className="px-6 py-4 text-right font-semibold">
-                    Hành động
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loadingWarningJobs ? (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="py-10 text-center text-slate-400 font-medium"
-                    >
-                      Đang tải danh sách...
-                    </td>
-                  </tr>
-                ) : jobs.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="py-10 text-center text-slate-400 font-medium"
-                    >
-                      Không có công việc nghi vấn
-                    </td>
-                  </tr>
-                ) : (
-                  jobs.map((job) => (
-                    <tr key={job.id} className="hover:bg-slate-50/50">
-                      <td className="px-6 py-4">
-                        <Link
-                          to={`/job/${job.id}`}
-                          target="_blank"
-                          className="text-sm font-semibold text-blue-600 hover:underline"
-                        >
-                          {job.title}
-                        </Link>
-                        <div className="flex items-center gap-2 mt-1">
-                          <div className="text-xs text-muted-foreground truncate max-w-[200px]">
-                            {job.address}
-                          </div>
-                          <Badge
-                            variant="secondary"
-                            className="bg-amber-100 text-amber-700 text-[10px] font-bold border-amber-200"
-                          >
-                            Dấu hiệu vi phạm (AI)
-                          </Badge>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        {job.company?.name || '—'}
-                      </td>
-                      <td className="px-6 py-4 text-sm">
-                        <Badge variant="outline" className="font-normal">
-                          {job.occupation?.name || '—'}
-                        </Badge>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-slate-500">
-                        {new Date(job.createdAt).toLocaleDateString('vi-VN')}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button
-                            size="sm"
-                            className="bg-yellow-400 hover:bg-yellow-500 text-slate-900 rounded-lg px-4 font-semibold"
-                            onClick={() =>
-                              handleUpdateJobStatus(job.id, 'PUBLISHED')
-                            }
-                          >
-                            Duyệt
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            className="rounded-lg px-4"
-                            onClick={() =>
-                              handleUpdateJobStatus(job.id, 'DELETED')
-                            }
-                          >
-                            Xóa
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </div>
-    );
-  };
-
-  // ==========================================================
   // VIEW 2: JOB REPORTS LIST
   // ==========================================================
   const renderJobReports = () => {
@@ -495,8 +452,8 @@ export const ManagerDashboard = () => {
                     <tr key={r.id} className="hover:bg-slate-50/50">
                       <td className="px-6 py-4 text-sm font-semibold">{r.job?.title || '—'}</td>
                       <td className="px-6 py-4 text-sm">{r.reporter?.email || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-red-600 font-medium">{r.reason}</td>
-                      <td className="px-6 py-4 text-sm"><Badge variant="outline">{r.status}</Badge></td>
+                      <td className="px-6 py-4 text-sm text-red-600 font-medium">{REPORT_REASON_LABELS[r.reason] || r.reason}</td>
+                      <td className="px-6 py-4 text-sm"><Badge variant="outline">{REPORT_STATUS_LABELS[r.status] || r.status}</Badge></td>
                       <td className="px-6 py-4 text-right">
                         <Button
                           onClick={() => {
@@ -522,7 +479,95 @@ export const ManagerDashboard = () => {
   };
 
   // ==========================================================
-  // VIEW 3: COMPANY LIST
+  // VIEW 3: REVIEW REPORTS LIST (UC 2.14.6 / 2.14.7)
+  // ==========================================================
+  const renderReviewReports = () => {
+    const list = listReviewReportsData?.data || [];
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <select
+            className="border p-2 rounded-lg text-sm bg-slate-50"
+            value={reviewReportStatus}
+            onChange={e => setReviewReportStatus(e.target.value)}
+          >
+            <option value="PENDING">Chờ xử lý</option>
+            <option value="RESOLVED">Đã giải quyết</option>
+            <option value="REJECTED">Đã từ chối</option>
+          </select>
+          <p className="text-sm text-slate-500 px-2 font-medium">
+            Hiển thị <span className="text-blue-600 font-bold">{list.length}</span> báo cáo
+          </p>
+        </div>
+
+        <Card className="rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50 text-slate-500 text-left text-xs uppercase tracking-wider">
+                  <th className="px-6 py-4 font-semibold">Công ty</th>
+                  <th className="px-6 py-4 font-semibold">Đánh giá</th>
+                  <th className="px-6 py-4 font-semibold">Người báo cáo</th>
+                  <th className="px-6 py-4 font-semibold">Lý do</th>
+                  <th className="px-6 py-4 font-semibold">Trạng thái</th>
+                  <th className="px-6 py-4 text-right font-semibold">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {loadingReviewReports ? (
+                  <tr>
+                    <td colSpan="6" className="py-10 text-center text-slate-400 font-medium">Đang tải...</td>
+                  </tr>
+                ) : !list.length ? (
+                  <tr>
+                    <td colSpan="6" className="py-10 text-center text-slate-400 font-medium">Không có báo cáo nào</td>
+                  </tr>
+                ) : (
+                  list.map(r => (
+                    <tr key={r.id} className="hover:bg-slate-50/50">
+                      <td className="px-6 py-4 text-sm font-semibold">{r.review?.company?.name || '—'}</td>
+                      <td className="px-6 py-4 text-sm text-slate-700 max-w-[280px]">
+                        <div className="flex items-center gap-1 mb-1 text-amber-500">
+                          {'★'.repeat(r.review?.rating || 0)}
+                          <span className="text-slate-500 text-xs ml-1">({r.review?.rating || 0}/5)</span>
+                        </div>
+                        <p className="truncate" title={r.review?.title || r.review?.content}>
+                          {r.review?.title || r.review?.content || '—'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-sm">{r.reporter?.email || '—'}</td>
+                      <td className="px-6 py-4 text-sm text-red-600 font-medium">
+                        {REPORT_REASON_LABELS[r.reason] || r.reason}
+                      </td>
+                      <td className="px-6 py-4 text-sm">
+                        <Badge variant="outline">{REPORT_STATUS_LABELS[r.status] || r.status}</Badge>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <Button
+                          onClick={() => {
+                            setViewingReviewReportId(r.id);
+                            setIsReviewReportModalOpen(true);
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="rounded-lg"
+                        >
+                          <Eye className="h-3.5 w-3.5 mr-1.5" /> Chi tiết
+                        </Button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      </div>
+    );
+  };
+
+  // ==========================================================
+  // VIEW 4: COMPANY LIST
   // ==========================================================
   const renderCompanyList = () => {
     return (
@@ -674,9 +719,9 @@ export const ManagerDashboard = () => {
           </h2>
           {currentTab === 'job_reports'
             ? renderJobReports()
-            : currentTab === 'job_warning'
-            ? renderWarningJobs()
-            : viewingCompanyId ? renderDetails() : renderCompanyList()}
+            : currentTab === 'review_reports'
+              ? renderReviewReports()
+              : viewingCompanyId ? renderDetails() : renderCompanyList()}
         </div>
       </div>
 
@@ -738,7 +783,7 @@ export const ManagerDashboard = () => {
 
             <div className="p-4 bg-red-50 rounded-lg border border-red-100">
               <p className="text-xs font-bold text-red-800 uppercase mb-1">Lý do báo cáo</p>
-              <p className="text-sm font-semibold text-red-700">{viewingReport.reason}</p>
+              <p className="text-sm font-semibold text-red-700">{REPORT_REASON_LABELS[viewingReport.reason] || viewingReport.reason}</p>
             </div>
 
             <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
@@ -748,14 +793,14 @@ export const ManagerDashboard = () => {
 
             {viewingReport.status === 'PENDING' && (
               <div className="flex gap-3 pt-4 border-t border-slate-100">
-                <Button 
-                  className="flex-1" 
-                  onClick={() => handleReviewReport('RESOLVED')}
+                <Button
+                  className="flex-1"
+                  onClick={() => setIsApproveReportModalOpen(true)}
                 >
-                  <CheckCircle className="h-4 w-4 mr-2" /> Đã giải quyết
+                  <CheckCircle className="h-4 w-4 mr-2" /> Duyệt
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   className="flex-1 text-red-600 border-red-100 hover:bg-red-50"
                   onClick={() => handleReviewReport('REJECTED')}
                 >
@@ -766,6 +811,143 @@ export const ManagerDashboard = () => {
           </div>
         )}
       </Modal>
+
+      {/* --- MODAL XÁC NHẬN DUYỆT BÁO CÁO (ẨN VIỆC LÀM) --- */}
+      <Modal
+        open={isApproveReportModalOpen}
+        title="Xác nhận duyệt báo cáo"
+        description="Việc làm này sẽ bị ẩn khỏi hệ thống sau khi duyệt. Bạn có chắc chắn muốn tiếp tục?"
+        confirmLabel={
+          updateJobStatusMutation.isPending || updateReportMutation.isPending
+            ? 'Đang xử lý...'
+            : 'Xác nhận duyệt'
+        }
+        confirmDisabled={updateJobStatusMutation.isPending || updateReportMutation.isPending}
+        tone="danger"
+        onConfirm={handleApproveReport}
+        onClose={() => setIsApproveReportModalOpen(false)}
+      />
+
+      {/* --- MODAL CHI TIẾT BÁO CÁO ĐÁNH GIÁ (UC 2.14.6 / 2.14.7) --- */}
+      <Modal
+        open={isReviewReportModalOpen}
+        title="Chi tiết báo cáo đánh giá"
+        onClose={() => {
+          setIsReviewReportModalOpen(false);
+          setViewingReviewReportId(null);
+        }}
+        showFooter={false}
+      >
+        {viewingReviewReport && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-2 gap-4">
+              <InfoItem
+                icon={Building2}
+                label="Công ty"
+                value={viewingReviewReport.review?.company?.name}
+              />
+              <InfoItem
+                icon={User}
+                label="Người viết đánh giá"
+                value={viewingReviewReport.review?.user?.fullName}
+              />
+              <InfoItem
+                icon={User}
+                label="Người báo cáo"
+                value={viewingReviewReport.reporter?.fullName}
+              />
+              <InfoItem
+                icon={Mail}
+                label="Email người báo cáo"
+                value={viewingReviewReport.reporter?.email}
+              />
+              <InfoItem
+                icon={Calendar}
+                label="Ngày báo cáo"
+                value={new Date(viewingReviewReport.createdAt).toLocaleDateString('vi-VN')}
+              />
+            </div>
+
+            {/* Nội dung đánh giá bị báo cáo */}
+            <div className="p-4 bg-amber-50/60 rounded-lg border border-amber-100">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-amber-800 uppercase flex items-center gap-1.5">
+                  <MessageSquare className="h-3 w-3" /> Nội dung đánh giá
+                </p>
+                <div className="flex items-center gap-1 text-amber-500 text-sm">
+                  {'★'.repeat(viewingReviewReport.review?.rating || 0)}
+                  <span className="text-slate-500 text-xs ml-1">
+                    ({viewingReviewReport.review?.rating || 0}/5)
+                  </span>
+                </div>
+              </div>
+              {viewingReviewReport.review?.title && (
+                <p className="text-sm font-semibold text-slate-800 mb-1">
+                  {viewingReviewReport.review.title}
+                </p>
+              )}
+              <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                {viewingReviewReport.review?.content || 'Không có nội dung'}
+              </p>
+              {viewingReviewReport.review?.status === 'DELETED' && (
+                <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded px-2 py-0.5">
+                  <XCircle className="h-3 w-3" /> Đánh giá đã bị ẩn
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-red-50 rounded-lg border border-red-100">
+              <p className="text-xs font-bold text-red-800 uppercase mb-1">Lý do báo cáo</p>
+              <p className="text-sm font-semibold text-red-700">
+                {REPORT_REASON_LABELS[viewingReviewReport.reason] || viewingReviewReport.reason}
+              </p>
+            </div>
+
+            <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
+              <p className="text-xs font-bold text-slate-500 uppercase mb-1">Mô tả chi tiết</p>
+              <p className="text-sm text-slate-700">
+                {viewingReviewReport.description || 'Không có mô tả chi tiết'}
+              </p>
+            </div>
+
+            {viewingReviewReport.status === 'PENDING' && (
+              <div className="flex gap-3 pt-4 border-t border-slate-100">
+                <Button
+                  className="flex-1"
+                  onClick={() => setIsApproveReviewReportModalOpen(true)}
+                  disabled={viewingReviewReport.review?.status === 'DELETED'}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" /> Duyệt
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 text-red-600 border-red-100 hover:bg-red-50"
+                  onClick={handleReviewReportReject}
+                  disabled={updateReviewReportMutation.isPending}
+                >
+                  <XCircle className="h-4 w-4 mr-2" /> Từ chối báo cáo
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* --- MODAL XÁC NHẬN DUYỆT BÁO CÁO ĐÁNH GIÁ (ẨN ĐÁNH GIÁ) --- */}
+      <Modal
+        open={isApproveReviewReportModalOpen}
+        title="Xác nhận duyệt báo cáo đánh giá"
+        description="Đánh giá này sẽ bị ẩn khỏi trang công ty sau khi duyệt. Bạn có chắc chắn muốn tiếp tục?"
+        confirmLabel={
+          hideReviewMutation.isPending || updateReviewReportMutation.isPending
+            ? 'Đang xử lý...'
+            : 'Xác nhận duyệt'
+        }
+        confirmDisabled={hideReviewMutation.isPending || updateReviewReportMutation.isPending}
+        tone="danger"
+        onConfirm={handleApproveReviewReport}
+        onClose={() => setIsApproveReviewReportModalOpen(false)}
+      />
     </DashboardLayout>
   );
 };

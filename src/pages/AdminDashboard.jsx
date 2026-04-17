@@ -22,10 +22,6 @@ import {
   useUpdateUserStatus,
 } from '@/features/users/api/useUser';
 import { AppPagination } from '@/shared/components/AppPagination';
-import {
-  getWarningJobsApi,
-  updateJobStatusApi,
-} from '@/features/jobs/api/jobApi';
 import { useAdminStatistics } from '@/features/admin/api/useAdmin';
 
 const formatCompactVND = (value) => {
@@ -344,7 +340,7 @@ export const AdminDashboard = () => {
   const menu = [
     { key: 'overview', label: 'Tổng quan' },
     { key: 'users', label: 'Quản lý người dùng' },
-    { key: 'support', label: 'Ho tro khach hang' },
+    { key: 'support', label: 'Hỗ trợ khách hàng' },
     { key: 'moderation', label: 'Duyệt công việc' },
     { key: 'sectors', label: 'Quản lý ngành nghề' },
     { key: 'occupations', label: 'Quản lý nghề nghiệp' },

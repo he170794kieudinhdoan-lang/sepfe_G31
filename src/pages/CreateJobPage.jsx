@@ -589,7 +589,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                           <Input
                             type="number"
                             {...register('ageMin')}
-                            placeholder="Từ (Tối thiểu 0)"
+                            placeholder="Từ (Tối thiểu 15)"
                             className={`h-11 bg-white ${errors.ageMin ? 'border-red-500' : ''}`}
                           />
                           <FieldError error={errors.ageMin} />
@@ -847,7 +847,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="animate-spin" size={18} /> AI đang kiểm duyệt tin...
+                      <Loader2 className="animate-spin" size={18} /> Hệ thống đang kiểm duyệt tin...
                     </>
                   ) : (
                     <>
@@ -882,7 +882,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
             </div>
             <div className="py-4 space-y-4 text-gray-700">
               <p className="font-medium text-lg text-gray-900">
-                AI của chúng tôi đã phát hiện bài viết của bạn có dấu hiệu Spam hoặc nội dung không hợp lệ.
+                Hệ thống đã phát hiện bài viết của bạn có dấu hiệu Spam hoặc nội dung không hợp lệ.
               </p>
               <p>
                 Vui lòng kiểm tra và chỉnh sửa lại các thông tin của công việc:
@@ -896,7 +896,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
             <div className="mt-6 flex justify-end">
               <Button
                 onClick={() => setShowSpamModal(false)}
-                className="bg-amber-500 hover:bg-amber-600 text-white rounded-xl px-6 font-medium shadow-md transition-colors"
+                className="rounded-xl px-6 font-semibold shadow-md bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 Chỉnh sửa bài viết
               </Button>

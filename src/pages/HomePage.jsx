@@ -28,13 +28,18 @@ import {
   useWishlist,
   useSaveJob,
   useUnsaveJob,
+  isWishlistTogglePending,
 } from '@/features/jobs/api/useWishlist';
 import Typewriter from 'typewriter-effect';
 import { Container } from '@/shared/components/Container';
-import { Heart, Clock } from 'lucide-react';
+import { Heart, Clock, Wallet } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { SHIFTS } from '@/shared/constants/enums';
 import { formatSalary } from '@/shared/utils/salaryUtils';
+import { isWorkerRole } from '@/shared/utils/userRole';
+
+const POPOVER_CHIP =
+  'inline-flex max-w-full items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700';
 const POPULAR_KEYWORDS = [
   'công nhân sản xuất',
   'công nhân may mặc',
@@ -74,16 +79,27 @@ function JobCardSkeleton() {
 
 function SaveJobButton({ job }) {
   const { isAuthenticated, user } = useAuth();
-  const { data } = useWishlist({}, { enabled: !!user });
+  const isWorker = isWorkerRole(user);
+  const { data } = useWishlist({}, { enabled: isWorker });
   const saveJobMutation = useSaveJob();
   const unsaveJobMutation = useUnsaveJob();
 
   const wishlist = data?.items || data || [];
   const isSaved =
-    Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job.id);
-  const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
+    Array.isArray(wishlist) &&
+    wishlist.some(
+      (item) =>
+        item.jobId === job.id ||
+        item.job?.id === job.id ||
+        String(item.jobId) === String(job.id),
+    );
+  const wishlistBusy = isWishlistTogglePending(
+    saveJobMutation,
+    unsaveJobMutation,
+    job.id,
+  );
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || !isWorker) return null;
 
   const handleWishlistToggle = (e) => {
     e.preventDefault();
@@ -99,9 +115,9 @@ function SaveJobButton({ job }) {
   return (
     <Button
       variant="outline"
-      className="rounded-xl px-6 border-slate-200 hover:bg-slate-50"
+      className="rounded-xl px-6 border-slate-200 hover:bg-slate-50 transition-colors duration-150"
       onClick={handleWishlistToggle}
-      disabled={isPending}
+      disabled={wishlistBusy}
     >
       <Heart
         className={`h-4 w-4 mr-2 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400'}`}
@@ -685,41 +701,53 @@ export function HomePage() {
                                 job.companyName ||
                                 'Công ty ẩn'}
                             </div>
-                            <div className="flex flex-wrap items-center gap-2 mt-3.5">
-                              <Badge
-                                variant="secondary"
-                                className="rounded-md text-[11px] font-black px-2.5 py-0.5"
+                            <div className="mt-3.5 flex flex-wrap gap-1.5">
+                              <span
+                                className={POPOVER_CHIP}
+                                title={formatSalary(
+                                  job.salaryMin,
+                                  job.salaryMax,
+                                  'vndCompact',
+                                )}
                               >
-                                {formatSalary(job.salaryMin)} -{' '}
-                                {formatSalary(job.salaryMax)}
-                              </Badge>
-                              <Badge
-                                variant="outline"
-                                className="border-slate-200 text-slate-500 rounded-md text-[11px] font-semibold px-2.5 py-0.5 bg-slate-50"
-                              >
+                                <Wallet className="h-2.5 w-2.5 shrink-0 text-slate-500" />
+                                <span className="truncate">
+                                  {formatSalary(
+                                    job.salaryMin,
+                                    job.salaryMax,
+                                    'vndCompact',
+                                  )}
+                                </span>
+                              </span>
+                              <span className={POPOVER_CHIP}>
                                 SL: {job.quantity || 1}
-                              </Badge>
+                              </span>
                               {job.workingShift && (
-                                <Badge
-                                  variant="outline"
-                                  className="border-slate-200 text-slate-500 rounded-md text-[11px] font-semibold px-2.5 py-0.5 bg-slate-50 gap-1 flex items-center"
-                                >
-                                  <Clock className="w-3.5 h-3.5" />
-                                  <span>
+                                <span className={`${POPOVER_CHIP} items-center`}>
+                                  <Clock className="h-2.5 w-2.5 shrink-0 text-primary" />
+                                  <span className="whitespace-nowrap">
                                     {SHIFTS.find(
                                       (s) => s.value === job.workingShift,
                                     )?.label || job.workingShift}
                                   </span>
-                                </Badge>
+                                </span>
                               )}
-                              {/* Location Section */}
-                              <div className="flex gap-1 items-center ">
-                                <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
-                                <p className="text-[13px] text-slate-700 font-medium leading-[1.6]">
-                                  {job.district ? `${job.district}, ` : ''}
-                                  {job.province}
-                                </p>
-                              </div>
+                              <span
+                                className={`${POPOVER_CHIP} max-w-[min(100%,14rem)]`}
+                                title={
+                                  job.district
+                                    ? `${job.district}, ${job.province || ''}`
+                                    : job.province
+                                }
+                              >
+                                <MapPin className="h-2.5 w-2.5 shrink-0 text-primary" />
+                                <span className="truncate">
+                                  {job.district
+                                    ? `${job.district}, `
+                                    : ''}
+                                  {job.province || '—'}
+                                </span>
+                              </span>
                             </div>
                             <div className="flex items-center gap-2 mt-2">
                               <span className="font-medium text-sm">

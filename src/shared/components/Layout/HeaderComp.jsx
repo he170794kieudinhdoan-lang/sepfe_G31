@@ -32,6 +32,7 @@ import {
 import { useToast } from '@/shared/contexts/ToastContext';
 import { useGetUserConversations } from '@/features/chat/api/useChat';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
+import { isWorkerRole } from '@/shared/utils/userRole';
 
 const TASKBAR_LINKS = [
   { to: '/search', label: 'Việc làm' },
@@ -375,13 +376,15 @@ export const Header = () => {
                       >
                         Hồ sơ của tôi
                       </Link>
-                      <Link
-                        to="/wishlist"
-                        className="block px-4 py-2 text-sm hover:bg-gray-50"
-                        onClick={() => setAvatarOpen(false)}
-                      >
-                        Việc làm đã lưu
-                      </Link>
+                      {isWorkerRole(user) && (
+                        <Link
+                          to="/wishlist"
+                          className="block px-4 py-2 text-sm hover:bg-gray-50"
+                          onClick={() => setAvatarOpen(false)}
+                        >
+                          Việc làm đã lưu
+                        </Link>
+                      )}
 
                       {user?.roleType === 'ADMIN' && (
                         <Link

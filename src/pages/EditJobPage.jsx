@@ -556,7 +556,7 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
                       <Input
                         className={`h-11 bg-white hover:border-primary/50 transition-colors ${errors.salaryMin ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
                         type="text"
-                        placeholder="Từ (Tối thiểu 0)"
+                        placeholder="Từ (Tối thiểu 1.000.000)"
                         value={
                           form.salaryMin
                             ? new Intl.NumberFormat('en-US').format(
