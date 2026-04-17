@@ -27,6 +27,18 @@ export const formatSalary = (min, max, variant = 'full') => {
     return min ? `Từ ${fMin}tr` : `Đến ${fMax}tr`;
   }
 
+  /** Giao diện nhà tuyển dụng: rõ đơn vị VNĐ/tháng (triệu) */
+  if (variant === 'vndCompact') {
+    const fMin = toMillion(min);
+    const fMax = toMillion(max);
+    if (min && max) {
+      return `${String(fMin).replace('.', ',')} – ${String(fMax).replace('.', ',')} triệu VNĐ/tháng`;
+    }
+    return min
+      ? `Từ ${String(fMin).replace('.', ',')} triệu VNĐ/tháng`
+      : `Đến ${String(fMax).replace('.', ',')} triệu VNĐ/tháng`;
+  }
+
   // Default 'full' variant
   const fMin = formatNumber(min);
   const fMax = formatNumber(max);

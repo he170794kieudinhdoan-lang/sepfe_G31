@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { MapPin, Clock, Sparkles, Heart } from 'lucide-react';
+import { MapPin, Clock, Sparkles, Heart, Wallet } from 'lucide-react';
 
 const getScoreColor = (percentage) => {
   if (percentage >= 80)
@@ -58,9 +58,14 @@ import {
   useWishlist,
   useSaveJob,
   useUnsaveJob,
+  isWishlistTogglePending,
 } from '@/features/jobs/api/useWishlist';
 import { toast } from 'sonner';
 import { formatSalary } from '@/shared/utils/salaryUtils';
+import { isWorkerRole } from '@/shared/utils/userRole';
+
+const CHIP =
+  'inline-flex max-w-full items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700';
 
 export const JobCard = ({
   job,
@@ -72,18 +77,31 @@ export const JobCard = ({
   onMouseLeaveTitle,
 }) => {
   const { user } = useAuth();
-  const { data } = useWishlist({}, { enabled: !!user });
+  const isWorker = isWorkerRole(user);
+  const { data } = useWishlist({}, { enabled: isWorker });
   const saveJobMutation = useSaveJob();
   const unsaveJobMutation = useUnsaveJob();
 
   const wishlist = data?.items || data || [];
   const isSaved =
-    Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job.id);
-  const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
+    Array.isArray(wishlist) &&
+    wishlist.some(
+      (item) =>
+        item.jobId === job.id ||
+        item.job?.id === job.id ||
+        String(item.jobId) === String(job.id),
+    );
+  const wishlistBusy = isWishlistTogglePending(
+    saveJobMutation,
+    unsaveJobMutation,
+    job.id,
+  );
 
   const handleWishlistToggle = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!isWorker) return;
 
     if (!user) {
       toast.error('Vui lòng đăng nhập để lưu việc làm');
@@ -129,14 +147,15 @@ export const JobCard = ({
             </div>
 
             <div className="flex flex-col items-end gap-1 shrink-0 z-20">
-              {user && (
+              {isWorker && (
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 rounded-full shadow-sm hover:shadow active:scale-95 transition-all ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : 'bg-white hover:bg-gray-50'}`}
+                  className={`h-8 w-8 rounded-full shadow-sm hover:shadow active:scale-[0.98] transition-colors duration-150 ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : 'bg-white hover:bg-gray-50'}`}
                   title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
                   onClick={handleWishlistToggle}
-                  disabled={isPending}
+                  disabled={wishlistBusy}
+                  aria-busy={wishlistBusy}
                 >
                   <Heart
                     className={`h-4 w-4 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
@@ -146,33 +165,36 @@ export const JobCard = ({
             </div>
           </div>
 
-          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px]">
-            <Badge
-              variant="secondary"
-              className="rounded-md text-[11px] font-bold px-2 py-0.5 pointer-events-none"
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            <span
+              className={CHIP}
+              title={formatSalary(job.salaryMin, job.salaryMax, 'vndCompact')}
             >
-              {formatSalary(job.salaryMin, job.salaryMax, 'compact')}
-            </Badge>
-
+              <Wallet className="h-2.5 w-2.5 shrink-0 text-slate-500" />
+              <span className="truncate">
+                {formatSalary(job.salaryMin, job.salaryMax, 'vndCompact')}
+              </span>
+            </span>
             {job.workingShift && (
-              <Badge
-                variant="outline"
-                className="border-slate-200 text-slate-500 rounded-md text-[11px] font-semibold px-2 py-0.5 whitespace-nowrap gap-1"
-              >
-                <Clock className="w-3 h-3" />
-                <span>
+              <span className={CHIP}>
+                <Clock className="h-2.5 w-2.5 shrink-0 text-primary" />
+                <span className="whitespace-nowrap">
                   {SHIFTS.find((s) => s.value === job.workingShift)?.label ||
                     job.workingShift}
                 </span>
-              </Badge>
+              </span>
             )}
-
-            <div className="flex items-center gap-1 text-slate-500 font-medium">
-              <MapPin className="h-3 w-3" />
-              <span className="truncate max-w-[120px]">
+            <span
+              className={`${CHIP} max-w-[min(100%,11rem)]`}
+              title={
+                job.province || job.address || job.location || 'Toàn quốc'
+              }
+            >
+              <MapPin className="h-2.5 w-2.5 shrink-0 text-primary" />
+              <span className="truncate">
                 {job.province || job.address || job.location || 'Toàn quốc'}
               </span>
-            </div>
+            </span>
           </div>
 
           <div className="flex justify-between items-end mt-2">
@@ -182,7 +204,8 @@ export const JobCard = ({
                 job.tags.slice(0, 2).map((tag) => (
                   <span
                     key={tag}
-                    className="text-[11px] font-bold bg-primary-muted text-primary px-2.5 py-0.5 rounded-lg border border-primary/10"
+                    className="text-[10px] font-semibold bg-primary-muted text-primary px-1.5 py-0.5 rounded-md border border-primary/10 leading-tight max-w-[8rem] truncate"
+                    title={tag}
                   >
                     {tag}
                   </span>

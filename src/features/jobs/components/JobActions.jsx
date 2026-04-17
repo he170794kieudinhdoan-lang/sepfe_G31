@@ -2,7 +2,13 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Heart, Send } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';
-import { useWishlist, useSaveJob, useUnsaveJob } from '@/features/jobs/api/useWishlist';
+import {
+  useWishlist,
+  useSaveJob,
+  useUnsaveJob,
+  isWishlistTogglePending,
+} from '@/features/jobs/api/useWishlist';
+import { isWorkerRole } from '@/shared/utils/userRole';
 
 export const JobAction = ({
   job,
@@ -12,16 +18,28 @@ export const JobAction = ({
   className,
 }) => {
   const { isAuthenticated, user } = useAuth();
-  const { data } = useWishlist({}, { enabled: !!user });
+  const isWorker = isWorkerRole(user);
+  const { data } = useWishlist({}, { enabled: isWorker });
   const saveJobMutation = useSaveJob();
   const unsaveJobMutation = useUnsaveJob();
 
   const wishlist = data?.items || data || [];
-  const isSaved = Array.isArray(wishlist) && wishlist.some((item) => item.jobId === job?.id);
-  const isPending = saveJobMutation.isPending || unsaveJobMutation.isPending;
+  const isSaved =
+    Array.isArray(wishlist) &&
+    wishlist.some(
+      (item) =>
+        item.jobId === job?.id ||
+        item.job?.id === job?.id ||
+        String(item.jobId) === String(job?.id),
+    );
+  const saveBusy = isWishlistTogglePending(
+    saveJobMutation,
+    unsaveJobMutation,
+    job?.id,
+  );
 
   // Chỉ hiện nút Ứng tuyển khi: chưa đăng nhập (để nhắc login) HOẶC là WORKER
-  const canSeeApplyButton = !isAuthenticated || user?.role === 'WORKER';
+  const canSeeApplyButton = !isAuthenticated || isWorker;
 
   const handleSaveToggle = () => {
     if (!job?.id) return;
@@ -50,12 +68,12 @@ export const JobAction = ({
         </Button>
       )}
 
-      {isAuthenticated && user?.role === 'WORKER' && (
+      {isAuthenticated && isWorker && (
         <Button
           variant="outline"
           onClick={handleSaveToggle}
-          disabled={isPending}
-          className="rounded-xl h-12 px-6 border-slate-200 hover:bg-slate-50"
+          disabled={saveBusy}
+          className="rounded-xl h-12 px-6 border-slate-200 hover:bg-slate-50 transition-colors duration-150"
         >
           <Heart className={`h-4 w-4 mr-2 ${isSaved ? 'fill-yellow-500 text-yellow-500' : ''}`} />
           {isSaved ? 'Đã lưu' : 'Lưu tin'}

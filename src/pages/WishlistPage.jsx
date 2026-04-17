@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { EmptyState } from '@/shared/components/EmptyState';
@@ -15,15 +15,18 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useWishlist, useUnsaveJob } from '@/features/jobs/api/useWishlist';
+import { isWorkerRole } from '@/shared/utils/userRole';
 
 export const WishlistPage = () => {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const [page, setPage] = useState(1);
   const { toast } = useToast();
 
+  const canUseWishlist = isAuthenticated && isWorkerRole(user);
+
   const { data: qsData, isLoading: isWishlistLoading } = useWishlist(
     { page, limit: 10 },
-    { enabled: isAuthenticated },
+    { enabled: canUseWishlist },
   );
 
   const unsaveJobMutation = useUnsaveJob();
@@ -43,12 +46,16 @@ export const WishlistPage = () => {
     });
   };
 
-  if (authLoading || isWishlistLoading) {
+  if (authLoading || (canUseWishlist && isWishlistLoading)) {
     return (
       <div className="flex justify-center py-12">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (isAuthenticated && user && !isWorkerRole(user)) {
+    return <Navigate to="/" replace />;
   }
 
   if (!isAuthenticated) {
@@ -184,10 +191,20 @@ export const WishlistPage = () => {
                     size="sm"
                     className="rounded-full h-8 px-3 w-full sm:w-auto text-gray-400 hover:bg-amber-50 hover:text-amber-500 transition-colors"
                     onClick={() => remove(job.id)}
-                    disabled={unsaveJobMutation.isPending}
+                    disabled={
+                      unsaveJobMutation.isPending &&
+                      unsaveJobMutation.variables != null &&
+                      (unsaveJobMutation.variables === job.id ||
+                        String(unsaveJobMutation.variables) ===
+                          String(job.id))
+                    }
                     title="Bỏ lưu"
                   >
-                    {unsaveJobMutation.isPending ? (
+                    {unsaveJobMutation.isPending &&
+                    unsaveJobMutation.variables != null &&
+                    (unsaveJobMutation.variables === job.id ||
+                      String(unsaveJobMutation.variables) ===
+                        String(job.id)) ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     ) : (
                       <span className="flex items-center gap-1.5 text-xs">
