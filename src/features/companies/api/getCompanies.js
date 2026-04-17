@@ -82,3 +82,28 @@ export const reportCompanyReview = async (reviewId, payload) => {
   const response = await apiClient.post(`/company/reviews/${reviewId}/report`, payload);
   return response;
 };
+
+// ===== MANAGER: REVIEW REPORT MODERATION =====
+
+// Lấy danh sách báo cáo review (manager)
+export const getReviewReports = async ({ status, page = 1, limit = 50 } = {}) => {
+  const response = await apiClient.get('/company/reviews/reports/all', {
+    params: { status, page, limit },
+  });
+  return response;
+};
+
+// Duyệt / từ chối báo cáo review (manager)
+export const updateReviewReportStatusApi = async ({ id, status, managerNote }) => {
+  const response = await apiClient.patch(
+    `/company/reviews/reports/${id}/status`,
+    { status, managerNote },
+  );
+  return response;
+};
+
+// Ẩn review (manager)
+export const hideCompanyReviewApi = async ({ reviewId }) => {
+  const response = await apiClient.patch(`/company/reviews/${reviewId}/hide`);
+  return response;
+};

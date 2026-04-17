@@ -1,17 +1,38 @@
-import React, { Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ToastProvider } from '@/shared/contexts/ToastContext';
 import { AuthProvider } from '@/shared/contexts/AuthContext';
 
-export const queryClient = new QueryClient();
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 2 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: false,
+      retry: 1,
+    },
+    mutations: {
+      retry: 0,
+    },
+  },
+});
+
+// Chỉ load Devtools ở dev, tránh kéo bundle vào production
+const ReactQueryDevtools = import.meta.env.DEV
+  ? lazy(() =>
+      import('@tanstack/react-query-devtools').then((m) => ({
+        default: m.ReactQueryDevtools,
+      })),
+    )
+  : null;
 
 export const AppProvider = ({ children }) => {
   return (
     <Suspense
       fallback={
         <div className="h-screen w-screen flex items-center justify-center">
-          Loading...
+          <div className="h-8 w-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
         </div>
       }
     >
@@ -19,10 +40,14 @@ export const AppProvider = ({ children }) => {
         <ToastProvider>
           <AuthProvider>
             {children}
-            <ReactQueryDevtools
-              initialIsOpen={false}
-              buttonPosition="bottom-right"
-            />
+            {ReactQueryDevtools ? (
+              <Suspense fallback={null}>
+                <ReactQueryDevtools
+                  initialIsOpen={false}
+                  buttonPosition="bottom-right"
+                />
+              </Suspense>
+            ) : null}
           </AuthProvider>
         </ToastProvider>
       </QueryClientProvider>
