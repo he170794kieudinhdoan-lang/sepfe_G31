@@ -26,6 +26,8 @@ export const useSignUp = () => {
 const navigateAfterLogin = async (navigate, roleType) => {
   if (roleType === 'ADMIN') {
     navigate('/admin');
+  } else if (roleType === 'MANAGER') {
+    navigate('/manager');
   } else if (roleType === 'EMPLOYER') {
     navigate('/employer');
   } else if (roleType === 'WORKER') {
@@ -89,7 +91,7 @@ export const useLoginGoogle = () => {
     onSuccess: async (data) => {
       toast(MSG.MSG_LOGIN_GOOGLE_SUCCESS);
 
-      const roleType = data.tokens?.role || '';
+      const roleType = data.tokens?.roleType || data.tokens?.role || '';
 
       // Xóa cache cũ trước khi fetch user mới
       queryClient.removeQueries({ queryKey: ['users', 'me'] });
