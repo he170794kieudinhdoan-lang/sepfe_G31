@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import {
   createJobApi,
   updateJobApi,
@@ -301,7 +306,8 @@ export const useGetAllJobReports = (status, page = 1, limit = 10) => {
   return useQuery({
     queryKey: ['job-reports', status, page, limit],
     queryFn: () => getAllJobReportsApi({ status, page, limit }),
-    keepPreviousData: true,
+    staleTime: 0,
+    placeholderData: keepPreviousData,
   });
 };
 

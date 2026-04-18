@@ -40,9 +40,13 @@ export const DashboardLayout = ({
         <aside className="w-64 bg-white border-r px-5 py-6 hidden lg:flex flex-col h-screen sticky top-0">
           <Link
             to="/"
-            className="text-2xl font-extrabold text-primary hover:opacity-80 transition-opacity px-4"
+            className="inline-flex shrink-0 items-center px-2 hover:opacity-90 transition-opacity"
           >
-            WorkLink
+            <img
+              src="/logo_02.png"
+              alt="WorkLink"
+              className="h-12 w-auto"
+            />
           </Link>
           <div className="mt-8 space-y-1">
             {menu.map((item) => (

@@ -8,8 +8,9 @@ export const queryClient = new QueryClient({
     queries: {
       staleTime: 2 * 60 * 1000,
       gcTime: 10 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
+      // Bật lại: khi staleTime > 0, nếu tắt focus refetch thì quay lại tab vẫn thấy cache cũ
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
       retry: 1,
     },
     mutations: {
