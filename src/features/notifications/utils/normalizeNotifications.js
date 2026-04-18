@@ -1,5 +1,26 @@
 const getId = (item) => item?.id ?? item?._id ?? item?.notificationId;
-const getContent = (item) => item?.content ?? item?.message ?? item?.title ?? 'Bạn có thông báo mới.';
+
+/** Tách title / message để list hiển thị 2 tầng, gọn và dễ đọc */
+const buildDisplay = (item) => {
+    const rawTitle = typeof item?.title === 'string' ? item.title.trim() : '';
+    const rawMessage = typeof item?.message === 'string' ? item.message.trim() : '';
+    const legacy = item?.content != null ? String(item.content).trim() : '';
+
+    if (rawTitle && rawMessage) {
+        return {
+            headline: rawTitle,
+            detail: rawMessage,
+            content: `${rawTitle} — ${rawMessage}`,
+        };
+    }
+    const single = rawTitle || rawMessage || legacy || 'Bạn có thông báo mới.';
+    return {
+        headline: single,
+        detail: null,
+        content: single,
+    };
+};
+
 const isRead = (item) => Boolean(item?.read ?? item?.isRead ?? item?.status === 'READ');
 const getCreatedAt = (item) => item?.createdAt ?? item?.sentAt ?? item?.updatedAt ?? item?.time;
 const getTargetUrl = (item) =>
@@ -47,10 +68,13 @@ export const normalizeNotifications = (payload) => {
             if (!id) return null;
 
             const createdAt = getCreatedAt(item);
+            const { headline, detail, content } = buildDisplay(item);
 
             return {
                 id,
-                content: getContent(item),
+                headline,
+                detail,
+                content,
                 read: isRead(item),
                 createdAt,
                 time: formatNotificationTime(createdAt),
@@ -69,3 +93,15 @@ export const normalizeNotifications = (payload) => {
 };
 
 export const getUnreadCount = (items) => items.filter((item) => !item.read).length;
+
+/** Nội dung đầy đủ (tiêu đề + tin nhắn nếu API tách) — dùng cho dialog / tooltip */
+export const getFullNotificationText = (item) => {
+    if (!item) return '';
+    const r = item.raw ?? {};
+    const t = typeof r.title === 'string' ? r.title.trim() : '';
+    const m = typeof r.message === 'string' ? r.message.trim() : '';
+    if (t && m) return `${t}\n\n${m}`;
+    if (m) return m;
+    if (t) return t;
+    return String(item.content ?? '').trim();
+};

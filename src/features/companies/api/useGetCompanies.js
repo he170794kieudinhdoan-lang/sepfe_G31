@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  keepPreviousData,
+} from '@tanstack/react-query';
 import {
   getCompanies,
   getCompanyById,
@@ -22,7 +27,7 @@ export const useGetCompanies = () => {
   return useQuery({
     queryKey: ['companies'],
     queryFn: () => getCompanies(),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
   });
 };
@@ -32,7 +37,7 @@ export const useGetCompaniesById = (id) => {
     queryKey: ['companies', id],
     queryFn: () => getCompanyById(id),
     enabled: !!id,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
   });
 };
@@ -42,7 +47,7 @@ export const useGetCompaniesByStatus = (status) => {
     queryKey: ['companies', 'status', status],
     queryFn: () => getCompaniesByStatus(status),
     enabled: !!status,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
   });
 };
@@ -174,7 +179,8 @@ export const useGetReviewReports = (status, page = 1, limit = 50) => {
   return useQuery({
     queryKey: ['review-reports', status, page, limit],
     queryFn: () => getReviewReports({ status, page, limit }),
-    keepPreviousData: true,
+    staleTime: 0,
+    placeholderData: keepPreviousData,
   });
 };
 

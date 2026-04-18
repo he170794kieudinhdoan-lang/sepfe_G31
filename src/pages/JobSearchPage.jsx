@@ -5,6 +5,7 @@ import {
   useGetProvinces,
   useGetWards,
 } from '@/features/jobs/api/useJobs';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -23,7 +24,6 @@ import {
   Briefcase,
   Users,
   Calendar,
-  Sparkles,
   RotateCcw,
 } from 'lucide-react';
 
@@ -178,7 +178,7 @@ const SearchJobCard = ({ job }) => {
     <Card
       className={`group w-full rounded-2xl overflow-hidden hover:cursor-pointer transition-all duration-300 border ${
         isBoosted
-          ? 'bg-linear-to-br from-amber-50/80 via-white to-orange-50/50 border-amber-300 ring-1 ring-amber-200/70 shadow-md hover:shadow-lg'
+          ? 'bg-linear-to-br from-yellow-50/90 via-white to-yellow-50/60 border-yellow-300 ring-1 ring-yellow-200/80 shadow-md hover:shadow-lg'
           : 'bg-white border-slate-100'
       }`}
       onMouseEnter={() => setDisplayMoreButton(true)}
@@ -200,8 +200,8 @@ const SearchJobCard = ({ job }) => {
 
             <div className="flex-1 min-w-0">
               {isBoosted && (
-                <Badge className="mb-2 bg-amber-500 hover:bg-amber-600 text-white border-0 text-[10px] font-extrabold px-2.5 py-1 tracking-wide gap-1">
-                  <Sparkles className="h-3 w-3" /> TIN NỔI BẬT
+                <Badge className="mb-2 border border-[#FDE047]/90 bg-[#FEF08A] text-[10px] font-extrabold tracking-wide text-slate-900 shadow-sm hover:bg-[#FDE68A] px-2.5 py-1">
+                  TIN NỔI BẬT
                 </Badge>
               )}
               <h3

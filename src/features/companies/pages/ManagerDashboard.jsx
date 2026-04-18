@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -76,8 +76,42 @@ const REPORT_STATUS_LABELS = {
   REJECTED: 'Đã từ chối',
 };
 
+function formatManagerDateTime(value) {
+  if (value == null || value === '') return '—';
+  try {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return '—';
+  }
+}
+
+function ReporterCell({ user }) {
+  if (!user) return <span className="text-slate-400">—</span>;
+  const name = user.fullName?.trim();
+  if (name) {
+    return (
+      <div>
+        <p className="font-medium text-slate-800 text-sm">{name}</p>
+        {user.email ? (
+          <p className="text-xs text-slate-400">{user.email}</p>
+        ) : null}
+      </div>
+    );
+  }
+  return <span className="text-sm">{user.email || '—'}</span>;
+}
+
 export const ManagerDashboard = () => {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // --- STATE MANAGEMENT ---
   const [currentTab, setCurrentTab] = useState('all');
@@ -117,6 +151,46 @@ export const ManagerDashboard = () => {
     useGetReviewReports(reviewReportStatus, 1, 50);
   const updateReviewReportMutation = useUpdateReviewReportStatus();
   const hideReviewMutation = useHideCompanyReview();
+
+  const companyIdFromUrl = searchParams.get('companyId');
+  useEffect(() => {
+    if (!companyIdFromUrl) return;
+    const id = Number(companyIdFromUrl);
+    if (Number.isNaN(id)) return;
+    setViewingCompanyId(id);
+    setCurrentTab('approvals');
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('companyId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [companyIdFromUrl, setSearchParams]);
+
+  const tabFromUrl = searchParams.get('tab');
+  useEffect(() => {
+    if (!tabFromUrl) return;
+    const allowed = new Set([
+      'all',
+      'approvals',
+      'rejected',
+      'job_reports',
+      'review_reports',
+    ]);
+    if (!allowed.has(tabFromUrl)) return;
+    setCurrentTab(tabFromUrl);
+    setViewingCompanyId(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('tab');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [tabFromUrl, setSearchParams]);
 
   // Find the viewing report in the list
   const viewingReport = listReportsData?.data?.find(r => r.id === viewingReportId);
@@ -433,6 +507,7 @@ export const ManagerDashboard = () => {
                 <tr className="bg-slate-50 text-slate-500 text-left text-xs uppercase tracking-wider">
                   <th className="px-6 py-4 font-semibold">Công việc</th>
                   <th className="px-6 py-4 font-semibold">Người báo cáo</th>
+                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Thời gian</th>
                   <th className="px-6 py-4 font-semibold">Lý do</th>
                   <th className="px-6 py-4 font-semibold">Trạng thái</th>
                   <th className="px-6 py-4 text-right font-semibold">Thao tác</th>
@@ -441,17 +516,18 @@ export const ManagerDashboard = () => {
               <tbody className="divide-y divide-slate-100">
                 {loadingReports ? (
                   <tr>
-                    <td colSpan="5" className="py-10 text-center text-slate-400 font-medium">Đang tải...</td>
+                    <td colSpan="6" className="py-10 text-center text-slate-400 font-medium">Đang tải...</td>
                   </tr>
                 ) : !listReportsData?.data?.length ? (
                   <tr>
-                    <td colSpan="5" className="py-10 text-center text-slate-400 font-medium">Không có báo cáo nào</td>
+                    <td colSpan="6" className="py-10 text-center text-slate-400 font-medium">Không có báo cáo nào</td>
                   </tr>
                 ) : (
                   listReportsData.data.map(r => (
                     <tr key={r.id} className="hover:bg-slate-50/50">
                       <td className="px-6 py-4 text-sm font-semibold">{r.job?.title || '—'}</td>
-                      <td className="px-6 py-4 text-sm">{r.reporter?.email || '—'}</td>
+                      <td className="px-6 py-4 text-sm"><ReporterCell user={r.reporter} /></td>
+                      <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{formatManagerDateTime(r.createdAt)}</td>
                       <td className="px-6 py-4 text-sm text-red-600 font-medium">{REPORT_REASON_LABELS[r.reason] || r.reason}</td>
                       <td className="px-6 py-4 text-sm"><Badge variant="outline">{REPORT_STATUS_LABELS[r.status] || r.status}</Badge></td>
                       <td className="px-6 py-4 text-right">
@@ -508,6 +584,7 @@ export const ManagerDashboard = () => {
                   <th className="px-6 py-4 font-semibold">Công ty</th>
                   <th className="px-6 py-4 font-semibold">Đánh giá</th>
                   <th className="px-6 py-4 font-semibold">Người báo cáo</th>
+                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Thời gian</th>
                   <th className="px-6 py-4 font-semibold">Lý do</th>
                   <th className="px-6 py-4 font-semibold">Trạng thái</th>
                   <th className="px-6 py-4 text-right font-semibold">Thao tác</th>
@@ -516,11 +593,11 @@ export const ManagerDashboard = () => {
               <tbody className="divide-y divide-slate-100">
                 {loadingReviewReports ? (
                   <tr>
-                    <td colSpan="6" className="py-10 text-center text-slate-400 font-medium">Đang tải...</td>
+                    <td colSpan="7" className="py-10 text-center text-slate-400 font-medium">Đang tải...</td>
                   </tr>
                 ) : !list.length ? (
                   <tr>
-                    <td colSpan="6" className="py-10 text-center text-slate-400 font-medium">Không có báo cáo nào</td>
+                    <td colSpan="7" className="py-10 text-center text-slate-400 font-medium">Không có báo cáo nào</td>
                   </tr>
                 ) : (
                   list.map(r => (
@@ -535,7 +612,8 @@ export const ManagerDashboard = () => {
                           {r.review?.title || r.review?.content || '—'}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-sm">{r.reporter?.email || '—'}</td>
+                      <td className="px-6 py-4 text-sm"><ReporterCell user={r.reporter} /></td>
+                      <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{formatManagerDateTime(r.createdAt)}</td>
                       <td className="px-6 py-4 text-sm text-red-600 font-medium">
                         {REPORT_REASON_LABELS[r.reason] || r.reason}
                       </td>
@@ -600,6 +678,7 @@ export const ManagerDashboard = () => {
                 <tr className="bg-slate-50 text-slate-500 text-left text-xs uppercase tracking-wider">
                   <th className="px-6 py-4 font-semibold">Công ty</th>
                   <th className="px-6 py-4 font-semibold">Địa chỉ</th>
+                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Đăng ký</th>
                   <th className="px-6 py-4 font-semibold">Trạng thái</th>
                   <th className="px-6 py-4 text-right font-semibold">
                     Thao tác
@@ -610,7 +689,7 @@ export const ManagerDashboard = () => {
                 {isLoadingData ? (
                   <tr>
                     <td
-                      colSpan="4"
+                      colSpan="5"
                       className="py-20 text-center text-slate-400 font-medium"
                     >
                       Đang tải dữ liệu...
@@ -619,7 +698,7 @@ export const ManagerDashboard = () => {
                 ) : displayList.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="4"
+                      colSpan="5"
                       className="py-20 text-center text-slate-400"
                     >
                       Không tìm thấy dữ liệu nào phù hợp.
@@ -648,6 +727,11 @@ export const ManagerDashboard = () => {
                             <p className="font-semibold text-slate-800 text-sm">
                               {c.name}
                             </p>
+                            {c.owner?.fullName?.trim() ? (
+                              <p className="text-xs text-slate-600 font-medium">
+                                {c.owner.fullName.trim()}
+                              </p>
+                            ) : null}
                             <p className="text-xs text-slate-400 font-normal">
                               {c.owner?.email || 'Chưa có email'}
                             </p>
@@ -656,6 +740,9 @@ export const ManagerDashboard = () => {
                       </td>
                       <td className="px-6 py-4 text-slate-500 text-sm">
                         {c.address || '—'}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
+                        {formatManagerDateTime(c.createdAt)}
                       </td>
                       <td className="px-6 py-4">
                         <Badge

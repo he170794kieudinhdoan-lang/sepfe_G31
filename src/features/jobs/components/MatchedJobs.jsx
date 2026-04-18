@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Sparkles,
   MapPin,
   Check,
   Heart,
@@ -99,9 +98,10 @@ function SaveButton({ job }) {
 }
 
 export const MatchedJobs = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isWorker = isWorkerRole(user);
   const { data: matchedData, isLoading } = useMatchedJobs(6, {
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && isWorker,
   });
   const [openId, setOpenId] = useState(null);
   const timeoutRef = useRef(null);
@@ -124,29 +124,29 @@ export const MatchedJobs = () => {
   }
 
   return (
-    <section className="bg-slate-50/50 py-12 border-y border-slate-100 mt-10">
+    <section className="bg-slate-50/50 py-6 border-y border-slate-100">
       <Container>
-        <div className="flex flex-col  mb-8">
-          <h2 className="text-2xl font-bold text-slate-900 leading-none">
+        <div className="flex flex-col mb-4">
+          <h2 className="text-xl font-bold text-slate-900 leading-tight tracking-tight">
             Việc làm phù hợp với bạn
           </h2>
-          <p className="text-slate-500 text-sm mt-1">
+          <p className="text-slate-500 text-xs mt-1">
             AI gợi ý dựa trên hồ sơ và kĩ năng của bạn
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading
             ? Array.from({ length: 3 }).map((_, i) => (
                 <Card
                   key={i}
-                  className="p-4 rounded-2xl border-0 shadow-sm animate-pulse"
+                  className="animate-pulse rounded-xl border-0 p-4 shadow-sm"
                 >
-                  <div className="flex gap-4">
-                    <div className="w-16 h-16 bg-slate-200 rounded-xl" />
-                    <div className="flex-1 space-y-2 mt-2">
-                      <div className="h-4 bg-slate-200 rounded w-3/4" />
-                      <div className="h-3 bg-slate-200 rounded w-1/2" />
+                  <div className="flex gap-3">
+                    <div className="h-14 w-14 shrink-0 rounded-lg bg-slate-200" />
+                    <div className="mt-0.5 min-w-0 flex-1 space-y-2">
+                      <div className="h-4 w-3/4 rounded bg-slate-200" />
+                      <div className="h-3 w-1/2 rounded bg-slate-200" />
                     </div>
                   </div>
                 </Card>
@@ -161,11 +161,14 @@ export const MatchedJobs = () => {
                       <div className="relative">
                         <JobCard
                           job={{ ...job, company, occupationName }}
+                          compact
                           aiSuggest
                           matchPercentage={matchPercentage}
                           matchScores={scores}
-                          onMouseEnterTitle={() => handleMouseEnter(job.id)}
-                          onMouseLeaveTitle={handleMouseLeave}
+                          popoverHover={{
+                            onMouseEnter: () => handleMouseEnter(job.id),
+                            onMouseLeave: handleMouseLeave,
+                          }}
                         />
                       </div>
                     </PopoverAnchor>

@@ -40,17 +40,26 @@ export const DashboardLayout = ({
         <aside className="w-64 bg-white border-r px-5 py-6 hidden lg:flex flex-col h-screen sticky top-0">
           <Link
             to="/"
-            className="text-2xl font-extrabold text-primary hover:opacity-80 transition-opacity px-4"
+            className="inline-flex shrink-0 items-center px-2 hover:opacity-90 transition-opacity"
           >
-            WorkLink
+            <img
+              src="/logo_02.png"
+              alt="WorkLink"
+              className="h-12 w-auto"
+            />
           </Link>
           <div className="mt-8 space-y-1">
             {menu.map((item) => (
               <button
                 key={item.key}
-                onClick={() =>
-                  item.path ? navigate(item.path) : onSelect(item.key)
-                }
+                onClick={() => {
+                  if (item.path) {
+                    navigate(item.path);
+                    if (!item.externalNav) onSelect(item.key);
+                  } else {
+                    onSelect(item.key);
+                  }
+                }}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-xl px-4 py-2 text-sm font-semibold transition',
                   activeKey === item.key
@@ -184,6 +193,15 @@ export const DashboardLayout = ({
                               Trang Nhà Tuyển Dụng
                             </Link>
                           )}
+                          {user?.roleType === 'MANAGER' && (
+                            <Link
+                              to="/manager"
+                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"
+                              onClick={() => setAvatarOpen(false)}
+                            >
+                              Trang Quản lý hệ thống
+                            </Link>
+                          )}
                           {user?.roleType === 'ADMIN' && (
                             <Link
                               to="/admin"
@@ -214,7 +232,14 @@ export const DashboardLayout = ({
               {menu.map((item) => (
                 <button
                   key={item.key}
-                  onClick={() => onSelect(item.key)}
+                  onClick={() => {
+                    if (item.path) {
+                      navigate(item.path);
+                      if (!item.externalNav) onSelect(item.key);
+                    } else {
+                      onSelect(item.key);
+                    }
+                  }}
                   className={cn(
                     'shrink-0 rounded-full border px-4 py-2 text-xs font-semibold',
                     activeKey === item.key

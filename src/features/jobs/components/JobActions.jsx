@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Heart, Send } from 'lucide-react';
+import { CheckCircle2, Heart, Send } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import {
   useWishlist,
@@ -54,16 +54,23 @@ export const JobAction = ({
     <div className={cn('flex gap-3 ', className)}>
       {canSeeApplyButton && (
         <Button
-          variant={hasApplied ? 'secondary' : 'default'}
+          variant={hasApplied ? 'outline' : 'default'}
           onClick={hasApplied ? undefined : onApply}
-          disabled={hasApplied}
+          aria-disabled={hasApplied}
+          tabIndex={hasApplied ? -1 : undefined}
           className={cn(
             'rounded-xl px-8 h-12 shadow-md',
             !hasApplied && 'shadow-primary/20',
+            hasApplied &&
+              'border-amber-500/40 bg-amber-50 text-amber-950 font-semibold shadow-sm hover:bg-amber-50 pointer-events-none cursor-default opacity-100',
             fullWidth && 'flex-1',
           )}
         >
-          <Send className="h-4 w-4 mr-2" />
+          {hasApplied ? (
+            <CheckCircle2 className="h-4 w-4 mr-2 shrink-0 text-amber-600" aria-hidden />
+          ) : (
+            <Send className="h-4 w-4 mr-2 shrink-0" aria-hidden />
+          )}
           {hasApplied ? 'Đã ứng tuyển' : 'Ứng tuyển ngay'}
         </Button>
       )}

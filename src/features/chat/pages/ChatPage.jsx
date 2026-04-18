@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Send } from 'lucide-react';
+import { MessagesSquare, Send } from 'lucide-react';
 import {
   useGetMessages,
   useGetUserConversations,
@@ -205,8 +205,8 @@ export const ChatPage = () => {
   useChatRealtime(conversationId, user.id);
 
   const send = () => {
-    if (!input.trim()) return;
-    sendMessage({ id: conversationId, content: input });
+    if (!input.trim() || !selected) return;
+    sendMessage({ id: selected, content: input });
     setInput('');
   };
 
@@ -239,8 +239,8 @@ export const ChatPage = () => {
         selectedId={selected}
         onSelect={handleSelect}
       />
-      <main className="flex-1 flex flex-col bg-white min-h-[400px] rounded-r-xl max-h-[calc(100vh-8rem)]">
-        {selected && (
+      <main className="flex-1 flex flex-col bg-white min-h-[400px] rounded-r-xl max-h-[calc(100vh-8rem)] min-w-0">
+        {selected ? (
           <>
             <div className="p-4 border-b flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
@@ -253,6 +253,19 @@ export const ChatPage = () => {
             <MessageThread messages={messages} avatar={avatar} />
             <MessageInput value={input} onChange={setInput} onSend={send} />
           </>
+        ) : (
+          <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+            <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <MessagesSquare className="h-10 w-10" strokeWidth={1.5} aria-hidden />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              Chọn cuộc hội thoại
+            </h3>
+            <p className="text-sm text-muted-foreground max-w-[320px] leading-relaxed">
+              Tin nhắn sẽ hiển thị tại đây. Nhấn vào một đoạn hội thoại ở cột bên trái
+              (nếu có) để xem nội dung và trả lời.
+            </p>
+          </div>
         )}
       </main>
     </div>

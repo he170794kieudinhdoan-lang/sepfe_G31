@@ -37,6 +37,7 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { SHIFTS } from '@/shared/constants/enums';
 import { formatSalary } from '@/shared/utils/salaryUtils';
 import { isWorkerRole } from '@/shared/utils/userRole';
+import { cn } from '@/lib/utils';
 
 const POPOVER_CHIP =
   'inline-flex max-w-full items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700';
@@ -52,24 +53,24 @@ const POPULAR_KEYWORDS = [
 
 function JobCardSkeleton() {
   return (
-    <Card className="p-4 rounded-2xl border border-slate-100 bg-background">
-      <div className="flex gap-4">
-        <Skeleton className="h-16 w-16 rounded-xl shrink-0" />
-        <div className="flex-1 space-y-3">
-          <div className="flex justify-between">
-            <div className="space-y-2 flex-1">
+    <Card className="rounded-xl border border-slate-100 bg-background p-4">
+      <div className="flex gap-3">
+        <Skeleton className="h-14 w-14 shrink-0 rounded-lg" />
+        <div className="flex-1 space-y-2.5">
+          <div className="flex justify-between gap-2">
+            <div className="min-w-0 flex-1 space-y-2">
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3 w-1/2" />
             </div>
-            <Skeleton className="h-5 w-10 rounded-lg" />
+            <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
           </div>
-          <div className="flex gap-4">
+          <div className="flex gap-2">
             <Skeleton className="h-3 w-20" />
             <Skeleton className="h-3 w-24" />
           </div>
-          <div className="flex gap-2 pt-1">
-            <Skeleton className="h-5 w-16 rounded-full" />
-            <Skeleton className="h-5 w-16 rounded-full" />
+          <div className="flex gap-1.5 pt-0.5">
+            <Skeleton className="h-[18px] w-16 rounded-md" />
+            <Skeleton className="h-[18px] w-16 rounded-md" />
           </div>
         </div>
       </div>
@@ -124,6 +125,145 @@ function SaveJobButton({ job }) {
       />
       {isSaved ? 'Bỏ lưu' : 'Lưu tin'}
     </Button>
+  );
+}
+
+function JobCardHoverPreview({
+  job,
+  activePreviewKey,
+  previewKey,
+  handleMouseEnter,
+  handleMouseLeave,
+}) {
+  return (
+    <Popover modal={false} open={activePreviewKey === previewKey}>
+      <PopoverAnchor asChild>
+        <div className="relative">
+          <JobCard
+            job={job}
+            featured
+            compact
+            popoverHover={{
+              onMouseEnter: () => handleMouseEnter(previewKey),
+              onMouseLeave: handleMouseLeave,
+            }}
+          />
+        </div>
+      </PopoverAnchor>
+      <PopoverContent
+        className={cn(
+          'w-[450px] p-0 overflow-hidden rounded-[24px] border border-slate-100 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.15)] bg-white z-100',
+          /* Ghi đè animate mặc định của Popover (zoom ~95 + fade) — cảm giác mở chậm / không mượt */
+          'data-[state=open]:duration-100 data-[state=closed]:duration-75',
+          'data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100',
+          'data-[side=left]:slide-in-from-right-0',
+        )}
+        side="left"
+        sideOffset={4}
+        onMouseEnter={() => handleMouseEnter(previewKey)}
+        onMouseLeave={handleMouseLeave}
+      >
+        <div className="flex flex-col max-h-[580px]">
+          <div className="p-6 bg-white shrink-0">
+            <div className="flex items-start gap-4">
+              <div className="h-[60px] w-[60px] shrink-0 overflow-hidden rounded-[14px] border border-slate-100/60 bg-white p-2 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.06)] flex items-center justify-center">
+                <ImageWithFallback
+                  src={job.company?.logoUrl}
+                  alt={job.company?.name || 'Logo'}
+                  className="h-full w-full object-contain"
+                  fallbackClassName="text-[10px] text-slate-400 font-medium text-center"
+                />
+              </div>
+              <div className="flex-1 min-w-0 pt-0.5">
+                <h4
+                  className="text-[16px] font-extrabold text-slate-900 leading-[1.3] truncate hover:whitespace-normal hover:overflow-visible transition-colors"
+                  title={job.title}
+                >
+                  {job.title}
+                </h4>
+                <div className="text-[13px] font-semibold text-slate-500 mt-1.5 truncate">
+                  {job.company?.name || job.companyName || 'Công ty ẩn'}
+                </div>
+                <div className="mt-3.5 flex flex-wrap gap-1.5">
+                  <span
+                    className={POPOVER_CHIP}
+                    title={formatSalary(
+                      job.salaryMin,
+                      job.salaryMax,
+                      'vndCompact',
+                    )}
+                  >
+                    <Wallet className="h-2.5 w-2.5 shrink-0 text-slate-500" />
+                    <span className="truncate">
+                      {formatSalary(
+                        job.salaryMin,
+                        job.salaryMax,
+                        'vndCompact',
+                      )}
+                    </span>
+                  </span>
+                  <span className={POPOVER_CHIP}>SL: {job.quantity || 1}</span>
+                  {job.workingShift && (
+                    <span className={`${POPOVER_CHIP} items-center`}>
+                      <Clock className="h-2.5 w-2.5 shrink-0 text-primary" />
+                      <span className="whitespace-nowrap">
+                        {SHIFTS.find((s) => s.value === job.workingShift)
+                          ?.label || job.workingShift}
+                      </span>
+                    </span>
+                  )}
+                  <span
+                    className={`${POPOVER_CHIP} max-w-[min(100%,14rem)]`}
+                    title={
+                      job.district
+                        ? `${job.district}, ${job.province || ''}`
+                        : job.province
+                    }
+                  >
+                    <MapPin className="h-2.5 w-2.5 shrink-0 text-primary" />
+                    <span className="truncate">
+                      {job.district ? `${job.district}, ` : ''}
+                      {job.province || '—'}
+                    </span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="font-medium text-sm">
+                    {job?.occupation?.name}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-px bg-slate-100 w-full shrink-0" />
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-6 space-y-7 overscroll-contain">
+            <section>
+              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5">
+                Mô tả chi tiết
+              </h5>
+              <div className="text-[13px] text-slate-600 space-y-2 whitespace-pre-wrap leading-[1.7] px-1">
+                {job.description || 'Chưa có thông tin mô tả chi tiết.'}
+              </div>
+            </section>
+          </div>
+
+          <div className="h-px bg-slate-100 w-full shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.02)]" />
+
+          <div className="p-5 bg-white flex gap-3 shrink-0 items-center justify-end">
+            <Button
+              className="flex-1 h-11 rounded-[14px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98]"
+              asChild
+            >
+              <Link to={`/job/${job.id}`}>Xem chi tiết việc làm</Link>
+            </Button>
+
+            <SaveJobButton job={job} />
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -434,21 +574,26 @@ export function HomePage() {
   const [province, setProvince] = useState('');
   const [searchMode, setSearchMode] = useState('both');
   const [wardsName, setWardsName] = useState('');
-  const [openId, setOpenId] = useState(null);
+  /** Mỗi thẻ job preview cần key riêng — cùng jobId ở hai section sẽ không mở trùng 2 popover */
+  const [activePreviewKey, setActivePreviewKey] = useState(null);
   const timeoutRef = useRef(null);
 
-  const handleMouseEnter = (jobId) => {
+  const handlePreviewMouseEnter = (key) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setOpenId(jobId);
+    setActivePreviewKey(key);
   };
 
-  const handleMouseLeave = () => {
+  const handlePreviewMouseLeave = () => {
     timeoutRef.current = setTimeout(() => {
-      setOpenId(null);
-    }, 150);
+      setActivePreviewKey(null);
+    }, 80);
   };
 
-  const { data: newestJobs, isLoading } = useSearchJobs({ limit });
+  const { data: newestJobs, isLoading } = useSearchJobs({
+    limit,
+    page: 1,
+    sortBy: 'newest',
+  });
   const { data: boostedJobs, isLoading: isBoostedLoading } = useBoostedJobs({
     page: 1,
     limit,
@@ -456,6 +601,8 @@ export function HomePage() {
   const displayedBoostedJobs = useMemo(() => {
     return Array.isArray(boostedJobs?.items) ? boostedJobs.items : [];
   }, [boostedJobs?.items]);
+
+  const spotlightJob = newestJobs?.items?.[0];
 
   return (
     <div className="bg-background min-h-full">
@@ -535,7 +682,10 @@ export function HomePage() {
                   className="rounded-2xl px-8 h-14 text-base font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
                   asChild
                 >
-                  <Link to="#jobs" className="flex items-center gap-2">
+                  <Link
+                    to="/search"
+                    className="inline-flex items-center justify-center gap-2"
+                  >
                     Xem việc làm ngay
                   </Link>
                 </Button>
@@ -592,28 +742,53 @@ export function HomePage() {
                 </div>
               </div>
 
-              <div className="absolute -bottom-6 -left-6 z-20 bg-white p-5 rounded-4xl shadow-xl border border-primary-muted hidden md:block max-w-[220px]">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-[10px] font-black text-primary uppercase">
-                      Việc làm mới ⚡
+              <div className="absolute -bottom-6 -left-6 z-20 hidden md:block max-w-[220px]">
+                {isLoading ? (
+                  <div className="bg-white p-5 rounded-4xl shadow-xl border border-primary-muted space-y-3">
+                    <div className="h-2.5 w-24 bg-slate-100 rounded animate-pulse" />
+                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div className="h-full w-1/2 bg-slate-200 rounded-full animate-pulse" />
                     </div>
+                    <div className="h-4 w-full bg-slate-100 rounded animate-pulse" />
+                    <div className="h-5 w-20 bg-slate-100 rounded animate-pulse" />
                   </div>
-                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full w-2/3 bg-primary rounded-full" />
+                ) : spotlightJob ? (
+                  <Link
+                    to={`/job/${spotlightJob.id}`}
+                    className="group block bg-white p-5 rounded-4xl shadow-xl border border-primary-muted transition-all hover:shadow-2xl hover:border-primary/25 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                    aria-label={`Xem chi tiết: ${spotlightJob.title}`}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[10px] font-black text-primary uppercase">
+                          Việc làm mới ⚡
+                        </div>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-full w-2/3 bg-primary rounded-full transition-all group-hover:w-4/5" />
+                      </div>
+                      <div className="text-xs font-bold text-slate-800 leading-tight line-clamp-3">
+                        {spotlightJob.title}
+                      </div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <Badge
+                          variant="secondary"
+                          className="bg-primary-muted text-primary text-[9px] border-0"
+                        >
+                          {formatSalary(
+                            spotlightJob.salaryMin,
+                            spotlightJob.salaryMax,
+                            'compact',
+                          )}
+                        </Badge>
+                      </div>
+                    </div>
+                  </Link>
+                ) : (
+                  <div className="bg-white p-5 rounded-4xl shadow-xl border border-primary-muted text-[11px] text-slate-500 text-center leading-snug">
+                    Đang cập nhật việc làm mới
                   </div>
-                  <div className="text-xs font-bold text-slate-800 leading-tight">
-                    Nhân viên vận hành - Logistics
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="secondary"
-                      className="bg-primary-muted text-primary text-[9px] border-0"
-                    >
-                      12-15 triệu
-                    </Badge>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Background Blob */}
@@ -623,179 +798,87 @@ export function HomePage() {
         </Container>
       </section>
 
-      <MatchedJobs />
-
       {(isBoostedLoading || displayedBoostedJobs.length > 0) && (
-        <section className="container mx-auto px-6 py-6 space-y-6 max-w-7xl">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Việc làm nổi bật</h2>
-          </div>
+        <section className="relative border-y border-[#FEF08A]/90 bg-gradient-to-b from-[#FFFBF0] via-[#FFFCED] to-background py-7 md:py-8">
+          <div className="container mx-auto max-w-7xl px-6">
+            <div
+              className={cn(
+                'rounded-2xl border border-[#FDE047]/70 bg-gradient-to-br from-white to-[#FFFDF0]',
+                'shadow-sm shadow-slate-900/6 ring-1 ring-[#FEF9C3]/90',
+                'p-5 md:p-6',
+              )}
+            >
+              <div className="mb-5 flex min-w-0 gap-4">
+                <div
+                  className="w-1.5 shrink-0 self-stretch rounded-full bg-[#FACC15] md:min-h-[3.25rem]"
+                  aria-hidden
+                />
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[1.65rem] md:leading-tight">
+                    Việc làm{' '}
+                    <span className="rounded-md bg-[#FEF08A] px-1.5 py-0.5 font-extrabold text-slate-900">
+                      nổi bật
+                    </span>
+                  </h2>
+                  <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
+                    Khám phá các việc làm{' '}
+                    <span className="font-semibold text-slate-800">nổi bật</span>{' '}
+                    trên hệ thống.
+                  </p>
+                </div>
+              </div>
 
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {isBoostedLoading
-              ? Array.from({ length: limit }).map((_, i) => (
-                  <JobCardSkeleton key={i} />
-                ))
-              : displayedBoostedJobs.map((job) => (
-                  <JobCard key={job.id} job={job} />
-                ))}
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {isBoostedLoading
+                  ? Array.from({ length: limit }).map((_, i) => (
+                      <JobCardSkeleton key={i} />
+                    ))
+                  : displayedBoostedJobs.map((job) => (
+                      <JobCardHoverPreview
+                        key={`boosted-${job.id}`}
+                        job={job}
+                        activePreviewKey={activePreviewKey}
+                        previewKey={`boosted-${job.id}`}
+                        handleMouseEnter={handlePreviewMouseEnter}
+                        handleMouseLeave={handlePreviewMouseLeave}
+                      />
+                    ))}
+              </div>
+            </div>
           </div>
         </section>
       )}
 
+      <MatchedJobs />
+
       {/* FEATURED */}
       <section
         id="jobs"
-        className="container mx-auto px-6 py-12 space-y-6 max-w-7xl"
+        className="container mx-auto px-6 py-8 space-y-4 max-w-7xl"
       >
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Những công việc mới nhất</h2>
+          <h2 className="text-xl font-bold tracking-tight">
+            Những công việc mới nhất
+          </h2>
         </div>
 
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading
             ? Array.from({ length: limit }).map((_, i) => (
                 <JobCardSkeleton key={i} />
               ))
             : newestJobs?.items?.map((job) => (
-                <Popover key={job.id} open={openId === job.id}>
-                  <PopoverAnchor asChild>
-                    <div className="relative">
-                      <JobCard
-                        key={job.id}
-                        job={job}
-                        featured
-                        onMouseEnterTitle={() => handleMouseEnter(job.id)}
-                        onMouseLeaveTitle={handleMouseLeave}
-                      />
-                    </div>
-                  </PopoverAnchor>
-                  <PopoverContent
-                    className="w-[450px] p-0 overflow-hidden rounded-[24px] border border-slate-100 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.15)] bg-white z-100"
-                    side="left"
-                    sideOffset={0}
-                    onMouseEnter={() => handleMouseEnter(job.id)}
-                    onMouseLeave={handleMouseLeave}
-                  >
-                    <div className="flex flex-col max-h-[580px]">
-                      {/* --- HEADER --- */}
-                      <div className="p-6 bg-white shrink-0">
-                        <div className="flex items-start gap-4">
-                          <div className="h-[60px] w-[60px] shrink-0 overflow-hidden rounded-[14px] border border-slate-100/60 bg-white p-2 shadow-[0_4px_12px_-4px_rgba(0,0,0,0.06)] flex items-center justify-center">
-                            <ImageWithFallback
-                              src={job.company?.logoUrl}
-                              alt={job.company?.name || 'Logo'}
-                              className="h-full w-full object-contain"
-                              fallbackClassName="text-[10px] text-slate-400 font-medium text-center"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0 pt-0.5">
-                            <h4
-                              className="text-[16px] font-extrabold text-slate-900 leading-[1.3] truncate hover:whitespace-normal hover:overflow-visible transition-colors"
-                              title={job.title}
-                            >
-                              {job.title}
-                            </h4>
-                            <div className="text-[13px] font-semibold text-slate-500 mt-1.5 truncate">
-                              {job.company?.name ||
-                                job.companyName ||
-                                'Công ty ẩn'}
-                            </div>
-                            <div className="mt-3.5 flex flex-wrap gap-1.5">
-                              <span
-                                className={POPOVER_CHIP}
-                                title={formatSalary(
-                                  job.salaryMin,
-                                  job.salaryMax,
-                                  'vndCompact',
-                                )}
-                              >
-                                <Wallet className="h-2.5 w-2.5 shrink-0 text-slate-500" />
-                                <span className="truncate">
-                                  {formatSalary(
-                                    job.salaryMin,
-                                    job.salaryMax,
-                                    'vndCompact',
-                                  )}
-                                </span>
-                              </span>
-                              <span className={POPOVER_CHIP}>
-                                SL: {job.quantity || 1}
-                              </span>
-                              {job.workingShift && (
-                                <span className={`${POPOVER_CHIP} items-center`}>
-                                  <Clock className="h-2.5 w-2.5 shrink-0 text-primary" />
-                                  <span className="whitespace-nowrap">
-                                    {SHIFTS.find(
-                                      (s) => s.value === job.workingShift,
-                                    )?.label || job.workingShift}
-                                  </span>
-                                </span>
-                              )}
-                              <span
-                                className={`${POPOVER_CHIP} max-w-[min(100%,14rem)]`}
-                                title={
-                                  job.district
-                                    ? `${job.district}, ${job.province || ''}`
-                                    : job.province
-                                }
-                              >
-                                <MapPin className="h-2.5 w-2.5 shrink-0 text-primary" />
-                                <span className="truncate">
-                                  {job.district
-                                    ? `${job.district}, `
-                                    : ''}
-                                  {job.province || '—'}
-                                </span>
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-2">
-                              <span className="font-medium text-sm">
-                                {job?.occupation?.name}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="h-px bg-slate-100 w-full shrink-0" />
-
-                      {/* --- SCROLLABLE BODY --- */}
-                      {/* Use native div with custom-scrollbar to guarantee scroll visibility */}
-                      <div className="flex-1 overflow-y-auto custom-scrollbar bg-slate-50/50 p-6 space-y-7 overscroll-contain">
-                        {/* Description Section */}
-                        <section>
-                          <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5">
-                            Mô tả chi tiết
-                          </h5>
-                          <div className="text-[13px] text-slate-600 space-y-2 whitespace-pre-wrap leading-[1.7] px-1">
-                            {job.description ||
-                              'Chưa có thông tin mô tả chi tiết.'}
-                          </div>
-                        </section>
-                      </div>
-
-                      <div className="h-px bg-slate-100 w-full shrink-0 shadow-[0_-4px_15px_rgba(0,0,0,0.02)]" />
-
-                      {/* --- FOOTER ACTIONS --- */}
-                      <div className="p-5 bg-white flex gap-3 shrink-0 items-center justify-end">
-                        <Button
-                          className="flex-1 h-11 rounded-[14px] font-bold bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_6px_16px_rgba(0,0,0,0.08)] transition-all active:scale-[0.98]"
-                          asChild
-                        >
-                          <Link to={`/job/${job.id}`}>
-                            Xem chi tiết việc làm
-                          </Link>
-                        </Button>
-
-                        <SaveJobButton job={job} />
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <JobCardHoverPreview
+                  key={`newest-${job.id}`}
+                  job={job}
+                  activePreviewKey={activePreviewKey}
+                  previewKey={`newest-${job.id}`}
+                  handleMouseEnter={handlePreviewMouseEnter}
+                  handleMouseLeave={handlePreviewMouseLeave}
+                />
               ))}
         </div>
-        <div className="mt-8 text-center pt-8">
+        <div className="mt-6 text-center pt-4">
           <Button
             variant="outline"
             className="rounded-full px-8 bg-white hover:bg-primary/5 border-primary/30 text-primary font-semibold transition-all hover:scale-105 shadow-sm"
