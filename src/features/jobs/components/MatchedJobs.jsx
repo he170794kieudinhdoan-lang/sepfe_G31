@@ -99,9 +99,10 @@ function SaveButton({ job }) {
 }
 
 export const MatchedJobs = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const isWorker = isWorkerRole(user);
   const { data: matchedData, isLoading } = useMatchedJobs(6, {
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && isWorker,
   });
   const [openId, setOpenId] = useState(null);
   const timeoutRef = useRef(null);

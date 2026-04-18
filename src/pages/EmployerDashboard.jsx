@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -1136,6 +1136,7 @@ export const EmployerDashboard = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
@@ -1212,6 +1213,37 @@ export const EmployerDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
     }
   }, [user?.id, queryClient]);
+
+  const campaignIdFromUrl = searchParams.get('campaignId');
+  useEffect(() => {
+    if (!campaignIdFromUrl) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('campaignId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [campaignIdFromUrl, setSearchParams]);
+
+  const applicantsJobIdFromUrl = searchParams.get('applicantsJobId');
+  useEffect(() => {
+    if (!applicantsJobIdFromUrl) return;
+    const id = Number(applicantsJobIdFromUrl);
+    if (Number.isNaN(id)) return;
+    setActive('applicants');
+    setSelectedJobIdFilter(String(id));
+    setApplicantsModalJobId(id);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('applicantsJobId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [applicantsJobIdFromUrl, setSearchParams]);
 
   useEffect(() => {
     setApplicantsTabPage(1);

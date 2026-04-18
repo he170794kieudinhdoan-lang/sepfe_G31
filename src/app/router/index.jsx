@@ -70,6 +70,11 @@ const EditJobPage = lazy(() =>
 const JobApplyPage = lazy(() =>
   import('@/pages/JobApplyPage').then((m) => ({ default: m.JobApplyPage })),
 );
+const WorkerInvitations = lazy(() =>
+  import('@/features/interview-invitations/components/WorkerInvitations').then((m) => ({
+    default: m.default,
+  })),
+);
 
 // Auth (group lazily)
 const Login = lazy(() =>
@@ -116,6 +121,10 @@ export const router = createBrowserRouter([
       { path: 'company/:id', element: withSuspense(<CompanyDetailPage />) },
       { path: 'profile', element: withSuspense(<UserProfilePage />) },
       { path: 'profile/:id', element: withSuspense(<UserProfilePage />) },
+      {
+        path: 'interview-invitations',
+        element: withSuspense(<WorkerInvitations />),
+      },
       { path: 'terms', element: withSuspense(<TermsPage />) },
     ],
   },

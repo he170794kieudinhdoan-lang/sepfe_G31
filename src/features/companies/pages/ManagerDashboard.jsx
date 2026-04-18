@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -78,6 +78,7 @@ const REPORT_STATUS_LABELS = {
 
 export const ManagerDashboard = () => {
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // --- STATE MANAGEMENT ---
   const [currentTab, setCurrentTab] = useState('all');
@@ -117,6 +118,46 @@ export const ManagerDashboard = () => {
     useGetReviewReports(reviewReportStatus, 1, 50);
   const updateReviewReportMutation = useUpdateReviewReportStatus();
   const hideReviewMutation = useHideCompanyReview();
+
+  const companyIdFromUrl = searchParams.get('companyId');
+  useEffect(() => {
+    if (!companyIdFromUrl) return;
+    const id = Number(companyIdFromUrl);
+    if (Number.isNaN(id)) return;
+    setViewingCompanyId(id);
+    setCurrentTab('approvals');
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('companyId');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [companyIdFromUrl, setSearchParams]);
+
+  const tabFromUrl = searchParams.get('tab');
+  useEffect(() => {
+    if (!tabFromUrl) return;
+    const allowed = new Set([
+      'all',
+      'approvals',
+      'rejected',
+      'job_reports',
+      'review_reports',
+    ]);
+    if (!allowed.has(tabFromUrl)) return;
+    setCurrentTab(tabFromUrl);
+    setViewingCompanyId(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('tab');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [tabFromUrl, setSearchParams]);
 
   // Find the viewing report in the list
   const viewingReport = listReportsData?.data?.find(r => r.id === viewingReportId);

@@ -13,7 +13,6 @@ import {
   Search,
   ChevronDown,
   User,
-  Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -29,6 +28,9 @@ import {
   getUnreadCount,
   normalizeNotifications,
 } from '@/features/notifications/utils/normalizeNotifications';
+import { NotificationDetailDialog } from '@/features/notifications/components/NotificationDetailDialog';
+import { NotificationPreviewRow } from '@/features/notifications/components/NotificationPreviewRow';
+import { navigateToNotification } from '@/features/notifications/utils/navigateToNotification';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { useGetUserConversations } from '@/features/chat/api/useChat';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
@@ -46,6 +48,7 @@ export const Header = () => {
   const navigate = useNavigate();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [notificationDetailItem, setNotificationDetailItem] = useState(null);
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const { toast } = useToast();
   const currentUserId = user?.userId || user?.id || user?._id;
@@ -116,6 +119,7 @@ export const Header = () => {
   };
 
   return (
+    <>
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between gap-4 h-20 p-2 mx-6">
@@ -147,6 +151,22 @@ export const Header = () => {
                 asChild
               >
                 <Link to="/employer">Quản lý tuyển dụng</Link>
+              </Button>
+            )}
+            {isAuthenticated && user?.roleType === 'MANAGER' && (
+              <Button
+                className="hidden sm:flex rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 font-semibold transition-all shadow-sm border border-primary/20 hover:shadow-md"
+                asChild
+              >
+                <Link to="/manager">Quản lý hệ thống</Link>
+              </Button>
+            )}
+            {isAuthenticated && user?.roleType === 'ADMIN' && (
+              <Button
+                className="hidden sm:flex rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 font-semibold transition-all shadow-sm border border-primary/20 hover:shadow-md"
+                asChild
+              >
+                <Link to="/admin">Quản trị hệ thống</Link>
               </Button>
             )}
             <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
@@ -208,69 +228,25 @@ export const Header = () => {
                   ) : (
                     <div className="p-2 space-y-2">
                       {previewItems.map((item) => (
-                        <div
+                        <NotificationPreviewRow
                           key={item.id}
-                          className={cn(
-                            'group rounded-xl border border-transparent transition',
-                            !item.read
-                              ? 'bg-primary/5 border-primary/15'
-                              : 'bg-white hover:bg-gray-50',
-                          )}
-                        >
-                          <div className="flex items-start gap-2 p-3">
-                            <button
-                              type="button"
-                              className="flex-1 text-left cursor-pointer"
-                              onClick={() => {
-                                if (!item.read) {
-                                  handleMarkRead(item.id);
-                                }
-                                setNotificationOpen(false);
-                              }}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div
-                                  className={cn(
-                                    'mt-0.5 h-8 w-8 rounded-lg flex items-center justify-center shrink-0',
-                                    !item.read
-                                      ? 'bg-primary/20'
-                                      : 'bg-gray-100',
-                                  )}
-                                >
-                                  <Bell
-                                    className={cn(
-                                      'h-4 w-4',
-                                      !item.read
-                                        ? 'text-primary'
-                                        : 'text-gray-500',
-                                    )}
-                                  />
-                                </div>
-                                <div className="min-w-0 flex-1">
-                                  <p className="text-sm leading-5 line-clamp-2">
-                                    {item.content}
-                                  </p>
-                                  <p className="mt-1 text-xs text-muted-foreground">
-                                    {item.time}
-                                  </p>
-                                </div>
-                                {!item.read && (
-                                  <span className="mt-1 h-2 w-2 rounded-full bg-primary shrink-0" />
-                                )}
-                              </div>
-                            </button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0 text-muted-foreground hover:text-red-500 hover:bg-red-50"
-                              title="Xoá thông báo"
-                              disabled={deleteMutation.isPending}
-                              onClick={() => handleDeleteNotification(item.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
+                          item={item}
+                          onRowClick={() => {
+                            if (!item.read) {
+                              handleMarkRead(item.id);
+                            }
+                            setNotificationOpen(false);
+                            navigateToNotification(navigate, item);
+                          }}
+                          onDetailClick={() => {
+                            if (!item.read) {
+                              handleMarkRead(item.id);
+                            }
+                            setNotificationDetailItem(item);
+                          }}
+                          onDelete={() => handleDeleteNotification(item.id)}
+                          deleteDisabled={deleteMutation.isPending}
+                        />
                       ))}
                     </div>
                   )}
@@ -278,7 +254,7 @@ export const Header = () => {
 
                 <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-muted-foreground">
-                    Bấm vào item để đánh dấu đã đọc
+                    Nhấn thông báo để mở trang · Chi tiết để xem nội dung
                   </span>
                   <Button
                     variant="ghost"
@@ -364,7 +340,9 @@ export const Header = () => {
                               ? 'Nhà tuyển dụng'
                               : user.roleType === 'ADMIN'
                                 ? 'Quản trị viên'
-                                : 'Người tìm việc'}
+                                : user.roleType === 'MANAGER'
+                                  ? 'Quản lý'
+                                  : 'Người tìm việc'}
                           </span>
                         )}
                       </div>
@@ -395,6 +373,15 @@ export const Header = () => {
                           Quản trị hệ thống
                         </Link>
                       )}
+                      {user?.roleType === 'MANAGER' && (
+                        <Link
+                          to="/manager"
+                          className="block px-4 py-2 text-sm hover:bg-gray-50"
+                          onClick={() => setAvatarOpen(false)}
+                        >
+                          Quản lý hệ thống
+                        </Link>
+                      )}
 
                       <div className="border-t my-1" />
 
@@ -422,5 +409,13 @@ export const Header = () => {
         </div>
       </div>
     </header>
+    <NotificationDetailDialog
+      item={notificationDetailItem}
+      open={Boolean(notificationDetailItem)}
+      onOpenChange={(v) => {
+        if (!v) setNotificationDetailItem(null);
+      }}
+    />
+    </>
   );
 };

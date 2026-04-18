@@ -184,6 +184,15 @@ export const DashboardLayout = ({
                               Trang Nhà Tuyển Dụng
                             </Link>
                           )}
+                          {user?.roleType === 'MANAGER' && (
+                            <Link
+                              to="/manager"
+                              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"
+                              onClick={() => setAvatarOpen(false)}
+                            >
+                              Trang Quản lý hệ thống
+                            </Link>
+                          )}
                           {user?.roleType === 'ADMIN' && (
                             <Link
                               to="/admin"

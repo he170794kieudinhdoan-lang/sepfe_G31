@@ -1,4 +1,5 @@
-import { BASE_API_URL } from '@/shared/constants/api'
+const BASE_API_URL =
+  import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 export const createCampaign = async (token, campaignData) => {
   const response = await fetch(`${BASE_API_URL}/interview-invitations/campaigns`, {

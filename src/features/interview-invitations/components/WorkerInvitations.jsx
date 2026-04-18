@@ -1,11 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useWorkerInvitations } from '../hooks/useWorkerInvitations'
 import './WorkerInvitations.css'
 
 const WorkerInvitations = () => {
   const [page, setPage] = useState(1)
+  const [searchParams, setSearchParams] = useSearchParams()
   const { invitations, loading, error, pagination, respond } = useWorkerInvitations(page, 10)
   const [respondingId, setRespondingId] = useState(null)
+
+  const invitationIdFromUrl = searchParams.get('invitationId')
+  useEffect(() => {
+    if (!invitationIdFromUrl || loading) return
+    const el = document.getElementById(`invitation-${invitationIdFromUrl}`)
+    if (el) {
+      requestAnimationFrame(() =>
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+      )
+    }
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev)
+        next.delete('invitationId')
+        return next
+      },
+      { replace: true },
+    )
+  }, [invitationIdFromUrl, loading, setSearchParams])
   const [rejectReason, setRejectReason] = useState('')
   const [successMessage, setSuccessMessage] = useState(null)
 
@@ -79,7 +100,11 @@ const WorkerInvitations = () => {
                 new Date(invitation.campaign.expiresAt) < new Date()
 
               return (
-                <div key={invitation.id} className="invitation-card">
+                <div
+                  key={invitation.id}
+                  id={`invitation-${invitation.id}`}
+                  className="invitation-card"
+                >
                   <div className="invitation-header">
                     <div className="company-info">
                       {invitation.company?.logoUrl && (

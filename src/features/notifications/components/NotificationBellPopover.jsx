@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Trash2 } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +12,9 @@ import {
     useNotifications,
 } from '@/features/notifications';
 import { getUnreadCount, normalizeNotifications } from '@/features/notifications/utils/normalizeNotifications';
+import { navigateToNotification } from '@/features/notifications/utils/navigateToNotification';
+import { NotificationDetailDialog } from '@/features/notifications/components/NotificationDetailDialog';
+import { NotificationPreviewRow } from '@/features/notifications/components/NotificationPreviewRow';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useToast } from '@/shared/contexts/ToastContext';
 
@@ -22,6 +25,7 @@ export const NotificationBellPopover = () => {
     const navigate = useNavigate();
     const { isAuthenticated, user } = useAuth();
     const [open, setOpen] = useState(false);
+    const [detailItem, setDetailItem] = useState(null);
 
     const userId = user?.userId || user?.id || user?._id;
     const { isRealtimeSubscribed } = useNotificationRealtime({
@@ -77,20 +81,11 @@ export const NotificationBellPopover = () => {
         }
 
         setOpen(false);
-
-        const target = String(item.url || '').trim();
-        if (!target) return;
-
-        if (/^https?:\/\//i.test(target)) {
-            window.location.assign(target);
-            return;
-        }
-
-        const pathname = target.startsWith('/') ? target : `/${target}`;
-        navigate(pathname);
+        navigateToNotification(navigate, item);
     };
 
     return (
+        <>
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
                 <Button variant='ghost' size='icon' className='relative rounded-full'>
@@ -134,38 +129,24 @@ export const NotificationBellPopover = () => {
                     ) : (
                         <div className='p-2 space-y-2'>
                             {previewItems.map((item) => (
-                                <div
+                                <NotificationPreviewRow
                                     key={item.id}
-                                    className={`group rounded-xl border border-transparent transition ${!item.read ? 'bg-primary/5 border-primary/15' : 'bg-white hover:bg-gray-50'}`}
-                                >
-                                    <div className='flex items-start gap-2 p-3'>
-                                        <button
-                                            type='button'
-                                            className='flex-1 text-left cursor-pointer'
-                                            onClick={() => handleNotificationClick(item)}
-                                        >
-                                            <p className='text-sm leading-5 line-clamp-2'>{item.content}</p>
-                                            <p className='mt-1 text-xs text-muted-foreground'>{item.time}</p>
-                                        </button>
-                                        <Button
-                                            variant='ghost'
-                                            size='icon'
-                                            className='h-8 w-8 shrink-0 text-muted-foreground hover:text-red-500 hover:bg-red-50'
-                                            title='Xoá thông báo'
-                                            disabled={deleteMutation.isLoading}
-                                            onClick={() => handleDelete(item.id)}
-                                        >
-                                            <Trash2 className='h-4 w-4' />
-                                        </Button>
-                                    </div>
-                                </div>
+                                    item={item}
+                                    onRowClick={() => handleNotificationClick(item)}
+                                    onDetailClick={() => {
+                                        if (!item.read) handleRead(item.id);
+                                        setDetailItem(item);
+                                    }}
+                                    onDelete={() => handleDelete(item.id)}
+                                    deleteDisabled={deleteMutation.isLoading}
+                                />
                             ))}
                         </div>
                     )}
                 </div>
 
                 <div className='px-3 py-2 border-t bg-gray-50 flex items-center justify-between gap-2'>
-                    <span className='text-[11px] text-muted-foreground'>Bấm vào item để đánh dấu đã đọc</span>
+                    <span className='text-[11px] text-muted-foreground'>Nhấn thông báo để mở trang · Chi tiết để xem nội dung</span>
                     <Button
                         variant='ghost'
                         size='sm'
@@ -178,5 +159,13 @@ export const NotificationBellPopover = () => {
                 </div>
             </PopoverContent>
         </Popover>
+        <NotificationDetailDialog
+            item={detailItem}
+            open={Boolean(detailItem)}
+            onOpenChange={(v) => {
+                if (!v) setDetailItem(null);
+            }}
+        />
+        </>
     );
 };
