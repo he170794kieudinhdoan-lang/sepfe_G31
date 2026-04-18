@@ -31,7 +31,7 @@ export const Modal = ({
           <button
             onClick={onClose}
             className="absolute top-4 right-4 p-2 rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors z-60"
-            aria-label="Close modal"
+            aria-label="Đóng cửa sổ"
           >
             <X size={20} />
           </button>

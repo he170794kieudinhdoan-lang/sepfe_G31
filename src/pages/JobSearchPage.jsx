@@ -130,6 +130,11 @@ import {
 const SearchJobCard = ({ job }) => {
   const [displayMoreButton, setDisplayMoreButton] = useState(false);
   const { user } = useAuth();
+  const boostExpiredAt = job.boostExpiredAt ? new Date(job.boostExpiredAt) : null;
+  const isBoosted =
+    !!boostExpiredAt &&
+    !Number.isNaN(boostExpiredAt.getTime()) &&
+    boostExpiredAt > new Date();
   const isWorker = isWorkerRole(user);
 
   // Wishlist: chỉ worker mới dùng được
@@ -171,7 +176,11 @@ const SearchJobCard = ({ job }) => {
 
   return (
     <Card
-      className="group w-full bg-white rounded-2xl overflow-hidden hover:cursor-pointer"
+      className={`group w-full rounded-2xl overflow-hidden hover:cursor-pointer transition-all duration-300 border ${
+        isBoosted
+          ? 'bg-linear-to-br from-amber-50/80 via-white to-orange-50/50 border-amber-300 ring-1 ring-amber-200/70 shadow-md hover:shadow-lg'
+          : 'bg-white border-slate-100'
+      }`}
       onMouseEnter={() => setDisplayMoreButton(true)}
       onMouseLeave={() => setDisplayMoreButton(false)}
     >
@@ -190,6 +199,11 @@ const SearchJobCard = ({ job }) => {
             </div>
 
             <div className="flex-1 min-w-0">
+              {isBoosted && (
+                <Badge className="mb-2 bg-amber-500 hover:bg-amber-600 text-white border-0 text-[10px] font-extrabold px-2.5 py-1 tracking-wide gap-1">
+                  <Sparkles className="h-3 w-3" /> TIN NỔI BẬT
+                </Badge>
+              )}
               <h3
                 className="font-semibold text-gray-800 
                            leading-snug line-clamp-2 
@@ -858,7 +872,7 @@ export const JobSearchPage = () => {
             <div className="w-full max-w-6xl my-5 flex justify-end m-auto pr-10">
               <Select value={sortBy} onValueChange={(e) => setSortBy(e)}>
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Theme" />
+                  <SelectValue placeholder="Sắp xếp" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
