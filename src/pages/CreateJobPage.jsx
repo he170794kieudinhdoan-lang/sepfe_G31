@@ -339,7 +339,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
         } else if (onBack) {
           onBack();
         } else {
-          navigate('/employer');
+          navigate('/employer/jobs');
         }
       },
       onError: (error) => {
@@ -364,13 +364,13 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
 
   return (
     <>
-      <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto relative p-6 shadow-2xl">
+      <div className="min-h-screen bg-slate-50 py-8 px-4">
+        <div className="max-w-5xl mx-auto bg-white rounded-2xl w-full max-h-[none] sm:max-h-[90vh] overflow-y-auto relative p-6 shadow-xl border border-slate-100">
           <Button
             variant="ghost"
             size="icon"
             className="absolute right-4 top-4 z-10 rounded-full hover:bg-gray-100"
-            onClick={() => (onBack ? onBack() : navigate('/employer'))}
+            onClick={() => (onBack ? onBack() : navigate('/employer/jobs'))}
           >
             <X className="w-5 h-5" />
           </Button>

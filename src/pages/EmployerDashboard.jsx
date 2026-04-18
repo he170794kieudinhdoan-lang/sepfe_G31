@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -19,8 +19,6 @@ import {
   PopoverContent,
 } from '@/components/ui/popover';
 import { CompanyRegisterPage } from '@/pages/CompanyRegisterPage';
-import { CreateJobPage } from '@/pages/CreateJobPage';
-import { EditJobPage } from '@/pages/EditJobPage';
 import {
   ChevronLeft,
   ChevronRight,
@@ -35,7 +33,6 @@ import {
   TrendingUp,
   Clock,
   MapPin,
-  DollarSign,
   CalendarCheck,
   Mail,
   Phone,
@@ -81,12 +78,32 @@ import { EmployerPaymentsWidget } from '@/features/statistics/components/Employe
 import { X } from 'lucide-react';
 
 const EMPLOYER_MENU = [
-  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
-  { key: 'jobs', label: 'Tin tuyển dụng', icon: Briefcase },
-  { key: 'applicants', label: 'Ứng viên', icon: Users },
-  { key: 'stats', label: 'Thống kê', icon: BarChart3 },
-  { key: 'chat', label: 'Tin nhắn', icon: MessageCircle, path: '/chat' },
-  { key: 'home', label: 'Trang chủ', icon: Home, path: '/' },
+  {
+    key: 'overview',
+    label: 'Tổng quan',
+    icon: LayoutDashboard,
+    path: '/employer',
+  },
+  {
+    key: 'jobs',
+    label: 'Tin tuyển dụng',
+    icon: Briefcase,
+    path: '/employer/jobs',
+  },
+  {
+    key: 'applicants',
+    label: 'Ứng viên',
+    icon: Users,
+    path: '/employer/applicants',
+  },
+  {
+    key: 'stats',
+    label: 'Thống kê',
+    icon: BarChart3,
+    path: '/employer/stats',
+  },
+  { key: 'chat', label: 'Tin nhắn', icon: MessageCircle, path: '/chat', externalNav: true },
+  { key: 'home', label: 'Trang chủ', icon: Home, path: '/', externalNav: true },
 ];
 
 const DASHBOARD_TITLE = 'Trung tâm nhà tuyển dụng';
@@ -1136,6 +1153,7 @@ export const EmployerDashboard = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
@@ -1146,8 +1164,6 @@ export const EmployerDashboard = () => {
   const [selectedBoostJob, setSelectedBoostJob] = useState(null);
   const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
   const [boostCheckoutData, setBoostCheckoutData] = useState(null);
-  const [createJobModalOpen, setCreateJobModalOpen] = useState(false);
-  const [editJobId, setEditJobId] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
   const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
 
@@ -1228,6 +1244,14 @@ export const EmployerDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
     }
   }, [user?.id, queryClient]);
+
+  useEffect(() => {
+    const path = location.pathname.replace(/\/$/, '') || '/';
+    if (path === '/employer') setActive('overview');
+    else if (path === '/employer/jobs') setActive('jobs');
+    else if (path === '/employer/applicants') setActive('applicants');
+    else if (path === '/employer/stats') setActive('stats');
+  }, [location.pathname]);
 
   const campaignIdFromUrl = searchParams.get('campaignId');
   useEffect(() => {
@@ -1522,7 +1546,7 @@ export const EmployerDashboard = () => {
                   </Button>
                   {isApproved && (
                     <Button
-                      onClick={() => setCreateJobModalOpen(true)}
+                      onClick={() => navigate('/employer/jobs/create')}
                       className="w-full sm:w-auto h-11 px-5 rounded-xl gap-2 font-semibold shadow-sm"
                     >
                       <Plus size={16} /> Đăng tin mới
@@ -1623,7 +1647,7 @@ export const EmployerDashboard = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setActive('jobs')}
+                      onClick={() => navigate('/employer/jobs')}
                       className="text-primary hover:text-primary hover:bg-primary/10 font-semibold shrink-0"
                     >
                       Xem tất cả
@@ -1643,7 +1667,16 @@ export const EmployerDashboard = () => {
                       jobs.slice(0, 3).map((job) => (
                         <div
                           key={job.id}
-                          className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-lg border border-slate-200 bg-slate-50/40 hover:bg-primary-muted/25 hover:border-primary/20 transition-colors gap-4"
+                          role="button"
+                          tabIndex={0}
+                          className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 rounded-lg border border-slate-200 bg-slate-50/40 hover:bg-primary-muted/25 hover:border-primary/20 transition-colors gap-4 cursor-pointer text-left w-full"
+                          onClick={() => setApplicantsModalJobId(job.id)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setApplicantsModalJobId(job.id);
+                            }
+                          }}
                         >
                           <div className="min-w-0">
                             <p className="font-semibold text-slate-900 truncate max-w-[min(100%,20rem)]">
@@ -1654,8 +1687,7 @@ export const EmployerDashboard = () => {
                                 <MapPin size={12} className="text-slate-400" />
                                 {job.province || 'Toàn quốc'}
                               </span>
-                              <span className="inline-flex items-center gap-1 text-primary bg-primary/10 border border-primary/15 px-2 py-0.5 rounded-md font-medium">
-                                <DollarSign size={12} />
+                              <span className="inline-flex items-center text-primary bg-primary/10 border border-primary/15 px-2 py-0.5 rounded-md font-medium">
                                 {formatSalary(
                                   job.salaryMin,
                                   job.salaryMax,
@@ -1664,7 +1696,10 @@ export const EmployerDashboard = () => {
                               </span>
                             </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                          <div
+                            className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {job.status === 'PUBLISHED' && (
                               <Button
                                 variant="outline"
@@ -1732,7 +1767,7 @@ export const EmployerDashboard = () => {
                     <Button
                       variant="outline"
                       className="w-full mt-5 rounded-xl font-semibold border-primary/25 hover:bg-primary-muted/50 text-slate-800"
-                      onClick={() => setActive('applicants')}
+                      onClick={() => navigate('/employer/applicants')}
                     >
                       Quản lý ứng viên
                     </Button>
@@ -1777,7 +1812,7 @@ export const EmployerDashboard = () => {
                   {isApproved && (
                     <Button
                       className="rounded-lg gap-2 shadow-sm w-full sm:w-auto font-semibold px-5"
-                      onClick={() => setCreateJobModalOpen(true)}
+                      onClick={() => navigate('/employer/jobs/create')}
                     >
                       <Plus size={18} /> Tạo tin mới
                     </Button>
@@ -1853,7 +1888,8 @@ export const EmployerDashboard = () => {
                             return (
                             <tr
                               key={job.id}
-                              className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors"
+                              className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors cursor-pointer"
+                              onClick={() => setApplicantsModalJobId(job.id)}
                             >
                               <td className="py-4 px-4">
                                 <p className="font-semibold text-slate-800">
@@ -1864,8 +1900,7 @@ export const EmployerDashboard = () => {
                                     <MapPin size={12} className="text-slate-400" />
                                     {job.province || 'Toàn quốc'}
                                   </span>
-                                  <span className="inline-flex items-center gap-1 text-primary bg-primary/10 border border-primary/15 px-2 py-0.5 rounded-md font-medium">
-                                    <DollarSign size={12} />
+                                  <span className="inline-flex items-center text-primary bg-primary/10 border border-primary/15 px-2 py-0.5 rounded-md font-medium">
                                     {formatSalary(
                                       job.salaryMin,
                                       job.salaryMax,
@@ -1891,7 +1926,10 @@ export const EmployerDashboard = () => {
                                   )}
                                 </span>
                               </td>
-                              <td className="px-4 text-center">
+                              <td
+                                className="px-4 text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 {isBoostedActive ? (
                                   <Badge
                                     variant="secondary"
@@ -1922,7 +1960,10 @@ export const EmployerDashboard = () => {
                                   </Button>
                                 )}
                               </td>
-                              <td className="px-4 text-center">
+                              <td
+                                className="px-4 text-center"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 <div className="flex justify-center w-full">
                                   <Popover>
                                     <PopoverTrigger asChild>
@@ -1970,7 +2011,11 @@ export const EmployerDashboard = () => {
                                             variant="ghost"
                                             size="sm"
                                             className="justify-start gap-2 hover:bg-slate-100 rounded-lg font-medium text-slate-700 h-9"
-                                            onClick={() => setEditJobId(job.id)}
+                                            onClick={() =>
+                                              navigate(
+                                                `/employer/jobs/${job.id}/edit`,
+                                              )
+                                            }
                                           >
                                             <Edit size={14} /> Chỉnh sửa
                                           </Button>
@@ -2290,22 +2335,6 @@ export const EmployerDashboard = () => {
       )}
 
       {/* --- MODALS --- */}
-      {createJobModalOpen && (
-        <CreateJobPage
-          onBack={() => setCreateJobModalOpen(false)}
-          onSuccess={() => {
-            setCreateJobModalOpen(false);
-            // Re-fetch jobs would be ideal, but rely on useChatRealtime/invalidate if implemented
-          }}
-        />
-      )}
-      {editJobId && (
-        <EditJobPage
-          jobIdProp={editJobId}
-          onBack={() => setEditJobId(null)}
-          onSuccess={() => setEditJobId(null)}
-        />
-      )}
       <Modal
         open={companyModalOpen}
         onClose={() => setCompanyModalOpen(false)}

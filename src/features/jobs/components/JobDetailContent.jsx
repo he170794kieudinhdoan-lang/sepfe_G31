@@ -1,5 +1,6 @@
-import { Card } from '@/components/ui/card';
 import { formatInVN } from '@/shared/utils/dateUtils';
+import { useAuth } from '@/shared/contexts/AuthContext';
+import { isWorkerRole } from '@/shared/utils/userRole';
 import { JobAction } from './JobActions';
 import { FileText, Info, Send } from 'lucide-react';
 
@@ -16,6 +17,9 @@ const Section = ({ title, children, icon: Icon }) => (
 );
 
 export const JobDetailContent = ({ job, onApply, onReport, hasApplied }) => {
+  const { user } = useAuth();
+  const showReportHint = isWorkerRole(user);
+
   return (
     <div className="flex gap-4 flex-col">
       <Section title="Chi tiết tuyển dụng" icon={FileText}>
@@ -38,22 +42,25 @@ export const JobDetailContent = ({ job, onApply, onReport, hasApplied }) => {
 
       <JobAction job={job} onApply={onApply} hasApplied={hasApplied} className="py-2" />
 
-      <div className="flex items-start gap-3 p-4 bg-orange-50/50 border border-orange-100 rounded-xl text-sm transition-all duration-300">
-        <Info className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
-        <p className="text-muted-foreground leading-relaxed">
-          <span className="font-semibold text-orange-700">
-            Báo cáo tin tuyển dụng:
-          </span>{' '}
-          Nếu bạn thấy rằng tin tuyển dụng này không chính xác hoặc có dấu hiệu
-          lừa đảo,{' '}
-          <button
-            onClick={onReport}
-            className="text-primary font-bold hover:underline underline-offset-4 cursor-pointer transition-all"
-          >
-            hãy phản ánh với chúng tôi.
-          </button>
-        </p>
-      </div>
+      {showReportHint ? (
+        <div className="flex items-start gap-3 p-4 bg-orange-50/50 border border-orange-100 rounded-xl text-sm transition-all duration-300">
+          <Info className="h-5 w-5 text-orange-500 shrink-0 mt-0.5" />
+          <p className="text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-orange-700">
+              Báo cáo tin tuyển dụng:
+            </span>{' '}
+            Nếu bạn thấy rằng tin tuyển dụng này không chính xác hoặc có dấu hiệu
+            lừa đảo,{' '}
+            <button
+              type="button"
+              onClick={onReport}
+              className="text-primary font-bold hover:underline underline-offset-4 cursor-pointer transition-all"
+            >
+              hãy phản ánh với chúng tôi.
+            </button>
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 };

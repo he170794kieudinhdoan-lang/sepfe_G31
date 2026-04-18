@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { FullWidthLayout, MainLayout } from '@/shared/components/Layout';
+import { RequireRoles } from '@/shared/components/Auth/RequireRoles';
 
 const PageFallback = () => (
   <div className="min-h-[60vh] flex items-center justify-center">
@@ -75,6 +76,18 @@ const WorkerInvitations = lazy(() =>
     default: m.default,
   })),
 );
+const AboutPage = lazy(() =>
+  import('@/pages/AboutPage').then((m) => ({ default: m.AboutPage })),
+);
+const PrivacyPage = lazy(() =>
+  import('@/pages/PrivacyPage').then((m) => ({ default: m.PrivacyPage })),
+);
+const SupportPage = lazy(() =>
+  import('@/pages/SupportPage').then((m) => ({ default: m.SupportPage })),
+);
+const NotFoundPage = lazy(() =>
+  import('@/pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
+);
 
 // Auth (group lazily)
 const Login = lazy(() =>
@@ -114,7 +127,7 @@ export const router = createBrowserRouter([
     element: <MainLayout />,
     children: [
       { path: 'chat', element: withSuspense(<ChatPage />) },
-      { path: '/chat/:conversationId', element: withSuspense(<ChatPage />) },
+      { path: 'chat/:conversationId', element: withSuspense(<ChatPage />) },
       { path: 'job/:id', element: withSuspense(<JobDetailPage />) },
       { path: 'wishlist', element: withSuspense(<WishlistPage />) },
       { path: 'companies', element: withSuspense(<CompanyListPage />) },
@@ -126,32 +139,82 @@ export const router = createBrowserRouter([
         element: withSuspense(<WorkerInvitations />),
       },
       { path: 'terms', element: withSuspense(<TermsPage />) },
+      { path: 'about', element: withSuspense(<AboutPage />) },
+      { path: 'privacy', element: withSuspense(<PrivacyPage />) },
+      { path: 'support', element: withSuspense(<SupportPage />) },
     ],
   },
   {
     path: '/admin',
-    element: withSuspense(<AdminDashboard />),
+    element: withSuspense(
+      <RequireRoles roles={['ADMIN']}>
+        <AdminDashboard />
+      </RequireRoles>,
+    ),
   },
   {
     path: '/manager',
-    element: withSuspense(<ManagerDashboard />),
+    element: withSuspense(
+      <RequireRoles roles={['MANAGER']}>
+        <ManagerDashboard />
+      </RequireRoles>,
+    ),
   },
   {
     path: '/manager/applicants',
-    element: withSuspense(<CompanyApplicantPage />),
+    element: withSuspense(
+      <RequireRoles roles={['MANAGER']}>
+        <CompanyApplicantPage />
+      </RequireRoles>,
+    ),
+  },
+  {
+    path: '/employer/jobs/create',
+    element: withSuspense(
+      <RequireRoles roles={['EMPLOYER']}>
+        <CreateJobPage />
+      </RequireRoles>,
+    ),
+  },
+  {
+    path: '/employer/jobs/:jobId/edit',
+    element: withSuspense(
+      <RequireRoles roles={['EMPLOYER']}>
+        <EditJobPage />
+      </RequireRoles>,
+    ),
+  },
+  {
+    path: '/employer/jobs',
+    element: withSuspense(
+      <RequireRoles roles={['EMPLOYER']}>
+        <EmployerDashboard />
+      </RequireRoles>,
+    ),
+  },
+  {
+    path: '/employer/applicants',
+    element: withSuspense(
+      <RequireRoles roles={['EMPLOYER']}>
+        <EmployerDashboard />
+      </RequireRoles>,
+    ),
+  },
+  {
+    path: '/employer/stats',
+    element: withSuspense(
+      <RequireRoles roles={['EMPLOYER']}>
+        <EmployerDashboard />
+      </RequireRoles>,
+    ),
   },
   {
     path: '/employer',
-    element: withSuspense(<EmployerDashboard />),
-    children: [
-      {
-        path: 'jobs',
-        children: [
-          { path: 'create', element: withSuspense(<CreateJobPage />) },
-          { path: ':jobId/edit', element: withSuspense(<EditJobPage />) },
-        ],
-      },
-    ],
+    element: withSuspense(
+      <RequireRoles roles={['EMPLOYER']}>
+        <EmployerDashboard />
+      </RequireRoles>,
+    ),
   },
   { path: '/auth/login', element: withSuspense(<Login />) },
   { path: '/auth/register', element: withSuspense(<RegisterChoose />) },
@@ -164,13 +227,6 @@ export const router = createBrowserRouter([
   { path: '/job/apply/:id', element: withSuspense(<JobApplyPage />) },
   {
     path: '*',
-    element: (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold">404</h1>
-          <p className="text-muted-foreground">Trang không tồn tại.</p>
-        </div>
-      </div>
-    ),
+    element: withSuspense(<NotFoundPage />),
   },
 ]);

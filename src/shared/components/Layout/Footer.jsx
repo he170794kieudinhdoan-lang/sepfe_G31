@@ -64,7 +64,7 @@ export const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/jobs"
+                  to="/search"
                   className="hover:text-primary hover:translate-x-1 inline-block transition-all"
                 >
                   Tìm kiếm việc làm
@@ -96,12 +96,12 @@ export const Footer = () => {
             </h3>
             <ul className="space-y-4 text-sm text-muted-foreground">
               <li>
-                <a
-                  href="/support"
+                <Link
+                  to="/support"
                   className="hover:text-primary hover:translate-x-1 inline-block transition-all"
                 >
                   Trung tâm hỗ trợ
-                </a>
+                </Link>
               </li>
               <li>
                 <Link
@@ -120,12 +120,12 @@ export const Footer = () => {
                 </Link>
               </li>
               <li>
-                <a
-                  href="/faq"
+                <Link
+                  to="/support#faq"
                   className="hover:text-primary hover:translate-x-1 inline-block transition-all"
                 >
                   Câu hỏi thường gặp
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

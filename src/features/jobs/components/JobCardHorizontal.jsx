@@ -2,12 +2,10 @@ import { Link } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 import { Badge } from '@/components/ui/badge';
-import { Sparkles } from 'lucide-react';
 import { formatSalary } from '@/shared/utils/salaryUtils';
 import { formatRelativeTime } from '@/shared/utils/dateUtils';
 
 export const JobCardHorizontal = ({ job }) => {
-  console.log(job.isBoosted);
   return (
     <Link to={`/job/${job.id}`} className="group">
       <Card className="p-4 rounded-xl shadow-sm hover:shadow-md transition overflow-hidden border-0 flex gap-4">
@@ -29,9 +27,8 @@ export const JobCardHorizontal = ({ job }) => {
             {job.isBoosted && (
               <Badge
                 variant="default"
-                className="bg-rose-600 hover:bg-rose-700 text-white border-0 gap-1.5 px-3 py-1 text-[11px] font-bold rounded-lg shrink-0 shadow-sm shadow-rose-200"
+                className="shrink-0 rounded-lg border border-[#FDE047]/90 bg-[#FEF08A] px-3 py-1 text-[11px] font-bold text-slate-900 shadow-sm hover:bg-[#FDE68A]"
               >
-                <Sparkles className="h-3.5 w-3.5 fill-white/20 animate-pulse text-rose-100" />
                 NỔI BẬT
               </Badge>
             )}

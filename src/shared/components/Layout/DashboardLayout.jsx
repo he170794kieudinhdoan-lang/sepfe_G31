@@ -52,9 +52,14 @@ export const DashboardLayout = ({
             {menu.map((item) => (
               <button
                 key={item.key}
-                onClick={() =>
-                  item.path ? navigate(item.path) : onSelect(item.key)
-                }
+                onClick={() => {
+                  if (item.path) {
+                    navigate(item.path);
+                    if (!item.externalNav) onSelect(item.key);
+                  } else {
+                    onSelect(item.key);
+                  }
+                }}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-xl px-4 py-2 text-sm font-semibold transition',
                   activeKey === item.key
@@ -227,7 +232,14 @@ export const DashboardLayout = ({
               {menu.map((item) => (
                 <button
                   key={item.key}
-                  onClick={() => onSelect(item.key)}
+                  onClick={() => {
+                    if (item.path) {
+                      navigate(item.path);
+                      if (!item.externalNav) onSelect(item.key);
+                    } else {
+                      onSelect(item.key);
+                    }
+                  }}
                   className={cn(
                     'shrink-0 rounded-full border px-4 py-2 text-xs font-semibold',
                     activeKey === item.key
