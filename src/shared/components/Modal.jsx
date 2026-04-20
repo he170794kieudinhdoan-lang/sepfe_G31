@@ -12,18 +12,26 @@ export const Modal = ({
   onConfirm,
   onClose,
   tone = 'default',
-  variant = 'confirm', // thêm dòng này
+  variant = 'confirm',
   confirmDisabled = false,
   className,
+  contentClassName,
+  bodyClassName,
 }) => {
   if (!open) return null;
 
   return (
-    <div className={cn("fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm pt-20 overflow-y-auto", className)}>
+    <div
+      className={cn(
+        'fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm overflow-y-auto px-3 py-6 sm:px-6',
+        className,
+      )}
+    >
       <div
         className={cn(
-          'w-full rounded-2xl bg-white shadow-2xl border border-slate-200 relative',
+          'relative flex w-full max-h-[calc(100vh-3rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl',
           variant === 'confirm' ? 'max-w-lg' : 'max-w-4xl',
+          contentClassName,
         )}
       >
         {/* Close button (X) - Always show if onClose is provided */}
@@ -39,7 +47,7 @@ export const Modal = ({
 
         {/* Header - Show if title is provided */}
         {title && (
-          <div className="p-6 space-y-1.5 border-b border-slate-100">
+          <div className="border-b border-slate-100 p-6 space-y-1.5">
             <h3 className="text-xl font-bold text-slate-800">{title}</h3>
             {description ? (
               <p className="text-sm text-slate-500 leading-relaxed">
@@ -50,7 +58,12 @@ export const Modal = ({
         )}
 
         <div
-          className={cn(variant === 'confirm' ? 'p-6 space-y-4' : 'p-4 md:p-6')}
+          className={cn(
+            variant === 'confirm'
+              ? 'space-y-4 overflow-y-auto p-6'
+              : 'overflow-y-auto p-4 md:p-6',
+            bodyClassName,
+          )}
         >
           {children}
 

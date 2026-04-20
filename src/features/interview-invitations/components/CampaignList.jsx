@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { getCampaigns, getCampaignDetail, sendCampaign } from '../api/interviewInvitationApi'
-import { useAuth } from '@/shared/hooks/useAuth'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import './CampaignList.css'
 
 const CampaignList = () => {
-  const { token } = useAuth()
+  const { isAuthenticated } = useAuth()
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -13,13 +13,13 @@ const CampaignList = () => {
   const [total, setTotal] = useState(0)
 
   useEffect(() => {
-    if (!token) return
+    if (!isAuthenticated) return
 
     const fetchCampaigns = async () => {
       setLoading(true)
       setError(null)
       try {
-        const result = await getCampaigns(token, page, 10, selectedStatus)
+        const result = await getCampaigns(page, 10, selectedStatus)
         setCampaigns(result.data)
         setTotal(result.total)
       } catch (err) {
@@ -30,13 +30,13 @@ const CampaignList = () => {
     }
 
     fetchCampaigns()
-  }, [token, page, selectedStatus])
+  }, [isAuthenticated, page, selectedStatus])
 
   const handleSendCampaign = async (campaignId) => {
     try {
-      await sendCampaign(token, campaignId)
+      await sendCampaign(campaignId)
       // Refresh campaigns
-      const result = await getCampaigns(token, page, 10, selectedStatus)
+      const result = await getCampaigns(page, 10, selectedStatus)
       setCampaigns(result.data)
     } catch (err) {
       setError(err.message)

@@ -1,3 +1,7 @@
+@import '@fullcalendar/core/index.css';
+@import '@fullcalendar/daygrid/index.css';
+@import '@fullcalendar/timegrid/index.css';
+
 .create-campaign-form {
   background: white;
   border-radius: 8px;
@@ -44,6 +48,95 @@
   border-radius: 4px;
   font-size: 14px;
   font-family: inherit;
+}
+
+.worker-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.add-worker-btn {
+  border: 1px solid #0066cc;
+  background-color: #eff6ff;
+  color: #1e40af;
+  border-radius: 4px;
+  padding: 0 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.add-worker-btn:hover {
+  background-color: #dbeafe;
+}
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.calendar-header span {
+  font-size: 13px;
+  color: #475569;
+}
+
+.calendar-wrapper {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
+.slot-editor {
+  margin-top: 12px;
+  border: 1px solid #dbeafe;
+  background: #f8fbff;
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.slot-editor-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e3a8a;
+  margin-bottom: 8px;
+}
+
+.slot-editor-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.delete-slot-btn {
+  border: 1px solid #ef4444;
+  background: #fff1f2;
+  color: #be123c;
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.delete-slot-btn:hover {
+  background: #ffe4e6;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1rem;
+}
+
+.fc .fc-button {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.fc .fc-button:hover,
+.fc .fc-button:focus {
+  background-color: #1e40af;
+  border-color: #1e40af;
 }
 
 .form-group textarea {
@@ -134,4 +227,15 @@
 
 .cancel-btn:hover {
   background-color: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+  .create-campaign-form {
+    padding: 16px;
+  }
+
+  .form-row,
+  .slot-editor-grid {
+    grid-template-columns: 1fr;
+  }
 }

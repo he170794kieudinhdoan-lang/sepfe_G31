@@ -38,6 +38,7 @@ import { SHIFTS } from '@/shared/constants/enums';
 import { formatSalary } from '@/shared/utils/salaryUtils';
 import { isWorkerRole } from '@/shared/utils/userRole';
 import { cn } from '@/lib/utils';
+import { SupportTicketForm } from '@/features/support/components/SupportTicketForm';
 
 const POPOVER_CHIP =
   'inline-flex max-w-full items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700';
@@ -889,6 +890,34 @@ export function HomePage() {
             </Link>
           </Button>
         </div>
+      </section>
+
+      <section className="border-t border-slate-100 bg-gradient-to-b from-white to-slate-50 py-10">
+        <Container className="max-w-7xl">
+          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
+            <div className="space-y-4">
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">
+                Hỗ trợ nhanh
+              </p>
+              <h2 className="text-3xl font-black tracking-tight text-slate-900">
+                Gửi ticket hỗ trợ ngay trên trang chủ
+              </h2>
+              <p className="max-w-xl text-sm leading-relaxed text-slate-600">
+                Nếu bạn gặp lỗi đăng nhập, vấn đề hồ sơ, ứng tuyển hoặc cần manager hỗ trợ xử lý, hãy gửi câu hỏi ở đây. Ticket sẽ được chuyển vào hàng chờ của bộ phận hỗ trợ.
+              </p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                <p className="text-sm font-semibold text-slate-900">Khi nào nên gửi ticket?</p>
+                <ul className="mt-3 space-y-2 text-sm text-slate-600">
+                  <li>• Không nhận được email xác thực hoặc quên mật khẩu.</li>
+                  <li>• Hồ sơ, ứng tuyển hoặc tin tuyển dụng bị lỗi.</li>
+                  <li>• Cần hỗ trợ thao tác nhanh từ manager.</li>
+                </ul>
+              </div>
+            </div>
+
+            <SupportTicketForm />
+          </div>
+        </Container>
       </section>
     </div>
   );

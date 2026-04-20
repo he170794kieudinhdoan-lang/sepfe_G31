@@ -1,161 +1,57 @@
-const BASE_API_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
+import { apiClient } from '@/shared/api/apiClient'
 
-export const createCampaign = async (token, campaignData) => {
-  const response = await fetch(`${BASE_API_URL}/interview-invitations/campaigns`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify(campaignData),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Failed to create campaign')
-  }
-
-  return response.json()
+export const createCampaign = async (campaignData) => {
+  return await apiClient.post('/interview-invitations/campaigns', campaignData)
 }
 
-export const getCampaigns = async (token, page = 1, limit = 10, status = null) => {
+export const getCampaigns = async (page = 1, limit = 10, status = null) => {
   const params = new URLSearchParams({ page, limit })
   if (status) params.append('status', status)
 
-  const response = await fetch(
-    `${BASE_API_URL}/interview-invitations/campaigns?${params}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+  return await apiClient.get(
+    `/interview-invitations/campaigns?${params.toString()}`,
   )
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Failed to fetch campaigns')
-  }
-
-  return response.json()
 }
 
-export const getCampaignDetail = async (token, campaignId) => {
-  const response = await fetch(
-    `${BASE_API_URL}/interview-invitations/campaigns/${campaignId}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+export const getCampaignDetail = async (campaignId) => {
+  return await apiClient.get(
+    `/interview-invitations/campaigns/${campaignId}`,
   )
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Failed to fetch campaign detail')
-  }
-
-  return response.json()
 }
 
-export const sendCampaign = async (token, campaignId) => {
-  const response = await fetch(
-    `${BASE_API_URL}/interview-invitations/campaigns/${campaignId}/send`,
-    {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+export const sendCampaign = async (campaignId) => {
+  return await apiClient.put(
+    `/interview-invitations/campaigns/${campaignId}/send`,
   )
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Failed to send campaign')
-  }
-
-  return response.json()
 }
 
-export const cancelCampaign = async (token, campaignId) => {
-  const response = await fetch(
-    `${BASE_API_URL}/interview-invitations/campaigns/${campaignId}/cancel`,
-    {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+export const cancelCampaign = async (campaignId) => {
+  return await apiClient.put(
+    `/interview-invitations/campaigns/${campaignId}/cancel`,
   )
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Failed to cancel campaign')
-  }
-
-  return response.json()
 }
 
-export const getCampaignStats = async (token, campaignId) => {
-  const response = await fetch(
-    `${BASE_API_URL}/interview-invitations/campaigns/${campaignId}/stats`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+export const getCampaignStats = async (campaignId) => {
+  return await apiClient.get(
+    `/interview-invitations/campaigns/${campaignId}/stats`,
   )
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Failed to fetch campaign stats')
-  }
-
-  return response.json()
 }
 
-export const getMyInvitations = async (token, page = 1, limit = 10) => {
-  const response = await fetch(
-    `${BASE_API_URL}/interview-invitations/my-invitations?page=${page}&limit=${limit}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    }
+export const getJobInviteConstraints = async (jobId) => {
+  return await apiClient.get(
+    `/interview-invitations/jobs/${jobId}/invite-constraints`,
   )
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Failed to fetch invitations')
-  }
-
-  return response.json()
 }
 
-export const respondToInvitation = async (token, invitationId, status, responseMessage = null) => {
-  const response = await fetch(
-    `${BASE_API_URL}/interview-invitations/invitations/${invitationId}/respond`,
-    {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        status,
-        responseMessage,
-      }),
-    }
+export const getMyInvitations = async (page = 1, limit = 10) => {
+  return await apiClient.get(
+    `/interview-invitations/my-invitations?page=${page}&limit=${limit}`,
   )
+}
 
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.message || 'Failed to respond to invitation')
-  }
-
-  return response.json()
+export const respondToInvitation = async (invitationId, payload) => {
+  return await apiClient.put(
+    `/interview-invitations/invitations/${invitationId}/respond`,
+    payload,
+  )
 }
