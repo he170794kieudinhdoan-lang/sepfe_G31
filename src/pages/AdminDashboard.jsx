@@ -49,76 +49,6 @@ const formatCompactVND = (value) => {
   return value.toLocaleString('vi-VN');
 };
 
-const SUPPORT_STORAGE_KEY = 'admin-support-tickets-v1';
-
-const INITIAL_SUPPORT_TICKETS = [
-  {
-    id: 'SP-2401',
-    createdAt: '2026-04-15T08:20:00.000Z',
-    customerName: 'Nguyen Van A',
-    contact: 'nva@gmail.com',
-    subject: 'Khong nhan duoc email dat lai mat khau',
-    channel: 'EMAIL',
-    priority: 'HIGH',
-    status: 'NEW',
-    assignee: '',
-    internalNote: '',
-  },
-  {
-    id: 'SP-2402',
-    createdAt: '2026-04-15T09:40:00.000Z',
-    customerName: 'Tran Thi B',
-    contact: '0902123456',
-    subject: 'Tai khoan bi khoa sau khi dang nhap Google',
-    channel: 'CHAT',
-    priority: 'URGENT',
-    status: 'IN_PROGRESS',
-    assignee: 'Linh',
-    internalNote: 'Da xac minh token Google. Cho user gui them anh loi.',
-  },
-  {
-    id: 'SP-2403',
-    createdAt: '2026-04-14T13:10:00.000Z',
-    customerName: 'Le Van C',
-    contact: 'lvc@company.vn',
-    subject: 'Khong nap duoc tien de day tin',
-    channel: 'PHONE',
-    priority: 'MEDIUM',
-    status: 'WAITING_CUSTOMER',
-    assignee: 'Khanh',
-    internalNote: 'Da huong dan doi phuong thuc thanh toan, dang cho phan hoi.',
-  },
-];
-
-const SUPPORT_STATUS_OPTIONS = [
-  { value: 'NEW', label: 'Moi' },
-  { value: 'IN_PROGRESS', label: 'Dang xu ly' },
-  { value: 'WAITING_CUSTOMER', label: 'Cho khach hang phan hoi' },
-  { value: 'RESOLVED', label: 'Da giai quyet' },
-];
-
-const SUPPORT_PRIORITY_OPTIONS = [
-  { value: 'LOW', label: 'Thap' },
-  { value: 'MEDIUM', label: 'Trung binh' },
-  { value: 'HIGH', label: 'Cao' },
-  { value: 'URGENT', label: 'Khan cap' },
-];
-
-const SUPPORT_CHANNEL_OPTIONS = [
-  { value: 'CHAT', label: 'Chat' },
-  { value: 'EMAIL', label: 'Email' },
-  { value: 'PHONE', label: 'Dien thoai' },
-];
-
-const getSupportStatusLabel = (value) =>
-  SUPPORT_STATUS_OPTIONS.find((item) => item.value === value)?.label || value;
-
-const getSupportPriorityLabel = (value) =>
-  SUPPORT_PRIORITY_OPTIONS.find((item) => item.value === value)?.label || value;
-
-const getSupportChannelLabel = (value) =>
-  SUPPORT_CHANNEL_OPTIONS.find((item) => item.value === value)?.label || value;
-
 export const AdminDashboard = () => {
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
@@ -180,33 +110,6 @@ export const AdminDashboard = () => {
   const [warningJobs, setWarningJobs] = useState([]);
   const [loadingModeration, setLoadingModeration] = useState(false);
 
-  // Support state
-  const [supportFilters, setSupportFilters] = useState({
-    keyword: '',
-    status: '',
-    priority: '',
-    channel: '',
-  });
-  const [supportTickets, setSupportTickets] = useState(() => {
-    if (typeof window === 'undefined') return INITIAL_SUPPORT_TICKETS;
-    try {
-      const raw = window.localStorage.getItem(SUPPORT_STORAGE_KEY);
-      if (!raw) return INITIAL_SUPPORT_TICKETS;
-      const parsed = JSON.parse(raw);
-      return Array.isArray(parsed) && parsed.length > 0
-        ? parsed
-        : INITIAL_SUPPORT_TICKETS;
-    } catch {
-      return INITIAL_SUPPORT_TICKETS;
-    }
-  });
-  const [supportTicketModal, setSupportTicketModal] = useState(null);
-  const [supportDraft, setSupportDraft] = useState({
-    status: 'NEW',
-    assignee: '',
-    internalNote: '',
-  });
-
   // AI Matching Weights State
   const { data: configsData, isLoading: loadingConfigs } = useGetAiConfigs();
   const updateConfigsMutation = useUpdateAiConfigs();
@@ -251,7 +154,7 @@ export const AdminDashboard = () => {
               key={label}
               className="flex flex-col items-center justify-end w-full h-full relative group"
             >
-              <div className="flex flex-col items-center justify-end w-full max-w-[20px] h-full border-b border-slate-100">
+              <div className="flex flex-col items-center justify-end w-full max-w-5 h-full border-b border-slate-100">
                 <div
                   className={`relative w-full rounded-t-sm transition-all group-hover:opacity-80 ${count > 0 ? 'bg-blue-500' : 'bg-transparent'}`}
                   style={{ height: `${height}%` }}
@@ -294,7 +197,7 @@ export const AdminDashboard = () => {
               key={label}
               className="flex flex-col items-center justify-end w-full h-full relative group"
             >
-              <div className="flex flex-col items-center justify-end w-full max-w-[20px] h-full border-b border-slate-100">
+              <div className="flex flex-col items-center justify-end w-full max-w-5 h-full border-b border-slate-100">
                 <div
                   className={`relative w-full rounded-t-sm transition-all group-hover:opacity-80 ${rev > 0 ? 'bg-emerald-500' : 'bg-transparent'}`}
                   style={{ height: `${height}%` }}
@@ -340,7 +243,6 @@ export const AdminDashboard = () => {
   const menu = [
     { key: 'overview', label: 'Tổng quan' },
     { key: 'users', label: 'Quản lý người dùng' },
-    { key: 'support', label: 'Hỗ trợ khách hàng' },
     { key: 'moderation', label: 'Duyệt công việc' },
     { key: 'sectors', label: 'Quản lý ngành nghề' },
     { key: 'occupations', label: 'Quản lý nghề nghiệp' },
@@ -454,71 +356,6 @@ export const AdminDashboard = () => {
       fetchWarningJobs();
     }
   }, [active]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(
-      SUPPORT_STORAGE_KEY,
-      JSON.stringify(supportTickets),
-    );
-  }, [supportTickets]);
-
-  const filteredSupportTickets = supportTickets.filter((ticket) => {
-    const keyword = supportFilters.keyword.trim().toLowerCase();
-    const keywordPass =
-      !keyword ||
-      ticket.id.toLowerCase().includes(keyword) ||
-      ticket.customerName.toLowerCase().includes(keyword) ||
-      ticket.subject.toLowerCase().includes(keyword) ||
-      ticket.contact.toLowerCase().includes(keyword);
-
-    const statusPass =
-      !supportFilters.status || ticket.status === supportFilters.status;
-    const priorityPass =
-      !supportFilters.priority || ticket.priority === supportFilters.priority;
-    const channelPass =
-      !supportFilters.channel || ticket.channel === supportFilters.channel;
-
-    return keywordPass && statusPass && priorityPass && channelPass;
-  });
-
-  const supportKpi = {
-    total: supportTickets.length,
-    newTickets: supportTickets.filter((ticket) => ticket.status === 'NEW')
-      .length,
-    inProgress: supportTickets.filter(
-      (ticket) => ticket.status === 'IN_PROGRESS',
-    ).length,
-    resolved: supportTickets.filter((ticket) => ticket.status === 'RESOLVED')
-      .length,
-  };
-
-  const openSupportTicketModal = (ticket) => {
-    setSupportTicketModal(ticket);
-    setSupportDraft({
-      status: ticket.status,
-      assignee: ticket.assignee || '',
-      internalNote: ticket.internalNote || '',
-    });
-  };
-
-  const saveSupportTicket = () => {
-    if (!supportTicketModal) return;
-    setSupportTickets((prev) =>
-      prev.map((ticket) =>
-        ticket.id === supportTicketModal.id
-          ? {
-              ...ticket,
-              status: supportDraft.status,
-              assignee: supportDraft.assignee.trim(),
-              internalNote: supportDraft.internalNote.trim(),
-            }
-          : ticket,
-      ),
-    );
-    toast('Da cap nhat yeu cau ho tro.');
-    setSupportTicketModal(null);
-  };
 
   const handleUpdateJobStatus = async (jobId, status) => {
     try {
@@ -858,7 +695,7 @@ export const AdminDashboard = () => {
             </select>
             <Input
               type="date"
-              className="max-w-[180px] rounded-full"
+              className="max-w-45 rounded-full"
               value={userFiltersInput.fromDate}
               onChange={(e) =>
                 setUserFiltersInput({
@@ -869,7 +706,7 @@ export const AdminDashboard = () => {
             />
             <Input
               type="date"
-              className="max-w-[180px] rounded-full"
+              className="max-w-45 rounded-full"
               value={userFiltersInput.toDate}
               onChange={(e) =>
                 setUserFiltersInput({
@@ -901,7 +738,7 @@ export const AdminDashboard = () => {
           </Card>
 
           {isLoadingUsers ? (
-            <Skeleton className="h-[400px] w-full rounded-2xl" />
+            <Skeleton className="h-100 w-full rounded-2xl" />
           ) : usersList.length === 0 ? (
             <EmptyState
               title={MSG.MSG_USER_LIST_EMPTY || 'Danh sách trống'}
@@ -989,191 +826,6 @@ export const AdminDashboard = () => {
               />
             </Card>
           )}
-        </div>
-      )}
-
-      {active === 'support' && (
-        <div className="space-y-6">
-          <div className="grid md:grid-cols-4 gap-4">
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Tong ticket</p>
-              <p className="text-2xl font-bold mt-1">{supportKpi.total}</p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Moi</p>
-              <p className="text-2xl font-bold mt-1 text-amber-600">
-                {supportKpi.newTickets}
-              </p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Dang xu ly</p>
-              <p className="text-2xl font-bold mt-1 text-blue-600">
-                {supportKpi.inProgress}
-              </p>
-            </Card>
-            <Card className="p-4">
-              <p className="text-sm text-muted-foreground">Da giai quyet</p>
-              <p className="text-2xl font-bold mt-1 text-emerald-600">
-                {supportKpi.resolved}
-              </p>
-            </Card>
-          </div>
-
-          <Card className="p-4 flex flex-wrap gap-3 items-center">
-            <Input
-              className="max-w-65 rounded-full"
-              placeholder="Tim theo ma, ten, lien he, chu de"
-              value={supportFilters.keyword}
-              onChange={(e) =>
-                setSupportFilters({ ...supportFilters, keyword: e.target.value })
-              }
-            />
-            <select
-              className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
-              value={supportFilters.status}
-              onChange={(e) =>
-                setSupportFilters({ ...supportFilters, status: e.target.value })
-              }
-            >
-              <option value="">Trang thai</option>
-              {SUPPORT_STATUS_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <select
-              className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
-              value={supportFilters.priority}
-              onChange={(e) =>
-                setSupportFilters({ ...supportFilters, priority: e.target.value })
-              }
-            >
-              <option value="">Muc uu tien</option>
-              {SUPPORT_PRIORITY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <select
-              className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
-              value={supportFilters.channel}
-              onChange={(e) =>
-                setSupportFilters({ ...supportFilters, channel: e.target.value })
-              }
-            >
-              <option value="">Kenh tiep nhan</option>
-              {SUPPORT_CHANNEL_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-            <Button
-              variant="outline"
-              className="rounded-full px-6"
-              onClick={() =>
-                setSupportFilters({
-                  keyword: '',
-                  status: '',
-                  priority: '',
-                  channel: '',
-                })
-              }
-            >
-              Dat lai
-            </Button>
-          </Card>
-
-          <Card className="p-4">
-            {filteredSupportTickets.length === 0 ? (
-              <EmptyState
-                title="Khong co yeu cau ho tro"
-                description="Khong tim thay ticket phu hop voi bo loc hien tai."
-              />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-muted-foreground">
-                    <tr className="border-b">
-                      <th className="py-2 font-medium">Ma ticket</th>
-                      <th className="font-medium">Khach hang</th>
-                      <th className="font-medium">Chu de</th>
-                      <th className="font-medium">Kenh</th>
-                      <th className="font-medium">Uu tien</th>
-                      <th className="font-medium">Trang thai</th>
-                      <th className="font-medium">Nhan vien</th>
-                      <th className="font-medium">Tiep nhan</th>
-                      <th className="font-medium">Hanh dong</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredSupportTickets.map((ticket) => (
-                      <tr
-                        key={ticket.id}
-                        className="border-b last:border-b-0 hover:bg-slate-50/50 transition-colors"
-                      >
-                        <td className="py-3 font-semibold text-slate-700">{ticket.id}</td>
-                        <td>
-                          <div className="font-medium text-slate-800">{ticket.customerName}</div>
-                          <div className="text-xs text-slate-500">{ticket.contact}</div>
-                        </td>
-                        <td className="max-w-[320px]">
-                          <p className="line-clamp-2 text-slate-700">{ticket.subject}</p>
-                        </td>
-                        <td>{getSupportChannelLabel(ticket.channel)}</td>
-                        <td>
-                          <Badge
-                            variant="outline"
-                            className={
-                              ticket.priority === 'URGENT'
-                                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                : ticket.priority === 'HIGH'
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200'
-                            }
-                          >
-                            {getSupportPriorityLabel(ticket.priority)}
-                          </Badge>
-                        </td>
-                        <td>
-                          <Badge
-                            variant="outline"
-                            className={
-                              ticket.status === 'RESOLVED'
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                : ticket.status === 'IN_PROGRESS'
-                                  ? 'bg-blue-50 text-blue-700 border-blue-200'
-                                  : ticket.status === 'WAITING_CUSTOMER'
-                                    ? 'bg-violet-50 text-violet-700 border-violet-200'
-                                    : 'bg-amber-50 text-amber-700 border-amber-200'
-                            }
-                          >
-                            {getSupportStatusLabel(ticket.status)}
-                          </Badge>
-                        </td>
-                        <td>{ticket.assignee || 'Chua phan cong'}</td>
-                        <td className="text-slate-600">
-                          {new Date(ticket.createdAt).toLocaleDateString('vi-VN')}
-                        </td>
-                        <td>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="rounded-full"
-                            onClick={() => openSupportTicketModal(ticket)}
-                          >
-                            Xu ly
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
         </div>
       )}
 
@@ -1484,7 +1136,7 @@ export const AdminDashboard = () => {
           </div>
 
           {loadingConfigs ? (
-            <Skeleton className="h-[400px] w-full rounded-2xl" />
+            <Skeleton className="h-100 w-full rounded-2xl" />
           ) : (
             <Card className="p-8 shadow-sm rounded-2xl">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
@@ -1570,7 +1222,7 @@ export const AdminDashboard = () => {
                   }
                 />
                 <textarea
-                  className="w-full min-h-[500px] rounded-xl border p-6 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono shadow-sm bg-slate-50/50"
+                  className="w-full min-h-125 rounded-xl border p-6 text-base leading-relaxed resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-mono shadow-sm bg-slate-50/50"
                   placeholder="Nội dung điều khoản..."
                   value={termsDraft.content}
                   onChange={(e) =>
@@ -1599,7 +1251,7 @@ export const AdminDashboard = () => {
                   <h4 className="text-2xl font-bold mb-6 text-slate-800 border-b pb-4">
                     {termsSaved.title || 'Chưa có tiêu đề'}
                   </h4>
-                  <div className="min-h-[400px] text-base text-slate-700 whitespace-pre-wrap leading-loose">
+                  <div className="min-h-100 text-base text-slate-700 whitespace-pre-wrap leading-loose">
                     {termsSaved.content || 'Chưa có nội dung'}
                   </div>
                 </div>
@@ -1738,72 +1390,6 @@ export const AdminDashboard = () => {
         tone="danger"
       />
 
-      <Modal
-        open={!!supportTicketModal}
-        title={`Xu ly yeu cau ${supportTicketModal?.id || ''}`}
-        description="Cap nhat trang thai, nguoi phu trach va ghi chu noi bo cho ticket ho tro."
-        onClose={() => setSupportTicketModal(null)}
-        onConfirm={saveSupportTicket}
-        confirmLabel="Luu cap nhat"
-      >
-        <div className="space-y-4">
-          <div className="grid md:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Khach hang</p>
-              <p className="font-semibold text-slate-800">
-                {supportTicketModal?.customerName}
-              </p>
-              <p className="text-sm text-slate-500">{supportTicketModal?.contact}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Chu de</p>
-              <p className="text-sm text-slate-700">{supportTicketModal?.subject}</p>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Trang thai</label>
-              <select
-                className="w-full rounded-xl border px-4 py-2 text-sm bg-white outline-none"
-                value={supportDraft.status}
-                onChange={(e) =>
-                  setSupportDraft({ ...supportDraft, status: e.target.value })
-                }
-              >
-                {SUPPORT_STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Nhan vien phu trach</label>
-              <Input
-                className="rounded-xl"
-                placeholder="Nhap ten nhan vien"
-                value={supportDraft.assignee}
-                onChange={(e) =>
-                  setSupportDraft({ ...supportDraft, assignee: e.target.value })
-                }
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Ghi chu noi bo</label>
-            <textarea
-              className="w-full min-h-30 rounded-xl border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-              placeholder="Them ghi chu tiep nhan, huong xu ly, ket qua..."
-              value={supportDraft.internalNote}
-              onChange={(e) =>
-                setSupportDraft({ ...supportDraft, internalNote: e.target.value })
-              }
-            />
-          </div>
-        </div>
-      </Modal>
     </DashboardLayout>
   );
 };

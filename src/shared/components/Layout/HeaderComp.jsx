@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/popover';
 import {
   Bell,
+  HelpCircle,
   MessageCircle,
   Search,
   ChevronDown,
@@ -145,6 +146,16 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
+            <Button
+              variant="ghost"
+              className="hidden sm:inline-flex rounded-full px-4 font-semibold text-gray-700 hover:bg-primary/10 hover:text-primary transition"
+              asChild
+            >
+              <Link to="/support">
+                <HelpCircle className="mr-2 h-4 w-4" />
+                Đặt câu hỏi
+              </Link>
+            </Button>
             {isAuthenticated && user?.roleType === 'EMPLOYER' && (
               <Button
                 className="hidden sm:flex rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 font-semibold transition-all shadow-sm border border-primary/20 hover:shadow-md"
@@ -176,7 +187,7 @@ export const Header = () => {
                   size="icon"
                   className="relative rounded-full text-gray-700 hover:bg-primary/10 hover:text-foreground transition"
                 >
-                  <Bell className="h-5 w-5 mt-[2px]" />
+                  <Bell className="h-5 w-5 mt-0.5" />
                   {unreadCount > 0 && (
                     <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white">
                       {unreadCount > 9 ? '9+' : unreadCount}

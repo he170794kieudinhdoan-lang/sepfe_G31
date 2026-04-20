@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import { createCampaign, getCampaigns, sendCampaign, cancelCampaign } from '../api/interviewInvitationApi'
-import { useAuth } from '@/shared/hooks/useAuth'
+import { createCampaign, sendCampaign, cancelCampaign } from '../api/interviewInvitationApi'
 
 export const useCampaignMutation = () => {
-  const { token } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
@@ -11,7 +9,7 @@ export const useCampaignMutation = () => {
     setLoading(true)
     setError(null)
     try {
-      const result = await createCampaign(token, campaignData)
+      const result = await createCampaign(campaignData)
       return result
     } catch (err) {
       setError(err.message)
@@ -25,7 +23,7 @@ export const useCampaignMutation = () => {
     setLoading(true)
     setError(null)
     try {
-      const result = await sendCampaign(token, campaignId)
+      const result = await sendCampaign(campaignId)
       return result
     } catch (err) {
       setError(err.message)
@@ -39,7 +37,7 @@ export const useCampaignMutation = () => {
     setLoading(true)
     setError(null)
     try {
-      const result = await cancelCampaign(token, campaignId)
+      const result = await cancelCampaign(campaignId)
       return result
     } catch (err) {
       setError(err.message)

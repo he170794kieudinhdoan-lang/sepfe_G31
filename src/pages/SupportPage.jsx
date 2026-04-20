@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { Container } from '@/shared/components/Container';
 import { Card } from '@/components/ui/card';
-import { Mail, Phone, MapPin, HelpCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { HelpCircle, Mail, MapPin, Phone, Sparkles } from 'lucide-react';
+import { SupportTicketForm } from '@/features/support/components/SupportTicketForm';
 
 const FAQ = [
   {
@@ -24,43 +26,65 @@ const FAQ = [
 
 export const SupportPage = () => {
   return (
-    <div className="bg-background min-h-full pb-16">
-      <Container className="max-w-3xl py-10 md:py-14">
-        <p className="text-sm font-semibold uppercase tracking-widest text-primary">
-          Hỗ trợ
-        </p>
-        <h1 className="mt-2 text-3xl font-bold tracking-tight text-foreground">
-          Trung tâm hỗ trợ
-        </h1>
-        <p className="mt-3 text-muted-foreground leading-relaxed">
-          Tổng hợp thông tin liên hệ và câu hỏi thường gặp khi sử dụng WorkLink.
-        </p>
+    <div className="bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.12),_transparent_32%),linear-gradient(180deg,_#f8fbff_0%,_#ffffff_46%,_#f8fafc_100%)] min-h-full pb-16">
+      <Container className="max-w-6xl py-10 md:py-14">
+        <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+          <div className="space-y-6">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">
+                Hỗ trợ
+              </p>
+              <h1 className="mt-3 text-4xl font-black tracking-tight text-foreground md:text-5xl">
+                Trung tâm hỗ trợ cho người dùng và manager
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground">
+                Gửi câu hỏi trực tiếp để đội ngũ quản lý tiếp nhận, phân công và phản hồi theo đúng kênh ưu tiên. Nếu bạn chỉ cần đọc nhanh, phần FAQ bên dưới sẽ giải thích các bước phổ biến.
+              </p>
+            </div>
 
-        <Card className="mt-10 border-0 p-6 shadow-sm">
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
-            <Mail className="h-5 w-5 text-primary" />
-            Liên hệ
-          </h2>
-          <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-            <li className="flex items-start gap-3">
-              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-              Khu Công nghệ cao Hòa Lạc, Thạch Thất, Hà Nội
-            </li>
-            <li className="flex items-center gap-3">
-              <Phone className="h-4 w-4 shrink-0 text-primary" />
-              +84 123 456 789
-            </li>
-            <li className="flex items-center gap-3">
-              <Mail className="h-4 w-4 shrink-0 text-primary" />
-              <a
-                href="mailto:contact@worklink.com"
-                className="font-medium text-primary hover:underline"
-              >
-                contact@worklink.com
-              </a>
-            </li>
-          </ul>
-        </Card>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild className="rounded-full px-6 font-semibold shadow-sm">
+                <a href="#support-form">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Đặt câu hỏi ngay
+                </a>
+              </Button>
+              <Button asChild variant="outline" className="rounded-full px-6 font-semibold">
+                <a href="#faq">Xem FAQ</a>
+              </Button>
+            </div>
+
+            <Card className="border-0 bg-white/90 p-6 shadow-sm">
+              <h2 className="flex items-center gap-2 text-lg font-semibold text-foreground">
+                <Mail className="h-5 w-5 text-primary" />
+                Liên hệ
+              </h2>
+              <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+                <li className="flex items-start gap-3">
+                  <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                  Khu Công nghệ cao Hòa Lạc, Thạch Thất, Hà Nội
+                </li>
+                <li className="flex items-center gap-3">
+                  <Phone className="h-4 w-4 shrink-0 text-primary" />
+                  +84 123 456 789
+                </li>
+                <li className="flex items-center gap-3">
+                  <Mail className="h-4 w-4 shrink-0 text-primary" />
+                  <a
+                    href="mailto:contact@worklink.com"
+                    className="font-medium text-primary hover:underline"
+                  >
+                    contact@worklink.com
+                  </a>
+                </li>
+              </ul>
+            </Card>
+          </div>
+
+          <div id="support-form" className="scroll-mt-24">
+            <SupportTicketForm />
+          </div>
+        </div>
 
         <section id="faq" className="mt-12 scroll-mt-24">
           <h2 className="flex items-center gap-2 text-xl font-bold text-foreground">
@@ -69,7 +93,7 @@ export const SupportPage = () => {
           </h2>
           <div className="mt-6 space-y-4">
             {FAQ.map((item) => (
-              <Card key={item.q} className="border-0 p-5 shadow-sm">
+              <Card key={item.q} className="border-0 bg-white/90 p-5 shadow-sm">
                 <h3 className="font-semibold text-foreground">{item.q}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
                   {item.a}

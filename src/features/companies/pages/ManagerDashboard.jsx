@@ -36,6 +36,7 @@ import {
   useHideCompanyReview,
 } from '../api/useGetCompanies';
 import { useGetAllJobReports, useUpdateJobReportStatus, useUpdateJobStatus } from '@/features/jobs/api/useJobs';
+import { SupportTicketBoard } from '@/features/support/components/SupportTicketBoard';
 
 // 1. Management Menu and Status Colors configuration
 const MANAGEMENT_MENU = [
@@ -44,6 +45,7 @@ const MANAGEMENT_MENU = [
   { key: 'rejected', label: 'Đã từ chối' },
   { key: 'job_reports', label: 'Báo cáo việc làm' },
   { key: 'review_reports', label: 'Báo cáo đánh giá' },
+  { key: 'support', label: 'Hỗ trợ khách hàng' },
 ];
 
 const STATUS_COLORS = {
@@ -178,6 +180,7 @@ export const ManagerDashboard = () => {
       'rejected',
       'job_reports',
       'review_reports',
+      'support',
     ]);
     if (!allowed.has(tabFromUrl)) return;
     setCurrentTab(tabFromUrl);
@@ -314,7 +317,7 @@ export const ManagerDashboard = () => {
   const renderDetails = () => {
     if (isLoadingDetails)
       return (
-        <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-600">
+        <div className="flex flex-col items-center justify-center min-h-100 text-slate-600">
           <div className="h-10 w-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
           <p>Đang lấy thông tin chi tiết...</p>
         </div>
@@ -603,7 +606,7 @@ export const ManagerDashboard = () => {
                   list.map(r => (
                     <tr key={r.id} className="hover:bg-slate-50/50">
                       <td className="px-6 py-4 text-sm font-semibold">{r.review?.company?.name || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-slate-700 max-w-[280px]">
+                      <td className="px-6 py-4 text-sm text-slate-700 max-w-70">
                         <div className="flex items-center gap-1 mb-1 text-amber-500">
                           {'★'.repeat(r.review?.rating || 0)}
                           <span className="text-slate-500 text-xs ml-1">({r.review?.rating || 0}/5)</span>
@@ -756,7 +759,7 @@ export const ManagerDashboard = () => {
                         </Badge>
                         {c.status === 'REJECTED' && c.rejectionReason && (
                           <p
-                            className="text-[10px] text-red-500 mt-1 max-w-[150px] truncate italic"
+                            className="text-[10px] text-red-500 mt-1 max-w-37.5 truncate italic"
                             title={c.rejectionReason}
                           >
                             Lý do: {c.rejectionReason}
@@ -808,7 +811,9 @@ export const ManagerDashboard = () => {
             ? renderJobReports()
             : currentTab === 'review_reports'
               ? renderReviewReports()
-              : viewingCompanyId ? renderDetails() : renderCompanyList()}
+              : currentTab === 'support'
+                ? <SupportTicketBoard />
+                : viewingCompanyId ? renderDetails() : renderCompanyList()}
         </div>
       </div>
 
@@ -831,7 +836,7 @@ export const ManagerDashboard = () => {
         onClose={() => setIsRejectModalOpen(false)}
       >
         <textarea
-          className="w-full min-h-[100px] p-3 rounded-lg border border-slate-200 focus:border-red-400 outline-none text-sm bg-white"
+          className="w-full min-h-25 p-3 rounded-lg border border-slate-200 focus:border-red-400 outline-none text-sm bg-white"
           placeholder="Nhập lý do từ chối (ví dụ: Thiếu giấy phép kinh doanh...)"
           value={rejectionReason}
           onChange={(e) => setRejectionReason(e.target.value)}

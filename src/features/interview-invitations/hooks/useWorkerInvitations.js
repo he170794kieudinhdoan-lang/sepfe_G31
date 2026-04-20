@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { getMyInvitations, respondToInvitation } from '../api/interviewInvitationApi'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import { getAccessToken } from '@/shared/api/tokenService'
 
 export const useWorkerInvitations = (page = 1, limit = 10) => {
   const { user } = useAuth()
@@ -11,8 +10,7 @@ export const useWorkerInvitations = (page = 1, limit = 10) => {
   const [pagination, setPagination] = useState({ page, limit, total: 0 })
 
   useEffect(() => {
-    const token = getAccessToken()
-    if (!token) {
+    if (!user?.id) {
       setLoading(false)
       setInvitations([])
       return
@@ -22,7 +20,7 @@ export const useWorkerInvitations = (page = 1, limit = 10) => {
       setLoading(true)
       setError(null)
       try {
-        const result = await getMyInvitations(token, page, limit)
+        const result = await getMyInvitations(page, limit)
         setInvitations(result.data)
         setPagination({
           page: result.page,
@@ -39,12 +37,10 @@ export const useWorkerInvitations = (page = 1, limit = 10) => {
     fetchInvitations()
   }, [user?.id, page, limit])
 
-  const respond = async (invitationId, status, responseMessage = null) => {
-    const token = getAccessToken()
-    if (!token) throw new Error('Chưa đăng nhập')
+  const respond = async (invitationId, payload) => {
     try {
-      await respondToInvitation(token, invitationId, status, responseMessage)
-      const result = await getMyInvitations(token, page, limit)
+      await respondToInvitation(invitationId, payload)
+      const result = await getMyInvitations(page, limit)
       setInvitations(result.data)
     } catch (err) {
       setError(err.message)

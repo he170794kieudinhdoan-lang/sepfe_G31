@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -69,6 +69,12 @@ import {
   useSendMessage,
 } from '@/features/chat/api/useChat';
 import * as chatApi from '@/features/chat/api/chatApi';
+import {
+  createCampaign,
+  getCampaignDetail,
+  getJobInviteConstraints,
+  sendCampaign,
+} from '@/features/interview-invitations/api/interviewInvitationApi';
 import { SHIFTS, GENDERS } from '@/shared/constants/enums';
 import { formatSalary } from '@/shared/utils/salaryUtils';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
@@ -76,6 +82,11 @@ import { useEmployerOverview } from '@/features/statistics/api/useStatistics';
 import { ApplicationFunnelWidget } from '@/features/statistics/components/ApplicationFunnelWidget';
 import { EmployerPaymentsWidget } from '@/features/statistics/components/EmployerPaymentsWidget';
 import { X } from 'lucide-react';
+import FullCalendar from '@fullcalendar/react';
+import dayGridPlugin from '@fullcalendar/daygrid';
+import timeGridPlugin from '@fullcalendar/timegrid';
+import interactionPlugin from '@fullcalendar/interaction';
+import viLocale from '@fullcalendar/core/locales/vi';
 
 const EMPLOYER_MENU = [
   {
@@ -89,12 +100,6 @@ const EMPLOYER_MENU = [
     label: 'Tin tuyển dụng',
     icon: Briefcase,
     path: '/employer/jobs',
-  },
-  {
-    key: 'applicants',
-    label: 'Ứng viên',
-    icon: Users,
-    path: '/employer/applicants',
   },
   {
     key: 'stats',
@@ -701,7 +706,7 @@ const MatchedWorkersModal = ({ jobId, onClose }) => {
   );
 };
 
-const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
+const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail }) => {
   const { data: applicationsResult, isLoading } = useEmployerApplications(
     jobId || undefined,
   );
@@ -713,6 +718,12 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
   const [bulkInviteOpen, setBulkInviteOpen] = useState(false);
   const [bulkInviteSending, setBulkInviteSending] = useState(false);
   const [bulkInviteMessage, setBulkInviteMessage] = useState('');
+  const [bulkInviteSlots, setBulkInviteSlots] = useState([]);
+  const [selectedInviteSlotId, setSelectedInviteSlotId] = useState(null);
+  const [inviteAllSuitable, setInviteAllSuitable] = useState(false);
+  const [inviteConstraints, setInviteConstraints] = useState(null);
+  const [latestCampaignSlots, setLatestCampaignSlots] = useState([]);
+  const [loadingInviteConstraints, setLoadingInviteConstraints] = useState(false);
   const limit = 5;
 
   const applicantsList = applicationsResult?.data || [];
@@ -744,15 +755,65 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
     return String(rawId);
   };
 
+  const invitedWorkerIdSet = useMemo(
+    () => new Set((inviteConstraints?.invitedWorkerIds || []).map((id) => String(id))),
+    [inviteConstraints],
+  );
+
+  const isApplicantAlreadyInvited = (applicant) => {
+    const userId = getApplicantUserId(applicant);
+    if (!userId) return false;
+    return invitedWorkerIdSet.has(String(userId));
+  };
+
+  const isApplicantSelectable = (applicant) =>
+    isApplicantInvitable(applicant) && !isApplicantAlreadyInvited(applicant);
+
   const availableApplicantUserIds = filteredApplicants
-    .filter(isApplicantInvitable)
+    .filter(isApplicantSelectable)
     .map(getApplicantUserId)
     .filter(Boolean);
+
+  const alreadyInvitedCount = filteredApplicants.filter(isApplicantAlreadyInvited).length;
 
   const selectedCount = selectedApplicantIds.size;
   const canSelectAll = availableApplicantUserIds.length > 0;
   const isAllSelected =
     canSelectAll && availableApplicantUserIds.every((id) => selectedApplicantIds.has(id));
+
+  const hasBulkSlotOverlap = (slots, candidate, ignoreSlotId = null) => {
+    const candidateStart = new Date(candidate.startAt).getTime();
+    const candidateEnd = new Date(candidate.endAt).getTime();
+
+    return slots.some((slot) => {
+      if (slot.id === ignoreSlotId) {
+        return false;
+      }
+
+      const slotStart = new Date(slot.startAt).getTime();
+      const slotEnd = new Date(slot.endAt).getTime();
+      return candidateStart < slotEnd && slotStart < candidateEnd;
+    });
+  };
+
+  const isSlotStartInPast = (startAt) => {
+    const startAtMs = new Date(startAt).getTime();
+    if (Number.isNaN(startAtMs)) {
+      return true;
+    }
+    return startAtMs < Date.now();
+  };
+
+  const bulkInviteCalendarEvents = useMemo(
+    () =>
+      bulkInviteSlots.map((slot) => ({
+        id: slot.id,
+        title: `Ca (${slot.capacity})`,
+        start: slot.startAt,
+        end: slot.endAt,
+      })),
+    [bulkInviteSlots],
+  );
 
   useEffect(() => {
     setSelectedApplicantIds((previous) => {
@@ -767,12 +828,216 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
   }, [jobId, availableApplicantUserIds]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    if (!jobId) {
+      setInviteConstraints(null);
+      setLatestCampaignSlots([]);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const fetchConstraints = async () => {
+      setLoadingInviteConstraints(true);
+      try {
+        const result = await getJobInviteConstraints(jobId);
+        let fetchedLatestSlots = [];
+
+        if (result?.latestCampaignId) {
+          try {
+            const latestCampaign = await getCampaignDetail(result.latestCampaignId);
+            fetchedLatestSlots = latestCampaign?.slots || [];
+          } catch {
+            fetchedLatestSlots = [];
+          }
+        }
+
+        if (!cancelled) {
+          setInviteConstraints(result || null);
+          setLatestCampaignSlots(fetchedLatestSlots);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setInviteConstraints(null);
+          setLatestCampaignSlots([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingInviteConstraints(false);
+        }
+      }
+    };
+
+    fetchConstraints();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId]);
+
+  useEffect(() => {
+    setBulkInviteSlots([]);
+    setSelectedInviteSlotId(null);
+    setInviteAllSuitable(false);
+  }, [jobId]);
+
+  useEffect(() => {
     if (!jobDetail?.title) return;
     setBulkInviteMessage((prev) => {
       if (prev.trim()) return prev;
-      return `Chào bạn, bên mình mời bạn tham gia phỏng vấn cho vị trí ${jobDetail.title}. Nếu bạn quan tâm, hãy phản hồi tin nhắn này để thống nhất lịch phỏng vấn nhé.`;
+      return `Chào bạn, bạn đã phù hợp với vị trí ${jobDetail.title}. Vui lòng chọn 1 ca phỏng vấn phù hợp trong các ca bên dưới để xác nhận lịch.`;
     });
   }, [jobDetail?.title]);
+
+  useEffect(() => {
+    if (!bulkInviteOpen) return;
+    if (bulkInviteSlots.length > 0) return;
+
+    const fixedSlots = latestCampaignSlots.map((slot, index) => ({
+      id: `fixed-slot-${slot.id}-${index}`,
+      startAt: new Date(slot.startAt).toISOString(),
+      endAt: new Date(slot.endAt).toISOString(),
+      capacity: Math.max(1, Number(slot.capacity) || 1),
+      location: slot.location || '',
+      note: slot.note || '',
+    }));
+
+    if (fixedSlots.length > 0) {
+      setBulkInviteSlots(fixedSlots);
+      setSelectedInviteSlotId(fixedSlots[0].id);
+      return;
+    }
+
+    const start = new Date();
+    start.setDate(start.getDate() + 1);
+    start.setHours(9, 0, 0, 0);
+
+    const end = new Date(start);
+    end.setHours(end.getHours() + 2);
+
+    const defaultSlotId = `slot-${Date.now()}`;
+
+    setBulkInviteSlots([
+      {
+        id: defaultSlotId,
+        startAt: start.toISOString(),
+        endAt: end.toISOString(),
+        capacity: Math.max(1, selectedCount || 1),
+        location: '',
+        note: '',
+      },
+    ]);
+    setSelectedInviteSlotId(defaultSlotId);
+  }, [bulkInviteOpen, bulkInviteSlots.length, latestCampaignSlots]);
+
+  useEffect(() => {
+    if (!bulkInviteOpen) return;
+    setBulkInviteSlots((previous) =>
+      previous.map((slot) => ({
+        ...slot,
+        capacity: Math.max(1, slot.capacity || selectedCount || 1),
+      })),
+    );
+  }, [selectedCount, bulkInviteOpen]);
+
+  const updateInterviewSlot = (slotId, field, value) => {
+    setBulkInviteSlots((previous) =>
+      previous.map((slot) => {
+        if (slot.id !== slotId) return slot;
+        return {
+          ...slot,
+          [field]: field === 'capacity' ? Number(value) : value,
+        };
+      }),
+    );
+  };
+
+  const handleBulkInviteCalendarSelect = (selectionInfo) => {
+    const startAt = selectionInfo.start?.toISOString();
+    const endAt = selectionInfo.end?.toISOString();
+
+    if (!startAt || !endAt) {
+      return;
+    }
+
+    if (isSlotStartInPast(startAt)) {
+      toast('Không thể tạo ca phỏng vấn ở thời điểm quá khứ.', 'error');
+      return;
+    }
+
+    const id = `slot-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const newSlot = {
+      id,
+      startAt,
+      endAt,
+      capacity: Math.max(1, selectedCount || 1),
+      location: '',
+      note: '',
+    };
+
+    if (hasBulkSlotOverlap(bulkInviteSlots, newSlot)) {
+      toast('Ca mới bị trùng với lịch đã có.', 'error');
+      return;
+    }
+
+    setBulkInviteSlots((previous) => [...previous, newSlot]);
+    setSelectedInviteSlotId(id);
+  };
+
+  const handleBulkInviteSlotDropOrResize = (changeInfo) => {
+    const { event } = changeInfo;
+
+    if (!event.start || !event.end) {
+      return;
+    }
+
+    const updatedSlot = {
+      id: event.id,
+      startAt: event.start.toISOString(),
+      endAt: event.end.toISOString(),
+    };
+
+    const startAtMs = new Date(updatedSlot.startAt).getTime();
+    const endAtMs = new Date(updatedSlot.endAt).getTime();
+
+    if (Number.isNaN(startAtMs) || Number.isNaN(endAtMs) || endAtMs <= startAtMs) {
+      changeInfo.revert();
+      toast('Không thể cập nhật ca: thời gian không hợp lệ.', 'error');
+      return;
+    }
+
+    if (startAtMs < Date.now()) {
+      changeInfo.revert();
+      toast('Không thể cập nhật ca về thời điểm quá khứ.', 'error');
+      return;
+    }
+
+    if (hasBulkSlotOverlap(bulkInviteSlots, updatedSlot, event.id)) {
+      changeInfo.revert();
+      toast('Không thể cập nhật ca: bị trùng với ca khác.', 'error');
+      return;
+    }
+
+    setBulkInviteSlots((previous) =>
+      previous.map((slot) =>
+        slot.id === event.id
+          ? { ...slot, startAt: updatedSlot.startAt, endAt: updatedSlot.endAt }
+          : slot,
+      ),
+    );
+    setSelectedInviteSlotId(event.id);
+  };
+
+  const removeInterviewSlot = (slotIdToRemove) => {
+    setBulkInviteSlots((previous) => {
+      const next = previous.filter((slot) => slot.id !== slotIdToRemove);
+      if (selectedInviteSlotId === slotIdToRemove) {
+        setSelectedInviteSlotId(next[0]?.id || null);
+      }
+      return next;
+    });
+  };
 
   const toggleApplicantSelection = (applicantUserId) => {
     if (!applicantUserId) return;
@@ -805,8 +1070,17 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
   };
 
   const handleSendBulkInterviewInvite = async () => {
-    if (!selectedApplicantIds.size) {
-      toast('Vui lòng chọn ít nhất 1 ứng viên.', 'error');
+    const sourceApplicantIds = inviteAllSuitable
+      ? availableApplicantUserIds
+      : Array.from(selectedApplicantIds);
+
+    if (!sourceApplicantIds.length) {
+      toast(
+        inviteAllSuitable
+          ? 'Không có ứng viên Phù hợp để mời phỏng vấn.'
+          : 'Vui lòng chọn ít nhất 1 ứng viên hoặc bật mời tất cả.',
+        'error',
+      );
       return;
     }
 
@@ -822,7 +1096,7 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
 
     try {
       const invitableApplicantIds = new Set(availableApplicantUserIds);
-      const selectedInvitableIds = Array.from(selectedApplicantIds).filter((id) =>
+      const selectedInvitableIds = sourceApplicantIds.filter((id) =>
         invitableApplicantIds.has(id),
       );
 
@@ -831,28 +1105,98 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
         return;
       }
 
-      const jobUrl = `${window.location.origin}/job/${jobId}`;
-      const finalMessage = `${trimmedMessage}\n\n🔗 Xem chi tiết công việc: ${jobUrl}`;
+      if (!bulkInviteSlots.length) {
+        toast('Vui lòng tạo ít nhất 1 ca phỏng vấn.', 'error');
+        return;
+      }
 
-      for (const rawUserId of selectedInvitableIds) {
-        try {
-          const participantIdNumber = Number(rawUserId);
-          const participantId = Number.isNaN(participantIdNumber)
-            ? rawUserId
-            : participantIdNumber;
+      const normalizedSlots = [];
+      for (const slot of bulkInviteSlots) {
+        if (!slot.startAt || !slot.endAt) {
+          toast('Vui lòng nhập đầy đủ ngày giờ cho tất cả ca phỏng vấn.', 'error');
+          return;
+        }
 
-          const conversation = await chatApi.getOrCreateConversation(participantId);
-          if (!conversation?.id) {
-            failCount += 1;
-            continue;
-          }
+        const startAt = new Date(slot.startAt);
+        const endAt = new Date(slot.endAt);
 
-          await chatApi.sendMessage(conversation.id, finalMessage);
-          successCount += 1;
-        } catch {
-          failCount += 1;
+        if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
+          toast('Ngày giờ ca phỏng vấn không hợp lệ.', 'error');
+          return;
+        }
+
+        if (endAt <= startAt) {
+          toast('Giờ kết thúc phải sau giờ bắt đầu ở mỗi ca phỏng vấn.', 'error');
+          return;
+        }
+
+        if (startAt.getTime() < Date.now()) {
+          toast('Không được chọn ca phỏng vấn ở ngày/giờ đã qua.', 'error');
+          return;
+        }
+
+        if (!slot.capacity || Number(slot.capacity) < 1) {
+          toast('Số lượng phỏng vấn mỗi ca phải lớn hơn 0.', 'error');
+          return;
+        }
+
+        normalizedSlots.push({
+          startAt: startAt.toISOString(),
+          endAt: endAt.toISOString(),
+          capacity: Number(slot.capacity),
+          location: slot.location?.trim() || undefined,
+          note: slot.note?.trim() || undefined,
+        });
+      }
+
+      const sortedSlots = [...normalizedSlots].sort(
+        (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+      );
+
+      for (let i = 1; i < sortedSlots.length; i += 1) {
+        const prevEnd = new Date(sortedSlots[i - 1].endAt).getTime();
+        const currentStart = new Date(sortedSlots[i].startAt).getTime();
+        if (currentStart < prevEnd) {
+          toast('Các ca phỏng vấn đang bị trùng thời gian.', 'error');
+          return;
         }
       }
+
+      const workerIds = selectedInvitableIds
+        .map((id) => Number(id))
+        .filter((id) => !Number.isNaN(id) && !invitedWorkerIdSet.has(String(id)));
+
+      if (!workerIds.length) {
+        toast('Không tìm thấy worker hợp lệ để gửi lời mời.', 'error');
+        return;
+      }
+
+      const campaign = await createCampaign({
+        title: `Mời phỏng vấn - ${jobDetail?.title || 'Vị trí tuyển dụng'}`,
+        description: `Chiến dịch mời phỏng vấn cho công việc #${jobId}`,
+        message: trimmedMessage,
+        jobId: Number(jobId),
+        workerIds,
+        slots: normalizedSlots,
+      });
+
+      if (!campaign?.id) {
+        throw new Error('Không nhận được mã chiến dịch sau khi tạo lịch phỏng vấn.');
+      }
+
+      await sendCampaign(campaign.id);
+
+      successCount = workerIds.length;
+
+      setLatestCampaignSlots(campaign?.slots?.length ? campaign.slots : normalizedSlots);
+      setInviteConstraints((previous) => ({
+        ...(previous || {}),
+        latestCampaignId: campaign.id,
+        hasExistingSchedule: true,
+        invitedWorkerIds: Array.from(
+          new Set([...(previous?.invitedWorkerIds || []), ...workerIds]),
+        ),
+      }));
 
       if (successCount > 0) {
         toast(
@@ -861,14 +1205,47 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
             : `Đã gửi lời mời phỏng vấn cho ${successCount} ứng viên.`,
           failCount > 0 ? 'error' : 'success',
         );
+
+        onOpenCampaignDetail?.(campaign.id);
         setBulkInviteOpen(false);
         setSelectedApplicantIds(new Set());
+        setBulkInviteSlots([]);
+        setSelectedInviteSlotId(null);
+        setInviteAllSuitable(false);
       } else {
         toast('Không gửi được lời mời nào. Vui lòng thử lại.', 'error');
       }
+    } catch (error) {
+      const message =
+        error?.response?.data?.message || error?.message || 'Tạo lịch và gửi lời mời thất bại.';
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     } finally {
       setBulkInviteSending(false);
     }
+  };
+
+  const selectedInviteSlot = bulkInviteSlots.find((slot) => slot.id === selectedInviteSlotId);
+  const sortedInviteSlots = useMemo(
+    () =>
+      [...bulkInviteSlots].sort(
+        (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+      ),
+    [bulkInviteSlots],
+  );
+
+  const formatSlotDateTime = (value) => {
+    if (!value) return 'Chưa có thời gian';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return 'Thời gian không hợp lệ';
+
+    return date.toLocaleString('vi-VN', {
+      weekday: 'short',
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   };
 
   const handleExport = () => {
@@ -1006,6 +1383,17 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
           </Button>
         </div>
 
+        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-medium">
+            Tổng ứng viên của job: {applicantsList.length}
+          </span>
+          {statusFilter || searchText ? (
+            <span className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 font-medium text-primary">
+              Kết quả theo bộ lọc: {filteredApplicants.length}
+            </span>
+          ) : null}
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
           <div className="flex items-center gap-3">
             <Checkbox checked={isAllSelected} onCheckedChange={toggleAllApplicants} className="w-5 h-5 rounded-md" />
@@ -1013,19 +1401,35 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
               Chọn tất cả ứng viên Phù hợp ({availableApplicantUserIds.length})
             </span>
           </div>
-          <Button
-            size="sm"
-            className="rounded-xl gap-2"
-            onClick={() => setBulkInviteOpen(true)}
-            disabled={selectedCount === 0}
-          >
-            <Send size={14} /> Mời phỏng vấn hàng loạt ({selectedCount})
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl gap-2"
+              onClick={() => {
+                const campaignId = inviteConstraints?.latestCampaignId;
+                if (campaignId) {
+                  onOpenCampaignDetail?.(campaignId);
+                }
+              }}
+              disabled={!inviteConstraints?.latestCampaignId}
+            >
+              <Users size={14} /> Xem DS theo ca
+            </Button>
+            <Button
+              size="sm"
+              className="rounded-xl gap-2"
+              onClick={() => setBulkInviteOpen(true)}
+              disabled={availableApplicantUserIds.length === 0 || loadingInviteConstraints}
+            >
+              <Send size={14} /> Mời phỏng vấn
+            </Button>
+          </div>
         </div>
         <p className="mb-3 text-xs text-slate-500 italic">
-          Chỉ ứng viên có trạng thái Phù hợp mới có thể được chọn để mời phỏng vấn.
+          Chỉ ứng viên có trạng thái Phù hợp và chưa được mời cho job này mới có thể được chọn.
         </p>
-
+              
         {isLoading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="animate-spin text-primary" />
@@ -1043,19 +1447,20 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
                 className="p-4 rounded-2xl shadow-sm border border-slate-100 transition-all cursor-pointer hover:border-primary hover:shadow-md"
                 onClick={() => onOpenDetail(a)}
               >
-                <div className="absolute top-4 left-4">
-                  <Checkbox
-                    checked={selectedApplicantIds.has(getApplicantUserId(a))}
-                    onCheckedChange={() =>
-                      toggleApplicantSelection(getApplicantUserId(a))
-                    }
-                    disabled={!isApplicantInvitable(a)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-5 h-5 rounded-md"
-                  />
-                </div>
-                <div className="flex justify-between items-start gap-4">
-                  <div className="flex items-center gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="pt-1">
+                    <Checkbox
+                      checked={selectedApplicantIds.has(getApplicantUserId(a))}
+                      onCheckedChange={() =>
+                        toggleApplicantSelection(getApplicantUserId(a))
+                      }
+                      disabled={!isApplicantSelectable(a)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-5 h-5 rounded-md"
+                    />
+                  </div>
+                  <div className="flex-1 flex justify-between items-start gap-4">
+                    <div className="flex items-center gap-4">
                     <img
                       src={
                         a.user?.avatar ||
@@ -1064,23 +1469,29 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
                       alt="avatar"
                       className="w-12 h-12 rounded-full shadow-sm object-cover border border-slate-100"
                     />
-                    <div className="overflow-hidden">
-                      <h4 className="font-semibold text-slate-800 truncate">
-                        {a.user?.fullName}
-                      </h4>
-                      <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5 truncate">
-                        <Briefcase size={12} /> {a.job?.title}
+                      <div className="overflow-hidden">
+                        <h4 className="font-semibold text-slate-800 truncate">
+                          {a.user?.fullName}
+                        </h4>
+                        <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5 truncate">
+                          <Briefcase size={12} /> {a.job?.title}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <ApplicantStatusBadge status={a.status} />
+                      {isApplicantAlreadyInvited(a) && (
+                        <p className="mt-1 text-[11px] font-medium text-amber-700">
+                          Đã mời trước đó
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-400 mt-2 flex items-center justify-end gap-1">
+                        <Clock size={12} />{' '}
+                        {new Date(
+                          a.updatedAt || a.createdAt || new Date(),
+                        ).toLocaleDateString('vi-VN')}
                       </p>
                     </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <ApplicantStatusBadge status={a.status} />
-                    <p className="text-xs text-slate-400 mt-2 flex items-center justify-end gap-1">
-                      <Clock size={12} />{' '}
-                      {new Date(
-                        a.updatedAt || a.createdAt || new Date(),
-                      ).toLocaleDateString('vi-VN')}
-                    </p>
                   </div>
                 </div>
               </Card>
@@ -1119,30 +1530,204 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail }) => {
 
       <Modal
         open={bulkInviteOpen}
-        title="Gửi lời mời phỏng vấn"
-        description={`Bạn đang chọn ${selectedApplicantIds.size} ứng viên. Nội dung dưới đây sẽ được gửi qua chat.`}
+        title="Tạo lịch phỏng vấn và gửi lời mời"
+        description={`Bạn đã chọn ${selectedApplicantIds.size} ứng viên. Có thể bật mời tất cả ứng viên phù hợp để gửi nhanh theo lịch gần nhất.`}
+        contentClassName="max-w-6xl min-h-[82vh]"
+        bodyClassName="space-y-5"
         onClose={() => {
           if (!bulkInviteSending) {
             setBulkInviteOpen(false);
+            setBulkInviteSlots([]);
+            setSelectedInviteSlotId(null);
+            setInviteAllSuitable(false);
           }
         }}
         onConfirm={handleSendBulkInterviewInvite}
-        confirmLabel={bulkInviteSending ? 'Đang gửi...' : 'Gửi lời mời'}
+        confirmLabel={bulkInviteSending ? 'Đang gửi...' : 'Tạo lịch và gửi lời mời'}
         cancelLabel="Hủy"
         confirmDisabled={bulkInviteSending || !bulkInviteMessage.trim()}
       >
-        <div className="space-y-2 mt-4">
-          <p className="text-sm font-medium text-slate-700">Nội dung tin nhắn</p>
-          <Textarea
-            value={bulkInviteMessage}
-            onChange={(e) => setBulkInviteMessage(e.target.value)}
-            rows={6}
-            placeholder="Nhập nội dung mời phỏng vấn"
-            className="rounded-xl border-slate-200"
-          />
-          <p className="text-xs text-slate-500">
-            Hệ thống sẽ tự đính kèm link công việc để ứng viên mở nhanh.
-          </p>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-4">
+
+            <div className="rounded-2xl border border-slate-200 bg-linear-to-br from-white via-slate-50 to-slate-100 p-4 sm:p-5">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Nội dung tin nhắn
+                </p>
+                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+                  {bulkInviteMessage.trim().length} ký tự
+                </span>
+              </div>
+              <Textarea
+                value={bulkInviteMessage}
+                onChange={(e) => setBulkInviteMessage(e.target.value)}
+                rows={4}
+                placeholder="Nhập nội dung mời phỏng vấn"
+                className="mt-2 rounded-xl border-slate-200 bg-white"
+              />
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    Lịch phỏng vấn
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    Kéo chọn để tạo ca, kéo thả để đổi giờ, click ca để chỉnh chi tiết.
+                  </p>
+                </div>
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600">
+                  {bulkInviteSlots.length} ca
+                </span>
+              </div>
+
+              <div className="rounded-2xl border border-slate-200 bg-white p-2 sm:p-3 [&_.fc-toolbar-title]:text-base [&_.fc-toolbar-title]:font-semibold [&_.fc-col-header-cell-cushion]:py-2 [&_.fc-timegrid-slot-label-cushion]:text-xs [&_.fc-button]:bg-slate-900! [&_.fc-button]:border-slate-900! [&_.fc-button]:text-white! [&_.fc-button:hover]:bg-slate-700! [&_.fc-button-active]:bg-primary! [&_.fc-event]:border-0! [&_.fc-event]:rounded-lg! [&_.fc-event]:bg-primary! [&_.fc-event-title]:font-medium!">
+                <FullCalendar
+                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                  locale={viLocale}
+                  initialView="timeGridWeek"
+                  headerToolbar={{
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'timeGridDay,timeGridWeek',
+                  }}
+                  buttonText={{
+                    today: 'Hôm nay',
+                    day: 'Ngày',
+                    week: 'Tuần',
+                  }}
+                  height={560}
+                  nowIndicator
+                  selectable
+                  editable
+                  selectMirror
+                  dayMaxEvents
+                  eventOverlap={false}
+                  selectOverlap={false}
+                  validRange={{
+                    start: new Date(),
+                  }}
+                  slotMinTime="06:00:00"
+                  slotMaxTime="22:00:00"
+                  slotDuration="00:30:00"
+                  allDaySlot={false}
+                  events={bulkInviteCalendarEvents}
+                  select={handleBulkInviteCalendarSelect}
+                  eventDrop={handleBulkInviteSlotDropOrResize}
+                  eventResize={handleBulkInviteSlotDropOrResize}
+                  eventClick={(info) => setSelectedInviteSlotId(info.event.id)}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Tổng quan
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                  <p className="text-[11px] text-slate-500">Ứng viên</p>
+                  <p className="text-base font-semibold text-slate-800">
+                    {inviteAllSuitable ? availableApplicantUserIds.length : selectedApplicantIds.size}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
+                  <p className="text-[11px] text-slate-500">Số ca</p>
+                  <p className="text-base font-semibold text-slate-800">{bulkInviteSlots.length}</p>
+                </div>
+              </div>
+            </div>
+
+            {selectedInviteSlot ? (
+              <div className="rounded-2xl border border-slate-200 bg-white p-3 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-800">Chỉnh sửa ca đã chọn</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-rose-600 hover:text-rose-700"
+                    onClick={() => removeInterviewSlot(selectedInviteSlot.id)}
+                    disabled={bulkInviteSlots.length === 1}
+                  >
+                    Xóa
+                  </Button>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 space-y-1">
+                  <p>Bắt đầu: <span className="font-medium text-slate-800">{formatSlotDateTime(selectedInviteSlot.startAt)}</span></p>
+                  <p>Kết thúc: <span className="font-medium text-slate-800">{formatSlotDateTime(selectedInviteSlot.endAt)}</span></p>
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-500">Số lượng phỏng vấn</p>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={selectedInviteSlot.capacity}
+                    onChange={(e) =>
+                      updateInterviewSlot(selectedInviteSlot.id, 'capacity', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-500">Địa điểm</p>
+                  <Input
+                    placeholder="VD: Phòng HR tầng 2"
+                    value={selectedInviteSlot.location}
+                    onChange={(e) =>
+                      updateInterviewSlot(selectedInviteSlot.id, 'location', e.target.value)
+                    }
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <p className="text-xs text-slate-500">Ghi chú ca (tuỳ chọn)</p>
+                  <Input
+                    placeholder="VD: Mang theo CCCD bản gốc"
+                    value={selectedInviteSlot.note}
+                    onChange={(e) =>
+                      updateInterviewSlot(selectedInviteSlot.id, 'note', e.target.value)
+                    }
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/90 p-4 text-sm text-slate-500">
+                Chọn một ca trên lịch để chỉnh sửa thông tin.
+              </div>
+            )}
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-3">
+              <p className="mb-2 text-sm font-semibold text-slate-800">Danh sách ca</p>
+              <div className="max-h-75 overflow-y-auto space-y-2 pr-1">
+                {sortedInviteSlots.map((slot, index) => {
+                  const active = slot.id === selectedInviteSlotId;
+                  return (
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => setSelectedInviteSlotId(slot.id)}
+                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
+                        active
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <p className="text-xs font-semibold">Ca #{index + 1}</p>
+                      <p className="mt-1 text-xs">{formatSlotDateTime(slot.startAt)} - {formatSlotDateTime(slot.endAt)}</p>
+                      <p className="mt-1 text-xs">Sức chứa: {slot.capacity}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </Modal>
     </Modal>
@@ -1166,6 +1751,10 @@ export const EmployerDashboard = () => {
   const [boostCheckoutData, setBoostCheckoutData] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
   const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
+  const [campaignDetailOpen, setCampaignDetailOpen] = useState(false);
+  const [campaignDetailLoading, setCampaignDetailLoading] = useState(false);
+  const [campaignDetailData, setCampaignDetailData] = useState(null);
+  const [campaignDetailError, setCampaignDetailError] = useState('');
 
   // Applicant details
   const [applicantDetail, setApplicantDetail] = useState(null);
@@ -1237,6 +1826,75 @@ export const EmployerDashboard = () => {
     : allJobsResult?.items || allJobsResult?.data || [];
   const totalPages = searchResult?.meta?.totalPage || 1;
 
+  const openCampaignDetail = async (campaignId) => {
+    const parsedId = Number(campaignId);
+    if (Number.isNaN(parsedId) || parsedId <= 0) {
+      toast('Mã chiến dịch không hợp lệ.', 'error');
+      return;
+    }
+
+    setCampaignDetailOpen(true);
+    setCampaignDetailLoading(true);
+    setCampaignDetailError('');
+    try {
+      const detail = await getCampaignDetail(parsedId);
+      setCampaignDetailData(detail);
+    } catch (error) {
+      const message = error?.response?.data?.message || error?.message || 'Không tải được chi tiết chiến dịch.';
+      const normalized = Array.isArray(message) ? message.join(', ') : message;
+      setCampaignDetailError(normalized);
+      setCampaignDetailData(null);
+    } finally {
+      setCampaignDetailLoading(false);
+    }
+  };
+
+  const closeCampaignDetail = () => {
+    setCampaignDetailOpen(false);
+    setCampaignDetailData(null);
+    setCampaignDetailError('');
+  };
+
+  const campaignSlots = useMemo(() => {
+    const slots = campaignDetailData?.slots || [];
+    return [...slots].sort(
+      (a, b) => new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
+    );
+  }, [campaignDetailData]);
+
+  const campaignInvitations = useMemo(
+    () => campaignDetailData?.invitations || [],
+    [campaignDetailData],
+  );
+
+  const acceptedInvitations = useMemo(
+    () => campaignInvitations.filter((item) => item.status === 'ACCEPTED'),
+    [campaignInvitations],
+  );
+
+  const rejectedInvitations = useMemo(
+    () => campaignInvitations.filter((item) => item.status === 'REJECTED'),
+    [campaignInvitations],
+  );
+
+  const pendingInvitations = useMemo(
+    () => campaignInvitations.filter((item) => item.status === 'PENDING'),
+    [campaignInvitations],
+  );
+
+  const attendeesBySlotId = useMemo(() => {
+    const map = new Map();
+    acceptedInvitations.forEach((invitation) => {
+      const selectedSlotId = invitation?.selectedSlotId;
+      if (!selectedSlotId) return;
+      if (!map.has(selectedSlotId)) {
+        map.set(selectedSlotId, []);
+      }
+      map.get(selectedSlotId).push(invitation);
+    });
+    return map;
+  }, [acceptedInvitations]);
+
   useEffect(() => {
     if (user?.id) {
       queryClient.invalidateQueries({ queryKey: ['my-company'] });
@@ -1249,13 +1907,14 @@ export const EmployerDashboard = () => {
     const path = location.pathname.replace(/\/$/, '') || '/';
     if (path === '/employer') setActive('overview');
     else if (path === '/employer/jobs') setActive('jobs');
-    else if (path === '/employer/applicants') setActive('applicants');
+    else if (path === '/employer/applicants') setActive('jobs');
     else if (path === '/employer/stats') setActive('stats');
   }, [location.pathname]);
 
   const campaignIdFromUrl = searchParams.get('campaignId');
   useEffect(() => {
     if (!campaignIdFromUrl) return;
+    openCampaignDetail(campaignIdFromUrl);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -1271,7 +1930,7 @@ export const EmployerDashboard = () => {
     if (!applicantsJobIdFromUrl) return;
     const id = Number(applicantsJobIdFromUrl);
     if (Number.isNaN(id)) return;
-    setActive('applicants');
+    setActive('jobs');
     setSelectedJobIdFilter(String(id));
     setApplicantsModalJobId(id);
     setSearchParams(
@@ -1389,7 +2048,12 @@ export const EmployerDashboard = () => {
   };
 
   const handleSaveApplicantStatus = () => {
-    if (!applicantStatus || !applicantDetail) return;
+    if (!applicantDetail) return;
+
+    if (!['SUITABLE', 'UNSUITABLE'].includes(applicantStatus)) {
+      toast('Chỉ được cập nhật trạng thái Phù hợp hoặc Không phù hợp.', 'error');
+      return;
+    }
 
     updateApplicantStatus(
       { applicationId: applicantDetail.id, status: applicantStatus },
@@ -1405,6 +2069,9 @@ export const EmployerDashboard = () => {
       },
     );
   };
+
+  const getEditableApplicantStatus = (status) =>
+    ['SUITABLE', 'UNSUITABLE'].includes(status) ? status : '';
 
   const hasNoCompany = !company?.id;
   const isRejected = company?.id && company?.status === 'REJECTED';
@@ -1767,9 +2434,9 @@ export const EmployerDashboard = () => {
                     <Button
                       variant="outline"
                       className="w-full mt-5 rounded-xl font-semibold border-primary/25 hover:bg-primary-muted/50 text-slate-800"
-                      onClick={() => navigate('/employer/applicants')}
+                      onClick={() => navigate('/employer/jobs')}
                     >
-                      Quản lý ứng viên
+                      Quản lý tin tuyển dụng
                     </Button>
                   </div>
                 </Card>
@@ -2213,7 +2880,7 @@ export const EmployerDashboard = () => {
                                   className="rounded-lg border-primary/25 text-primary hover:bg-primary/10 font-semibold"
                                   onClick={() => {
                                     setApplicantDetail(a);
-                                    setApplicantStatus(a.status);
+                                    setApplicantStatus(getEditableApplicantStatus(a.status));
                                   }}
                                 >
                                   Chi tiết
@@ -2564,9 +3231,111 @@ export const EmployerDashboard = () => {
         onClose={() => setApplicantsModalJobId(null)}
         onOpenDetail={(a) => {
           setApplicantDetail(a);
-          setApplicantStatus(a.status);
+          setApplicantStatus(getEditableApplicantStatus(a.status));
         }}
+        onOpenCampaignDetail={openCampaignDetail}
       />
+
+      <Modal
+        open={campaignDetailOpen}
+        onClose={closeCampaignDetail}
+        title={campaignDetailData?.title || 'Chi tiết chiến dịch phỏng vấn'}
+        description="Theo dõi worker đã chọn ca nào và địa điểm phỏng vấn của từng ca."
+        variant="custom"
+        contentClassName="max-w-5xl"
+        bodyClassName="space-y-4"
+      >
+        {campaignDetailLoading ? (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            Đang tải chi tiết chiến dịch...
+          </div>
+        ) : campaignDetailError ? (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+            {campaignDetailError}
+          </div>
+        ) : campaignDetailData ? (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-xs text-slate-500">Tổng lời mời</p>
+                <p className="mt-1 text-xl font-bold text-slate-900">{campaignDetailData.totalCount || 0}</p>
+              </div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-xs text-emerald-700">Đã chấp nhận</p>
+                <p className="mt-1 text-xl font-bold text-emerald-800">{acceptedInvitations.length}</p>
+              </div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs text-amber-700">Đang chờ</p>
+                <p className="mt-1 text-xl font-bold text-amber-800">{pendingInvitations.length}</p>
+              </div>
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                <p className="text-xs text-rose-700">Đã từ chối</p>
+                <p className="mt-1 text-xl font-bold text-rose-800">{rejectedInvitations.length}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {campaignSlots.length === 0 ? (
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                  Chiến dịch chưa có ca phỏng vấn.
+                </div>
+              ) : (
+                campaignSlots.map((slot, index) => {
+                  const slotAttendees = attendeesBySlotId.get(slot.id) || [];
+                  return (
+                    <div key={slot.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">Ca #{index + 1}</p>
+                          <p className="text-xs text-slate-600">
+                            {new Date(slot.startAt).toLocaleString('vi-VN')} - {new Date(slot.endAt).toLocaleString('vi-VN')}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="border-slate-300 text-slate-700">
+                          {slotAttendees.length}/{slot.capacity} người
+                        </Badge>
+                      </div>
+
+                      <div className="mt-3 space-y-1 text-sm text-slate-700">
+                        <p>
+                          Địa điểm: <span className="font-medium">{slot.location?.trim() || 'Chưa cập nhật'}</span>
+                        </p>
+                        {slot.note ? (
+                          <p className="text-xs text-slate-500">Ghi chú: {slot.note}</p>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Worker đã chọn ca này
+                        </p>
+                        {slotAttendees.length === 0 ? (
+                          <p className="mt-2 text-sm text-slate-500">Chưa có worker nào chọn ca này.</p>
+                        ) : (
+                          <div className="mt-2 space-y-2">
+                            {slotAttendees.map((invitation) => (
+                              <div key={invitation.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                                <p className="font-medium text-slate-900">{invitation.worker?.fullName || `Worker #${invitation.workerId}`}</p>
+                                <p className="text-xs text-slate-500">
+                                  {invitation.worker?.phone || invitation.worker?.email || 'Chưa có thông tin liên hệ'}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            Không có dữ liệu chiến dịch.
+          </div>
+        )}
+      </Modal>
 
       <Modal
         open={!!applicantDetail}
@@ -2752,14 +3521,8 @@ export const EmployerDashboard = () => {
                         Lưu lại
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 gap-2">
                       {[
-                        {
-                          value: 'APPLIED',
-                          label: 'Chờ xử lý',
-                          activeClass:
-                            'border-yellow-500 bg-yellow-50 text-yellow-700 ring-1 ring-yellow-500',
-                        },
                         {
                           value: 'SUITABLE',
                           label: 'Phù hợp',
