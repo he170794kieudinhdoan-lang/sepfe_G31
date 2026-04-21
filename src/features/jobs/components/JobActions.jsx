@@ -71,7 +71,7 @@ export const JobAction = ({
           ) : (
             <Send className="h-4 w-4 mr-2 shrink-0" aria-hidden />
           )}
-          {hasApplied ? 'Đã ứng tuyển' : 'Ứng tuyển ngay'}
+          {hasApplied ? 'Đã nộp đơn ứng tuyển' : 'Ứng tuyển ngay'}
         </Button>
       )}
 

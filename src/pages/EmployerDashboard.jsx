@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -1788,6 +1788,27 @@ export const EmployerDashboard = () => {
 
   const { mutate: deleteJob } = useDeleteJob();
   const { mutate: updateApplicantStatus } = useUpdateApplicationStatus();
+  const openApplicantDetail = useCallback(
+    (a) => {
+      if (!a) return;
+      setApplicantDetail(a);
+      setApplicantStatus(a.status);
+      if (a.status === 'APPLIED') {
+        updateApplicantStatus(
+          { applicationId: a.id, status: 'VIEWED' },
+          {
+            onSuccess: () => {
+              setApplicantDetail((prev) =>
+                prev?.id === a.id ? { ...prev, status: 'VIEWED' } : prev,
+              );
+              setApplicantStatus('VIEWED');
+            },
+          },
+        );
+      }
+    },
+    [updateApplicantStatus],
+  );
   const createBoostCheckoutMutation = useCreateBoostCheckout();
   const boostWebhookHandledRef = useRef(false);
   const { data: boostJobDetail } = useJobDetail(selectedBoostJob?.id, {
