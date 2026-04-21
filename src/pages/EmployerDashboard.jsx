@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
 import { EmptyState } from '@/shared/components/EmptyState';
+import { AppLoadingScene } from '@/shared/components/AppLoadingScene';
 import { Modal } from '@/shared/components/Modal';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { useToast } from '@/shared/contexts/ToastContext';
@@ -614,8 +615,12 @@ const MatchedWorkersModal = ({ jobId, onClose }) => {
       >
         <div className="p-6 relative">
           {isLoading ? (
-            <div className="py-12 flex justify-center">
-              <Loader2 className="animate-spin text-primary" />
+            <div className="py-4">
+              <AppLoadingScene
+                compact
+                title="Đang tải ứng viên gợi ý"
+                subtitle="AI matching đang chuẩn bị danh sách phù hợp"
+              />
             </div>
           ) : workers.length === 0 ? (
             <div className="py-12">
@@ -781,6 +786,12 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
   const isAllSelected =
     canSelectAll && availableApplicantUserIds.every((id) => selectedApplicantIds.has(id));
 
+  const getSlotById = (slotId) => bulkInviteSlots.find((slot) => slot.id === slotId);
+  const isLockedSlot = (slotId) => {
+    const slot = getSlotById(slotId);
+    return Boolean(slot?.isLocked);
+  };
+
   const hasBulkSlotOverlap = (slots, candidate, ignoreSlotId = null) => {
     const candidateStart = new Date(candidate.startAt).getTime();
     const candidateEnd = new Date(candidate.endAt).getTime();
@@ -808,9 +819,13 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
     () =>
       bulkInviteSlots.map((slot) => ({
         id: slot.id,
-        title: `Ca (${slot.capacity})`,
+        title: slot.isLocked
+          ? `Ca (${slot.capacity}) • Đã có người chọn`
+          : `Ca (${slot.capacity})`,
         start: slot.startAt,
         end: slot.endAt,
+        backgroundColor: slot.isLocked ? '#e2e8f0' : undefined,
+        borderColor: slot.isLocked ? '#94a3b8' : undefined,
       })),
     [bulkInviteSlots],
   );
@@ -896,9 +911,12 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
 
     const fixedSlots = latestCampaignSlots.map((slot, index) => ({
       id: `fixed-slot-${slot.id}-${index}`,
+      sourceSlotId: Number(slot.id),
       startAt: new Date(slot.startAt).toISOString(),
       endAt: new Date(slot.endAt).toISOString(),
       capacity: Math.max(1, Number(slot.capacity) || 1),
+      bookedCount: Math.max(0, Number(slot.bookedCount) || 0),
+      isLocked: Math.max(0, Number(slot.bookedCount) || 0) > 0,
       location: slot.location || '',
       note: slot.note || '',
     }));
@@ -921,9 +939,12 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
     setBulkInviteSlots([
       {
         id: defaultSlotId,
+        sourceSlotId: null,
         startAt: start.toISOString(),
         endAt: end.toISOString(),
         capacity: Math.max(1, selectedCount || 1),
+        bookedCount: 0,
+        isLocked: false,
         location: '',
         note: '',
       },
@@ -942,6 +963,11 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
   }, [selectedCount, bulkInviteOpen]);
 
   const updateInterviewSlot = (slotId, field, value) => {
+    if (isLockedSlot(slotId)) {
+      toast('Ca này đã có ứng viên chọn, không thể chỉnh sửa.', 'warning');
+      return;
+    }
+
     setBulkInviteSlots((previous) =>
       previous.map((slot) => {
         if (slot.id !== slotId) return slot;
@@ -969,9 +995,12 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
     const id = `slot-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
     const newSlot = {
       id,
+      sourceSlotId: null,
       startAt,
       endAt,
       capacity: Math.max(1, selectedCount || 1),
+      bookedCount: 0,
+      isLocked: false,
       location: '',
       note: '',
     };
@@ -987,6 +1016,12 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
 
   const handleBulkInviteSlotDropOrResize = (changeInfo) => {
     const { event } = changeInfo;
+
+    if (isLockedSlot(event.id)) {
+      changeInfo.revert();
+      toast('Ca này đã có ứng viên chọn, không thể đổi giờ.', 'warning');
+      return;
+    }
 
     if (!event.start || !event.end) {
       return;
@@ -1030,6 +1065,11 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
   };
 
   const removeInterviewSlot = (slotIdToRemove) => {
+    if (isLockedSlot(slotIdToRemove)) {
+      toast('Ca này đã có ứng viên chọn, không thể xóa.', 'warning');
+      return;
+    }
+
     setBulkInviteSlots((previous) => {
       const next = previous.filter((slot) => slot.id !== slotIdToRemove);
       if (selectedInviteSlotId === slotIdToRemove) {
@@ -1081,6 +1121,25 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
           : 'Vui lòng chọn ít nhất 1 ứng viên hoặc bật mời tất cả.',
         'error',
       );
+      return;
+    }
+
+    // Validate that selected applicants are not already invited
+    const alreadySelectedInvitedIds = Array.from(selectedApplicantIds).filter((id) =>
+      invitedWorkerIdSet.has(String(id)),
+    );
+
+    if (alreadySelectedInvitedIds.length > 0 && !inviteAllSuitable) {
+      toast(
+        `${alreadySelectedInvitedIds.length} ứng viên đã được mời phỏng vấn cho vị trí này rồi. Vui lòng bỏ chọn họ.`,
+        'warning',
+      );
+      // Remove already-invited applicants from selection
+      setSelectedApplicantIds((prev) => {
+        const next = new Set(prev);
+        alreadySelectedInvitedIds.forEach((id) => next.delete(id));
+        return next;
+      });
       return;
     }
 
@@ -1162,12 +1221,71 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
         }
       }
 
+      const lockedSlotViolations = bulkInviteSlots
+        .filter((slot) => slot.isLocked && slot.sourceSlotId)
+        .map((slot) => {
+          const source = latestCampaignSlots.find(
+            (item) => Number(item.id) === Number(slot.sourceSlotId),
+          );
+          if (!source) {
+            return null;
+          }
+
+          const sourceStart = new Date(source.startAt).toISOString();
+          const sourceEnd = new Date(source.endAt).toISOString();
+          const sourceCapacity = Math.max(1, Number(source.capacity) || 1);
+          const sourceLocation = (source.location || '').trim();
+          const sourceNote = (source.note || '').trim();
+
+          const currentStart = new Date(slot.startAt).toISOString();
+          const currentEnd = new Date(slot.endAt).toISOString();
+          const currentCapacity = Math.max(1, Number(slot.capacity) || 1);
+          const currentLocation = (slot.location || '').trim();
+          const currentNote = (slot.note || '').trim();
+
+          const changed =
+            sourceStart !== currentStart ||
+            sourceEnd !== currentEnd ||
+            sourceCapacity !== currentCapacity ||
+            sourceLocation !== currentLocation ||
+            sourceNote !== currentNote;
+
+          if (!changed) {
+            return null;
+          }
+
+          return slot;
+        })
+        .filter(Boolean);
+
+      if (lockedSlotViolations.length > 0) {
+        toast(
+          'Có ca đã có ứng viên chọn bị thay đổi. Vui lòng giữ nguyên các ca đã có người.',
+          'error',
+        );
+        return;
+      }
+
       const workerIds = selectedInvitableIds
         .map((id) => Number(id))
         .filter((id) => !Number.isNaN(id) && !invitedWorkerIdSet.has(String(id)));
 
+      // Check if any selected workers were filtered out due to already being invited
+      const filteredOutCount = selectedInvitableIds.length - workerIds.length;
+      if (filteredOutCount > 0) {
+        toast(
+          `${filteredOutCount} ứng viên đã được mời rồi, sẽ không được gửi lại.`,
+          'info',
+        );
+      }
+
       if (!workerIds.length) {
-        toast('Không tìm thấy worker hợp lệ để gửi lời mời.', 'error');
+        toast(
+          filteredOutCount > 0
+            ? 'Tất cả ứng viên được chọn đã được mời phỏng vấn rồi.'
+            : 'Không tìm thấy worker hợp lệ để gửi lời mời.',
+          'error',
+        );
         return;
       }
 
@@ -1225,6 +1343,7 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
   };
 
   const selectedInviteSlot = bulkInviteSlots.find((slot) => slot.id === selectedInviteSlotId);
+  const isSelectedInviteSlotLocked = Boolean(selectedInviteSlot?.isLocked);
   const sortedInviteSlots = useMemo(
     () =>
       [...bulkInviteSlots].sort(
@@ -1431,8 +1550,12 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
         </p>
               
         {isLoading ? (
-          <div className="flex justify-center py-8">
-            <Loader2 className="animate-spin text-primary" />
+          <div className="py-4">
+            <AppLoadingScene
+              compact
+              title="Đang tải danh sách ứng viên"
+              subtitle="Vui lòng chờ một chút..."
+            />
           </div>
         ) : paginatedApplicants.length === 0 ? (
           <EmptyState
@@ -1444,8 +1567,7 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
             {paginatedApplicants.map((a) => (
               <Card
                 key={a.id}
-                className="p-4 rounded-2xl shadow-sm border border-slate-100 transition-all cursor-pointer hover:border-primary hover:shadow-md"
-                onClick={() => onOpenDetail(a)}
+                className="p-4 rounded-2xl shadow-sm border border-slate-100 transition-all hover:border-primary hover:shadow-md"
               >
                 <div className="flex items-start gap-3">
                   <div className="pt-1">
@@ -1460,24 +1582,31 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
                     />
                   </div>
                   <div className="flex-1 flex justify-between items-start gap-4">
-                    <div className="flex items-center gap-4">
-                    <img
-                      src={
-                        a.user?.avatar ||
-                        `https://ui-avatars.com/api/?name=${encodeURIComponent(a.user?.fullName || 'User')}&background=e0e7ff&color=4338ca`
-                      }
-                      alt="avatar"
-                      className="w-12 h-12 rounded-full shadow-sm object-cover border border-slate-100"
-                    />
+                    <button
+                      type="button"
+                      onClick={() => onOpenDetail(a)}
+                      className="flex items-center gap-4 text-left min-w-0 group"
+                    >
+                      <img
+                        src={
+                          a.user?.avatar ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(a.user?.fullName || 'User')}&background=e0e7ff&color=4338ca`
+                        }
+                        alt="avatar"
+                        className="w-12 h-12 rounded-full shadow-sm object-cover border border-slate-100 transition-transform group-hover:scale-[1.03]"
+                      />
                       <div className="overflow-hidden">
-                        <h4 className="font-semibold text-slate-800 truncate">
+                        <h4 className="font-semibold text-slate-800 truncate group-hover:text-primary transition-colors">
                           {a.user?.fullName}
                         </h4>
                         <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5 truncate">
                           <Briefcase size={12} /> {a.job?.title}
                         </p>
+                        <p className="mt-1 text-[11px] font-medium text-slate-400 group-hover:text-primary transition-colors">
+                          Bấm vào worker để xem hồ sơ
+                        </p>
                       </div>
-                    </div>
+                    </button>
                     <div className="text-right shrink-0">
                       <ApplicantStatusBadge status={a.status} />
                       {isApplicantAlreadyInvited(a) && (
@@ -1652,11 +1781,17 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
                     size="sm"
                     className="text-rose-600 hover:text-rose-700"
                     onClick={() => removeInterviewSlot(selectedInviteSlot.id)}
-                    disabled={bulkInviteSlots.length === 1}
+                    disabled={bulkInviteSlots.length === 1 || isSelectedInviteSlotLocked}
                   >
                     Xóa
                   </Button>
                 </div>
+
+                {isSelectedInviteSlotLocked ? (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                    Ca này đã có ứng viên chọn, bạn không thể chỉnh sửa hoặc xóa.
+                  </div>
+                ) : null}
 
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 space-y-1">
                   <p>Bắt đầu: <span className="font-medium text-slate-800">{formatSlotDateTime(selectedInviteSlot.startAt)}</span></p>
@@ -1669,6 +1804,7 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
                     type="number"
                     min={1}
                     value={selectedInviteSlot.capacity}
+                    disabled={isSelectedInviteSlotLocked}
                     onChange={(e) =>
                       updateInterviewSlot(selectedInviteSlot.id, 'capacity', e.target.value)
                     }
@@ -1680,6 +1816,7 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
                   <Input
                     placeholder="VD: Phòng HR tầng 2"
                     value={selectedInviteSlot.location}
+                    disabled={isSelectedInviteSlotLocked}
                     onChange={(e) =>
                       updateInterviewSlot(selectedInviteSlot.id, 'location', e.target.value)
                     }
@@ -1691,6 +1828,7 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
                   <Input
                     placeholder="VD: Mang theo CCCD bản gốc"
                     value={selectedInviteSlot.note}
+                    disabled={isSelectedInviteSlotLocked}
                     onChange={(e) =>
                       updateInterviewSlot(selectedInviteSlot.id, 'note', e.target.value)
                     }
@@ -1722,6 +1860,11 @@ const JobApplicantsModal = ({ jobId, onClose, onOpenDetail, onOpenCampaignDetail
                       <p className="text-xs font-semibold">Ca #{index + 1}</p>
                       <p className="mt-1 text-xs">{formatSlotDateTime(slot.startAt)} - {formatSlotDateTime(slot.endAt)}</p>
                       <p className="mt-1 text-xs">Sức chứa: {slot.capacity}</p>
+                      {slot.isLocked ? (
+                        <p className="mt-1 text-[11px] font-semibold text-amber-700">
+                          Đã có ứng viên chọn - khóa chỉnh sửa
+                        </p>
+                      ) : null}
                     </button>
                   );
                 })}
@@ -1751,10 +1894,14 @@ export const EmployerDashboard = () => {
   const [boostCheckoutData, setBoostCheckoutData] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
   const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
+  const [jobOptionsPopoverOpenId, setJobOptionsPopoverOpenId] = useState(null);
   const [campaignDetailOpen, setCampaignDetailOpen] = useState(false);
   const [campaignDetailLoading, setCampaignDetailLoading] = useState(false);
   const [campaignDetailData, setCampaignDetailData] = useState(null);
   const [campaignDetailError, setCampaignDetailError] = useState('');
+  const [selectedCampaignSlotId, setSelectedCampaignSlotId] = useState(null);
+  const [slotApplicantsModalOpen, setSlotApplicantsModalOpen] = useState(false);
+  const [slotApplicantsTab, setSlotApplicantsTab] = useState('ACCEPTED');
 
   // Applicant details
   const [applicantDetail, setApplicantDetail] = useState(null);
@@ -1839,6 +1986,7 @@ export const EmployerDashboard = () => {
     try {
       const detail = await getCampaignDetail(parsedId);
       setCampaignDetailData(detail);
+      setSelectedCampaignSlotId(detail?.slots?.[0]?.id ?? null);
     } catch (error) {
       const message = error?.response?.data?.message || error?.message || 'Không tải được chi tiết chiến dịch.';
       const normalized = Array.isArray(message) ? message.join(', ') : message;
@@ -1853,6 +2001,14 @@ export const EmployerDashboard = () => {
     setCampaignDetailOpen(false);
     setCampaignDetailData(null);
     setCampaignDetailError('');
+    setSelectedCampaignSlotId(null);
+    setSlotApplicantsModalOpen(false);
+  };
+
+  const openSlotApplicantsModal = (slotId) => {
+    setSelectedCampaignSlotId(slotId);
+    setSlotApplicantsTab('ACCEPTED');
+    setSlotApplicantsModalOpen(true);
   };
 
   const campaignSlots = useMemo(() => {
@@ -1865,6 +2021,14 @@ export const EmployerDashboard = () => {
   const campaignInvitations = useMemo(
     () => campaignDetailData?.invitations || [],
     [campaignDetailData],
+  );
+
+  const selectedCampaignSlot = useMemo(
+    () =>
+      campaignSlots.find((slot) => slot.id === selectedCampaignSlotId) ||
+      campaignSlots[0] ||
+      null,
+    [campaignSlots, selectedCampaignSlotId],
   );
 
   const acceptedInvitations = useMemo(
@@ -1894,6 +2058,41 @@ export const EmployerDashboard = () => {
     });
     return map;
   }, [acceptedInvitations]);
+
+  const selectedSlotAttendees = useMemo(() => {
+    if (!selectedCampaignSlot) return [];
+    return attendeesBySlotId.get(selectedCampaignSlot.id) || [];
+  }, [attendeesBySlotId, selectedCampaignSlot]);
+
+  const slotApplicantsTabOptions = useMemo(
+    () => [
+      {
+        key: 'ACCEPTED',
+        label: 'Có thể đi',
+        count: selectedSlotAttendees.length,
+        tone: 'emerald',
+      },
+      {
+        key: 'PENDING',
+        label: 'Chưa phản hồi',
+        count: pendingInvitations.length,
+        tone: 'amber',
+      },
+      {
+        key: 'REJECTED',
+        label: 'Đã từ chối',
+        count: rejectedInvitations.length,
+        tone: 'rose',
+      },
+    ],
+    [pendingInvitations.length, rejectedInvitations.length, selectedSlotAttendees.length],
+  );
+
+  const activeSlotApplicantList = useMemo(() => {
+    if (slotApplicantsTab === 'ACCEPTED') return selectedSlotAttendees;
+    if (slotApplicantsTab === 'PENDING') return pendingInvitations;
+    return rejectedInvitations;
+  }, [pendingInvitations, rejectedInvitations, selectedSlotAttendees, slotApplicantsTab]);
 
   useEffect(() => {
     if (user?.id) {
@@ -2050,6 +2249,11 @@ export const EmployerDashboard = () => {
   const handleSaveApplicantStatus = () => {
     if (!applicantDetail) return;
 
+    if (!applicantDetail?.id || applicantDetail?.source === 'INTERVIEW_INVITATION') {
+      toast('Hồ sơ mở từ danh sách phỏng vấn chỉ xem thông tin, không cập nhật trạng thái tại đây.', 'error');
+      return;
+    }
+
     if (!['SUITABLE', 'UNSUITABLE'].includes(applicantStatus)) {
       toast('Chỉ được cập nhật trạng thái Phù hợp hoặc Không phù hợp.', 'error');
       return;
@@ -2073,6 +2277,24 @@ export const EmployerDashboard = () => {
   const getEditableApplicantStatus = (status) =>
     ['SUITABLE', 'UNSUITABLE'].includes(status) ? status : '';
 
+  const handleOpenApplicantProfileFromInvitation = (invitation) => {
+    if (!invitation?.worker) {
+      toast('Không lấy được hồ sơ worker.', 'error');
+      return;
+    }
+
+    setApplicantDetail({
+      source: 'INTERVIEW_INVITATION',
+      id: null,
+      status: invitation?.status || '',
+      user: invitation.worker,
+      job: {
+        title: campaignDetailData?.title || 'Chiến dịch phỏng vấn',
+      },
+    });
+    setApplicantStatus('');
+  };
+
   const hasNoCompany = !company?.id;
   const isRejected = company?.id && company?.status === 'REJECTED';
   const isPending = company?.id && company?.status === 'PENDING';
@@ -2091,9 +2313,12 @@ export const EmployerDashboard = () => {
         activeKey={active}
         onSelect={setActive}
       >
-        <div className="flex flex-col items-center justify-center py-32 gap-4 text-muted-foreground">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-sm">Đang tải dữ liệu doanh nghiệp...</p>
+        <div className="py-6">
+          <AppLoadingScene
+            title="Đang tải dữ liệu doanh nghiệp"
+            subtitle="Hệ thống đang chuẩn bị dashboard tuyển dụng"
+            className="mx-auto max-w-5xl"
+          />
         </div>
       </DashboardLayout>
     );
@@ -2632,12 +2857,20 @@ export const EmployerDashboard = () => {
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <div className="flex justify-center w-full">
-                                  <Popover>
+                                  <Popover
+                                    open={jobOptionsPopoverOpenId === job.id}
+                                    onOpenChange={(open) =>
+                                      setJobOptionsPopoverOpenId(open ? job.id : null)
+                                    }
+                                  >
                                     <PopoverTrigger asChild>
                                       <Button
                                         variant="ghost"
                                         size="sm"
                                         className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                                        onClick={() =>
+                                          setJobOptionsPopoverOpenId(job.id)
+                                        }
                                       >
                                         <MoreHorizontal
                                           size={18}
@@ -2654,9 +2887,10 @@ export const EmployerDashboard = () => {
                                           variant="ghost"
                                           size="sm"
                                           className="justify-start gap-2 hover:bg-primary/5 hover:text-primary rounded-lg font-medium text-slate-700 h-9"
-                                          onClick={() =>
+                                          onClick={() => {
+                                            setJobOptionsPopoverOpenId(null)
                                             setApplicantsModalJobId(job.id)
-                                          }
+                                          }}
                                         >
                                           <Users size={14} /> Xem ứng viên
                                         </Button>
@@ -2666,7 +2900,10 @@ export const EmployerDashboard = () => {
                                             variant="ghost"
                                             size="sm"
                                             className="justify-start gap-2 hover:bg-primary/10 hover:text-primary rounded-lg font-medium text-slate-700 h-9"
-                                            onClick={() => setMatchedJobId(job.id)}
+                                            onClick={() => {
+                                              setJobOptionsPopoverOpenId(null)
+                                              setMatchedJobId(job.id)
+                                            }}
                                           >
                                             <Sparkles size={14} /> Đề xuất ứng
                                             viên
@@ -2678,11 +2915,12 @@ export const EmployerDashboard = () => {
                                             variant="ghost"
                                             size="sm"
                                             className="justify-start gap-2 hover:bg-slate-100 rounded-lg font-medium text-slate-700 h-9"
-                                            onClick={() =>
+                                            onClick={() => {
+                                              setJobOptionsPopoverOpenId(null)
                                               navigate(
                                                 `/employer/jobs/${job.id}/edit`,
                                               )
-                                            }
+                                            }}
                                           >
                                             <Edit size={14} /> Chỉnh sửa
                                           </Button>
@@ -2692,7 +2930,10 @@ export const EmployerDashboard = () => {
                                           variant="ghost"
                                           size="sm"
                                           className="justify-start gap-2 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium h-9 text-slate-700"
-                                          onClick={() => setDeleteConfirm(job)}
+                                          onClick={() => {
+                                            setJobOptionsPopoverOpenId(null)
+                                            setDeleteConfirm(job)
+                                          }}
                                         >
                                           <Trash2 size={14} /> Xóa tin
                                         </Button>
@@ -3230,6 +3471,7 @@ export const EmployerDashboard = () => {
         jobId={applicantsModalJobId}
         onClose={() => setApplicantsModalJobId(null)}
         onOpenDetail={(a) => {
+          setApplicantsModalJobId(null);
           setApplicantDetail(a);
           setApplicantStatus(getEditableApplicantStatus(a.status));
         }}
@@ -3274,16 +3516,22 @@ export const EmployerDashboard = () => {
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
               {campaignSlots.length === 0 ? (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 md:col-span-2">
                   Chiến dịch chưa có ca phỏng vấn.
                 </div>
               ) : (
                 campaignSlots.map((slot, index) => {
                   const slotAttendees = attendeesBySlotId.get(slot.id) || [];
+
                   return (
-                    <div key={slot.id} className="rounded-2xl border border-slate-200 bg-white p-4">
+                    <button
+                      key={slot.id}
+                      type="button"
+                      onClick={() => openSlotApplicantsModal(slot.id)}
+                      className="rounded-2xl border border-slate-200 bg-white p-4 text-left transition-all hover:border-primary/40"
+                    >
                       <div className="flex flex-wrap items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-slate-900">Ca #{index + 1}</p>
@@ -3292,7 +3540,7 @@ export const EmployerDashboard = () => {
                           </p>
                         </div>
                         <Badge variant="outline" className="border-slate-300 text-slate-700">
-                          {slotAttendees.length}/{slot.capacity} người
+                          {slotAttendees.length}/{slot.capacity} người đã chọn
                         </Badge>
                       </div>
 
@@ -3305,34 +3553,167 @@ export const EmployerDashboard = () => {
                         ) : null}
                       </div>
 
-                      <div className="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3">
-                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                          Worker đã chọn ca này
-                        </p>
-                        {slotAttendees.length === 0 ? (
-                          <p className="mt-2 text-sm text-slate-500">Chưa có worker nào chọn ca này.</p>
-                        ) : (
-                          <div className="mt-2 space-y-2">
-                            {slotAttendees.map((invitation) => (
-                              <div key={invitation.id} className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
-                                <p className="font-medium text-slate-900">{invitation.worker?.fullName || `Worker #${invitation.workerId}`}</p>
-                                <p className="text-xs text-slate-500">
-                                  {invitation.worker?.phone || invitation.worker?.email || 'Chưa có thông tin liên hệ'}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                      <p className="mt-3 text-xs font-semibold text-primary">
+                        Bấm để xem danh sách ứng viên của ca này
+                      </p>
+                    </button>
                   );
                 })
               )}
+            </div>
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+              Chọn một ca để mở modal danh sách ứng viên theo ca.
             </div>
           </div>
         ) : (
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
             Không có dữ liệu chiến dịch.
+          </div>
+        )}
+      </Modal>
+
+      <Modal
+        open={slotApplicantsModalOpen && !!selectedCampaignSlot}
+        onClose={() => setSlotApplicantsModalOpen(false)}
+        title={selectedCampaignSlot
+          ? `Danh sách ứng viên theo ca #${campaignSlots.findIndex((slot) => slot.id === selectedCampaignSlot.id) + 1}`
+          : 'Danh sách ứng viên theo ca'}
+        description={selectedCampaignSlot
+          ? `${new Date(selectedCampaignSlot.startAt).toLocaleString('vi-VN')} - ${new Date(selectedCampaignSlot.endAt).toLocaleString('vi-VN')}`
+          : ''}
+        variant="custom"
+        contentClassName="max-w-5xl"
+        bodyClassName="space-y-4"
+      >
+        {selectedCampaignSlot ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-4 text-white shadow-sm">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-300">Thông tin ca</p>
+                  <p className="mt-2 text-sm font-semibold">
+                    {new Date(selectedCampaignSlot.startAt).toLocaleString('vi-VN')} - {new Date(selectedCampaignSlot.endAt).toLocaleString('vi-VN')}
+                  </p>
+                </div>
+                <Badge variant="outline" className="border-slate-500 text-slate-100">
+                  Sức chứa {selectedCampaignSlot.capacity}
+                </Badge>
+              </div>
+              <div className="mt-3 grid gap-2 text-xs text-slate-200 md:grid-cols-2">
+                <p>
+                  Địa điểm: <span className="font-medium text-white">{selectedCampaignSlot.location?.trim() || 'Chưa cập nhật'}</span>
+                </p>
+                <p>
+                  Ghi chú: <span className="font-medium text-white">{selectedCampaignSlot.note?.trim() || 'Không có ghi chú'}</span>
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-slate-500">Tổng lời mời</p>
+                <p className="mt-1 text-2xl font-black text-slate-900">{campaignInvitations.length}</p>
+              </div>
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-emerald-700">Có thể đi ca này</p>
+                <p className="mt-1 text-2xl font-black text-emerald-800">{selectedSlotAttendees.length}</p>
+              </div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-amber-700">Chưa phản hồi</p>
+                <p className="mt-1 text-2xl font-black text-amber-800">{pendingInvitations.length}</p>
+              </div>
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3">
+                <p className="text-[11px] uppercase tracking-wide text-rose-700">Đã từ chối</p>
+                <p className="mt-1 text-2xl font-black text-rose-800">{rejectedInvitations.length}</p>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="grid gap-2 sm:grid-cols-3">
+                {slotApplicantsTabOptions.map((tab) => {
+                  const isActive = slotApplicantsTab === tab.key;
+                  const activeClass =
+                    tab.tone === 'emerald'
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
+                      : tab.tone === 'amber'
+                        ? 'border-amber-300 bg-amber-50 text-amber-800'
+                        : 'border-rose-300 bg-rose-50 text-rose-800';
+
+                  return (
+                    <button
+                      key={tab.key}
+                      type="button"
+                      onClick={() => setSlotApplicantsTab(tab.key)}
+                      className={`rounded-xl border px-3 py-2 text-left transition-all ${
+                        isActive
+                          ? activeClass
+                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      <p className="text-[11px] font-semibold uppercase tracking-wide">{tab.label}</p>
+                      <p className="mt-1 text-xl font-black">{tab.count}</p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                {activeSlotApplicantList.length === 0 ? (
+                  <p className="text-sm text-slate-600">
+                    {slotApplicantsTab === 'ACCEPTED'
+                      ? 'Chưa có worker nào chọn ca này.'
+                      : slotApplicantsTab === 'PENDING'
+                        ? 'Không có worker nào đang chờ phản hồi.'
+                        : 'Chưa có worker nào từ chối.'}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {activeSlotApplicantList.map((invitation) => (
+                      <button
+                        key={invitation.id}
+                        type="button"
+                        onClick={() => handleOpenApplicantProfileFromInvitation(invitation)}
+                        className="w-full rounded-lg border border-white bg-white px-3 py-2 text-left text-sm text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/40"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="font-semibold text-slate-900">
+                            {invitation.worker?.fullName || `Worker #${invitation.workerId}`}
+                          </p>
+                          <Badge
+                            variant="outline"
+                            className={
+                              slotApplicantsTab === 'ACCEPTED'
+                                ? 'border-emerald-200 text-emerald-700'
+                                : slotApplicantsTab === 'PENDING'
+                                  ? 'border-amber-200 text-amber-700'
+                                  : 'border-rose-200 text-rose-700'
+                            }
+                          >
+                            {slotApplicantsTab === 'ACCEPTED'
+                              ? 'Có thể đi'
+                              : slotApplicantsTab === 'PENDING'
+                                ? 'Chờ phản hồi'
+                                : 'Từ chối'}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {slotApplicantsTab === 'REJECTED'
+                            ? invitation.responseMessage || 'Không có lý do từ chối'
+                            : invitation.worker?.phone ||
+                              invitation.worker?.email ||
+                              'Chưa có thông tin liên hệ'}
+                        </p>
+                        <p className="mt-1 text-[11px] font-medium text-primary">Bấm để xem profile đầy đủ</p>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            Không tìm thấy thông tin ca đã chọn.
           </div>
         )}
       </Modal>
@@ -3487,7 +3868,17 @@ export const EmployerDashboard = () => {
             </div>
 
             <div className="pt-6 border-t border-slate-100 bg-slate-50 -mx-6 -mb-6 p-6 rounded-b-2xl">
+              {applicantDetail?.source === 'INTERVIEW_INVITATION' ? (
+                <div className="mb-4 rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-600">
+                  Hồ sơ này mở từ danh sách phỏng vấn theo ca. Nếu cần cập nhật trạng thái hồ sơ ứng tuyển,
+                  hãy vào mục danh sách ứng viên của job.
+                </div>
+              ) : null}
               {(() => {
+                if (applicantDetail?.source === 'INTERVIEW_INVITATION') {
+                  return null;
+                }
+
                 const isFinalized = ['SUITABLE', 'UNSUITABLE'].includes(
                   applicantDetail.status,
                 );

@@ -4,26 +4,29 @@ import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
 
 export const EmptyState = ({ title, description, actionLabel, imageUrl }) => {
   return (
-    <Card className="bg-white/90 rounded-xl overflow-hidden border-0 shadow-sm">
-      <div className="p-8 text-center space-y-3">
+    <Card className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white/90 shadow-[0_18px_48px_-34px_rgba(15,23,42,0.28)]">
+      <div className="bg-gradient-to-b from-white via-white to-amber-50/60 p-8 text-center space-y-4">
         {imageUrl && (
-          <div className="flex justify-center mb-4">
+          <div className="mb-4 flex justify-center">
             <ImageWithFallback
               src={imageUrl}
               alt=""
-              className="w-40 h-40 object-contain rounded-xl opacity-90"
-              fallbackClassName="w-40 h-40 rounded-xl bg-gradient-to-br from-amber-100 to-amber-50 flex items-center justify-center"
+              className="h-40 w-40 rounded-[1.5rem] object-contain opacity-95 shadow-sm"
+              fallbackClassName="flex h-40 w-40 items-center justify-center rounded-[1.5rem] bg-gradient-to-br from-amber-100 to-amber-50 shadow-inner"
             />
           </div>
         )}
-        <div className="text-lg font-semibold text-slate-800">{title}</div>
+        <div className="space-y-2">
+          <div className="text-xl font-black tracking-tight text-slate-900">{title}</div>
+          <div className="mx-auto h-1.5 w-20 rounded-full bg-gradient-to-r from-amber-300 via-amber-200 to-transparent" />
+        </div>
         {description ? (
-          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+          <p className="mx-auto max-w-sm text-sm leading-6 text-slate-600">
             {description}
           </p>
         ) : null}
         {actionLabel ? (
-          <Button size="sm" className="mt-2 rounded-xl">
+          <Button size="sm" className="mt-2 rounded-full px-5 shadow-sm">
             {actionLabel}
           </Button>
         ) : null}
