@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -9,12 +9,20 @@ import { Modal } from '@/shared/components/Modal';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { MSG } from '@/shared/constants/messages';
-import { User, Loader2, Camera } from 'lucide-react';
+import {
+  User,
+  Loader2,
+  Camera,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+} from 'lucide-react';
 import { WorkerProfileView } from '@/features/users/components/WorkerProfileView';
 import {
   useMyApplications,
   useCancelApplyJob,
 } from '@/features/jobs/api/useJobs';
+import { ApplicationProgressTimeline } from '@/features/jobs/components/ApplicationProgressTimeline';
 import {
   useUpdateUserInfo,
   useChangePassword,
@@ -24,6 +32,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Cropper from 'react-easy-crop';
 import { getCroppedImg } from '@/shared/utils/cropImage';
 import { clearTokens } from '@/shared/api/tokenService';
+import { cn } from '@/lib/utils';
 import {
   Dialog,
   DialogContent,
@@ -46,6 +55,26 @@ const ROLE_LABEL = {
   EMPLOYER: 'Nhà tuyển dụng',
   ADMIN: 'Quản trị viên',
 };
+
+/** Phân trang client-side (backend trả full list) */
+const APPLY_HISTORY_PAGE_SIZE = 8;
+
+const JOB_APPLICATION_STATUS_LABEL = {
+  APPLIED: 'Đã nộp đơn ứng tuyển',
+  VIEWED: 'Đã xem hồ sơ',
+  SUITABLE: 'Phù hợp',
+  UNSUITABLE: 'Không phù hợp',
+  CANCELLED: 'Đã hủy',
+};
+
+/** Thứ tự hiển thị section lọc (không gồm "Tất cả") */
+const APPLY_HISTORY_STATUS_SECTION_ORDER = [
+  'APPLIED',
+  'VIEWED',
+  'SUITABLE',
+  'UNSUITABLE',
+  'CANCELLED',
+];
 
 export const UserProfilePage = () => {
   const { id } = useParams();
@@ -71,6 +100,9 @@ export const UserProfilePage = () => {
   const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState(null);
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historyFilter, setHistoryFilter] = useState('ALL');
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
 
   const { mutate: changePassword, isPending: isChangingPassword } =
     useChangePassword();
@@ -83,6 +115,66 @@ export const UserProfilePage = () => {
   const { data: applications, isLoading: isLoadingApplications } =
     useMyApplications();
   const { mutate: cancelApply, isPending: isCanceling } = useCancelApplyJob();
+
+  const allApplications = useMemo(() => {
+    if (applications == null) return [];
+    return Array.isArray(applications) ? applications : [];
+  }, [applications]);
+
+  const applyHistoryStatusCounts = useMemo(() => {
+    const counts = { ALL: allApplications.length };
+    for (const app of allApplications) {
+      const s = app.status;
+      if (s) counts[s] = (counts[s] || 0) + 1;
+    }
+    return counts;
+  }, [allApplications]);
+
+  const filteredApplications = useMemo(() => {
+    let list = allApplications;
+    if (historyFilter !== 'ALL') {
+      list = list.filter((a) => a.status === historyFilter);
+    }
+    const q = historySearchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter((a) => {
+        const title = (a.job?.title || '').toLowerCase();
+        const company = (a.job?.company?.name || 'Công ty ẩn danh').toLowerCase();
+        return title.includes(q) || company.includes(q);
+      });
+    }
+    return list;
+  }, [allApplications, historyFilter, historySearchQuery]);
+
+  const { pagedApplications, applyHistoryTotal, applyHistoryTotalPages } =
+    useMemo(() => {
+      const total = filteredApplications.length;
+      const totalPages = Math.max(1, Math.ceil(total / APPLY_HISTORY_PAGE_SIZE));
+      const start = (historyPage - 1) * APPLY_HISTORY_PAGE_SIZE;
+      const paged = filteredApplications.slice(
+        start,
+        start + APPLY_HISTORY_PAGE_SIZE,
+      );
+      return {
+        pagedApplications: paged,
+        applyHistoryTotal: total,
+        applyHistoryTotalPages: totalPages,
+      };
+    }, [filteredApplications, historyPage]);
+
+  useEffect(() => {
+    if (active !== 'history') setHistoryPage(1);
+  }, [active]);
+
+  useEffect(() => {
+    setHistoryPage(1);
+  }, [historyFilter, historySearchQuery]);
+
+  useEffect(() => {
+    if (historyPage > applyHistoryTotalPages) {
+      setHistoryPage(applyHistoryTotalPages);
+    }
+  }, [historyPage, applyHistoryTotalPages]);
 
   const handleCancelApplication = () => {
     if (!cancelJobId) return;
@@ -473,74 +565,208 @@ export const UserProfilePage = () => {
           {/* Lịch sử ứng tuyển */}
           {active === 'history' && (
             <Card className="p-6 rounded-xl shadow-sm">
-              <h2 className="text-lg font-semibold mb-4">Lịch sử ứng tuyển</h2>
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 mb-4">
+                <h2 className="text-lg font-semibold">Lịch sử ứng tuyển</h2>
+                {!isLoadingApplications && allApplications.length > 0 && (
+                  <p className="text-sm text-muted-foreground text-right">
+                    {historyFilter !== 'ALL' || historySearchQuery.trim() ? (
+                      <>
+                        Tìm thấy {applyHistoryTotal} / {allApplications.length}{' '}
+                        tin
+                        {applyHistoryTotalPages > 1
+                          ? ` · Trang ${historyPage}/${applyHistoryTotalPages}`
+                          : ''}
+                      </>
+                    ) : (
+                      <>
+                        Tổng {allApplications.length} tin
+                        {applyHistoryTotalPages > 1
+                          ? ` · Trang ${historyPage}/${applyHistoryTotalPages}`
+                          : ''}
+                      </>
+                    )}
+                  </p>
+                )}
+              </div>
 
               {isLoadingApplications ? (
                 <div className="flex justify-center items-center py-8">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-              ) : !applications || applications.length === 0 ? (
+              ) : allApplications.length === 0 ? (
                 <p className="text-muted-foreground text-sm text-center py-8 bg-gray-50 rounded-xl">
                   Chưa có lịch sử ứng tuyển.
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {applications.map((app) => (
+                  <div
+                    className="flex flex-wrap gap-2"
+                    role="tablist"
+                    aria-label="Lọc theo trạng thái"
+                  >
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={historyFilter === 'ALL'}
+                      onClick={() => setHistoryFilter('ALL')}
+                      className={cn(
+                        'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                        historyFilter === 'ALL'
+                          ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                          : 'border-border bg-background text-foreground hover:bg-muted/80',
+                      )}
+                    >
+                      Tất cả ({applyHistoryStatusCounts.ALL ?? 0})
+                    </button>
+                    {APPLY_HISTORY_STATUS_SECTION_ORDER.map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        role="tab"
+                        aria-selected={historyFilter === status}
+                        onClick={() => setHistoryFilter(status)}
+                        className={cn(
+                          'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors',
+                          historyFilter === status
+                            ? 'border-primary bg-primary text-primary-foreground shadow-sm'
+                            : 'border-border bg-background text-foreground hover:bg-muted/80',
+                        )}
+                      >
+                        {`${JOB_APPLICATION_STATUS_LABEL[status] ?? status} (${applyHistoryStatusCounts[status] ?? 0})`}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="relative">
+                    <Search
+                      className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground pointer-events-none"
+                      aria-hidden
+                    />
+                    <Input
+                      className="rounded-xl pl-9"
+                      placeholder="Tìm theo tên tin tuyển dụng hoặc công ty…"
+                      value={historySearchQuery}
+                      onChange={(e) => setHistorySearchQuery(e.target.value)}
+                      aria-label="Tìm trong lịch sử ứng tuyển"
+                    />
+                  </div>
+
+                  {applyHistoryTotal === 0 ? (
+                    <p className="text-muted-foreground text-sm text-center py-8 bg-gray-50 rounded-xl">
+                      Không có tin nào khớp bộ lọc hoặc từ khóa tìm kiếm.
+                    </p>
+                  ) : (
+                    <>
+                  {pagedApplications.map((app) => (
                     <div
                       key={app.id}
-                      className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 p-4 border rounded-xl hover:bg-gray-50 transition-colors"
+                      className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition-colors hover:bg-gray-50/80"
                     >
-                      <div>
-                        <Link
-                          to={`/job/${app.job.id}`}
-                          className="font-semibold text-lg text-primary hover:underline"
-                        >
-                          {app.job.title}
-                        </Link>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {app.job.company?.name || 'Công ty ẩn danh'}
-                        </p>
-                        <div className="flex flex-wrap items-center gap-2 mt-2">
-                          <Badge
-                            variant={
-                              app.status === 'APPLIED'
-                                ? 'default'
-                                : app.status === 'CANCELLED'
-                                  ? 'secondary'
-                                  : 'outline'
-                            }
+                      <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <Link
+                            to={`/job/${app.job.id}`}
+                            className="font-semibold text-lg text-primary hover:underline"
                           >
-                            {app.status === 'APPLIED'
-                              ? 'Đã ứng tuyển'
-                              : app.status === 'CANCELLED'
-                                ? 'Đã hủy'
-                                : app.status}
-                          </Badge>
-                          <span className="text-xs text-muted-foreground">
-                            Ngày nộp:{' '}
-                            {new Date(app.updatedAt).toLocaleDateString(
-                              'vi-VN',
-                            )}
-                          </span>
+                            {app.job.title}
+                          </Link>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {app.job.company?.name || 'Công ty ẩn danh'}
+                          </p>
+                          <div className="mt-2 flex flex-wrap items-center gap-2">
+                            <Badge
+                              variant={
+                                app.status === 'APPLIED'
+                                  ? 'default'
+                                  : app.status === 'CANCELLED'
+                                    ? 'secondary'
+                                    : 'outline'
+                              }
+                              className={cn(
+                                app.status === 'SUITABLE' &&
+                                  'border-emerald-500/70 bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-900 shadow-sm ring-2 ring-emerald-400/30',
+                                app.status === 'UNSUITABLE' &&
+                                  'border-rose-500/60 bg-rose-50 px-3 py-1 text-sm font-bold text-rose-900 shadow-sm ring-2 ring-rose-400/30',
+                              )}
+                            >
+                              {JOB_APPLICATION_STATUS_LABEL[app.status] ??
+                                app.status}
+                            </Badge>
+                            <span className="text-xs text-muted-foreground">
+                              Ngày nộp:{' '}
+                              {new Date(app.updatedAt).toLocaleDateString(
+                                'vi-VN',
+                              )}
+                            </span>
+                          </div>
                         </div>
-                      </div>
 
-                      {app.status === 'APPLIED' && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          className="rounded-xl w-full sm:w-auto shrink-0"
-                          onClick={() => setCancelJobId(app.job.id)}
-                          disabled={isCanceling}
-                        >
-                          {isCanceling ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                          ) : null}
-                          Hủy ứng tuyển
-                        </Button>
-                      )}
+                        {app.status === 'APPLIED' && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full shrink-0 rounded-xl border-destructive/35 text-destructive hover:bg-destructive/5 sm:w-auto"
+                            onClick={() => setCancelJobId(app.job.id)}
+                            disabled={isCanceling}
+                          >
+                            {isCanceling ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : null}
+                            Hủy ứng tuyển
+                          </Button>
+                        )}
+                      </div>
+                      <ApplicationProgressTimeline
+                        status={app.status}
+                        updatedAt={app.updatedAt}
+                      />
                     </div>
                   ))}
+                  {applyHistoryTotalPages > 1 && (
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 mt-2 border-t border-slate-100">
+                      <p className="text-sm text-muted-foreground">
+                        Hiển thị{' '}
+                        {(historyPage - 1) * APPLY_HISTORY_PAGE_SIZE + 1}–
+                        {Math.min(
+                          historyPage * APPLY_HISTORY_PAGE_SIZE,
+                          applyHistoryTotal,
+                        )}{' '}
+                        / {applyHistoryTotal}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl"
+                          disabled={historyPage <= 1}
+                          onClick={() =>
+                            setHistoryPage((p) => Math.max(1, p - 1))
+                          }
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" />
+                          Trước
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="rounded-xl"
+                          disabled={historyPage >= applyHistoryTotalPages}
+                          onClick={() =>
+                            setHistoryPage((p) =>
+                              Math.min(applyHistoryTotalPages, p + 1),
+                            )
+                          }
+                        >
+                          Sau
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                    </>
+                  )}
                 </div>
               )}
             </Card>

@@ -30,7 +30,7 @@ import {
 // ========================
 const APPLICANT_STATUS = {
   APPLIED: {
-    label: 'Đã ứng tuyển',
+    label: 'Đã nộp đơn ứng tuyển',
     className: 'bg-blue-100 text-blue-700 border-0',
   },
   REVIEWING: {
@@ -284,7 +284,7 @@ const ApplicantDetail = ({ applicant, job, onBack, onChangeStatus }) => {
             value={newStatus}
             onChange={(e) => setNewStatus(e.target.value)}
           >
-            <option value="APPLIED">Đã ứng tuyển</option>
+            <option value="APPLIED">Đã nộp đơn ứng tuyển</option>
             <option value="REVIEWING">Đang xem xét</option>
             <option value="ACCEPTED">Đã chấp nhận</option>
             <option value="REJECTED">Đã từ chối</option>
@@ -461,7 +461,7 @@ export const CompanyApplicantPage = () => {
                 {[
                   { label: 'Tổng', value: stats.total, className: 'bg-white' },
                   {
-                    label: 'Đã ứng tuyển',
+                    label: 'Đã nộp đơn ứng tuyển',
                     value: stats.applied,
                     className: 'bg-blue-50',
                   },
@@ -539,7 +539,7 @@ export const CompanyApplicantPage = () => {
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
                     <option value="">Tất cả trạng thái</option>
-                    <option value="APPLIED">Đã ứng tuyển</option>
+                    <option value="APPLIED">Đã nộp đơn ứng tuyển</option>
                     <option value="REVIEWING">Đang xem xét</option>
                     <option value="ACCEPTED">Đã chấp nhận</option>
                     <option value="REJECTED">Đã từ chối</option>

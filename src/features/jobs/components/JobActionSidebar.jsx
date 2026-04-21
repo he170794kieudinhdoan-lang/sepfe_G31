@@ -15,7 +15,7 @@ export const JobActionSidebar = ({
       <Card className="p-6 rounded-xl shadow-sm border-0">
         {hasApplied ? (
           <Button className="w-full rounded-xl" disabled>
-            Đã ứng tuyển
+            Đã nộp đơn ứng tuyển
           </Button>
         ) : (
           <Button className="w-full rounded-xl" onClick={onApply}>
