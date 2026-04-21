@@ -2,10 +2,15 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { FullWidthLayout, MainLayout } from '@/shared/components/Layout';
 import { RequireRoles } from '@/shared/components/Auth/RequireRoles';
+import { AppLoadingScene } from '@/shared/components/AppLoadingScene';
 
 const PageFallback = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="h-8 w-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
+  <div className="px-4 py-6">
+    <AppLoadingScene
+      title="Đang mở trang"
+      subtitle="Hệ thống đang tải dữ liệu và giao diện cho bạn"
+      className="mx-auto max-w-5xl"
+    />
   </div>
 );
 
