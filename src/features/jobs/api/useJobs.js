@@ -13,6 +13,7 @@ import {
   searchJobs,
   getJobsForEmployer,
   getBoostedJobsApi,
+  getBoostPackagesApi,
   createBoostCheckoutApi,
   confirmBoostPaymentApi,
   getSectorsWithOccupations,
@@ -85,6 +86,16 @@ export const useBoostedJobs = (params = {}, options = {}) => {
     staleTime: 2 * 60 * 1000,
     retry: 1,
     keepPreviousData: true,
+    ...options,
+  });
+};
+
+export const useBoostPackages = (options = {}) => {
+  return useQuery({
+    queryKey: ['boost-packages'],
+    queryFn: getBoostPackagesApi,
+    staleTime: 60 * 1000,
+    retry: 1,
     ...options,
   });
 };

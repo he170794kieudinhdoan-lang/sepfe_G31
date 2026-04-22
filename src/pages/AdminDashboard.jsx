@@ -22,7 +22,12 @@ import {
   useUpdateUserStatus,
 } from '@/features/users/api/useUser';
 import { AppPagination } from '@/shared/components/AppPagination';
-import { useAdminStatistics } from '@/features/admin/api/useAdmin';
+import {
+  useAdminStatistics,
+  useCreatePaymentPackage,
+  usePaymentPackages,
+  useUpdatePaymentPackage,
+} from '@/features/admin/api/useAdmin';
 
 const formatCompactVND = (value) => {
   if (!value) return '0';
@@ -122,6 +127,23 @@ export const AdminDashboard = () => {
     year: selectedYear,
   });
 
+  const [paymentPackageForm, setPaymentPackageForm] = useState({
+    name: '',
+    description: '',
+    orderType: 'BOOST_JOB',
+    durationDays: 7,
+    price: 50000,
+    isDefault: false,
+    isActive: true,
+  });
+  const [editingPackage, setEditingPackage] = useState(null);
+  const { data: paymentPackagesRes, isLoading: loadingPaymentPackages } =
+    usePaymentPackages({ includeInactive: true });
+  const createPaymentPackageMutation = useCreatePaymentPackage();
+  const updatePaymentPackageMutation = useUpdatePaymentPackage();
+  const paymentPackages =
+    paymentPackagesRes?.items || paymentPackagesRes?.data || [];
+
   const kpi = [
     { label: 'Tổng người dùng', value: statsData?.users?.total || 0 },
     { label: 'Tổng doanh nghiệp', value: statsData?.companies?.total || 0 },
@@ -132,6 +154,8 @@ export const AdminDashboard = () => {
       ),
     },
   ];
+
+  const activePaymentPackages = paymentPackages.filter((pkg) => pkg.isActive);
 
   const renderUsersChart = () => {
     const labels = statsData?.charts?.labels?.length
@@ -242,6 +266,7 @@ export const AdminDashboard = () => {
 
   const menu = [
     { key: 'overview', label: 'Tổng quan' },
+    { key: 'payment_packages', label: 'Gói thanh toán' },
     { key: 'users', label: 'Quản lý người dùng' },
     { key: 'moderation', label: 'Duyệt công việc' },
     { key: 'sectors', label: 'Quản lý ngành nghề' },
@@ -544,6 +569,84 @@ export const AdminDashboard = () => {
     }
   };
 
+  const resetPaymentPackageForm = () => {
+    setPaymentPackageForm({
+      name: '',
+      description: '',
+      orderType: 'BOOST_JOB',
+      durationDays: 7,
+      price: 50000,
+      isDefault: false,
+      isActive: true,
+    });
+    setEditingPackage(null);
+  };
+
+  const handleSavePaymentPackage = async () => {
+    try {
+      if (!paymentPackageForm.name.trim()) {
+        toast('Tên gói không được để trống', 'error');
+        return;
+      }
+      if (Number(paymentPackageForm.price) <= 0) {
+        toast('Giá gói không hợp lệ', 'error');
+        return;
+      }
+      if (
+        paymentPackageForm.orderType === 'BOOST_JOB' &&
+        Number(paymentPackageForm.durationDays) <= 0
+      ) {
+        toast('Gói boost cần số ngày hợp lệ', 'error');
+        return;
+      }
+
+      const payload = {
+        name: paymentPackageForm.name,
+        description: paymentPackageForm.description,
+        orderType: paymentPackageForm.orderType,
+        durationDays:
+          paymentPackageForm.orderType === 'BOOST_JOB'
+            ? Number(paymentPackageForm.durationDays)
+            : undefined,
+        price: Number(paymentPackageForm.price),
+        isDefault: Boolean(paymentPackageForm.isDefault),
+        isActive: Boolean(paymentPackageForm.isActive),
+      };
+
+      if (editingPackage?.id) {
+        await updatePaymentPackageMutation.mutateAsync({
+          id: editingPackage.id,
+          payload,
+        });
+        toast('Cập nhật gói thanh toán thành công');
+      } else {
+        await createPaymentPackageMutation.mutateAsync(payload);
+        toast('Tạo gói thanh toán thành công');
+      }
+
+      resetPaymentPackageForm();
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Không thể lưu gói thanh toán';
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    }
+  };
+
+  const handleEditPaymentPackage = (pkg) => {
+    setEditingPackage(pkg);
+    setPaymentPackageForm({
+      name: pkg.name || '',
+      description: pkg.description || '',
+      orderType: pkg.orderType || 'BOOST_JOB',
+      durationDays: pkg.durationDays || 7,
+      price: pkg.price || 50000,
+      isDefault: Boolean(pkg.isDefault),
+      isActive: Boolean(pkg.isActive),
+    });
+  };
+
   console.log(configsData);
 
   return (
@@ -607,6 +710,39 @@ export const AdminDashboard = () => {
               </div>
             </Card>
 
+            <Card className="p-6 lg:col-span-1 border-primary/15 bg-gradient-to-br from-white to-slate-50">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-semibold">Gói thanh toán</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Quản lý giá gói boost, gói đăng tin và trạng thái hoạt động.
+                  </p>
+                </div>
+                <Button onClick={() => setActive('payment_packages')} className="rounded-xl">
+                  Mở quản lý gói
+                </Button>
+              </div>
+
+              <div className="grid sm:grid-cols-3 gap-4 mt-5">
+                <div className="rounded-xl border bg-white p-4">
+                  <p className="text-xs text-muted-foreground">Tổng gói</p>
+                  <p className="text-2xl font-bold mt-1">{paymentPackages.length}</p>
+                </div>
+                <div className="rounded-xl border bg-white p-4">
+                  <p className="text-xs text-muted-foreground">Đang hoạt động</p>
+                  <p className="text-2xl font-bold mt-1 text-emerald-600">
+                    {activePaymentPackages.length}
+                  </p>
+                </div>
+                <div className="rounded-xl border bg-white p-4">
+                  <p className="text-xs text-muted-foreground">Gói mặc định</p>
+                  <p className="text-2xl font-bold mt-1 text-primary">
+                    {paymentPackages.filter((pkg) => pkg.isDefault).length}
+                  </p>
+                </div>
+              </div>
+            </Card>
+
             <div className="grid lg:grid-cols-3 gap-6">
               <Card className="p-6 w-full lg:col-span-3">
                 <h3 className="text-lg font-semibold mb-4">
@@ -658,6 +794,185 @@ export const AdminDashboard = () => {
               </Card>
             </div>
           </div>
+        </div>
+      )}
+
+      {active === 'payment_packages' && (
+        <div className="space-y-6">
+          <Card className="p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">
+                {editingPackage ? 'Cập nhật gói thanh toán' : 'Tạo gói thanh toán mới'}
+              </h3>
+              {editingPackage && (
+                <Button variant="outline" onClick={resetPaymentPackageForm}>
+                  Hủy chỉnh sửa
+                </Button>
+              )}
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <Input
+                placeholder="Tên gói"
+                value={paymentPackageForm.name}
+                onChange={(e) =>
+                  setPaymentPackageForm((prev) => ({
+                    ...prev,
+                    name: e.target.value,
+                  }))
+                }
+              />
+              <Input
+                placeholder="Giá (VND)"
+                type="number"
+                value={paymentPackageForm.price}
+                onChange={(e) =>
+                  setPaymentPackageForm((prev) => ({
+                    ...prev,
+                    price: e.target.value,
+                  }))
+                }
+              />
+              <select
+                className="rounded-xl border px-4 py-2 text-sm bg-white"
+                value={paymentPackageForm.orderType}
+                onChange={(e) =>
+                  setPaymentPackageForm((prev) => ({
+                    ...prev,
+                    orderType: e.target.value,
+                  }))
+                }
+              >
+                <option value="BOOST_JOB">BOOST_JOB</option>
+                <option value="FEATURE_LISTING">FEATURE_LISTING</option>
+                <option value="PREMIUM_SUBSCRIPTION">PREMIUM_SUBSCRIPTION</option>
+              </select>
+              <Input
+                placeholder="Số ngày"
+                type="number"
+                disabled={paymentPackageForm.orderType !== 'BOOST_JOB'}
+                value={paymentPackageForm.durationDays}
+                onChange={(e) =>
+                  setPaymentPackageForm((prev) => ({
+                    ...prev,
+                    durationDays: e.target.value,
+                  }))
+                }
+              />
+            </div>
+
+            <Input
+              placeholder="Mô tả"
+              value={paymentPackageForm.description}
+              onChange={(e) =>
+                setPaymentPackageForm((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
+              }
+            />
+
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={paymentPackageForm.isDefault}
+                  onChange={(e) =>
+                    setPaymentPackageForm((prev) => ({
+                      ...prev,
+                      isDefault: e.target.checked,
+                    }))
+                  }
+                />
+                Gói mặc định
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={paymentPackageForm.isActive}
+                  onChange={(e) =>
+                    setPaymentPackageForm((prev) => ({
+                      ...prev,
+                      isActive: e.target.checked,
+                    }))
+                  }
+                />
+                Đang hoạt động
+              </label>
+
+              <Button
+                className="ml-auto"
+                onClick={handleSavePaymentPackage}
+                disabled={
+                  createPaymentPackageMutation.isPending ||
+                  updatePaymentPackageMutation.isPending
+                }
+              >
+                {createPaymentPackageMutation.isPending ||
+                updatePaymentPackageMutation.isPending
+                  ? 'Đang lưu...'
+                  : editingPackage
+                    ? 'Cập nhật gói'
+                    : 'Tạo gói'}
+              </Button>
+            </div>
+          </Card>
+
+          <Card className="p-4">
+            <h3 className="text-lg font-semibold mb-4">Danh sách gói thanh toán</h3>
+            {loadingPaymentPackages ? (
+              <Skeleton className="h-40 w-full" />
+            ) : !paymentPackages.length ? (
+              <EmptyState
+                title="Chưa có gói thanh toán"
+                description="Tạo gói mới để employer có thể thanh toán theo gói cấu hình."
+              />
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="text-left text-muted-foreground">
+                    <tr className="border-b">
+                      <th className="py-2">Tên gói</th>
+                      <th>Loại</th>
+                      <th>Số ngày</th>
+                      <th>Giá</th>
+                      <th>Trạng thái</th>
+                      <th>Mặc định</th>
+                      <th>Hành động</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paymentPackages.map((pkg) => (
+                      <tr key={pkg.id} className="border-b last:border-b-0">
+                        <td className="py-3">
+                          <p className="font-semibold text-slate-800">{pkg.name}</p>
+                          <p className="text-xs text-slate-500">{pkg.description || '-'}</p>
+                        </td>
+                        <td>{pkg.orderType}</td>
+                        <td>{pkg.durationDays || '-'}</td>
+                        <td>{new Intl.NumberFormat('vi-VN').format(pkg.price)}đ</td>
+                        <td>
+                          <Badge variant={pkg.isActive ? 'default' : 'secondary'}>
+                            {pkg.isActive ? 'ACTIVE' : 'INACTIVE'}
+                          </Badge>
+                        </td>
+                        <td>{pkg.isDefault ? 'Yes' : 'No'}</td>
+                        <td>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditPaymentPackage(pkg)}
+                          >
+                            Chỉnh sửa
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
         </div>
       )}
 

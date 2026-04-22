@@ -86,6 +86,10 @@ export const getBoostedJobsApi = async (params = {}) => {
   return await apiClient.get('/job/boosted', { params: cleanParams });
 };
 
+export const getBoostPackagesApi = async () => {
+  return await apiClient.get('/job/boost/packages');
+};
+
 export const createBoostCheckoutApi = async ({ jobId, payload }) => {
   return await apiClient.post(`/job/${jobId}/boost/checkout`, payload);
 };

@@ -61,6 +61,7 @@ import {
   useUpdateApplicationStatus,
   useDeleteJob,
   useCreateBoostCheckout,
+  useBoostPackages,
   useMatchedWorkers,
   useJobDetail,
 } from '@/features/jobs/api/useJobs';
@@ -123,19 +124,19 @@ const DASHBOARD_SUBTITLE =
 
 const APPLICANTS_TAB_PAGE_SIZE = 10;
 
-const BOOST_SUBSCRIPTION_PLANS = [
+const DEFAULT_BOOST_SUBSCRIPTION_PLANS = [
   {
     days: 7,
     name: 'Gói nổi bật 7 ngày',
     description: 'Phù hợp test nhanh nhu cầu tuyển gấp trong tuần.',
-    price: 10000,
+    price: 50000,
     accent: 'border-slate-200 bg-white',
   },
   {
     days: 30,
     name: 'Gói nổi bật 30 ngày',
     description: 'Được chọn nhiều nhất. Hiển thị dài hạn và tiết kiệm hơn.',
-    price: 20000,
+    price: 100000,
     badge: 'Mua nhiều - tiết kiệm hơn',
     accent: 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20',
   },
@@ -2100,6 +2101,33 @@ export const EmployerDashboard = () => {
     [updateApplicantStatus],
   );
   const createBoostCheckoutMutation = useCreateBoostCheckout();
+  const { data: boostPackagesRes } = useBoostPackages();
+  const boostPackages = boostPackagesRes?.items || boostPackagesRes?.data || [];
+  const boostPlans =
+    boostPackages.length > 0
+      ? boostPackages
+          .filter((pkg) => Number(pkg.durationDays) > 0)
+          .map((pkg) => ({
+            id: pkg.id,
+            days: pkg.durationDays,
+            name: pkg.name,
+            description: pkg.description || `Hieu luc ${pkg.durationDays} ngay`,
+            price: pkg.price,
+            badge: pkg.isDefault ? 'Mac dinh' : undefined,
+            accent: 'border-slate-200 bg-white',
+          }))
+      : DEFAULT_BOOST_SUBSCRIPTION_PLANS;
+
+  useEffect(() => {
+    if (!boostPlans.length) return;
+    const selectedExists = boostPlans.some(
+      (plan) => plan.days === selectedBoostPackageDays,
+    );
+    if (!selectedExists) {
+      setSelectedBoostPackageDays(boostPlans[0].days);
+    }
+  }, [boostPlans, selectedBoostPackageDays]);
+
   const boostWebhookHandledRef = useRef(false);
   const { data: boostJobDetail } = useJobDetail(selectedBoostJob?.id, {
     enabled: !!selectedBoostJob?.id && boostPaymentModalOpen,
@@ -2371,6 +2399,11 @@ export const EmployerDashboard = () => {
   const handleBoostCheckout = async () => {
     if (!selectedBoostJob?.id) {
       toast('Không xác định được job cần boost', 'error');
+      return;
+    }
+
+    if (!boostPlans.length) {
+      toast('Hiện chưa có gói thanh toán boost đang hoạt động', 'error');
       return;
     }
 
@@ -3082,7 +3115,9 @@ export const EmployerDashboard = () => {
                                             className="h-7 text-xs text-primary bg-primary/10 hover:bg-primary/20 rounded-lg"
                                             onClick={() => {
                                               setSelectedBoostJob(job);
-                                              setSelectedBoostPackageDays(7);
+                                              setSelectedBoostPackageDays(
+                                                boostPlans[0]?.days || 7,
+                                              );
                                               setBoostCheckoutData(null);
                                               setBoostPaymentModalOpen(false);
                                               setBoostModalOpen(true);
@@ -3462,7 +3497,7 @@ export const EmployerDashboard = () => {
 
               <div className="space-y-4">
                 <ApplicationFunnelWidget jobs={allJobs} />
-                {/* <EmployerPaymentsWidget /> */}
+                <EmployerPaymentsWidget />
               </div>
             </div>
           )}
@@ -3519,7 +3554,7 @@ export const EmployerDashboard = () => {
       >
         <div className="space-y-4 mt-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {BOOST_SUBSCRIPTION_PLANS.map((plan) => {
+            {boostPlans.map((plan) => {
               const isActive = selectedBoostPackageDays === plan.days;
 
               return (

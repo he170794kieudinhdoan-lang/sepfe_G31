@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import {
   Loader2,
@@ -6,7 +6,10 @@ import {
   Calendar,
   Filter,
   CircleDollarSign,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { useEmployerPayments } from '../api/useStatistics';
 
 export const EmployerPaymentsWidget = () => {
@@ -27,17 +30,27 @@ export const EmployerPaymentsWidget = () => {
     to: defaultTo,
   });
   const [groupBy, setGroupBy] = useState('month');
+  const [page, setPage] = useState(1);
+  const limit = 8;
+
+  useEffect(() => {
+    setPage(1);
+  }, [dateRange.from, dateRange.to, groupBy]);
 
   // Gọi API với params
   const { data: paymentsRes, isLoading } = useEmployerPayments({
     from: dateRange.from,
     to: dateRange.to,
     groupBy,
+    page,
+    limit,
   });
 
-  const data = paymentsRes || {
+  const data = paymentsRes?.data || paymentsRes || {
     totalSpent: 0,
     trends: [],
+    transactions: [],
+    meta: { page: 1, totalPage: 1, total: 0 },
   };
 
   const formatCurrency = (val) =>
@@ -65,6 +78,13 @@ export const EmployerPaymentsWidget = () => {
     if (group === 'year') return d.getFullYear().toString();
     // week -> dd/MM
     return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+  };
+
+  const getOrderTypeLabel = (orderType) => {
+    if (orderType === 'BOOST_JOB') return 'Boost tin';
+    if (orderType === 'FEATURE_LISTING') return 'Dang tin';
+    if (orderType === 'PREMIUM_SUBSCRIPTION') return 'Premium';
+    return orderType || '-';
   };
 
   // Tính toán chiều cao các cột Bar Chart
@@ -232,6 +252,87 @@ export const EmployerPaymentsWidget = () => {
                 </div>
               </div>
             )}
+
+            <div className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                <h4 className="text-sm font-bold text-slate-700 uppercase tracking-wider">
+                  Lịch sử giao dịch
+                </h4>
+                <p className="text-xs text-slate-500">{data.meta?.total || 0} giao dịch</p>
+              </div>
+
+              {data.transactions?.length ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead className="text-left text-slate-500 bg-slate-50">
+                        <tr>
+                          <th className="px-4 py-2 font-medium">Thời gian</th>
+                          <th className="px-4 py-2 font-medium">Loại</th>
+                          <th className="px-4 py-2 font-medium">Gói</th>
+                          <th className="px-4 py-2 font-medium">Số tiền</th>
+                          <th className="px-4 py-2 font-medium">Mã GD</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {data.transactions.map((row) => (
+                          <tr key={row.id} className="border-t border-slate-100">
+                            <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
+                              {new Date(row.createdAt).toLocaleString('vi-VN')}
+                            </td>
+                            <td className="px-4 py-3 text-slate-700">
+                              {getOrderTypeLabel(row.orderType)}
+                            </td>
+                            <td className="px-4 py-3 text-slate-700">
+                              {row.packageName ||
+                                (row.packageDays ? `${row.packageDays} ngày` : 'Chưa xác định')}
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-emerald-700">
+                              {formatCurrency(row.amount || 0)}
+                            </td>
+                            <td className="px-4 py-3 text-slate-500 max-w-40 truncate" title={row.transactionCode || ''}>
+                              {row.transactionCode || `DH-${row.id}`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
+                    <p className="text-xs text-slate-500">
+                      Trang {data.meta?.page || 1}/{data.meta?.totalPage || 1}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        disabled={(data.meta?.page || 1) <= 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        disabled={(data.meta?.page || 1) >= (data.meta?.totalPage || 1)}
+                        onClick={() =>
+                          setPage((p) => Math.min(data.meta?.totalPage || 1, p + 1))
+                        }
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="px-4 py-8 text-center text-sm text-slate-500">
+                  Chưa có giao dịch trong khoảng thời gian đã chọn.
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
