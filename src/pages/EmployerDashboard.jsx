@@ -196,9 +196,8 @@ const StatusBadge = ({ status }) => {
     },
     WARNING: {
       color: 'bg-orange-100 text-orange-800 border-orange-200',
-      label: 'Cảnh báo',
-      title:
-        'Tin tuyển dụng đáng ngờ (Scam), đang treo để quản trị viên kiểm tra thủ công',
+      label: 'Chờ thanh toán',
+      title: 'Tin đã tạo nhưng chưa thanh toán nên chưa được xuất bản',
     },
   };
 

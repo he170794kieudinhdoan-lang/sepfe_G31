@@ -23,7 +23,6 @@ import {
   Legend,
   PieChart,
   Pie,
-  Cell,
 } from 'recharts';
 
 // ─── STATUS BADGE ────────────────────────────────────────────────────────────
@@ -233,17 +232,17 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
       {
         name: 'Đang hiển thị',
         value: jobStatusRes.published,
-        color: '#3b82f6', // Light Blue as in image
+        fill: '#3b82f6', // Light Blue as in image
       },
       { 
         name: 'Chờ duyệt', 
         value: jobStatusRes.warning, 
-        color: '#10b981' // Green as in image
+        fill: '#10b981' // Green as in image
       },
       { 
         name: 'Hết hạn', 
         value: jobStatusRes.expired, 
-        color: '#f59e0b' // Orange as in image
+        fill: '#f59e0b' // Orange as in image
       },
     ].filter((item) => item.value > 0);
   }, [jobStatusRes]);
@@ -485,6 +484,7 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
                       dataKey="value"
                       stroke="#fff"
                       strokeWidth={2}
+                      fill="#3b82f6"
                       label={({ cx, cy, midAngle, innerRadius, outerRadius, value, name, percent }) => {
                         const RADIAN = Math.PI / 180;
                         const radius = outerRadius + 25;
@@ -505,11 +505,7 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
                         );
                       }}
                       labelLine={{ stroke: '#cbd5e1', strokeWidth: 1 }}
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
+                    />
                     <Tooltip
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
@@ -554,7 +550,7 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
                       >
                         <div
                           className="w-3 h-3 rounded-sm"
-                          style={{ backgroundColor: item.color }}
+                          style={{ backgroundColor: item.fill }}
                         />
                         <span className="text-slate-600 font-medium">
                           {item.name}
