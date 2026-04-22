@@ -42,11 +42,7 @@ export const DashboardLayout = ({
             to="/"
             className="inline-flex shrink-0 items-center px-2 hover:opacity-90 transition-opacity"
           >
-            <img
-              src="/logo_02.png"
-              alt="WorkLink"
-              className="h-12 w-auto"
-            />
+            <img src="/logo_02.png" alt="WorkLink" className="h-12 w-auto" />
           </Link>
           <div className="mt-8 space-y-1">
             {menu.map((item) => (
@@ -89,8 +85,7 @@ export const DashboardLayout = ({
               <div>
                 <h1 className="text-2xl font-bold">{title}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {subtitle ??
-                    'Theo dõi hoạt động tài khoản và thao tác nhanh'}
+                  {subtitle ?? 'Theo dõi hoạt động tài khoản và thao tác nhanh'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -252,7 +247,7 @@ export const DashboardLayout = ({
               ))}
             </div>
           </div>
-          <div className="px-6 py-8">{children}</div>
+          <div className="px-3 py-4">{children}</div>
         </div>
       </div>
     </div>

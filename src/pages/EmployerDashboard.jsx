@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,6 @@ import { EmptyState } from '@/shared/components/EmptyState';
 import { AppLoadingScene } from '@/shared/components/AppLoadingScene';
 import { Modal } from '@/shared/components/Modal';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
-import { useToast } from '@/shared/contexts/ToastContext';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
 import {
@@ -88,6 +87,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import viLocale from '@fullcalendar/core/locales/vi';
+import { useToast } from '@/shared/contexts/ToastContext';
 
 const EMPLOYER_MENU = [
   {
@@ -168,53 +168,6 @@ const buildKpiItems = (overview) => [
     change: overview?.newJobsThisWeek ?? 0,
     isCountTrend: true,
     icon: Briefcase,
-  },
-];
-
-const MOCK_APPLICANTS = [
-  {
-    id: 1,
-    workerName: 'Nguyễn Văn Anh',
-    avatar:
-      'https://ui-avatars.com/api/?name=Nguyễn+Văn+Anh&background=e0e7ff&color=4338ca',
-    appliedDate: '2025-02-05',
-    status: 'Pending',
-    jobTitle: 'Nhân viên kho vận ca đêm',
-    email: 'nva@example.com',
-    phone: '0901 234 567',
-  },
-  {
-    id: 2,
-    workerName: 'Trần Thị Bình',
-    avatar:
-      'https://ui-avatars.com/api/?name=Trần+Thị+Bình&background=dcfce7&color=15803d',
-    appliedDate: '2025-02-04',
-    status: 'Reviewed',
-    jobTitle: 'Nhân viên kho vận ca đêm',
-    email: 'ttb@example.com',
-    phone: '0902 345 678',
-  },
-  {
-    id: 3,
-    workerName: 'Lê Văn Cường',
-    avatar:
-      'https://ui-avatars.com/api/?name=Lê+Văn+Cường&background=fef3c7&color=b45309',
-    appliedDate: '2025-02-01',
-    status: 'Contacting',
-    jobTitle: 'Phục vụ nhà hàng part-time',
-    email: 'lvc@example.com',
-    phone: '0903 456 789',
-  },
-  {
-    id: 4,
-    workerName: 'Phạm Thị Duyên',
-    avatar:
-      'https://ui-avatars.com/api/?name=Phạm+Thị+Duyên&background=fee2e2&color=b91c1c',
-    appliedDate: '2025-01-30',
-    status: 'Rejected',
-    jobTitle: 'Giám sát bán hàng (Supervisor)',
-    email: 'ptd@example.com',
-    phone: '0904 567 890',
   },
 ];
 
@@ -314,411 +267,6 @@ const MatchScoreItem = ({ label, score }) => {
       </div>
       <Progress value={percentage} className="h-1 shadow-none bg-slate-100" />
     </div>
-  );
-};
-
-const WorkerCard = ({
-  item,
-  getShiftLabel,
-  getGenderLabel,
-  formatSalary,
-  isSelected,
-  onSelect,
-  onContact,
-}) => {
-  const [popoverOpen, setPopoverOpen] = useState(false);
-  const [isContacting, setIsContacting] = useState(false);
-
-  const handleContact = async () => {
-    setIsContacting(true);
-    await onContact(item.worker?.userId);
-    setIsContacting(false);
-  };
-
-  return (
-    <Card className="p-4 rounded-2xl border-slate-100 hover:border-primary/30 hover:shadow-md transition-all group relative">
-      <div className="absolute top-4 left-4 z-10">
-        <Checkbox
-          checked={isSelected}
-          onCheckedChange={() => onSelect(item.worker?.userId)}
-          className="w-5 h-5 rounded-md border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary transition-all shadow-sm"
-        />
-      </div>
-      <div className="flex flex-col sm:flex-row gap-5 pl-8">
-        <div className="relative shrink-0 self-center sm:self-start">
-          <img
-            src={item.worker?.avatar || `https://github.com/shadcn.png`}
-            className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-sm"
-            alt="avatar"
-          />
-        </div>
-
-        <div className="flex-1">
-          <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
-            <div>
-              <h4 className="font-bold text-slate-800 text-lg group-hover:text-primary transition-colors">
-                {item.worker?.fullName}
-              </h4>
-              <div className="flex flex-wrap gap-2 mt-1">
-                <Badge
-                  variant="outline"
-                  className="text-xs bg-slate-50 text-slate-600 border-slate-200"
-                >
-                  {item.worker?.occupationName || 'Lao động tự do'}
-                </Badge>
-                <Badge
-                  variant="outline"
-                  className="text-xs bg-slate-50 text-slate-600 border-slate-200"
-                >
-                  {item.worker?.experienceYear === 0
-                    ? 'Chưa có kinh nghiệm'
-                    : item.worker?.experienceYear > 5
-                      ? 'Trên 5 năm KN'
-                      : `${item.worker?.experienceYear} năm KN`}
-                </Badge>
-                {item.worker?.province && (
-                  <Badge
-                    variant="outline"
-                    className="text-xs bg-blue-50 text-blue-600 border-blue-200"
-                  >
-                    <MapPin size={10} className="mr-1" />
-                    {item.worker?.ward ? `${item.worker.ward}, ` : ''}
-                    {item.worker?.province}
-                  </Badge>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-500">
-                <span>
-                  Lương kỳ vọng:{' '}
-                  <strong className="text-slate-700">
-                    {formatSalary(
-                      item.worker?.expectedSalary,
-                      null,
-                      'vndCompact',
-                    )}
-                  </strong>
-                </span>
-                <span>
-                  Ca:{' '}
-                  <strong className="text-slate-700">
-                    {getShiftLabel(item.worker?.shift)}
-                  </strong>
-                </span>
-                <span>
-                  Giới tính:{' '}
-                  <strong className="text-slate-700">
-                    {getGenderLabel(item.worker?.gender)}
-                  </strong>
-                </span>
-                {item.worker?.birthYear && (
-                  <span>
-                    Năm sinh:{' '}
-                    <strong className="text-slate-700">
-                      {item.worker.birthYear}
-                    </strong>
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-              <PopoverTrigger asChild>
-                <div
-                  onMouseEnter={() => setPopoverOpen(true)}
-                  onMouseLeave={() => setPopoverOpen(false)}
-                  className="bg-purple-50 text-purple-700 px-3 py-1.5 rounded-xl border border-purple-100 flex items-center gap-1.5 text-sm font-bold shadow-sm shrink-0 cursor-help hover:bg-purple-100 transition-colors"
-                >
-                  <Sparkles size={14} />
-                  Độ phù hợp {Math.round((item.scores?.finalScore || 0) * 100)}%
-                </div>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-80 p-4 rounded-2xl shadow-2xl border-slate-100"
-                align="end"
-                onMouseEnter={() => setPopoverOpen(true)}
-                onMouseLeave={() => setPopoverOpen(false)}
-              >
-                <h5 className="font-bold text-slate-800 mb-3 flex items-center gap-2 border-b pb-2">
-                  <BarChart3 size={16} className="text-purple-500" />
-                  Phân tích độ phù hợp
-                </h5>
-                <div className="grid grid-cols-2 gap-x-6 gap-y-3">
-                  <MatchScoreItem
-                    label="Kỹ năng"
-                    score={item.scores?.skillScore || 0}
-                  />
-                  <MatchScoreItem
-                    label="Phúc lợi"
-                    score={item.scores?.benefitScore || 0}
-                  />
-                  <MatchScoreItem
-                    label="Lương"
-                    score={item.scores?.salaryScore || 0}
-                  />
-                  <MatchScoreItem
-                    label="Vị trí"
-                    score={item.scores?.locationScore || 0}
-                  />
-                  <MatchScoreItem
-                    label="Ca làm"
-                    score={item.scores?.shiftScore || 0}
-                  />
-                  <MatchScoreItem
-                    label="Giới tính"
-                    score={item.scores?.genderScore || 0}
-                  />
-                  <MatchScoreItem
-                    label="Độ tuổi"
-                    score={item.scores?.ageScore || 0}
-                  />
-                </div>
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          <div className="mt-3 space-y-2">
-            {item.worker?.bio && (
-              <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-tight mb-1">
-                  Giới thiệu
-                </p>
-                <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                  {item.worker.bio}
-                </p>
-              </div>
-            )}
-
-            {item.worker?.desiredJobText && (
-              <div className="bg-blue-50/30 p-2.5 rounded-lg border border-blue-100/50">
-                <p className="text-[11px] font-bold text-blue-400 uppercase tracking-tight mb-1">
-                  Mong muốn của ứng viên
-                </p>
-                <p className="text-xs text-blue-700/80 line-clamp-3 leading-relaxed">
-                  {item.worker.desiredJobText}
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-slate-50 flex justify-end gap-3">
-            <Button
-              size="sm"
-              variant="default"
-              disabled={isContacting}
-              className="rounded-xl px-5 py-2 h-auto text-sm font-bold shadow-sm hover:secondary transition-all flex items-center gap-2 group/btn"
-              onClick={handleContact}
-            >
-              {isContacting ? (
-                <Loader2 size={14} className="animate-spin" />
-              ) : (
-                <MessageCircle
-                  size={14}
-                  className="group-hover/btn:scale-110 transition-transform"
-                />
-              )}
-              Liên hệ ngay
-            </Button>
-          </div>
-        </div>
-      </div>
-    </Card>
-  );
-};
-
-const MatchedWorkersModal = ({ jobId, onClose }) => {
-  const { data: matchedWorkersRes, isLoading } = useMatchedWorkers(jobId);
-  const workers = matchedWorkersRes || [];
-  const { data: jobDetail } = useJobDetail(jobId);
-
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const { mutateAsync: createConversation } = useGetOrCreateConversation();
-  const { mutateAsync: sendMessage } = useSendMessage();
-
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-
-  const getShiftLabel = (value) => {
-    return SHIFTS.find((s) => s.value === value)?.label || value || 'Chưa rõ';
-  };
-
-  const getGenderLabel = (value) => {
-    return GENDERS.find((g) => g.value === value)?.label || value || 'Chưa rõ';
-  };
-
-  const toggleSelect = (id) => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === workers.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(workers.map((w) => w.worker?.userId)));
-    }
-  };
-
-  const jobUrl = `${window.location.origin}/job/${jobId}`;
-  const companyName = jobDetail?.company?.name || 'chúng tôi';
-
-  // Split into Intro and Job Info to ensure link is always preserved
-  const defaultIntro = jobDetail
-    ? `Chào bạn, tôi là nhà tuyển dụng từ **${companyName}**. Tôi thấy hồ sơ của bạn rất phù hợp với vị trí này, mời bạn xem qua và ứng tuyển nhé!`
-    : `Chào bạn, tôi thấy hồ sơ của bạn rất phù hợp với vị trí tuyển dụng của chúng tôi. Mời bạn xem qua và ứng tuyển nhé!`;
-
-  const jobInfoSuffix = jobDetail
-    ? `\n\n---\n💼 **Công việc:** [${jobDetail.title}](${jobUrl})\n📍 **Lĩnh vực:** ${jobDetail.occupation?.name || 'Chưa cập nhật'}`
-    : `\n\n---\n🔗 **Link ứng tuyển:** [Nhấn vào đây để xem chi tiết](${jobUrl})`;
-
-  const [customIntro, setCustomIntro] = useState('');
-  const effectiveMessage = (customIntro || defaultIntro) + jobInfoSuffix;
-
-  const handleBulkSend = async () => {
-    setIsSending(true);
-    let successCount = 0;
-
-    try {
-      for (const userId of selectedIds) {
-        // Sequentially create conversation and send message
-        const conv = await createConversation({ participantId: userId });
-        if (conv?.id) {
-          await sendMessage({ id: conv.id, content: effectiveMessage });
-          successCount++;
-        }
-      }
-      //toast(`Đã gửi lời mời tới ${successCount} ứng viên thành công!`, 'success');
-      setIsBulkModalOpen(false);
-      setSelectedIds(new Set());
-    } catch (error) {
-      //toast('Có lỗi xảy ra khi gửi lời mời. Vui lòng thử lại.', 'error');
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const handleSingleContact = async (userId) => {
-    try {
-      const conv = await createConversation({ participantId: userId });
-      if (conv?.id) {
-        await sendMessage({ id: conv.id, content: effectiveMessage });
-        navigate(`/chat/${conv.id}`);
-        onClose(); // Close modal on success
-      }
-    } catch (error) {
-      // Bỏ qua lỗi vì `onError` trong hooks đã gọi toast để báo cáo lỗi
-    }
-  };
-
-  return (
-    <>
-      <Modal
-        open={!!jobId}
-        onClose={onClose}
-        title="Ứng viên được gợi ý phù hợp"
-        variant="custom"
-      >
-        <div className="p-6 relative">
-          {isLoading ? (
-            <div className="py-4">
-              <AppLoadingScene
-                compact
-                title="Đang tải ứng viên gợi ý"
-                subtitle="AI matching đang chuẩn bị danh sách phù hợp"
-              />
-            </div>
-          ) : workers.length === 0 ? (
-            <div className="py-12">
-              <EmptyState
-                title="Không có công việc gợi ý nào"
-                description="Thử cập nhật mô tả công việc để nhận thêm gợi ý công việc phù hợp hơn."
-              />
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Select All Bar */}
-              <div className="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100 mb-2">
-                <div className="flex items-center gap-3">
-                  <Checkbox
-                    checked={
-                      selectedIds.size === workers.length && workers.length > 0
-                    }
-                    onCheckedChange={toggleSelectAll}
-                    className="w-5 h-5 rounded-md"
-                  />
-                  <span className="text-sm font-medium text-slate-700">
-                    Chọn tất cả ({workers.length})
-                  </span>
-                </div>
-                {selectedIds.size > 0 && (
-                  <Button
-                    size="sm"
-                    className="rounded-xl px-4 py-1.5 h-auto bg-primary shadow-sm hover:secondary transition-all flex items-center gap-2"
-                    onClick={() => setIsBulkModalOpen(true)}
-                  >
-                    <Send size={14} />
-                    Gửi lời mời đồng loạt ({selectedIds.size})
-                  </Button>
-                )}
-              </div>
-
-              <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-                {workers.map((item) => (
-                  <WorkerCard
-                    key={item.worker?.userId}
-                    item={item}
-                    getShiftLabel={getShiftLabel}
-                    getGenderLabel={getGenderLabel}
-                    formatSalary={formatSalary}
-                    navigate={navigate}
-                    isSelected={selectedIds.has(item.worker?.userId)}
-                    onSelect={toggleSelect}
-                    onContact={handleSingleContact}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </Modal>
-
-      {/* Bulk Message Confirmation Modal */}
-      <Modal
-        open={isBulkModalOpen}
-        onClose={() => setIsBulkModalOpen(false)}
-        title="Xác nhận gửi lời mời"
-        description={`Bạn đang chuẩn bị gửi lời mời tới ${selectedIds.size} ứng viên đã chọn.`}
-        onConfirm={handleBulkSend}
-        confirmLabel={isSending ? 'Đang gửi...' : 'Xác nhận gửi'}
-        confirmDisabled={isSending}
-      >
-        <div className="space-y-4 py-2">
-          <div className="space-y-3">
-            <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <MessageCircle size={14} className="text-primary" />
-              Lời nhắn riêng của bạn
-            </label>
-            <Textarea
-              className="min-h-[100px] rounded-xl border-slate-200 focus:border-primary focus:ring-primary/20 bg-white italic text-sm text-slate-600 resize-none transition-all shadow-sm"
-              placeholder={defaultIntro}
-              value={customIntro}
-              onChange={(e) => setCustomIntro(e.target.value)}
-            />
-          </div>
-
-          <p className="text-[11px] text-slate-400 italic px-1">
-            * Ứng viên sẽ nhận được lời nhắn của bạn kèm theo một thẻ công việc
-            có thể nhấn vào để xem chi tiết.
-          </p>
-        </div>
-      </Modal>
-    </>
   );
 };
 
@@ -1980,6 +1528,498 @@ const JobApplicantsModal = ({
   );
 };
 
+// ─── Inline Panel: Đề xuất ứng viên AI ─────────────────────────────────────
+
+const MatchedWorkerListItem = ({
+  item,
+  isActive,
+  isChecked,
+  onToggle,
+  onClick,
+}) => {
+  const score = Math.round((item.scores?.finalScore || 0) * 100);
+  const scoreColor =
+    score >= 80
+      ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
+      : score >= 50
+        ? 'text-amber-600 bg-amber-50 border-amber-200'
+        : 'text-rose-600 bg-rose-50 border-rose-200';
+
+  return (
+    <div
+      className={`group w-full flex items-center gap-2 p-1.5 rounded-xl border transition-all ${
+        isActive
+          ? 'bg-primary/5 border-primary/25 shadow-sm'
+          : 'bg-white border-slate-100 hover:border-primary/20 hover:bg-slate-50'
+      }`}
+    >
+      <div className="pl-1.5 pr-0.5">
+        <Checkbox
+          checked={isChecked}
+          onCheckedChange={onToggle}
+          className="w-5 h-5 rounded-md border-slate-300 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+          onClick={(e) => e.stopPropagation()}
+        />
+      </div>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex-1 flex items-center gap-3 text-left min-w-0"
+      >
+        <img
+          src={
+            item.worker?.avatar ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(
+              item.worker?.fullName || 'U',
+            )}&background=ede9fe&color=6d28d9`
+          }
+          alt="avatar"
+          className="w-10 h-10 rounded-xl object-cover border border-slate-100 shrink-0"
+        />
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-slate-800 text-sm truncate">
+            {item.worker?.fullName || 'Ứng viên'}
+          </p>
+          <p className="text-xs text-slate-500 truncate">
+            {item.worker?.occupationName || 'Lao động tự do'}
+          </p>
+        </div>
+        <span
+          className={`shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-lg border mr-1 ${scoreColor}`}
+        >
+          {score}%
+        </span>
+      </button>
+    </div>
+  );
+};
+
+const MatchedWorkerDetailPane = ({ item, jobDetail, onContact }) => {
+  const [isContacting, setIsContacting] = useState(false);
+  const score = Math.round((item.scores?.finalScore || 0) * 100);
+  const scoreColor =
+    score >= 80
+      ? 'text-emerald-600'
+      : score >= 50
+        ? 'text-amber-600'
+        : 'text-rose-600';
+
+  const handleContact = async () => {
+    setIsContacting(true);
+    await onContact(item.worker?.userId);
+    setIsContacting(false);
+  };
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
+      {/* Header */}
+      <div className="p-5 border-b border-slate-100">
+        <div className="flex items-start gap-4">
+          <img
+            src={
+              item.worker?.avatar ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                item.worker?.fullName || 'U',
+              )}&background=ede9fe&color=6d28d9`
+            }
+            alt="avatar"
+            className="w-16 h-16 rounded-2xl object-cover border border-slate-100 shadow-sm shrink-0"
+          />
+          <div className="flex-1 min-w-0">
+            <h4 className="font-bold text-slate-900 text-base leading-tight">
+              {item.worker?.fullName}
+            </h4>
+            <p className="text-sm text-slate-500 mt-0.5">
+              {item.worker?.occupationName || 'Lao động tự do'}
+            </p>
+            <div className="flex flex-wrap gap-2 mt-2">
+              <Badge
+                variant="outline"
+                className="text-xs bg-slate-50 border-slate-200 text-slate-600"
+              >
+                {item.worker?.experienceYear === 0
+                  ? 'Chưa có kinh nghiệm'
+                  : item.worker?.experienceYear > 5
+                    ? 'Trên 5 năm KN'
+                    : `${item.worker?.experienceYear} năm KN`}
+              </Badge>
+              {item.worker?.province && (
+                <Badge
+                  variant="outline"
+                  className="text-xs bg-blue-50 border-blue-200 text-blue-600"
+                >
+                  <MapPin size={10} className="mr-1" />
+                  {item.worker?.province}
+                </Badge>
+              )}
+            </div>
+          </div>
+          <div className={`shrink-0 font-extrabold text-2xl ${scoreColor}`}>
+            {score}%
+          </div>
+        </div>
+      </div>
+
+      {/* Match Scores */}
+      <div className="p-5 border-b border-slate-100">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-3 flex items-center gap-1.5">
+          <Sparkles size={11} className="text-primary" /> Phân tích độ phù hợp
+        </p>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+          {[
+            { label: 'Kỹ năng', score: item.scores?.skillScore },
+            { label: 'Phúc lợi', score: item.scores?.benefitScore },
+            { label: 'Lương', score: item.scores?.salaryScore },
+            { label: 'Vị trí', score: item.scores?.locationScore },
+            { label: 'Ca làm', score: item.scores?.shiftScore },
+            { label: 'Giới tính', score: item.scores?.genderScore },
+            { label: 'Độ tuổi', score: item.scores?.ageScore },
+          ].map(({ label, score: s }) => (
+            <MatchScoreItem key={label} label={label} score={s || 0} />
+          ))}
+        </div>
+      </div>
+
+      {/* Worker Info */}
+      <div className="p-5 space-y-4 flex-1">
+        <div>
+          <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] mb-2">
+            Thông tin ứng viên
+          </p>
+          <div className="grid grid-cols-2 gap-y-2 text-xs text-slate-600">
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400">Lương:</span>
+              <strong className="text-slate-800">
+                {formatSalary(item.worker?.expectedSalary, null, 'vndCompact')}
+              </strong>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400">Ca:</span>
+              <strong className="text-slate-800">
+                {SHIFTS.find((s) => s.value === item.worker?.shift)?.label ||
+                  item.worker?.shift ||
+                  'N/A'}
+              </strong>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-slate-400">Giới tính:</span>
+              <strong className="text-slate-800">
+                {GENDERS.find((g) => g.value === item.worker?.gender)?.label ||
+                  item.worker?.gender ||
+                  'N/A'}
+              </strong>
+            </div>
+            {item.worker?.birthYear && (
+              <div className="flex items-center gap-1.5">
+                <span className="text-slate-400">Năm sinh:</span>
+                <strong className="text-slate-800">
+                  {item.worker.birthYear}
+                </strong>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {item.worker?.bio && (
+          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tight mb-1">
+              Giới thiệu
+            </p>
+            <p className="text-xs text-slate-600 leading-relaxed italic">
+              "{item.worker.bio}"
+            </p>
+          </div>
+        )}
+
+        {item.worker?.desiredJobText && (
+          <div className="bg-primary/5 p-3 rounded-xl border border-primary/10">
+            <p className="text-[10px] font-bold text-primary/60 uppercase tracking-tight mb-1">
+              Mong muốn công việc
+            </p>
+            <p className="text-xs text-slate-700 leading-relaxed font-medium">
+              {item.worker.desiredJobText}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="p-5 border-t border-slate-100 bg-slate-50/50 mt-auto">
+        <Button
+          className="w-full rounded-xl font-bold gap-2 shadow-sm"
+          onClick={handleContact}
+          disabled={isContacting}
+        >
+          {isContacting ? (
+            <Loader2 size={14} className="animate-spin" />
+          ) : (
+            <MessageCircle size={14} />
+          )}
+          Liên hệ ngay
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+const MatchedWorkersPanel = ({ jobId, jobTitle, onBack, onContact }) => {
+  const { data: matchedWorkersRes, isLoading } = useMatchedWorkers(jobId);
+  const { data: jobDetailRes } = useJobDetail(jobId);
+  const jobDetail = jobDetailRes?.data || jobDetailRes;
+  const workers = matchedWorkersRes || [];
+  const [selectedWorker, setSelectedWorker] = useState(null);
+
+  // Selection state for bulk contact
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [customIntro, setCustomIntro] = useState('');
+
+  const { mutateAsync: createConversation } = useGetOrCreateConversation();
+  const { mutateAsync: sendMessage } = useSendMessage();
+
+  // Auto-select first worker when data loads
+  useEffect(() => {
+    if (workers.length > 0 && !selectedWorker) {
+      setSelectedWorker(workers[0]);
+    }
+  }, [workers, selectedWorker]);
+
+  // Pre-fill default message when modal opens
+  useEffect(() => {
+    if (isBulkModalOpen && !customIntro) {
+      const companyName = jobDetail?.company?.name || 'chúng tôi';
+      const intro = `Chào bạn, tôi là nhà tuyển dụng từ **${companyName}**. Tôi thấy hồ sơ của bạn rất phù hợp với vị trí này, mời bạn xem qua và ứng tuyển nhé!`;
+      setCustomIntro(intro);
+    }
+  }, [isBulkModalOpen, jobDetail, customIntro]);
+
+  const toggleSelect = (id) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === workers.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(workers.map((w) => w.worker?.userId)));
+    }
+  };
+
+  const handleBulkSend = async () => {
+    setIsSending(true);
+    let successCount = 0;
+
+    const jobUrl = `${window.location.origin}/job/${jobId}`;
+    const jobInfoSuffix = jobDetail
+      ? `\n\n---\n💼 **Công việc:** [${jobDetail.title}](${jobUrl})\n📍 **Lĩnh vực:** ${jobDetail.occupation?.name || 'Chưa cập nhật'}`
+      : `\n\n---\n🔗 **Link ứng tuyển:** [Nhấn vào đây để xem chi tiết](${jobUrl})`;
+
+    const effectiveMessage = (customIntro || '') + jobInfoSuffix;
+
+    try {
+      for (const userId of selectedIds) {
+        const conv = await createConversation({ participantId: userId });
+        if (conv?.id) {
+          await sendMessage({ id: conv.id, content: effectiveMessage });
+          successCount++;
+        }
+      }
+      setIsBulkModalOpen(false);
+      setSelectedIds(new Set());
+      setCustomIntro('');
+    } catch (error) {
+      console.error('Bulk send error:', error);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-[600px] animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* Panel Header */}
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-primary-muted/20 shrink-0">
+        <button
+          type="button"
+          onClick={onBack}
+          className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 hover:border-primary/30 hover:text-primary transition-all text-slate-600 shadow-sm"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" />
+            <h3 className="font-bold text-slate-900 text-lg leading-tight truncate">
+              Đề xuất ứng viên AI
+            </h3>
+          </div>
+          <p className="text-xs text-slate-500 truncate mt-0.5 ml-6">
+            Dành cho: <span className="font-semibold">{jobTitle}</span>
+          </p>
+        </div>
+        {selectedIds.size > 0 && (
+          <Button
+            size="sm"
+            className="rounded-xl h-9 gap-2 shadow-md animate-in zoom-in duration-200"
+            onClick={() => setIsBulkModalOpen(true)}
+          >
+            <Send size={14} /> Gửi lời mời ({selectedIds.size})
+          </Button>
+        )}
+      </div>
+
+      {/* Panel Body */}
+      {isLoading ? (
+        <div className="flex-1 flex items-center justify-center py-20">
+          <AppLoadingScene compact title="Đang tìm kiếm ứng viên tốt nhất..." />
+        </div>
+      ) : workers.length === 0 ? (
+        <div className="flex-1 flex flex-col items-center justify-center py-20">
+          <EmptyState
+            title="Chưa tìm thấy ứng viên phù hợp"
+            description="Hệ thống AI đang tiếp tục phân tích các hồ sơ mới. Thử tinh chỉnh yêu cầu công việc để có kết quả tốt hơn."
+          />
+        </div>
+      ) : (
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left: Candidate List */}
+          <div className="w-[40%] shrink-0 border-r border-slate-100 flex flex-col overflow-hidden bg-slate-50/30">
+            <div className="p-3.5 border-b border-slate-100 flex justify-between items-center px-5">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={
+                    selectedIds.size === workers.length && workers.length > 0
+                  }
+                  onCheckedChange={toggleSelectAll}
+                  className="w-4 h-4 rounded border-slate-300"
+                />
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                  {selectedIds.size > 0
+                    ? `Đã chọn ${selectedIds.size}`
+                    : `Danh sách (${workers.length})`}
+                </p>
+              </div>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2.5">
+              {workers.map((item) => (
+                <MatchedWorkerListItem
+                  key={item.worker?.userId}
+                  item={item}
+                  isActive={
+                    selectedWorker?.worker?.userId === item.worker?.userId
+                  }
+                  isChecked={selectedIds.has(item.worker?.userId)}
+                  onToggle={() => toggleSelect(item.worker?.userId)}
+                  onClick={() => setSelectedWorker(item)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Right: Candidate Detail */}
+          <div className="flex-1 overflow-hidden relative bg-white">
+            {selectedWorker ? (
+              <MatchedWorkerDetailPane
+                item={selectedWorker}
+                jobDetail={jobDetail}
+                onContact={onContact}
+              />
+            ) : (
+              <div className="flex h-full items-center justify-center">
+                <div className="text-center space-y-3 opacity-40">
+                  <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto">
+                    <Users className="text-slate-400" />
+                  </div>
+                  <p className="text-slate-500 font-medium">
+                    Chọn ứng viên để xem chi tiết
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Interview Confirmation Modal */}
+      <Modal
+        open={isBulkModalOpen}
+        onClose={() => !isSending && setIsBulkModalOpen(false)}
+        title="Gửi lời mời hàng loạt"
+        maxWidth="sm"
+        variant="custom"
+      >
+        <div className="space-y-4 pt-2">
+          <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
+            <div className="flex items-center gap-2 text-primary font-semibold mb-2">
+              <Info size={16} />
+              <span className="text-sm">Thông tin gửi tin nhắn</span>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Bạn đang chuẩn bị gửi lời mời làm việc tới{' '}
+              <strong>{selectedIds.size} ứng viên</strong> đã chọn. Hệ thống sẽ
+              tự động tạo cuộc hội thoại và gửi tin nhắn mời ứng tuyển kèm link
+              công việc.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-bold text-slate-700 uppercase tracking-tight">
+                Lời nhắn tùy chỉnh (Không bắt buộc)
+              </label>
+              <span className="text-[10px] text-slate-400">
+                {customIntro.length} ký tự
+              </span>
+            </div>
+            <Textarea
+              placeholder="Nhập nội dung lời mời ứng tuyển..."
+              className="rounded-xl resize-none h-32 focus:ring-primary/20"
+              value={customIntro}
+              onChange={(e) => setCustomIntro(e.target.value)}
+            />
+            <p className="text-[10px] text-slate-400 italic">
+              * Hệ thống sẽ tự động thêm thông tin chi tiết công việc vào sau
+              lời nhắn của bạn.
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="flex-1 rounded-xl h-11 font-semibold"
+              onClick={() => setIsBulkModalOpen(false)}
+              disabled={isSending}
+            >
+              Hủy bỏ
+            </Button>
+            <Button
+              className="flex-1 rounded-xl h-11 font-bold gap-2"
+              onClick={handleBulkSend}
+              disabled={isSending}
+            >
+              {isSending ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Đang gửi...
+                </>
+              ) : (
+                <>
+                  <Send size={16} /> Gửi ngay
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
 export const EmployerDashboard = () => {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -1996,6 +2036,7 @@ export const EmployerDashboard = () => {
   const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
   const [boostCheckoutData, setBoostCheckoutData] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
+  const [matchedJobTitle, setMatchedJobTitle] = useState('');
   const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
   const [jobOptionsPopoverOpenId, setJobOptionsPopoverOpenId] = useState(null);
   const [campaignDetailOpen, setCampaignDetailOpen] = useState(false);
@@ -2772,6 +2813,8 @@ export const EmployerDashboard = () => {
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setMatchedJobId(job.id);
+                                  setMatchedJobTitle(job.title);
+                                  setActive('jobs');
                                 }}
                               >
                                 <Sparkles size={14} className="mr-1.5" /> Đề
@@ -2846,331 +2889,366 @@ export const EmployerDashboard = () => {
           {active === 'jobs' && (
             <div className="space-y-6 animate-in fade-in py-2 overflow-y-auto pb-6">
               <Card className="p-0 rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 border-b border-slate-100 bg-primary-muted/30">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 border border-primary/20">
-                      <Briefcase className="h-5 w-5 text-primary" />
-                    </span>
-                    <div>
-                      <h2 className="text-lg font-semibold text-slate-900">
-                        Tin tuyển dụng
-                      </h2>
-                      <p className="text-sm text-slate-500 mt-0.5">
-                        Tìm kiếm, chỉnh sửa và theo dõi trạng thái tin đăng
-                      </p>
+                {matchedJobId ? (
+                  <MatchedWorkersPanel
+                    jobId={matchedJobId}
+                    jobTitle={matchedJobTitle}
+                    onBack={() => {
+                      setMatchedJobId(null);
+                      setMatchedJobTitle('');
+                    }}
+                    onContact={async (userId) => {
+                      try {
+                        const jobUrl = `${window.location.origin}/job/${matchedJobId}`;
+                        const msg = `Chào bạn, tôi thấy hồ sơ của bạn rất phù hợp với vị trí **${matchedJobTitle}**. Mời bạn xem qua và ứng tuyển nhé!\n\n---\n💼 **Công việc:** [${matchedJobTitle}](${jobUrl})`;
+                        const conv = await createConversation({
+                          participantId: userId,
+                        });
+                        if (conv?.id) {
+                          await sendMessage({ id: conv.id, content: msg });
+                          navigate(`/chat/${conv.id}`);
+                        }
+                      } catch {}
+                    }}
+                  />
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 border-b border-slate-100 bg-primary-muted/30">
+                      <div className="flex items-start gap-3 min-w-0">
+                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/15 border border-primary/20">
+                          <Briefcase className="h-5 w-5 text-primary" />
+                        </span>
+                        <div>
+                          <h2 className="text-lg font-semibold text-slate-900">
+                            Tin tuyển dụng
+                          </h2>
+                          <p className="text-sm text-slate-500 mt-0.5">
+                            Tìm kiếm, chỉnh sửa và theo dõi trạng thái tin đăng
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
 
-                <div className="p-4 sm:p-5">
-                  {/* Toolbar */}
-                  <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
-                    <div className="relative flex-1 max-w-md">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                      <Input
-                        placeholder="Tìm theo tiêu đề tin..."
-                        className="pl-9 rounded-lg border-slate-200 bg-white focus-visible:ring-primary/25"
-                        value={jobSearchText}
-                        onChange={(e) => setJobSearchText(e.target.value)}
-                      />
-                    </div>
-                    {isApproved && (
-                      <Button
-                        className="rounded-lg gap-2 shadow-sm w-full sm:w-auto font-semibold px-5"
-                        onClick={() => navigate('/employer/jobs/create')}
-                      >
-                        <Plus size={18} /> Tạo tin mới
-                      </Button>
-                    )}
-                  </div>
+                    <div className="p-4 sm:p-5">
+                      {/* Toolbar */}
+                      <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
+                        <div className="relative flex-1 max-w-md">
+                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                          <Input
+                            placeholder="Tìm theo tiêu đề tin..."
+                            className="pl-9 rounded-lg border-slate-200 bg-white focus-visible:ring-primary/25"
+                            value={jobSearchText}
+                            onChange={(e) => setJobSearchText(e.target.value)}
+                          />
+                        </div>
+                        {isApproved && (
+                          <Button
+                            className="rounded-lg gap-2 shadow-sm w-full sm:w-auto font-semibold px-5"
+                            onClick={() => navigate('/employer/jobs/create')}
+                          >
+                            <Plus size={18} /> Tạo tin mới
+                          </Button>
+                        )}
+                      </div>
 
-                  <div className="overflow-x-auto rounded-lg border border-slate-200">
-                    <table className="w-full text-sm text-left">
-                      <thead className="bg-slate-50/90 text-slate-700 font-semibold border-b border-slate-200">
-                        <tr>
-                          <th className="py-3.5 px-4 rounded-tl-lg whitespace-nowrap">
-                            Tiêu đề công việc
-                          </th>
-                          <th className="px-4 whitespace-nowrap text-center">
-                            Trạng thái
-                          </th>
-                          <th className="px-4 whitespace-nowrap text-center">
-                            Số lượng
-                          </th>
-                          <th className="px-4 whitespace-nowrap text-center">
-                            Ngày đăng
-                          </th>
-                          <th className="px-4 whitespace-nowrap text-center">
-                            Tính năng
-                          </th>
-                          <th className="px-4 rounded-tr-lg whitespace-nowrap text-center">
-                            Tùy chọn
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {loadingJobs ? (
-                          <tr>
-                            <td
-                              colSpan="6"
-                              className="py-12 text-center text-slate-500"
-                            >
-                              <Loader2 className="animate-spin mx-auto text-primary" />
-                            </td>
-                          </tr>
-                        ) : jobs.filter((j) =>
-                            j.title
-                              .toLowerCase()
-                              .includes(jobSearchText.toLowerCase()),
-                          ).length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan="6"
-                              className="py-12 text-center text-slate-500"
-                            >
-                              <div className="flex flex-col items-center gap-2">
-                                <Search className="w-8 h-8 text-slate-300" />
-                                <p>Không tìm thấy tin tuyển dụng nào.</p>
-                              </div>
-                            </td>
-                          </tr>
-                        ) : (
-                          jobs
-                            .filter((j) =>
-                              j.title
-                                .toLowerCase()
-                                .includes(jobSearchText.toLowerCase()),
-                            )
-                            .map((job) => {
-                              const boostExpiredAt = job.boostExpiredAt
-                                ? new Date(job.boostExpiredAt)
-                                : null;
-                              const isBoostedActive =
-                                !!boostExpiredAt &&
-                                !Number.isNaN(boostExpiredAt.getTime()) &&
-                                boostExpiredAt > new Date();
-
-                              return (
-                                <tr
-                                  key={job.id}
-                                  className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors cursor-pointer"
-                                  onClick={() =>
-                                    setApplicantsModalJobId(job.id)
-                                  }
+                      <div className="overflow-x-auto rounded-lg border border-slate-200">
+                        <table className="w-full text-sm text-left">
+                          <thead className="bg-slate-50/90 text-slate-700 font-semibold border-b border-slate-200">
+                            <tr>
+                              <th className="py-3.5 px-4 rounded-tl-lg whitespace-nowrap">
+                                Tiêu đề công việc
+                              </th>
+                              <th className="px-4 whitespace-nowrap text-center">
+                                Trạng thái
+                              </th>
+                              <th className="px-4 whitespace-nowrap text-center">
+                                Số lượng
+                              </th>
+                              <th className="px-4 whitespace-nowrap text-center">
+                                Ngày đăng
+                              </th>
+                              <th className="px-4 whitespace-nowrap text-center">
+                                Tính năng
+                              </th>
+                              <th className="px-4 rounded-tr-lg whitespace-nowrap text-center">
+                                Tùy chọn
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {loadingJobs ? (
+                              <tr>
+                                <td
+                                  colSpan="6"
+                                  className="py-12 text-center text-slate-500"
                                 >
-                                  <td className="py-4 px-4">
-                                    <p className="font-semibold text-slate-800">
-                                      {job.title}
-                                    </p>
-                                    <div className="flex flex-wrap gap-2 mt-2 text-xs">
-                                      <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-md">
-                                        <MapPin
-                                          size={12}
-                                          className="text-slate-400"
-                                        />
-                                        {job.province || 'Toàn quốc'}
-                                      </span>
-                                      <span className="inline-flex items-center text-primary bg-primary/10 border border-primary/15 px-2 py-0.5 rounded-md font-medium">
-                                        {formatSalary(
-                                          job.salaryMin,
-                                          job.salaryMax,
-                                          'vndCompact',
-                                        )}
-                                      </span>
-                                    </div>
-                                  </td>
-                                  <td className="px-4 text-center">
-                                    <StatusBadge status={job.status} />
-                                  </td>
-                                  <td className="px-4 font-medium text-slate-700 text-center">
-                                    {job.quantity}
-                                  </td>
-                                  <td className="px-4 text-center">
-                                    <span className="flex items-center justify-center gap-2 text-slate-600">
-                                      <CalendarCheck
-                                        size={14}
-                                        className="text-slate-400"
-                                      />
-                                      {new Date(
-                                        job.createdAt,
-                                      ).toLocaleDateString('vi-VN')}
-                                    </span>
-                                  </td>
-                                  <td
-                                    className="px-4 text-center"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    {isBoostedActive ? (
-                                      <Badge
-                                        variant="secondary"
-                                        className="bg-primary/15 text-primary border border-primary/25 hover:bg-primary/20 cursor-default font-medium"
+                                  <Loader2 className="animate-spin mx-auto text-primary" />
+                                </td>
+                              </tr>
+                            ) : jobs.filter((j) =>
+                                j.title
+                                  .toLowerCase()
+                                  .includes(jobSearchText.toLowerCase()),
+                              ).length === 0 ? (
+                              <tr>
+                                <td
+                                  colSpan="6"
+                                  className="py-12 text-center text-slate-500"
+                                >
+                                  <div className="flex flex-col items-center gap-2">
+                                    <Search className="w-8 h-8 text-slate-300" />
+                                    <p>Không tìm thấy tin tuyển dụng nào.</p>
+                                  </div>
+                                </td>
+                              </tr>
+                            ) : (
+                              jobs
+                                .filter((j) =>
+                                  j.title
+                                    .toLowerCase()
+                                    .includes(jobSearchText.toLowerCase()),
+                                )
+                                .map((job) => {
+                                  const boostExpiredAt = job.boostExpiredAt
+                                    ? new Date(job.boostExpiredAt)
+                                    : null;
+                                  const isBoostedActive =
+                                    !!boostExpiredAt &&
+                                    !Number.isNaN(boostExpiredAt.getTime()) &&
+                                    boostExpiredAt > new Date();
+
+                                  return (
+                                    <tr
+                                      key={job.id}
+                                      className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors"
+                                    >
+                                      <td className="py-4 px-4">
+                                        <p className="font-semibold text-slate-800">
+                                          {job.title}
+                                        </p>
+                                        <div className="flex flex-wrap gap-2 mt-2 text-xs">
+                                          <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-md">
+                                            <MapPin
+                                              size={12}
+                                              className="text-slate-400"
+                                            />
+                                            {job.province || 'Toàn quốc'}
+                                          </span>
+                                          <span className="inline-flex items-center text-primary bg-primary/10 border border-primary/15 px-2 py-0.5 rounded-md font-medium">
+                                            {formatSalary(
+                                              job.salaryMin,
+                                              job.salaryMax,
+                                              'vndCompact',
+                                            )}
+                                          </span>
+                                        </div>
+                                      </td>
+                                      <td className="px-4 text-center">
+                                        <StatusBadge status={job.status} />
+                                      </td>
+                                      <td className="px-4 font-medium text-slate-700 text-center">
+                                        {job.quantity}
+                                      </td>
+                                      <td className="px-4 text-center">
+                                        <span className="flex items-center justify-center gap-2 text-slate-600">
+                                          <CalendarCheck
+                                            size={14}
+                                            className="text-slate-400"
+                                          />
+                                          {new Date(
+                                            job.createdAt,
+                                          ).toLocaleDateString('vi-VN')}
+                                        </span>
+                                      </td>
+                                      <td
+                                        className="px-4 text-center"
+                                        onClick={(e) => e.stopPropagation()}
                                       >
-                                        Đang nổi bật đến{' '}
-                                        {job.boostExpiredAt
-                                          ? new Date(
-                                              job.boostExpiredAt,
-                                            ).toLocaleDateString('vi-VN')
-                                          : 'không thời hạn'}
-                                      </Badge>
-                                    ) : (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 text-xs text-primary bg-primary/10 hover:bg-primary/20 rounded-lg"
-                                        onClick={() => {
-                                          setSelectedBoostJob(job);
-                                          setSelectedBoostPackageDays(7);
-                                          setBoostCheckoutData(null);
-                                          setBoostPaymentModalOpen(false);
-                                          setBoostModalOpen(true);
-                                        }}
-                                        disabled={job.status !== 'PUBLISHED'}
-                                      >
-                                        Đăng tin nổi bật
-                                      </Button>
-                                    )}
-                                  </td>
-                                  <td
-                                    className="px-4 text-center"
-                                    onClick={(e) => e.stopPropagation()}
-                                  >
-                                    <div className="flex justify-center w-full">
-                                      <Popover
-                                        open={
-                                          jobOptionsPopoverOpenId === job.id
-                                        }
-                                        onOpenChange={(open) =>
-                                          setJobOptionsPopoverOpenId(
-                                            open ? job.id : null,
-                                          )
-                                        }
-                                      >
-                                        <PopoverTrigger asChild>
+                                        {isBoostedActive ? (
+                                          <Badge
+                                            variant="secondary"
+                                            className="bg-primary/15 text-primary border border-primary/25 hover:bg-primary/20 cursor-default font-medium"
+                                          >
+                                            Đang nổi bật đến{' '}
+                                            {job.boostExpiredAt
+                                              ? new Date(
+                                                  job.boostExpiredAt,
+                                                ).toLocaleDateString('vi-VN')
+                                              : 'không thời hạn'}
+                                          </Badge>
+                                        ) : (
                                           <Button
                                             variant="ghost"
                                             size="sm"
-                                            className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
-                                            onClick={() =>
-                                              setJobOptionsPopoverOpenId(job.id)
+                                            className="h-7 text-xs text-primary bg-primary/10 hover:bg-primary/20 rounded-lg"
+                                            onClick={() => {
+                                              setSelectedBoostJob(job);
+                                              setSelectedBoostPackageDays(7);
+                                              setBoostCheckoutData(null);
+                                              setBoostPaymentModalOpen(false);
+                                              setBoostModalOpen(true);
+                                            }}
+                                            disabled={
+                                              job.status !== 'PUBLISHED'
                                             }
                                           >
-                                            <MoreHorizontal
-                                              size={18}
-                                              className="text-slate-600"
-                                            />
+                                            Đăng tin nổi bật
                                           </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent
-                                          className="w-48 p-1.5 rounded-xl shadow-xl border-slate-100"
-                                          align="end"
-                                        >
-                                          <div className="flex flex-col gap-0.5">
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="justify-start gap-2 hover:bg-primary/5 hover:text-primary rounded-lg font-medium text-slate-700 h-9"
-                                              onClick={() => {
-                                                setJobOptionsPopoverOpenId(
-                                                  null,
-                                                );
-                                                setApplicantsModalJobId(job.id);
-                                              }}
-                                            >
-                                              <Users size={14} /> Xem ứng viên
-                                            </Button>
-
-                                            {job.status === 'PUBLISHED' && (
+                                        )}
+                                      </td>
+                                      <td
+                                        className="px-4 text-center"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <div className="flex justify-center w-full">
+                                          <Popover
+                                            open={
+                                              jobOptionsPopoverOpenId === job.id
+                                            }
+                                            onOpenChange={(open) =>
+                                              setJobOptionsPopoverOpenId(
+                                                open ? job.id : null,
+                                              )
+                                            }
+                                          >
+                                            <PopoverTrigger asChild>
                                               <Button
                                                 variant="ghost"
                                                 size="sm"
-                                                className="justify-start gap-2 hover:bg-primary/10 hover:text-primary rounded-lg font-medium text-slate-700 h-9"
-                                                onClick={() => {
+                                                className="h-8 w-8 p-0 rounded-full hover:bg-slate-100"
+                                                onClick={() =>
                                                   setJobOptionsPopoverOpenId(
-                                                    null,
-                                                  );
-                                                  setMatchedJobId(job.id);
-                                                }}
+                                                    job.id,
+                                                  )
+                                                }
                                               >
-                                                <Sparkles size={14} /> Đề xuất
-                                                ứng viên
+                                                <MoreHorizontal
+                                                  size={18}
+                                                  className="text-slate-600"
+                                                />
                                               </Button>
-                                            )}
-
-                                            {job.status !== 'EXPIRED' && (
-                                              <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                className="justify-start gap-2 hover:bg-slate-100 rounded-lg font-medium text-slate-700 h-9"
-                                                onClick={() => {
-                                                  setJobOptionsPopoverOpenId(
-                                                    null,
-                                                  );
-                                                  navigate(
-                                                    `/employer/jobs/${job.id}/edit`,
-                                                  );
-                                                }}
-                                              >
-                                                <Edit size={14} /> Chỉnh sửa
-                                              </Button>
-                                            )}
-
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="justify-start gap-2 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium h-9 text-slate-700"
-                                              onClick={() => {
-                                                setJobOptionsPopoverOpenId(
-                                                  null,
-                                                );
-                                                setDeleteConfirm(job);
-                                              }}
+                                            </PopoverTrigger>
+                                            <PopoverContent
+                                              className="w-48 p-1.5 rounded-xl shadow-xl border-slate-100"
+                                              align="end"
                                             >
-                                              <Trash2 size={14} /> Xóa tin
-                                            </Button>
-                                          </div>
-                                        </PopoverContent>
-                                      </Popover>
-                                    </div>
-                                  </td>
-                                </tr>
-                              );
-                            })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                                              <div className="flex flex-col gap-0.5">
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="justify-start gap-2 hover:bg-primary/5 hover:text-primary rounded-lg font-medium text-slate-700 h-9"
+                                                  onClick={() => {
+                                                    setJobOptionsPopoverOpenId(
+                                                      null,
+                                                    );
+                                                    setApplicantsModalJobId(
+                                                      job.id,
+                                                    );
+                                                  }}
+                                                >
+                                                  <Users size={14} /> Xem ứng
+                                                  viên
+                                                </Button>
 
-                  {/* Pagination Controls */}
-                  {totalPages > 1 && (
-                    <div className="flex items-center justify-between mt-4 pt-2 border-t border-slate-100">
-                      <span className="text-sm text-slate-600">
-                        Trang {jobPage} / {totalPages}
-                      </span>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg border-slate-200"
-                          onClick={() => setJobPage((p) => Math.max(1, p - 1))}
-                          disabled={jobPage === 1 || loadingJobs}
-                        >
-                          <ChevronLeft size={16} />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="rounded-lg border-slate-200"
-                          onClick={() =>
-                            setJobPage((p) => Math.min(totalPages, p + 1))
-                          }
-                          disabled={jobPage === totalPages || loadingJobs}
-                        >
-                          <ChevronRight size={16} />
-                        </Button>
+                                                {job.status === 'PUBLISHED' && (
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="justify-start gap-2 hover:bg-primary/10 hover:text-primary rounded-lg font-medium text-slate-700 h-9"
+                                                    onClick={() => {
+                                                      setJobOptionsPopoverOpenId(
+                                                        null,
+                                                      );
+                                                      setMatchedJobId(job.id);
+                                                      setMatchedJobTitle(
+                                                        job.title,
+                                                      );
+                                                    }}
+                                                  >
+                                                    <Sparkles size={14} /> Đề
+                                                    xuất ứng viên
+                                                  </Button>
+                                                )}
+
+                                                {job.status !== 'EXPIRED' && (
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="justify-start gap-2 hover:bg-slate-100 rounded-lg font-medium text-slate-700 h-9"
+                                                    onClick={() => {
+                                                      setJobOptionsPopoverOpenId(
+                                                        null,
+                                                      );
+                                                      navigate(
+                                                        `/employer/jobs/${job.id}/edit`,
+                                                      );
+                                                    }}
+                                                  >
+                                                    <Edit size={14} /> Chỉnh sửa
+                                                  </Button>
+                                                )}
+
+                                                <Button
+                                                  variant="ghost"
+                                                  size="sm"
+                                                  className="justify-start gap-2 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium h-9 text-slate-700"
+                                                  onClick={() => {
+                                                    setJobOptionsPopoverOpenId(
+                                                      null,
+                                                    );
+                                                    setDeleteConfirm(job);
+                                                  }}
+                                                >
+                                                  <Trash2 size={14} /> Xóa tin
+                                                </Button>
+                                              </div>
+                                            </PopoverContent>
+                                          </Popover>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                  );
+                                })
+                            )}
+                          </tbody>
+                        </table>
                       </div>
+
+                      {/* Pagination Controls */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-between mt-4 pt-2 border-t border-slate-100">
+                          <span className="text-sm text-slate-600">
+                            Trang {jobPage} / {totalPages}
+                          </span>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg border-slate-200"
+                              onClick={() =>
+                                setJobPage((p) => Math.max(1, p - 1))
+                              }
+                              disabled={jobPage === 1 || loadingJobs}
+                            >
+                              <ChevronLeft size={16} />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="rounded-lg border-slate-200"
+                              onClick={() =>
+                                setJobPage((p) => Math.min(totalPages, p + 1))
+                              }
+                              disabled={jobPage === totalPages || loadingJobs}
+                            >
+                              <ChevronRight size={16} />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </>
+                )}
               </Card>
             </div>
           )}
@@ -3619,11 +3697,6 @@ export const EmployerDashboard = () => {
           />
         </div>
       </Modal> */}
-
-      <MatchedWorkersModal
-        jobId={matchedJobId}
-        onClose={() => setMatchedJobId(null)}
-      />
 
       <JobApplicantsModal
         jobId={applicantsModalJobId}
