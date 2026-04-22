@@ -14,3 +14,7 @@ export const getApplicationFunnelApi = async (jobId) => {
 export const getEmployerPaymentsApi = async (params) => {
   return await apiClient.get('/statistics/employer/payments', { params });
 };
+
+export const getJobStatusApi = async () => {
+  return await apiClient.get('/statistics/employer/job-status');
+};

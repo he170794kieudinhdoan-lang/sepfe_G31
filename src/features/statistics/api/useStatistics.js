@@ -1,5 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { getEmployerOverviewApi, getApplicationFunnelApi, getEmployerPaymentsApi } from './statisticApi';
+import {
+  getEmployerOverviewApi,
+  getApplicationFunnelApi,
+  getEmployerPaymentsApi,
+  getJobStatusApi,
+} from './statisticApi';
 
 export const useEmployerOverview = () => {
   return useQuery({
@@ -23,6 +28,15 @@ export const useEmployerPayments = (params) => {
   return useQuery({
     queryKey: ['employer-payments', params],
     queryFn: () => getEmployerPaymentsApi(params),
+    staleTime: 5 * 60 * 1000,
+    retry: 1,
+  });
+};
+
+export const useJobStatus = () => {
+  return useQuery({
+    queryKey: ['job-status'],
+    queryFn: getJobStatusApi,
     staleTime: 5 * 60 * 1000,
     retry: 1,
   });

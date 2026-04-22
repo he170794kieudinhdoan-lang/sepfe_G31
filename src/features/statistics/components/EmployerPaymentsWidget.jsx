@@ -81,12 +81,8 @@ export const EmployerPaymentsWidget = () => {
       <div className="px-6 py-5 border-b border-slate-100 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 bg-slate-50/50">
         <div>
           <h3 className="text-base font-bold text-slate-800 flex items-center gap-2">
-            <TrendingUp className="text-primary w-5 h-5" /> Dòng tiền Chi tiêu
-            (Payment Trends)
+            Dòng tiền Chi tiêu
           </h3>
-          <p className="text-slate-500 text-sm mt-0.5">
-            Quản lý ngân sách đầu tư theo thời gian thực
-          </p>
         </div>
 
         {/* BỘ LỌC */}
