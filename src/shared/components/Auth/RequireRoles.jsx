@@ -1,10 +1,11 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { getUserRole } from '@/shared/utils/userRole';
+import { LogoOrbitLoader } from '@/shared/components/LogoOrbitLoader';
 
 const Loading = () => (
-  <div className="min-h-[60vh] flex items-center justify-center">
-    <div className="h-8 w-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
+  <div className="min-h-[60vh] flex items-center justify-center bg-transparent">
+    <LogoOrbitLoader size={72} />
   </div>
 );
 

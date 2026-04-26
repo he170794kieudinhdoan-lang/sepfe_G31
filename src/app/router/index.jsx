@@ -4,15 +4,7 @@ import { FullWidthLayout, MainLayout } from '@/shared/components/Layout';
 import { RequireRoles } from '@/shared/components/Auth/RequireRoles';
 import { AppLoadingScene } from '@/shared/components/AppLoadingScene';
 
-const PageFallback = () => (
-  <div className="px-4 py-6">
-    <AppLoadingScene
-      title="Đang mở trang"
-      subtitle="Hệ thống đang tải dữ liệu và giao diện cho bạn"
-      className="mx-auto max-w-5xl"
-    />
-  </div>
-);
+const PageFallback = () => <AppLoadingScene />;
 
 const HomePage = lazy(() =>
   import('@/pages/HomePage').then((m) => ({ default: m.HomePage })),
