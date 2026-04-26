@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '@/shared/contexts/ToastContext';
 import { AuthProvider } from '@/shared/contexts/AuthContext';
+import { LogoOrbitLoader } from '@/shared/components/LogoOrbitLoader';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,9 +33,8 @@ export const AppProvider = ({ children }) => {
   return (
     <Suspense
       fallback={
-        <div className="h-screen w-screen flex items-center justify-center">
-          Đang tải...
-          <div className="h-8 w-8 border-4 border-slate-200 border-t-primary rounded-full animate-spin" />
+        <div className="flex h-screen w-screen items-center justify-center bg-transparent">
+          <LogoOrbitLoader size={80} />
         </div>
       }
     >
