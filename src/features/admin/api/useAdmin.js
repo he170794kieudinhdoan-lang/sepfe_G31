@@ -3,6 +3,8 @@ import {
   createPaymentPackageApi,
   getAdminStatisticsApi,
   getPaymentPackagesApi,
+  getPointPricingApi,
+  updatePointPricingApi,
   updatePaymentPackageApi,
 } from './adminApi';
 
@@ -42,6 +44,26 @@ export const useUpdatePaymentPackage = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-payment-packages'] });
       queryClient.invalidateQueries({ queryKey: ['boost-packages'] });
+    },
+  });
+};
+
+export const usePointPricing = (options = {}) => {
+  return useQuery({
+    queryKey: ['admin-point-pricing'],
+    queryFn: getPointPricingApi,
+    staleTime: 60 * 1000,
+    ...options,
+  });
+};
+
+export const useUpdatePointPricing = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: updatePointPricingApi,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-point-pricing'] });
+      queryClient.invalidateQueries({ queryKey: ['wallet-pricing'] });
     },
   });
 };

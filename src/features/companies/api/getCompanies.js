@@ -15,6 +15,16 @@ export const getCompaniesByStatus = async (status) => {
   return response;
 };
 
+export const getPendingUpdateCompanies = async () => {
+  const response = await apiClient.get('/company/pending-updates');
+  return response;
+};
+
+export const getCompanyUpdateRequest = async (companyId) => {
+  const response = await apiClient.get(`/company/${companyId}/update-request`);
+  return response;
+};
+
 export const reviewCompany = async (id, { status, rejectionReason }) => {
   const response = await apiClient.patch(`/company/review/${id}`, {
     status,

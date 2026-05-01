@@ -59,6 +59,9 @@ const CompanyApplicantPage = lazy(() =>
 const EmployerDashboard = lazy(() =>
   import('@/pages/EmployerDashboard').then((m) => ({ default: m.EmployerDashboard })),
 );
+const EmployerWalletPage = lazy(() =>
+  import('@/pages/EmployerWalletPage').then((m) => ({ default: m.EmployerWalletPage })),
+);
 const CreateJobPage = lazy(() =>
   import('@/pages/CreateJobPage').then((m) => ({ default: m.CreateJobPage })),
 );
@@ -133,7 +136,11 @@ export const router = createBrowserRouter([
       { path: 'profile/:id', element: withSuspense(<UserProfilePage />) },
       {
         path: 'interview-invitations',
-        element: withSuspense(<WorkerInvitations />),
+        element: withSuspense(
+          <RequireRoles roles={['WORKER']}>
+            <WorkerInvitations />
+          </RequireRoles>,
+        ),
       },
       { path: 'terms', element: withSuspense(<TermsPage />) },
       { path: 'about', element: withSuspense(<AboutPage />) },
@@ -202,6 +209,14 @@ export const router = createBrowserRouter([
     element: withSuspense(
       <RequireRoles roles={['EMPLOYER']}>
         <EmployerDashboard />
+      </RequireRoles>,
+    ),
+  },
+  {
+    path: '/employer/wallet',
+    element: withSuspense(
+      <RequireRoles roles={['EMPLOYER']}>
+        <EmployerWalletPage />
       </RequireRoles>,
     ),
   },

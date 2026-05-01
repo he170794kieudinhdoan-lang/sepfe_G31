@@ -8,6 +8,8 @@ import {
   getCompanies,
   getCompanyById,
   getCompaniesByStatus,
+  getPendingUpdateCompanies,
+  getCompanyUpdateRequest,
   reviewCompany,
   searchCompany,
   updateCompany,
@@ -52,6 +54,25 @@ export const useGetCompaniesByStatus = (status) => {
   });
 };
 
+export const useGetPendingUpdateCompanies = () => {
+  return useQuery({
+    queryKey: ['companies', 'pending-updates'],
+    queryFn: () => getPendingUpdateCompanies(),
+    staleTime: 0,
+    retry: 1,
+  });
+};
+
+export const useGetCompanyUpdateRequest = (companyId) => {
+  return useQuery({
+    queryKey: ['company-update-request', companyId],
+    queryFn: () => getCompanyUpdateRequest(companyId),
+    enabled: !!companyId,
+    staleTime: 0,
+    retry: 1,
+  });
+};
+
 export const useReviewCompany = () => {
   const queryClient = useQueryClient();
   return useMutation({
@@ -59,6 +80,8 @@ export const useReviewCompany = () => {
       reviewCompany(id, { status, rejectionReason }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['companies'] });
+      queryClient.invalidateQueries({ queryKey: ['companies', 'pending-updates'] });
+      queryClient.invalidateQueries({ queryKey: ['company-update-request'] });
     },
   });
 };

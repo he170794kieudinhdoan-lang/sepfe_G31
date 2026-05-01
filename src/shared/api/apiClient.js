@@ -10,6 +10,7 @@ export const apiClient = axios.create({
 
 const PUBLIC_ENDPOINTS = [
   '/user/login',
+  '/user/login/social/google',
   '/user/sign-up',
   '/user/forgot-password',
   '/user/reset-password',

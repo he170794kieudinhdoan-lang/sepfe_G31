@@ -6,8 +6,11 @@ import { AuthLayout } from '../components/AuthLayout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '../components/PasswordInput';
 import { Label } from '@/components/ui/label';
-import { useLogin } from '../api/useAuth';
+import { useLogin, useLoginGoogle } from '../api/useAuth';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
+import { clearTokens } from '@/shared/api/tokenService';
 
 const schema = z.object({
   username: z.string().min(1, 'Vui lòng nhập tên tài khoản'),
@@ -16,6 +19,10 @@ const schema = z.object({
 
 export const Login = () => {
   const { mutate: login, isPending } = useLogin();
+  const {
+    mutate: loginGoogle,
+    isPending: isGooglePending,
+  } = useLoginGoogle();
 
   const {
     register,
@@ -38,8 +45,30 @@ export const Login = () => {
   };
 
   return (
-    <AuthLayout title="Đăng nhập">
+    <AuthLayout
+      title="Đăng nhập"
+      subtitle="Google: đã có tài khoản sẽ đăng nhập ngay · Lần đầu Google sẽ mở bước chọn vai trò"
+    >
       <Card className="p-6 rounded-2xl shadow-sm border-0">
+        <GoogleSignInButton
+          disabled={isPending || isGooglePending}
+          onCredential={(jwt) => {
+            clearTokens();
+            loginGoogle({ googleToken: jwt, additionalData: {} });
+          }}
+        />
+
+        <div className="relative my-6">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-gray-200" />
+          </div>
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-card px-2 text-muted-foreground">
+              hoặc đăng nhập bằng mật khẩu
+            </span>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="username">Tên tài khoản hoặc Email</Label>
@@ -59,11 +88,11 @@ export const Login = () => {
 
           <div className="space-y-2">
             <Label htmlFor="password">Mật khẩu</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               placeholder="Nhập mật khẩu"
               className="rounded-xl border shadow-sm bg-card focus:bg-white transition-colors"
+              autoComplete="current-password"
               {...register('password')}
             />
             {errors.password && (
@@ -84,7 +113,7 @@ export const Login = () => {
 
           <Button
             type="submit"
-            disabled={isPending}
+            disabled={isPending || isGooglePending}
             className="w-full rounded-xl h-11 font-medium"
           >
             {isPending ? 'Đang đăng nhập...' : 'Đăng nhập'}

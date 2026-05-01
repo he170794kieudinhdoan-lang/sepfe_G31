@@ -2,15 +2,15 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useEffect } from 'react';
 import { AuthLayout } from '../components/AuthLayout';
+import { GoogleSignInButton } from '../components/GoogleSignInButton';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '../components/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { ArrowLeft } from 'lucide-react';
 import { useLoginGoogle, useSignUp } from '../api/useAuth';
-import { loadGoogleClient } from '@/shared/utils/loadGoogleClient';
 import { clearTokens } from '@/shared/api/tokenService';
 
 const schema = z
@@ -47,7 +47,10 @@ const schema = z
 
 export const RegisterWorker = () => {
   const { mutate: signUpMutate, isPending: isSigningUp } = useSignUp();
-  const { mutate: loginGoogle } = useLoginGoogle();
+  const {
+    mutate: loginGoogle,
+    isPending: isGooglePending,
+  } = useLoginGoogle();
 
   const {
     register: formRegister,
@@ -81,45 +84,6 @@ export const RegisterWorker = () => {
     signUpMutate(payload);
   };
 
-  useEffect(() => {
-    const initGoogle = async () => {
-      try {
-        await loadGoogleClient();
-        const clientId = import.meta.env.VITE_AUTH_SOCIAL_GOOGLE_CLIENT_ID;
-        if (!clientId) return;
-
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: (response) => {
-            clearTokens();
-            if (response?.credential) {
-              loginGoogle({
-                googleToken: response.credential,
-                additionalData: { role: 'WORKER' },
-              });
-            } else {
-              window.alert('Đăng nhập Google thất bại');
-            }
-          },
-        });
-
-        window.google.accounts.id.renderButton(
-          document.getElementById('googleBtn'),
-          {
-            theme: 'outline',
-            size: 'large',
-            width: '100%',
-            text: 'signin_with',
-            locale: 'vi',
-          },
-        );
-      } catch (error) {
-        console.error('Lỗi khởi tạo Google:', error);
-      }
-    };
-    initGoogle();
-  }, [loginGoogle]);
-
   return (
     <AuthLayout
       title="Đăng ký · Người tìm việc"
@@ -133,12 +97,16 @@ export const RegisterWorker = () => {
           <ArrowLeft className="h-4 w-4" /> Quay lại chọn loại đăng ký
         </Link>
 
-        <div className="w-full rounded-2xl">
-          <div
-            id="googleBtn"
-            className="[&>div]:w-full [&>div>iframe]:w-full [&>div>iframe]:h-11 [&>div>iframe]:rounded-xl"
-          />
-        </div>
+        <GoogleSignInButton
+          disabled={isSigningUp || isGooglePending}
+          onCredential={(jwt) => {
+            clearTokens();
+            loginGoogle({
+              googleToken: jwt,
+              additionalData: { role: 'WORKER' },
+            });
+          }}
+        />
 
         <div className="relative my-2">
           <div className="absolute inset-0 flex items-center">
@@ -184,11 +152,11 @@ export const RegisterWorker = () => {
 
           <div className="space-y-2">
             <Label htmlFor="password">Mật khẩu</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               placeholder="Ít nhất 8 ký tự"
               className="rounded-xl border shadow-sm bg-card focus:bg-white transition-colors"
+              autoComplete="new-password"
               {...formRegister('password')}
             />
             {errors.password && (
@@ -200,11 +168,11 @@ export const RegisterWorker = () => {
 
           <div className="space-y-2">
             <Label htmlFor="confirmPassword">Xác nhận mật khẩu</Label>
-            <Input
+            <PasswordInput
               id="confirmPassword"
-              type="password"
               placeholder="Nhập lại mật khẩu"
               className="rounded-xl border shadow-sm bg-card focus:bg-white transition-colors"
+              autoComplete="new-password"
               {...formRegister('confirmPassword')}
             />
             {errors.confirmPassword && (
@@ -242,7 +210,7 @@ export const RegisterWorker = () => {
 
           <Button
             type="submit"
-            disabled={isSigningUp}
+            disabled={isSigningUp || isGooglePending}
             className="w-full rounded-xl h-11 font-medium"
           >
             {isSigningUp ? 'Đang tạo tài khoản...' : 'Đăng ký'}

@@ -145,9 +145,9 @@ export const JobDetailPage = () => {
 
         <div className="lg:col-span-2">
           <Card className="flex flex-col gap-6 border-0 p-8 shadow-sm rounded-xl">
-            <div className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
+            {/* <div className="inline-flex w-fit items-center rounded-full bg-slate-100 px-3 py-1 text-sm font-medium text-slate-700">
               {applicantCount} người đã ứng tuyển
-            </div>
+            </div> */}
 
             <JobDetailContent
               job={job}

@@ -6,6 +6,8 @@ export const SectorManagementService = {
         apiClient.patch(`/sectors/${sectorId}`, formData),
     getAllSectors: () =>
         apiClient.get('/sectors'),
+    getSectorsPaginated: (params) =>
+        apiClient.get('/sectors', { params }),
     deleteSector: (sectorId) =>
         apiClient.delete(`/sectors/${sectorId}`),
     getSectorDetails: (sectorId) =>

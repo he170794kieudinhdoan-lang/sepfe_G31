@@ -56,6 +56,7 @@ export const useGetMessages = (id, query) => {
 
 export const useMarkAsRead = () => {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   return useMutation({
     mutationFn: ({ id }) => chatApi.markAsRead(id),
     onSuccess: () => {

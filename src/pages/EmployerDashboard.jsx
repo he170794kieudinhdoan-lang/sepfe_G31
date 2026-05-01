@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+﻿import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,7 @@ import {
   Edit,
   Trash2,
   Send,
-  Copy,
+  Wallet,
 } from 'lucide-react';
 import { useGetMyCompany } from '@/features/companies/api/useGetCompanies';
 import {
@@ -89,6 +89,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import viLocale from '@fullcalendar/core/locales/vi';
 import { useToast } from '@/shared/contexts/ToastContext';
+import { useWalletPricing } from '@/features/wallet/api/useWallet';
 
 const EMPLOYER_MENU = [
   {
@@ -108,6 +109,12 @@ const EMPLOYER_MENU = [
     label: 'Thống kê',
     icon: BarChart3,
     path: '/employer/stats',
+  },
+  {
+    key: 'wallet',
+    label: 'Ví point',
+    icon: Wallet,
+    path: '/employer/wallet',
   },
   {
     key: 'chat',
@@ -1762,7 +1769,13 @@ const MatchedWorkerDetailPane = ({ item, jobDetail, onContact }) => {
   );
 };
 
-const MatchedWorkersPanel = ({ jobId, jobTitle, onBack, onContact }) => {
+const MatchedWorkersPanel = ({
+  jobId,
+  jobTitle,
+  onBack,
+  onContact,
+  aiInviteUnitCost = 0,
+}) => {
   const { data: matchedWorkersRes, isLoading } = useMatchedWorkers(jobId);
   const { data: jobDetailRes } = useJobDetail(jobId);
   const jobDetail = jobDetailRes?.data || jobDetailRes;
@@ -1861,6 +1874,9 @@ const MatchedWorkersPanel = ({ jobId, jobTitle, onBack, onContact }) => {
           </div>
           <p className="text-xs text-slate-500 truncate mt-0.5 ml-6">
             Dành cho: <span className="font-semibold">{jobTitle}</span>
+          </p>
+          <p className="text-[11px] text-primary truncate mt-0.5 ml-6 font-medium">
+            AI gợi ý {workers.length} ứng viên
           </p>
         </div>
         {selectedIds.size > 0 && (
@@ -1966,6 +1982,13 @@ const MatchedWorkersPanel = ({ jobId, jobTitle, onBack, onContact }) => {
               tự động tạo cuộc hội thoại và gửi tin nhắn mời ứng tuyển kèm link
               công việc.
             </p>
+            <p className="text-xs text-slate-700 mt-2">
+              Chi phí dự kiến:{' '}
+              <strong>
+                {(aiInviteUnitCost * selectedIds.size).toLocaleString('vi-VN')} point
+              </strong>{' '}
+              ({aiInviteUnitCost.toLocaleString('vi-VN')} point / ứng viên)
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -2031,10 +2054,8 @@ export const EmployerDashboard = () => {
   const [companyModalOpen, setCompanyModalOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [boostModalOpen, setBoostModalOpen] = useState(false);
-  const [boostPaymentModalOpen, setBoostPaymentModalOpen] = useState(false);
   const [selectedBoostJob, setSelectedBoostJob] = useState(null);
   const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
-  const [boostCheckoutData, setBoostCheckoutData] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
   const [matchedJobTitle, setMatchedJobTitle] = useState('');
   const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
@@ -2101,6 +2122,9 @@ export const EmployerDashboard = () => {
     [updateApplicantStatus],
   );
   const createBoostCheckoutMutation = useCreateBoostCheckout();
+  const { data: walletPricingRes } = useWalletPricing();
+  const walletPricing = walletPricingRes?.data || walletPricingRes || {};
+  const aiInviteUnitCost = walletPricing?.AI_INVITE_POINT_COST_PER_WORKER || 0;
   const { data: boostPackagesRes } = useBoostPackages();
   const boostPackages = boostPackagesRes?.items || boostPackagesRes?.data || [];
   const boostPlans =
@@ -2127,24 +2151,6 @@ export const EmployerDashboard = () => {
       setSelectedBoostPackageDays(boostPlans[0].days);
     }
   }, [boostPlans, selectedBoostPackageDays]);
-
-  const boostWebhookHandledRef = useRef(false);
-  const { data: boostJobDetail } = useJobDetail(selectedBoostJob?.id, {
-    enabled: !!selectedBoostJob?.id && boostPaymentModalOpen,
-    refetchInterval: boostPaymentModalOpen ? 3000 : false,
-    refetchIntervalInBackground: true,
-  });
-
-  const resolvedBoostJobDetail = boostJobDetail?.data || boostJobDetail;
-  const boostPaymentConfirmed = (() => {
-    if (
-      !resolvedBoostJobDetail?.boostExpiredAt ||
-      !resolvedBoostJobDetail?.isBoosted
-    )
-      return false;
-    const expiredAt = new Date(resolvedBoostJobDetail.boostExpiredAt);
-    return !Number.isNaN(expiredAt.getTime()) && expiredAt > new Date();
-  })();
 
   const applicantsList = applicationsResult?.data || [];
   const filteredApplicants = applicantsList.filter((a) => {
@@ -2315,6 +2321,7 @@ export const EmployerDashboard = () => {
     else if (path === '/employer/jobs') setActive('jobs');
     else if (path === '/employer/applicants') setActive('jobs');
     else if (path === '/employer/stats') setActive('stats');
+    else if (path === '/employer/wallet') setActive('wallet');
   }, [location.pathname]);
 
   const campaignIdFromUrl = searchParams.get('campaignId');
@@ -2360,25 +2367,6 @@ export const EmployerDashboard = () => {
     }
   }, [company, loadingCompany]);
 
-  useEffect(() => {
-    if (!boostPaymentModalOpen) {
-      boostWebhookHandledRef.current = false;
-      return;
-    }
-
-    if (!boostPaymentConfirmed || boostWebhookHandledRef.current) {
-      return;
-    }
-
-    boostWebhookHandledRef.current = true;
-    toast('Thanh toán thành công. Tin đã được kích hoạt nổi bật.', 'success');
-    setBoostPaymentModalOpen(false);
-    setBoostCheckoutData(null);
-    setSelectedBoostJob(null);
-    queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
-    queryClient.invalidateQueries({ queryKey: ['boosted-jobs'] });
-  }, [boostPaymentModalOpen, boostPaymentConfirmed, queryClient, toast]);
-
   const handleDeleteJob = () => {
     if (!deleteConfirm || !company?.id) return;
     deleteJob(
@@ -2414,22 +2402,13 @@ export const EmployerDashboard = () => {
           packageDays: selectedBoostPackageDays,
         },
       });
-
       const checkout = checkoutRes?.data || checkoutRes;
-      const paymentOrderId = checkout?.paymentOrderId;
-      if (!paymentOrderId) {
-        throw new Error('Không lấy được mã đơn thanh toán');
-      }
-
-      setBoostCheckoutData(checkout);
       setBoostModalOpen(false);
-      setBoostPaymentModalOpen(true);
-
-      const paymentCode = checkout?.paymentCode;
+      setSelectedBoostJob(null);
+      queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
+      queryClient.invalidateQueries({ queryKey: ['boosted-jobs'] });
       toast(
-        paymentCode
-          ? `Đã tạo thanh toán. Chuyển khoản đúng nội dung: ${paymentCode}. Hệ thống sẽ tự boost sau khi SePay gửi webhook.`
-          : 'Đã tạo thanh toán boost. Hệ thống sẽ tự cập nhật sau khi SePay xác nhận.',
+        `Boost thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} point.`,
         'success',
       );
     } catch (error) {
@@ -2438,18 +2417,6 @@ export const EmployerDashboard = () => {
         error?.message ||
         'Thanh toán boost thất bại';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
-    }
-  };
-
-  const handleCopyPaymentCode = async () => {
-    const paymentCode = boostCheckoutData?.paymentCode;
-    if (!paymentCode) return;
-
-    try {
-      await navigator.clipboard.writeText(paymentCode);
-      toast('Đã sao chép nội dung chuyển khoản', 'success');
-    } catch {
-      toast('Không thể sao chép. Vui lòng sao chép thủ công.', 'error');
     }
   };
 
@@ -2514,10 +2481,8 @@ export const EmployerDashboard = () => {
   const hasNoCompany = !company?.id;
   const isRejected = company?.id && company?.status === 'REJECTED';
   const isPending = company?.id && company?.status === 'PENDING';
-  const isApproved =
-    company?.id &&
-    company?.status !== 'PENDING' &&
-    company?.status !== 'REJECTED';
+  const isUpdating = company?.id && company?.status === 'UPDATING';
+  const isApproved = company?.id && company?.status === 'APPROVED';
 
   // ===== LOADING STATE =====
   if (loadingCompany) {
@@ -2610,6 +2575,10 @@ export const EmployerDashboard = () => {
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-600 border border-amber-200/60 shadow-sm">
                           <Clock size={14} /> Chờ duyệt
                         </span>
+                      ) : isUpdating ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold text-orange-600 border border-orange-200/60 shadow-sm">
+                          <Clock size={14} /> Chờ duyệt cập nhật
+                        </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-600 border border-green-200/60 shadow-sm">
                           <CheckCircle2 size={14} /> Đã xác thực
@@ -2693,6 +2662,22 @@ export const EmployerDashboard = () => {
                       Quản trị viên đang xem xét hồ sơ doanh nghiệp của bạn. Bạn
                       có thể chỉnh sửa thông tin trong thời gian chờ, nhưng chưa
                       thể đăng tin tuyển dụng.
+                    </p>
+                  </div>
+                </div>
+              )}
+              {isUpdating && (
+                <div className="flex items-start gap-3 rounded-2xl border border-orange-200 bg-orange-50 px-5 py-4">
+                  <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-orange-200">
+                    <Clock size={16} className="text-orange-700" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-orange-800">
+                      Hồ sơ cập nhật đang chờ duyệt lại
+                    </p>
+                    <p className="text-sm text-orange-700 mt-0.5">
+                      Bạn đã gửi cập nhật thông tin doanh nghiệp. Trong thời gian
+                      chờ quản lý duyệt, bạn tạm thời chưa thể đăng hoặc chỉnh sửa tin tuyển dụng.
                     </p>
                   </div>
                 </div>
@@ -2925,6 +2910,7 @@ export const EmployerDashboard = () => {
                   <MatchedWorkersPanel
                     jobId={matchedJobId}
                     jobTitle={matchedJobTitle}
+                    aiInviteUnitCost={aiInviteUnitCost}
                     onBack={() => {
                       setMatchedJobId(null);
                       setMatchedJobTitle('');
@@ -3118,8 +3104,6 @@ export const EmployerDashboard = () => {
                                               setSelectedBoostPackageDays(
                                                 boostPlans[0]?.days || 7,
                                               );
-                                              setBoostCheckoutData(null);
-                                              setBoostPaymentModalOpen(false);
                                               setBoostModalOpen(true);
                                             }}
                                             disabled={
@@ -3547,7 +3531,7 @@ export const EmployerDashboard = () => {
         confirmLabel={
           createBoostCheckoutMutation.isPending
             ? 'Đang xử lý...'
-            : 'Tạo mã thanh toán'
+            : 'Boost bằng point'
         }
         cancelLabel="Hủy"
         confirmDisabled={createBoostCheckoutMutation.isPending}
@@ -3597,113 +3581,10 @@ export const EmployerDashboard = () => {
           </div>
 
           <p className="text-xs text-slate-500">
-            Luu y: Neu ban da quet QR ma chua thay cap nhat ngay, he thong se
-            dong bo sau khi SePay gui webhook.
+            Sau khi xác nhận, hệ thống sẽ trừ point trong ví và kích hoạt nổi bật
+            ngay lập tức.
           </p>
         </div>
-      </Modal>
-
-      <Modal
-        open={boostPaymentModalOpen && !!boostCheckoutData}
-        title="Thanh toán tin nổi bật bằng QR"
-        description={
-          selectedBoostJob
-            ? `Quét QR để thanh toán cho job: ${selectedBoostJob.title}`
-            : 'Quét QR để hoàn tất thanh toán gói nổi bật'
-        }
-        onClose={() => {
-          setBoostPaymentModalOpen(false);
-          setBoostCheckoutData(null);
-          setSelectedBoostJob(null);
-        }}
-        variant="custom"
-        className="z-60 bg-black/60 backdrop-blur-md pt-12 px-4"
-      >
-        {boostCheckoutData && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4 space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-emerald-700">
-                    Mã thanh toán đã tạo thành công
-                  </p>
-                  <p className="text-xs text-emerald-600 mt-1">
-                    Chuyển khoản đúng nội dung để hệ thống tự kích hoạt tin nổi
-                    bật.
-                  </p>
-                </div>
-                <span className="text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 px-2 py-1">
-                  SePay
-                </span>
-              </div>
-
-              <div className="rounded-xl bg-white border border-emerald-100 p-3">
-                <p className="text-xs text-slate-500">Nội dung chuyển khoản</p>
-                <p className="font-bold text-slate-800 tracking-wide mt-1">
-                  {boostCheckoutData.paymentCode}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div className="rounded-xl bg-white border border-slate-200 p-3">
-                  <p className="text-xs text-slate-500">Gói đã chọn</p>
-                  <p className="font-semibold text-slate-800 mt-1">
-                    {selectedBoostPackageDays} ngày
-                  </p>
-                </div>
-                <div className="rounded-xl bg-white border border-slate-200 p-3">
-                  <p className="text-xs text-slate-500">Số tiền</p>
-                  <p className="font-semibold text-slate-800 mt-1">
-                    {(boostCheckoutData.amount || 0).toLocaleString('vi-VN')}đ
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {boostCheckoutData.paymentUrl && (
-              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                <p className="text-sm font-semibold text-slate-700 mb-3">
-                  Quét QR để thanh toán
-                </p>
-                <div className="mx-auto w-64 h-64 rounded-xl border border-slate-200 bg-white p-2 flex items-center justify-center shadow-sm">
-                  <img
-                    src={boostCheckoutData.paymentUrl}
-                    alt="SePay QR"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="rounded-lg border-emerald-200"
-                onClick={handleCopyPaymentCode}
-              >
-                <Copy size={14} className="mr-1" /> Sao chép nội dung
-              </Button>
-            </div>
-
-            <p className="text-xs text-slate-500">
-              Sau khi thanh toán, hệ thống sẽ chờ SePay callback để tự cập nhật
-              DB và kích hoạt tin nổi bật.
-            </p>
-
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
-              <Loader2
-                className={`h-4 w-4 ${boostPaymentConfirmed ? '' : 'animate-spin'} text-primary`}
-              />
-              <p className="text-xs text-slate-600">
-                {boostPaymentConfirmed
-                  ? 'Đã xác nhận thanh toán từ SePay. Đang cập nhật giao diện...'
-                  : 'Đang chờ SePay xác nhận thanh toán...'}
-              </p>
-            </div>
-          </div>
-        )}
       </Modal>
 
       {/* <Modal

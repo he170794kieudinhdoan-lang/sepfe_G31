@@ -40,6 +40,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import WorkerInvitations from '@/features/interview-invitations/components/WorkerInvitations';
 
 const MENU = [
   { key: 'view', label: 'Thông tin cá nhân' },
@@ -47,6 +48,7 @@ const MENU = [
   { key: 'edit', label: 'Chỉnh sửa hồ sơ' },
   { key: 'password', label: 'Đổi mật khẩu' },
   { key: 'history', label: 'Lịch sử ứng tuyển', workerOnly: true },
+  { key: 'invitations', label: 'Lời mời phỏng vấn', workerOnly: true },
   { key: 'delete', label: 'Xóa tài khoản' },
 ];
 
@@ -456,6 +458,18 @@ export const UserProfilePage = () => {
           {active === 'worker-profile' && profile?.roleType === 'WORKER' && (
             <WorkerProfileView />
           )}
+
+          {/* Lời mời phỏng vấn (worker) */}
+          {active === 'invitations' &&
+            profile?.roleType === 'WORKER' &&
+            isOwnProfile && (
+              <Card className="p-6 rounded-xl shadow-sm">
+                <h2 className="text-lg font-semibold mb-4">
+                  Lời mời phỏng vấn
+                </h2>
+                <WorkerInvitations embedded />
+              </Card>
+            )}
 
           {/* Chỉnh sửa hồ sơ */}
           {active === 'edit' && isOwnProfile && (
