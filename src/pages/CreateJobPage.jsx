@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -21,6 +21,13 @@ import { useProvinces } from '@/shared/hooks/useProvinces';
 import { useCreateJob } from '@/features/jobs/useJobMutation';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { useMyWallet, useWalletPricing } from '@/features/wallet/api/useWallet';
+import { InsufficientPointModal } from '@/shared/components/wallet/InsufficientPointModal';
+import {
+  consumeWalletResumeState,
+  extractApiErrorMessage,
+  goToWalletTopup,
+  isInsufficientPointError,
+} from '@/shared/utils/walletPointFlow';
 import {
   Briefcase,
   MapPin,
@@ -157,6 +164,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
   const PROVINCES_API = import.meta.env.VITE_PROVINCES_API_URL;
   const { toast } = useToast();
   const navigate = useNavigate();
+  const location = useLocation();
   const { mutate: createJob, isPending: isSubmitting } = useCreateJob();
 
   const steps = [
@@ -171,6 +179,10 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
   const { provinces, isLoading: loadingProvince } = useProvinces();
   const [districts, setDistricts] = useState([]);
   const [loadingDistrict, setLoadingDistrict] = useState(false);
+  const [insufficientPointModalOpen, setInsufficientPointModalOpen] = useState(false);
+  const [insufficientPointMessage, setInsufficientPointMessage] = useState(
+    'Số dư point không đủ để đăng tin.',
+  );
 
   const { data: walletRes } = useMyWallet();
   const wallet = walletRes?.data || walletRes;
@@ -207,8 +219,31 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
     setValue,
     trigger,
     formState: { errors },
+    getValues,
+    reset,
   } = form;
 
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('walletTopupSuccess') !== '1') return;
+
+    const resumeKey = params.get('resumeKey');
+    const restored = consumeWalletResumeState(resumeKey);
+    if (restored?.type === 'create-job') {
+      if (restored?.formValues) {
+        reset(restored.formValues);
+      }
+      setCurrentStep(Number(restored?.currentStep || 0));
+    }
+    toast('Nạp point thành công. Bạn có thể tiếp tục thao tác đăng tin.', 'success');
+
+    params.delete('walletTopupSuccess');
+    params.delete('resumeKey');
+    navigate(
+      params.toString() ? `${location.pathname}?${params.toString()}` : location.pathname,
+      { replace: true },
+    );
+  }, [location.pathname, location.search, navigate, reset, toast]);
 
 
   const watchSectorId = watch('sectorId');
@@ -343,10 +378,25 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
         }
       },
       onError: (error) => {
-        const message =
-          error?.response?.data?.message || 'Tạo tin tuyển dụng thất bại';
-        const errorText = Array.isArray(message) ? message.join(', ') : message;
+        const errorText = extractApiErrorMessage(error, 'Tạo tin tuyển dụng thất bại');
+        if (isInsufficientPointError(error)) {
+          setInsufficientPointMessage(errorText);
+          setInsufficientPointModalOpen(true);
+          return;
+        }
         toast(errorText, 'error');
+      },
+    });
+  };
+
+  const handleGoToTopup = () => {
+    goToWalletTopup({
+      navigate,
+      location,
+      resumePayload: {
+        type: 'create-job',
+        currentStep,
+        formValues: getValues(),
       },
     });
   };
@@ -870,6 +920,12 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
         </div>
       </div>
 
+      <InsufficientPointModal
+        open={insufficientPointModalOpen}
+        onClose={() => setInsufficientPointModalOpen(false)}
+        onGoTopup={handleGoToTopup}
+        message={insufficientPointMessage}
+      />
     </>
   );
 };

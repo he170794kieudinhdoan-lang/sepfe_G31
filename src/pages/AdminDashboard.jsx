@@ -24,11 +24,9 @@ import {
 import { AppPagination } from '@/shared/components/AppPagination';
 import {
   useAdminStatistics,
-  useCreatePaymentPackage,
   usePaymentPackages,
   usePointPricing,
   useUpdatePointPricing,
-  useUpdatePaymentPackage,
 } from '@/features/admin/api/useAdmin';
 
 const formatCompactVND = (value) => {
@@ -131,25 +129,13 @@ export const AdminDashboard = () => {
     year: selectedYear,
   });
 
-  const [paymentPackageForm, setPaymentPackageForm] = useState({
-    name: '',
-    description: '',
-    orderType: 'BOOST_JOB',
-    durationDays: 7,
-    price: 50000,
-    isDefault: false,
-    isActive: true,
-  });
-  const [editingPackage, setEditingPackage] = useState(null);
-  const { data: paymentPackagesRes, isLoading: loadingPaymentPackages } =
-    usePaymentPackages({ includeInactive: true });
-  const createPaymentPackageMutation = useCreatePaymentPackage();
-  const updatePaymentPackageMutation = useUpdatePaymentPackage();
+  const { data: paymentPackagesRes } = usePaymentPackages({ includeInactive: true });
   const { data: pointPricingRes } = usePointPricing();
   const updatePointPricingMutation = useUpdatePointPricing();
   const [pointPricingForm, setPointPricingForm] = useState({
     JOB_POST_POINT_COST: 50000,
     BOOST_JOB_POINT_COST: 50000,
+    BOOST_JOB_DURATION_DAYS: 7,
     AI_INVITE_POINT_COST_PER_WORKER: 1000,
   });
   const paymentPackages =
@@ -594,89 +580,14 @@ export const AdminDashboard = () => {
     }
   };
 
-  const resetPaymentPackageForm = () => {
-    setPaymentPackageForm({
-      name: '',
-      description: '',
-      orderType: 'BOOST_JOB',
-      durationDays: 7,
-      price: 50000,
-      isDefault: false,
-      isActive: true,
-    });
-    setEditingPackage(null);
-  };
-
-  const handleSavePaymentPackage = async () => {
-    try {
-      if (!paymentPackageForm.name.trim()) {
-        toast('Tên gói không được để trống', 'error');
-        return;
-      }
-      if (Number(paymentPackageForm.price) <= 0) {
-        toast('Giá gói không hợp lệ', 'error');
-        return;
-      }
-      if (
-        paymentPackageForm.orderType === 'BOOST_JOB' &&
-        Number(paymentPackageForm.durationDays) <= 0
-      ) {
-        toast('Gói boost cần số ngày hợp lệ', 'error');
-        return;
-      }
-
-      const payload = {
-        name: paymentPackageForm.name,
-        description: paymentPackageForm.description,
-        orderType: paymentPackageForm.orderType,
-        durationDays:
-          paymentPackageForm.orderType === 'BOOST_JOB'
-            ? Number(paymentPackageForm.durationDays)
-            : undefined,
-        price: Number(paymentPackageForm.price),
-        isDefault: Boolean(paymentPackageForm.isDefault),
-        isActive: Boolean(paymentPackageForm.isActive),
-      };
-
-      if (editingPackage?.id) {
-        await updatePaymentPackageMutation.mutateAsync({
-          id: editingPackage.id,
-          payload,
-        });
-        toast('Cập nhật gói thanh toán thành công');
-      } else {
-        await createPaymentPackageMutation.mutateAsync(payload);
-        toast('Tạo gói thanh toán thành công');
-      }
-
-      resetPaymentPackageForm();
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Không thể lưu gói thanh toán';
-      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
-    }
-  };
-
-  const handleEditPaymentPackage = (pkg) => {
-    setEditingPackage(pkg);
-    setPaymentPackageForm({
-      name: pkg.name || '',
-      description: pkg.description || '',
-      orderType: pkg.orderType || 'BOOST_JOB',
-      durationDays: pkg.durationDays || 7,
-      price: pkg.price || 50000,
-      isDefault: Boolean(pkg.isDefault),
-      isActive: Boolean(pkg.isActive),
-    });
-  };
-
   const handleSavePointPricing = async () => {
     try {
       await updatePointPricingMutation.mutateAsync({
         JOB_POST_POINT_COST: Number(pointPricingForm.JOB_POST_POINT_COST || 0),
         BOOST_JOB_POINT_COST: Number(pointPricingForm.BOOST_JOB_POINT_COST || 0),
+        BOOST_JOB_DURATION_DAYS: Number(
+          pointPricingForm.BOOST_JOB_DURATION_DAYS || 0,
+        ),
         AI_INVITE_POINT_COST_PER_WORKER: Number(
           pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER || 0,
         ),
@@ -844,44 +755,78 @@ export const AdminDashboard = () => {
       {active === 'payment_packages' && (
         <div className="space-y-6">
           <Card className="p-6 space-y-4">
-            <h3 className="text-lg font-semibold">Bảng giá point hệ thống</h3>
-            <p className="text-sm text-muted-foreground">
-              Employer sẽ bị trừ point theo các đơn giá này.
-            </p>
-            <div className="grid md:grid-cols-3 gap-4">
-              <Input
-                type="number"
-                placeholder="Giá đăng job"
-                value={pointPricingForm.JOB_POST_POINT_COST}
-                onChange={(e) =>
-                  setPointPricingForm((prev) => ({
-                    ...prev,
-                    JOB_POST_POINT_COST: e.target.value,
-                  }))
-                }
-              />
-              <Input
-                type="number"
-                placeholder="Giá boost job"
-                value={pointPricingForm.BOOST_JOB_POINT_COST}
-                onChange={(e) =>
-                  setPointPricingForm((prev) => ({
-                    ...prev,
-                    BOOST_JOB_POINT_COST: e.target.value,
-                  }))
-                }
-              />
-              <Input
-                type="number"
-                placeholder="Giá AI invite / worker"
-                value={pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER}
-                onChange={(e) =>
-                  setPointPricingForm((prev) => ({
-                    ...prev,
-                    AI_INVITE_POINT_COST_PER_WORKER: e.target.value,
-                  }))
-                }
-              />
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Bảng giá point hệ thống</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Cấu hình chi phí cho đăng tin, boost và lời mời AI theo point.
+                </p>
+              </div>
+              <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
+                1.000đ = 1.000 point
+              </Badge>
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                <p className="text-sm font-semibold text-slate-800">Đăng job</p>
+                <p className="text-xs text-slate-500">Số point trừ mỗi lần xuất bản tin.</p>
+                <Input
+                  type="number"
+                  min={0}
+                  value={pointPricingForm.JOB_POST_POINT_COST}
+                  onChange={(e) =>
+                    setPointPricingForm((prev) => ({
+                      ...prev,
+                      JOB_POST_POINT_COST: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                <p className="text-sm font-semibold text-slate-800">Boost job</p>
+                <p className="text-xs text-slate-500">Số point trừ cho một lần boost.</p>
+                <Input
+                  type="number"
+                  min={0}
+                  value={pointPricingForm.BOOST_JOB_POINT_COST}
+                  onChange={(e) =>
+                    setPointPricingForm((prev) => ({
+                      ...prev,
+                      BOOST_JOB_POINT_COST: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                <p className="text-sm font-semibold text-slate-800">Thời gian boost job</p>
+                <p className="text-xs text-slate-500">Số ngày hiệu lực của mỗi lần boost.</p>
+                <Input
+                  type="number"
+                  min={1}
+                  value={pointPricingForm.BOOST_JOB_DURATION_DAYS}
+                  onChange={(e) =>
+                    setPointPricingForm((prev) => ({
+                      ...prev,
+                      BOOST_JOB_DURATION_DAYS: e.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
+                <p className="text-sm font-semibold text-slate-800">AI gợi ý ứng viên</p>
+                <p className="text-xs text-slate-500">Point trừ trên mỗi worker khi gửi lời mời.</p>
+                <Input
+                  type="number"
+                  min={0}
+                  value={pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER}
+                  onChange={(e) =>
+                    setPointPricingForm((prev) => ({
+                      ...prev,
+                      AI_INVITE_POINT_COST_PER_WORKER: e.target.value,
+                    }))
+                  }
+                />
+              </div>
             </div>
             <div className="flex justify-end">
               <Button
@@ -895,180 +840,7 @@ export const AdminDashboard = () => {
             </div>
           </Card>
 
-          <Card className="p-6 space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
-                {editingPackage ? 'Cập nhật gói thanh toán' : 'Tạo gói thanh toán mới'}
-              </h3>
-              {editingPackage && (
-                <Button variant="outline" onClick={resetPaymentPackageForm}>
-                  Hủy chỉnh sửa
-                </Button>
-              )}
-            </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <Input
-                placeholder="Tên gói"
-                value={paymentPackageForm.name}
-                onChange={(e) =>
-                  setPaymentPackageForm((prev) => ({
-                    ...prev,
-                    name: e.target.value,
-                  }))
-                }
-              />
-              <Input
-                placeholder="Giá (VND)"
-                type="number"
-                value={paymentPackageForm.price}
-                onChange={(e) =>
-                  setPaymentPackageForm((prev) => ({
-                    ...prev,
-                    price: e.target.value,
-                  }))
-                }
-              />
-              <select
-                className="rounded-xl border px-4 py-2 text-sm bg-white"
-                value={paymentPackageForm.orderType}
-                onChange={(e) =>
-                  setPaymentPackageForm((prev) => ({
-                    ...prev,
-                    orderType: e.target.value,
-                  }))
-                }
-              >
-                <option value="BOOST_JOB">BOOST_JOB</option>
-                <option value="FEATURE_LISTING">FEATURE_LISTING</option>
-                <option value="PREMIUM_SUBSCRIPTION">PREMIUM_SUBSCRIPTION</option>
-              </select>
-              <Input
-                placeholder="Số ngày"
-                type="number"
-                disabled={paymentPackageForm.orderType !== 'BOOST_JOB'}
-                value={paymentPackageForm.durationDays}
-                onChange={(e) =>
-                  setPaymentPackageForm((prev) => ({
-                    ...prev,
-                    durationDays: e.target.value,
-                  }))
-                }
-              />
-            </div>
-
-            <Input
-              placeholder="Mô tả"
-              value={paymentPackageForm.description}
-              onChange={(e) =>
-                setPaymentPackageForm((prev) => ({
-                  ...prev,
-                  description: e.target.value,
-                }))
-              }
-            />
-
-            <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={paymentPackageForm.isDefault}
-                  onChange={(e) =>
-                    setPaymentPackageForm((prev) => ({
-                      ...prev,
-                      isDefault: e.target.checked,
-                    }))
-                  }
-                />
-                Gói mặc định
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={paymentPackageForm.isActive}
-                  onChange={(e) =>
-                    setPaymentPackageForm((prev) => ({
-                      ...prev,
-                      isActive: e.target.checked,
-                    }))
-                  }
-                />
-                Đang hoạt động
-              </label>
-
-              <Button
-                className="ml-auto"
-                onClick={handleSavePaymentPackage}
-                disabled={
-                  createPaymentPackageMutation.isPending ||
-                  updatePaymentPackageMutation.isPending
-                }
-              >
-                {createPaymentPackageMutation.isPending ||
-                updatePaymentPackageMutation.isPending
-                  ? 'Đang lưu...'
-                  : editingPackage
-                    ? 'Cập nhật gói'
-                    : 'Tạo gói'}
-              </Button>
-            </div>
-          </Card>
-
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold mb-4">Danh sách gói thanh toán</h3>
-            {loadingPaymentPackages ? (
-              <Skeleton className="h-40 w-full" />
-            ) : !paymentPackages.length ? (
-              <EmptyState
-                title="Chưa có gói thanh toán"
-                description="Tạo gói mới để employer có thể thanh toán theo gói cấu hình."
-              />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="text-left text-muted-foreground">
-                    <tr className="border-b">
-                      <th className="py-2">Tên gói</th>
-                      <th>Loại</th>
-                      <th>Số ngày</th>
-                      <th>Giá</th>
-                      <th>Trạng thái</th>
-                      <th>Mặc định</th>
-                      <th>Hành động</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paymentPackages.map((pkg) => (
-                      <tr key={pkg.id} className="border-b last:border-b-0">
-                        <td className="py-3">
-                          <p className="font-semibold text-slate-800">{pkg.name}</p>
-                          <p className="text-xs text-slate-500">{pkg.description || '-'}</p>
-                        </td>
-                        <td>{pkg.orderType}</td>
-                        <td>{pkg.durationDays || '-'}</td>
-                        <td>{new Intl.NumberFormat('vi-VN').format(pkg.price)}đ</td>
-                        <td>
-                          <Badge variant={pkg.isActive ? 'default' : 'secondary'}>
-                            {pkg.isActive ? 'ACTIVE' : 'INACTIVE'}
-                          </Badge>
-                        </td>
-                        <td>{pkg.isDefault ? 'Yes' : 'No'}</td>
-                        <td>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleEditPaymentPackage(pkg)}
-                          >
-                            Chỉnh sửa
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
         </div>
       )}
 

@@ -7,6 +7,7 @@ import { useAuth } from '@/shared/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
 import { useGetUserConversations } from '@/features/chat/api/useChat';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
+import { useMyWallet } from '@/features/wallet/api/useWallet';
 
 export const DashboardLayout = ({
   title,
@@ -22,6 +23,9 @@ export const DashboardLayout = ({
   const navigate = useNavigate();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const { data: conversations } = useGetUserConversations();
+  const isEmployer = user?.roleType === 'EMPLOYER';
+  const { data: walletRes } = useMyWallet({ enabled: isEmployer });
+  const wallet = walletRes?.data || walletRes;
 
   useChatRealtime(null, user?.userId || user?.id);
 
@@ -89,6 +93,11 @@ export const DashboardLayout = ({
                 </p>
               </div>
               <div className="flex items-center gap-2">
+                {isEmployer && (
+                  <div className="hidden sm:flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    Số dư: {(wallet?.balancePoint || 0).toLocaleString('vi-VN')} point
+                  </div>
+                )}
                 <Button
                   variant="ghost"
                   size="icon"
