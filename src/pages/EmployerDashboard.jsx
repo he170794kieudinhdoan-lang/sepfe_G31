@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -120,7 +120,7 @@ const EMPLOYER_MENU = [
   },
   {
     key: 'wallet',
-    label: 'Ví point',
+    label: 'Ví điểm',
     icon: Wallet,
     path: '/employer/wallet',
   },
@@ -190,7 +190,7 @@ const StatusBadge = ({ status }) => {
     REJECTED: {
       color: 'bg-gray-100 text-gray-800 border-gray-200',
       label: 'Bị từ chối',
-      title: 'Tin bị hệ thống từ chối do phát hiện Spam hoặc vi phạm',
+      title: 'Tin bị từ chối do phát hiện tin rác hoặc vi phạm',
     },
     WARNING: {
       color: 'bg-orange-100 text-orange-800 border-orange-200',
@@ -311,7 +311,7 @@ const JobApplicantsModal = ({
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
     useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
-    'Số dư point không đủ để gửi lời mời.',
+    'Số dư điểm không đủ để gửi lời mời.',
   );
 
   useEffect(() => {
@@ -912,7 +912,7 @@ const JobApplicantsModal = ({
         toast(
           filteredOutCount > 0
             ? 'Tất cả ứng viên được chọn đã được mời phỏng vấn rồi.'
-            : 'Không tìm thấy worker hợp lệ để gửi lời mời.',
+            : 'Không tìm thấy ứng viên hợp lệ để gửi lời mời.',
           'error',
         );
         return;
@@ -1050,7 +1050,7 @@ const JobApplicantsModal = ({
       'Năm kinh nghiệm',
       'Lương mong muốn',
       'Ca làm',
-      'Giới thiệu bản thân (Bio)',
+      'Tự giới thiệu',
     ];
 
     const statusMap = {
@@ -1275,7 +1275,7 @@ const JobApplicantsModal = ({
                           <Briefcase size={12} /> {a.job?.title}
                         </p>
                         <p className="mt-1 text-[11px] font-medium text-slate-400 group-hover:text-primary transition-colors">
-                          Bấm vào worker để xem hồ sơ
+                          Bấm để xem hồ sơ ứng viên
                         </p>
                       </div>
                     </button>
@@ -2045,9 +2045,9 @@ const MatchedWorkersPanel = ({
             <p className="text-xs text-slate-700 mt-2">
               Chi phí dự kiến:{' '}
               <strong>
-                {(aiInviteUnitCost * selectedIds.size).toLocaleString('vi-VN')} point
+                {(aiInviteUnitCost * selectedIds.size).toLocaleString('vi-VN')} điểm
               </strong>{' '}
-              ({aiInviteUnitCost.toLocaleString('vi-VN')} point / ứng viên)
+              ({aiInviteUnitCost.toLocaleString('vi-VN')} điểm / ứng viên)
             </p>
           </div>
 
@@ -2119,7 +2119,7 @@ export const EmployerDashboard = () => {
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
     useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
-    'Số dư point không đủ để thanh toán tính năng.',
+    'Số dư điểm không đủ để thanh toán tính năng.',
   );
   const [restoredInviteState, setRestoredInviteState] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
@@ -2206,7 +2206,7 @@ export const EmployerDashboard = () => {
   const fallbackBoostPackage = useMemo(
     () => ({
       id: 0,
-      name: `Gói boost ${configuredBoostDays} ngày`,
+      name: `Gói đẩy tin ${configuredBoostDays} ngày`,
       description: 'Gói mặc định theo cấu hình hệ thống',
       durationDays: configuredBoostDays,
       price: configuredBoostPointCost,
@@ -2469,7 +2469,7 @@ export const EmployerDashboard = () => {
       setRestoredInviteState(restored?.inviteState || null);
     }
 
-    toast('Nạp point thành công. Bạn có thể tiếp tục thao tác trước đó.', 'success');
+    toast('Nạp điểm thành công. Bạn có thể tiếp tục thao tác trước đó.', 'success');
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -2517,7 +2517,7 @@ export const EmployerDashboard = () => {
 
   const handleBoostCheckout = async () => {
     if (!selectedBoostJob?.id) {
-      toast('Không xác định được job cần boost', 'error');
+      toast('Không xác định được tin cần đẩy', 'error');
       return;
     }
 
@@ -2534,13 +2534,13 @@ export const EmployerDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
       queryClient.invalidateQueries({ queryKey: ['boosted-jobs'] });
       toast(
-        `Boost thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} point.`,
+        `Đẩy tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} điểm.`,
         'success',
       );
     } catch (error) {
       const normalizedMessage = extractApiErrorMessage(
         error,
-        'Thanh toán boost thất bại',
+        'Thanh toán đẩy tin thất bại',
       );
       if (isInsufficientPointError(error)) {
         setInsufficientPointMessage(normalizedMessage);
@@ -2573,7 +2573,7 @@ export const EmployerDashboard = () => {
       const checkout = checkoutRes?.data || checkoutRes;
       queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
       toast(
-        `Thanh toán đăng tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} point.`,
+        `Thanh toán đăng tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} điểm.`,
         'success',
       );
     } catch (error) {
@@ -2632,7 +2632,7 @@ export const EmployerDashboard = () => {
 
   const handleOpenApplicantProfileFromInvitation = (invitation) => {
     if (!invitation?.worker) {
-      toast('Không lấy được hồ sơ worker.', 'error');
+      toast('Không lấy được hồ sơ ứng viên.', 'error');
       return;
     }
 
@@ -3732,8 +3732,8 @@ export const EmployerDashboard = () => {
         title="Đăng tin nổi bật"
         description={
           selectedBoostJob
-            ? `Xác nhận boost tin bằng point: ${selectedBoostJob.title}`
-            : 'Xác nhận boost tin tuyển dụng bằng point'
+            ? `Xác nhận đẩy tin bằng điểm: ${selectedBoostJob.title}`
+            : 'Xác nhận đẩy tin bằng điểm'
         }
         onClose={() => {
           setBoostModalOpen(false);
@@ -3743,7 +3743,7 @@ export const EmployerDashboard = () => {
         confirmLabel={
           createBoostCheckoutMutation.isPending
             ? 'Đang xử lý...'
-            : 'Boost bằng point'
+            : 'Đẩy tin bằng điểm'
         }
         cancelLabel="Hủy"
         confirmDisabled={createBoostCheckoutMutation.isPending}
@@ -3753,7 +3753,7 @@ export const EmployerDashboard = () => {
         <div className="space-y-4 mt-2">
           <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-              Chọn thời hạn boost
+              Chọn thời hạn đẩy tin
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {boostPackageOptions.map((pkg) => {
@@ -3790,13 +3790,13 @@ export const EmployerDashboard = () => {
                             {durationDays} ngày
                           </p>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            Khoảng {pointPerDay.toLocaleString('vi-VN')} point/ngày
+                            Khoảng {pointPerDay.toLocaleString('vi-VN')} điểm/ngày
                           </p>
                         </div>
                       </div>
                       <div className="text-left sm:text-right sm:shrink-0">
                         <p className="text-base font-extrabold text-slate-900">
-                          {price.toLocaleString('vi-VN')} point
+                          {price.toLocaleString('vi-VN')} điểm
                         </p>
                         {pkg.isDefault ? (
                           <span className="inline-block mt-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
@@ -3826,14 +3826,14 @@ export const EmployerDashboard = () => {
                   {Number(selectedBoostPackage?.price || configuredBoostPointCost).toLocaleString(
                     'vi-VN',
                   )}{' '}
-                  point
+                  điểm
                 </p>
               </div>
             </div>
           </div>
 
           <p className="text-xs text-slate-500">
-            Sau khi xác nhận, hệ thống sẽ trừ point trong ví và kích hoạt nổi bật
+            Sau khi xác nhận, hệ thống sẽ trừ điểm trong ví và bật nổi bật
             ngay lập tức.
           </p>
         </div>
@@ -3892,7 +3892,7 @@ export const EmployerDashboard = () => {
         open={campaignDetailOpen}
         onClose={closeCampaignDetail}
         title={campaignDetailData?.title || 'Chi tiết chiến dịch phỏng vấn'}
-        description="Theo dõi worker đã chọn ca nào và địa điểm phỏng vấn của từng ca."
+        description="Theo dõi ứng viên đã chọn ca nào và địa điểm phỏng vấn."
         variant="custom"
         contentClassName="max-w-5xl"
         bodyClassName="space-y-4"
@@ -4129,10 +4129,10 @@ export const EmployerDashboard = () => {
                 {activeSlotApplicantList.length === 0 ? (
                   <p className="text-sm text-slate-600">
                     {slotApplicantsTab === 'ACCEPTED'
-                      ? 'Chưa có worker nào chọn ca này.'
+                      ? 'Chưa có ứng viên nào chọn ca này.'
                       : slotApplicantsTab === 'PENDING'
-                        ? 'Không có worker nào đang chờ phản hồi.'
-                        : 'Chưa có worker nào từ chối.'}
+                        ? 'Không có ứng viên nào đang chờ phản hồi.'
+                        : 'Chưa có ứng viên nào từ chối.'}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -4148,7 +4148,7 @@ export const EmployerDashboard = () => {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="font-semibold text-slate-900">
                             {invitation.worker?.fullName ||
-                              `Worker #${invitation.workerId}`}
+                              `Ứng viên #${invitation.workerId}`}
                           </p>
                           <Badge
                             variant="outline"
@@ -4326,7 +4326,7 @@ export const EmployerDashboard = () => {
                 </div>
                 <div className="mt-4 pt-4 border-t border-slate-200">
                   <p className="text-slate-500 text-xs mb-1">
-                    Giới thiệu bản thân (Bio)
+                    Tự giới thiệu
                   </p>
                   <p className="font-medium whitespace-pre-wrap text-slate-700">
                     {applicantDetail.user?.workerProfile?.bio ? (
@@ -4426,3 +4426,4 @@ export const EmployerDashboard = () => {
     </DashboardLayout>
   );
 };
+
