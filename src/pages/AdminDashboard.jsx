@@ -189,10 +189,10 @@ export const AdminDashboard = () => {
   });
 
   const kpi = [
-    { label: 'Tổng người dùng', value: statsData?.users?.total || 0 },
-    { label: 'Tổng doanh nghiệp', value: statsData?.companies?.total || 0 },
+    { label: 'Tổng số người dùng trên hệ thống', value: statsData?.users?.total || 0 },
+    { label: 'Tổng số doanh nghiệp trên hệ thống', value: statsData?.companies?.total || 0 },
     {
-      label: 'Tổng doanh thu (VNĐ)',
+      label: 'Tổng doanh thu toàn thời gian(VNĐ)',
       value: new Intl.NumberFormat('vi-VN').format(
         statsData?.payments?.totalRevenue || 0,
       ),
@@ -325,11 +325,11 @@ export const AdminDashboard = () => {
 
   const menu = [
     { key: 'overview', label: 'Tổng quan' },
-    { key: 'payment_packages', label: 'Gói thanh toán' },
+    { key: 'payment_packages', label: 'Quản lý gói' },
     { key: 'users', label: 'Quản lý người dùng' },
     { key: 'sectors', label: 'Quản lý ngành nghề' },
     { key: 'occupations', label: 'Quản lý nghề nghiệp' },
-    { key: 'terms', label: 'Điều khoản' },
+    { key: 'terms', label: 'Cấu hình Điều khoản' },
     { key: 'ai_configs', label: ' Cấu hình trọng số AI' },
   ];
 
@@ -817,7 +817,7 @@ export const AdminDashboard = () => {
           <div className="grid lg:grid-cols-1 gap-6">
             <Card className="p-6 lg:col-span-1">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                <h3 className="text-lg font-semibold">Phân tích tăng trưởng</h3>
+                <h3 className="text-lg font-semibold">Phân tích tăng trưởng theo tháng</h3>
                 <div className="flex items-center gap-2 text-sm font-medium">
                   Năm:
                   <input
@@ -857,7 +857,7 @@ export const AdminDashboard = () => {
               </div>
             </Card>
 
-            <Card className="p-6 lg:col-span-1 border-primary/15 bg-linear-to-br from-white to-slate-50">
+            {/* <Card className="p-6 lg:col-span-1 border-primary/15 bg-gradient-to-br from-white to-slate-50">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold">Gói thanh toán</h3>
@@ -888,12 +888,12 @@ export const AdminDashboard = () => {
                   </p>
                 </div>
               </div>
-            </Card>
+            </Card> */}
 
             <div className="grid lg:grid-cols-3 gap-6">
               <Card className="p-6 w-full lg:col-span-3">
                 <h3 className="text-lg font-semibold mb-4">
-                  Các sự kiện cần chú ý trong tổng quan
+                  Biến động hệ thống
                 </h3>
                 <div className="grid md:grid-cols-3 gap-4">
                   <div className="flex items-center justify-between bg-slate-50 p-5 rounded-xl border border-slate-100">
