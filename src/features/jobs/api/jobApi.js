@@ -94,6 +94,10 @@ export const createBoostCheckoutApi = async ({ jobId, payload }) => {
   return await apiClient.post(`/job/${jobId}/boost/checkout`, payload);
 };
 
+export const createPostingCheckoutApi = async ({ jobId }) => {
+  return await apiClient.post(`/job/${jobId}/posting/checkout`);
+};
+
 export const confirmBoostPaymentApi = async ({ jobId, payload }) => {
   return await apiClient.post(`/job/${jobId}/boost/confirm`, payload);
 };

@@ -15,6 +15,7 @@ import {
   getBoostedJobsApi,
   getBoostPackagesApi,
   createBoostCheckoutApi,
+  createPostingCheckoutApi,
   confirmBoostPaymentApi,
   getSectorsWithOccupations,
   getOccupationsBySector,
@@ -166,6 +167,16 @@ export const useCreateBoostCheckout = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: createBoostCheckoutApi,
+    onSuccess: () => {
+      invalidateJobQueries(queryClient);
+    },
+  });
+};
+
+export const useCreatePostingCheckout = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: createPostingCheckoutApi,
     onSuccess: () => {
       invalidateJobQueries(queryClient);
     },

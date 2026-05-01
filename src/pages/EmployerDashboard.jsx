@@ -61,7 +61,7 @@ import {
   useUpdateApplicationStatus,
   useDeleteJob,
   useCreateBoostCheckout,
-  useBoostPackages,
+  useCreatePostingCheckout,
   useMatchedWorkers,
   useJobDetail,
 } from '@/features/jobs/api/useJobs';
@@ -90,6 +90,13 @@ import interactionPlugin from '@fullcalendar/interaction';
 import viLocale from '@fullcalendar/core/locales/vi';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { useWalletPricing } from '@/features/wallet/api/useWallet';
+import { InsufficientPointModal } from '@/shared/components/wallet/InsufficientPointModal';
+import {
+  consumeWalletResumeState,
+  extractApiErrorMessage,
+  goToWalletTopup,
+  isInsufficientPointError,
+} from '@/shared/utils/walletPointFlow';
 
 const EMPLOYER_MENU = [
   {
@@ -130,24 +137,6 @@ const DASHBOARD_SUBTITLE =
   'Quản lý tin đăng, ứng viên và thông tin công ty của bạn';
 
 const APPLICANTS_TAB_PAGE_SIZE = 10;
-
-const DEFAULT_BOOST_SUBSCRIPTION_PLANS = [
-  {
-    days: 7,
-    name: 'Gói nổi bật 7 ngày',
-    description: 'Phù hợp test nhanh nhu cầu tuyển gấp trong tuần.',
-    price: 50000,
-    accent: 'border-slate-200 bg-white',
-  },
-  {
-    days: 30,
-    name: 'Gói nổi bật 30 ngày',
-    description: 'Được chọn nhiều nhất. Hiển thị dài hạn và tiết kiệm hơn.',
-    price: 100000,
-    badge: 'Mua nhiều - tiết kiệm hơn',
-    accent: 'border-primary bg-primary/5 shadow-sm ring-1 ring-primary/20',
-  },
-];
 
 /** KPI dùng chung (Tổng quan + Thống kê): nền slate, icon vàng brand — đồng bộ, không dùng nhiều màu lạ */
 const buildKpiItems = (overview) => [
@@ -282,25 +271,62 @@ const JobApplicantsModal = ({
   onClose,
   onOpenDetail,
   onOpenCampaignDetail,
+  initialInviteState,
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { data: applicationsResult, isLoading } = useEmployerApplications(
     jobId || undefined,
   );
   const { data: jobDetail } = useJobDetail(jobId || undefined);
-  const [searchText, setSearchText] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(1);
-  const [selectedApplicantIds, setSelectedApplicantIds] = useState(new Set());
-  const [bulkInviteOpen, setBulkInviteOpen] = useState(false);
+  const [searchText, setSearchText] = useState(initialInviteState?.searchText || '');
+  const [statusFilter, setStatusFilter] = useState(
+    initialInviteState?.statusFilter || '',
+  );
+  const [page, setPage] = useState(Number(initialInviteState?.page || 1));
+  const [selectedApplicantIds, setSelectedApplicantIds] = useState(
+    new Set(initialInviteState?.selectedApplicantIds || []),
+  );
+  const [bulkInviteOpen, setBulkInviteOpen] = useState(
+    Boolean(initialInviteState?.bulkInviteOpen),
+  );
   const [bulkInviteSending, setBulkInviteSending] = useState(false);
-  const [bulkInviteMessage, setBulkInviteMessage] = useState('');
-  const [bulkInviteSlots, setBulkInviteSlots] = useState([]);
-  const [selectedInviteSlotId, setSelectedInviteSlotId] = useState(null);
-  const [inviteAllSuitable, setInviteAllSuitable] = useState(false);
+  const [bulkInviteMessage, setBulkInviteMessage] = useState(
+    initialInviteState?.bulkInviteMessage || '',
+  );
+  const [bulkInviteSlots, setBulkInviteSlots] = useState(
+    initialInviteState?.bulkInviteSlots || [],
+  );
+  const [selectedInviteSlotId, setSelectedInviteSlotId] = useState(
+    initialInviteState?.selectedInviteSlotId || null,
+  );
+  const [inviteAllSuitable, setInviteAllSuitable] = useState(
+    Boolean(initialInviteState?.inviteAllSuitable),
+  );
   const [inviteConstraints, setInviteConstraints] = useState(null);
   const [latestCampaignSlots, setLatestCampaignSlots] = useState([]);
   const [loadingInviteConstraints, setLoadingInviteConstraints] =
     useState(false);
+  const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
+    useState(false);
+  const [insufficientPointMessage, setInsufficientPointMessage] = useState(
+    'Số dư point không đủ để gửi lời mời.',
+  );
+
+  useEffect(() => {
+    if (!initialInviteState) return;
+    setSearchText(initialInviteState.searchText || '');
+    setStatusFilter(initialInviteState.statusFilter || '');
+    setPage(Number(initialInviteState.page || 1));
+    setSelectedApplicantIds(
+      new Set(initialInviteState.selectedApplicantIds || []),
+    );
+    setBulkInviteOpen(Boolean(initialInviteState.bulkInviteOpen));
+    setBulkInviteMessage(initialInviteState.bulkInviteMessage || '');
+    setBulkInviteSlots(initialInviteState.bulkInviteSlots || []);
+    setSelectedInviteSlotId(initialInviteState.selectedInviteSlotId || null);
+    setInviteAllSuitable(Boolean(initialInviteState.inviteAllSuitable));
+  }, [initialInviteState]);
   const limit = 5;
 
   const applicantsList = applicationsResult?.data || [];
@@ -940,14 +966,41 @@ const JobApplicantsModal = ({
         toast('Không gửi được lời mời nào. Vui lòng thử lại.', 'error');
       }
     } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Tạo lịch và gửi lời mời thất bại.';
-      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+      const normalizedMessage = extractApiErrorMessage(
+        error,
+        'Tạo lịch và gửi lời mời thất bại.',
+      );
+      if (isInsufficientPointError(error)) {
+        setInsufficientPointMessage(normalizedMessage);
+        setInsufficientPointModalOpen(true);
+      } else {
+        toast(normalizedMessage, 'error');
+      }
     } finally {
       setBulkInviteSending(false);
     }
+  };
+
+  const handleGoToTopupFromInvite = () => {
+    goToWalletTopup({
+      navigate,
+      location,
+      resumePayload: {
+        type: 'invite-campaign',
+        applicantsJobId: Number(jobId),
+        inviteState: {
+          searchText,
+          statusFilter,
+          page,
+          selectedApplicantIds: Array.from(selectedApplicantIds),
+          bulkInviteOpen,
+          bulkInviteMessage,
+          bulkInviteSlots,
+          selectedInviteSlotId,
+          inviteAllSuitable,
+        },
+      },
+    });
   };
 
   const selectedInviteSlot = bulkInviteSlots.find(
@@ -1531,6 +1584,12 @@ const JobApplicantsModal = ({
           </div>
         </div>
       </Modal>
+      <InsufficientPointModal
+        open={insufficientPointModalOpen}
+        onClose={() => setInsufficientPointModalOpen(false)}
+        onGoTopup={handleGoToTopupFromInvite}
+        message={insufficientPointMessage}
+      />
     </Modal>
   );
 };
@@ -2056,6 +2115,12 @@ export const EmployerDashboard = () => {
   const [boostModalOpen, setBoostModalOpen] = useState(false);
   const [selectedBoostJob, setSelectedBoostJob] = useState(null);
   const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
+  const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
+    useState(false);
+  const [insufficientPointMessage, setInsufficientPointMessage] = useState(
+    'Số dư point không đủ để thanh toán tính năng.',
+  );
+  const [restoredInviteState, setRestoredInviteState] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
   const [matchedJobTitle, setMatchedJobTitle] = useState('');
   const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
@@ -2122,35 +2187,24 @@ export const EmployerDashboard = () => {
     [updateApplicantStatus],
   );
   const createBoostCheckoutMutation = useCreateBoostCheckout();
+  const createPostingCheckoutMutation = useCreatePostingCheckout();
   const { data: walletPricingRes } = useWalletPricing();
   const walletPricing = walletPricingRes?.data || walletPricingRes || {};
   const aiInviteUnitCost = walletPricing?.AI_INVITE_POINT_COST_PER_WORKER || 0;
-  const { data: boostPackagesRes } = useBoostPackages();
-  const boostPackages = boostPackagesRes?.items || boostPackagesRes?.data || [];
-  const boostPlans =
-    boostPackages.length > 0
-      ? boostPackages
-          .filter((pkg) => Number(pkg.durationDays) > 0)
-          .map((pkg) => ({
-            id: pkg.id,
-            days: pkg.durationDays,
-            name: pkg.name,
-            description: pkg.description || `Hieu luc ${pkg.durationDays} ngay`,
-            price: pkg.price,
-            badge: pkg.isDefault ? 'Mac dinh' : undefined,
-            accent: 'border-slate-200 bg-white',
-          }))
-      : DEFAULT_BOOST_SUBSCRIPTION_PLANS;
+  const configuredBoostDays = Math.max(
+    1,
+    Number(walletPricing?.BOOST_JOB_DURATION_DAYS || 7),
+  );
+  const configuredBoostPointCost = Math.max(
+    0,
+    Number(walletPricing?.BOOST_JOB_POINT_COST || 50000),
+  );
 
   useEffect(() => {
-    if (!boostPlans.length) return;
-    const selectedExists = boostPlans.some(
-      (plan) => plan.days === selectedBoostPackageDays,
-    );
-    if (!selectedExists) {
-      setSelectedBoostPackageDays(boostPlans[0].days);
+    if (selectedBoostPackageDays !== configuredBoostDays) {
+      setSelectedBoostPackageDays(configuredBoostDays);
     }
-  }, [boostPlans, selectedBoostPackageDays]);
+  }, [configuredBoostDays, selectedBoostPackageDays]);
 
   const applicantsList = applicationsResult?.data || [];
   const filteredApplicants = applicantsList.filter((a) => {
@@ -2356,6 +2410,45 @@ export const EmployerDashboard = () => {
     );
   }, [applicantsJobIdFromUrl, setSearchParams]);
 
+  const walletTopupSuccessFromUrl = searchParams.get('walletTopupSuccess');
+  const resumeKeyFromUrl = searchParams.get('resumeKey');
+  useEffect(() => {
+    if (walletTopupSuccessFromUrl !== '1') return;
+
+    const restored = consumeWalletResumeState(resumeKeyFromUrl);
+    if (restored?.type === 'boost-checkout') {
+      setActive('jobs');
+      setSelectedBoostJob(restored?.selectedBoostJob || null);
+      if (restored?.selectedBoostPackageDays) {
+        setSelectedBoostPackageDays(Number(restored.selectedBoostPackageDays));
+      }
+      setBoostModalOpen(Boolean(restored?.selectedBoostJob));
+    }
+
+    if (restored?.type === 'invite-campaign' && restored?.applicantsJobId) {
+      setActive('jobs');
+      setSelectedJobIdFilter(String(restored.applicantsJobId));
+      setApplicantsModalJobId(Number(restored.applicantsJobId));
+      setRestoredInviteState(restored?.inviteState || null);
+    }
+
+    toast('Nạp point thành công. Bạn có thể tiếp tục thao tác trước đó.', 'success');
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('walletTopupSuccess');
+        next.delete('resumeKey');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [
+    resumeKeyFromUrl,
+    setSearchParams,
+    toast,
+    walletTopupSuccessFromUrl,
+  ]);
+
   useEffect(() => {
     setApplicantsTabPage(1);
   }, [selectedJobIdFilter, statusFilter]);
@@ -2390,11 +2483,6 @@ export const EmployerDashboard = () => {
       return;
     }
 
-    if (!boostPlans.length) {
-      toast('Hiện chưa có gói thanh toán boost đang hoạt động', 'error');
-      return;
-    }
-
     try {
       const checkoutRes = await createBoostCheckoutMutation.mutateAsync({
         jobId: selectedBoostJob.id,
@@ -2412,11 +2500,54 @@ export const EmployerDashboard = () => {
         'success',
       );
     } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Thanh toán boost thất bại';
-      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+      const normalizedMessage = extractApiErrorMessage(
+        error,
+        'Thanh toán boost thất bại',
+      );
+      if (isInsufficientPointError(error)) {
+        setInsufficientPointMessage(normalizedMessage);
+        setInsufficientPointModalOpen(true);
+      } else {
+        toast(normalizedMessage, 'error');
+      }
+    }
+  };
+
+  const handleGoToTopupFromBoost = () => {
+    goToWalletTopup({
+      navigate,
+      location,
+      resumePayload: {
+        type: 'boost-checkout',
+        selectedBoostJob,
+        selectedBoostPackageDays,
+      },
+    });
+  };
+
+  const handleContinuePostingPayment = async (job) => {
+    if (!job?.id) return;
+    try {
+      const checkoutRes = await createPostingCheckoutMutation.mutateAsync({
+        jobId: job.id,
+      });
+      const checkout = checkoutRes?.data || checkoutRes;
+      queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
+      toast(
+        `Thanh toán đăng tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} point.`,
+        'success',
+      );
+    } catch (error) {
+      const normalizedMessage = extractApiErrorMessage(
+        error,
+        'Thanh toán đăng tin thất bại',
+      );
+      if (isInsufficientPointError(error)) {
+        setInsufficientPointMessage(normalizedMessage);
+        setInsufficientPointModalOpen(true);
+      } else {
+        toast(normalizedMessage, 'error');
+      }
     }
   };
 
@@ -3082,7 +3213,23 @@ export const EmployerDashboard = () => {
                                         className="px-4 text-center"
                                         onClick={(e) => e.stopPropagation()}
                                       >
-                                        {isBoostedActive ? (
+                                        {job.status === 'WARNING' ? (
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            className="h-7 text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200"
+                                            onClick={() =>
+                                              handleContinuePostingPayment(job)
+                                            }
+                                            disabled={
+                                              createPostingCheckoutMutation.isPending
+                                            }
+                                          >
+                                            {createPostingCheckoutMutation.isPending
+                                              ? 'Đang xử lý...'
+                                              : 'Tiếp tục thanh toán'}
+                                          </Button>
+                                        ) : isBoostedActive ? (
                                           <Badge
                                             variant="secondary"
                                             className="bg-primary/15 text-primary border border-primary/25 hover:bg-primary/20 cursor-default font-medium"
@@ -3101,9 +3248,7 @@ export const EmployerDashboard = () => {
                                             className="h-7 text-xs text-primary bg-primary/10 hover:bg-primary/20 rounded-lg"
                                             onClick={() => {
                                               setSelectedBoostJob(job);
-                                              setSelectedBoostPackageDays(
-                                                boostPlans[0]?.days || 7,
-                                              );
+                                              setSelectedBoostPackageDays(configuredBoostDays);
                                               setBoostModalOpen(true);
                                             }}
                                             disabled={
@@ -3185,6 +3330,28 @@ export const EmployerDashboard = () => {
                                                   >
                                                     <Sparkles size={14} /> Đề
                                                     xuất ứng viên
+                                                  </Button>
+                                                )}
+
+                                                {job.status === 'WARNING' && (
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="justify-start gap-2 hover:bg-amber-50 hover:text-amber-700 rounded-lg font-medium text-slate-700 h-9"
+                                                    onClick={() => {
+                                                      setJobOptionsPopoverOpenId(
+                                                        null,
+                                                      );
+                                                      handleContinuePostingPayment(
+                                                        job,
+                                                      );
+                                                    }}
+                                                    disabled={
+                                                      createPostingCheckoutMutation.isPending
+                                                    }
+                                                  >
+                                                    <Wallet size={14} /> Tiếp tục
+                                                    thanh toán
                                                   </Button>
                                                 )}
 
@@ -3520,8 +3687,8 @@ export const EmployerDashboard = () => {
         title="Đăng tin nổi bật"
         description={
           selectedBoostJob
-            ? `Chọn gói để tăng hiển thị cho tin: ${selectedBoostJob.title}`
-            : 'Chọn gói nổi bật cho tin tuyển dụng'
+            ? `Xác nhận boost tin bằng point: ${selectedBoostJob.title}`
+            : 'Xác nhận boost tin tuyển dụng bằng point'
         }
         onClose={() => {
           setBoostModalOpen(false);
@@ -3537,47 +3704,24 @@ export const EmployerDashboard = () => {
         confirmDisabled={createBoostCheckoutMutation.isPending}
       >
         <div className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {boostPlans.map((plan) => {
-              const isActive = selectedBoostPackageDays === plan.days;
-
-              return (
-                <label
-                  key={plan.days}
-                  className={`relative flex flex-col gap-2 p-4 rounded-2xl border cursor-pointer transition-all ${
-                    isActive
-                      ? 'border-primary ring-2 ring-primary/30 bg-primary/10'
-                      : plan.accent
-                  }`}
-                >
-                  {plan.badge && (
-                    <span className="absolute -top-2 right-3 rounded-full bg-primary text-white text-[10px] px-2 py-1 font-semibold tracking-wide">
-                      {plan.badge}
-                    </span>
-                  )}
-
-                  <div className="flex items-start gap-3">
-                    <input
-                      type="radio"
-                      name="pkg"
-                      checked={isActive}
-                      onChange={() => setSelectedBoostPackageDays(plan.days)}
-                      className="mt-1 w-4 h-4 text-primary"
-                    />
-                    <div>
-                      <p className="font-bold text-slate-800">{plan.name}</p>
-                      <p className="text-sm text-slate-600 mt-1">
-                        {plan.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  <p className="text-2xl font-extrabold text-slate-900">
-                    {plan.price.toLocaleString('vi-VN')}đ
-                  </p>
-                </label>
-              );
-            })}
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+              Gói boost theo cấu hình hệ thống
+            </p>
+            <div className="mt-2 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-sm text-slate-600">
+                  Thời gian nổi bật: <strong>{selectedBoostPackageDays} ngày</strong>
+                </p>
+                <p className="text-sm text-slate-600 mt-1">
+                  Chi phí mỗi lần boost:{' '}
+                  <strong>{configuredBoostPointCost.toLocaleString('vi-VN')} point</strong>
+                </p>
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900">
+                {configuredBoostPointCost.toLocaleString('vi-VN')}đ
+              </p>
+            </div>
           </div>
 
           <p className="text-xs text-slate-500">
@@ -3586,6 +3730,13 @@ export const EmployerDashboard = () => {
           </p>
         </div>
       </Modal>
+
+      <InsufficientPointModal
+        open={insufficientPointModalOpen}
+        onClose={() => setInsufficientPointModalOpen(false)}
+        onGoTopup={handleGoToTopupFromBoost}
+        message={insufficientPointMessage}
+      />
 
       {/* <Modal
         open={bulkInviteOpen}
@@ -3615,9 +3766,14 @@ export const EmployerDashboard = () => {
 
       <JobApplicantsModal
         jobId={applicantsModalJobId}
-        onClose={() => setApplicantsModalJobId(null)}
+        onClose={() => {
+          setApplicantsModalJobId(null);
+          setRestoredInviteState(null);
+        }}
+        initialInviteState={restoredInviteState}
         onOpenDetail={(a) => {
           setApplicantsModalJobId(null);
+          setRestoredInviteState(null);
           setApplicantDetail(a);
           setApplicantStatus(getEditableApplicantStatus(a.status));
         }}

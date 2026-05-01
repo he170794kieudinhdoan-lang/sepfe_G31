@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,25 +12,41 @@ import {
   useTopupCheckout,
   useWalletTransactions,
 } from '@/features/wallet/api/useWallet';
-import { LayoutDashboard, Briefcase, BarChart3, Wallet } from 'lucide-react';
+import {
+  LayoutDashboard,
+  Briefcase,
+  BarChart3,
+  Wallet,
+  MessageCircle,
+  Home,
+} from 'lucide-react';
 
 const EMPLOYER_MENU = [
   { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, path: '/employer' },
   { key: 'jobs', label: 'Tin tuyển dụng', icon: Briefcase, path: '/employer/jobs' },
   { key: 'stats', label: 'Thống kê', icon: BarChart3, path: '/employer/stats' },
   { key: 'wallet', label: 'Ví point', icon: Wallet, path: '/employer/wallet' },
+  { key: 'chat', label: 'Tin nhắn', icon: MessageCircle, path: '/chat', externalNav: true },
+  { key: 'home', label: 'Trang chủ', icon: Home, path: '/', externalNav: true },
 ];
 
 export const EmployerWalletPage = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [topupAmount, setTopupAmount] = useState('100000');
   const [checkoutData, setCheckoutData] = useState(null);
   const [topupStartBalance, setTopupStartBalance] = useState(0);
+  const [txPage, setTxPage] = useState(1);
+  const txLimit = 10;
 
   const { data: walletRes, refetch: refetchWallet } = useMyWallet();
   const wallet = walletRes?.data || walletRes;
-  const { data: txRes } = useWalletTransactions({ page: 1, limit: 20 });
-  const transactions = txRes?.items || txRes?.data || [];
+  const { data: txRes } = useWalletTransactions({ page: txPage, limit: txLimit });
+  const txPayload = txRes?.data || txRes;
+  const transactions = txPayload?.items || [];
+  const txMeta = txPayload?.meta;
+  const totalPages = Math.max(Number(txMeta?.totalPage || 1), 1);
   const topupMutation = useTopupCheckout();
 
   const amountNumber = useMemo(() => Number(topupAmount || 0), [topupAmount]);
@@ -60,9 +77,24 @@ export const EmployerWalletPage = () => {
 
     if (currentBalance >= expectedBalance) {
       toast('Đã xác nhận thanh toán. Point đã được cộng vào ví.', 'success');
+      const returnTo = searchParams.get('returnTo');
+      const resumeKey = searchParams.get('resumeKey');
+      if (returnTo) {
+        const [returnPath, returnQuery = ''] = returnTo.split('?');
+        const nextParams = new URLSearchParams(returnQuery);
+        nextParams.set('walletTopupSuccess', '1');
+        if (resumeKey) {
+          nextParams.set('resumeKey', resumeKey);
+        }
+        navigate(
+          nextParams.toString() ? `${returnPath}?${nextParams.toString()}` : returnPath,
+          { replace: true },
+        );
+        return;
+      }
       setCheckoutData(null);
     }
-  }, [checkoutData, topupStartBalance, wallet?.balancePoint, toast]);
+  }, [checkoutData, navigate, searchParams, topupStartBalance, wallet?.balancePoint, toast]);
 
   useEffect(() => {
     if (!checkoutData) return;
@@ -154,6 +186,32 @@ export const EmployerWalletPage = () => {
                 )}
               </tbody>
             </table>
+          </div>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground">
+              Trang {txPage}/{totalPages}
+              {txMeta?.total ? ` • Tổng ${txMeta.total.toLocaleString('vi-VN')} giao dịch` : ''}
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setTxPage((prev) => Math.max(prev - 1, 1))}
+                disabled={txPage <= 1}
+              >
+                Trang trước
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setTxPage((prev) => Math.min(prev + 1, totalPages))}
+                disabled={txPage >= totalPages}
+              >
+                Trang sau
+              </Button>
+            </div>
           </div>
         </Card>
       </div>
