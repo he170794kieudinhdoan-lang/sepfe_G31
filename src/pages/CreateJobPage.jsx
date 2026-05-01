@@ -680,7 +680,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                                 type="text"
                                 placeholder="Từ (Tối thiểu 0)"
                                 className={`h-11 bg-white ${errors.salaryMin ? 'border-red-500' : ''}`}
-                                value={value ? new Intl.NumberFormat('en-US').format(value) : ''}
+                                value={value ? formatVND(value) : ''}
                                 onChange={(e) => {
                                   const rawValue = e.target.value.replace(/[^0-9]/g, '');
                                   onChange(rawValue ? Number(rawValue) : undefined);
@@ -701,7 +701,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                                 type="text"
                                 placeholder="Đến"
                                 className={`h-11 bg-white ${errors.salaryMax ? 'border-red-500' : ''}`}
-                                value={value ? new Intl.NumberFormat('en-US').format(value) : ''}
+                                value={value ? formatVND(value) : ''}
                                 onChange={(e) => {
                                   const rawValue = e.target.value.replace(/[^0-9]/g, '');
                                   onChange(rawValue ? Number(rawValue) : undefined);
