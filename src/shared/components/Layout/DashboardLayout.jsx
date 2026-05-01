@@ -94,8 +94,8 @@ export const DashboardLayout = ({
               </div>
               <div className="flex items-center gap-2">
                 {isEmployer && (
-                  <div className="hidden sm:flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                    Số dư: {(wallet?.balancePoint || 0).toLocaleString('vi-VN')} point
+                  <div className="hidden sm:flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+                    Số dư: {(wallet?.balancePoint || 0).toLocaleString('vi-VN')} điểm
                   </div>
                 )}
                 <Button

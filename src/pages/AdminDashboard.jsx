@@ -325,12 +325,12 @@ export const AdminDashboard = () => {
 
   const menu = [
     { key: 'overview', label: 'Tổng quan' },
-    { key: 'payment_packages', label: 'Quản lý gói' },
+    { key: 'payment_packages', label: 'Thiết lập thanh toán' },
     { key: 'users', label: 'Quản lý người dùng' },
     { key: 'sectors', label: 'Quản lý ngành nghề' },
     { key: 'occupations', label: 'Quản lý nghề nghiệp' },
-    { key: 'terms', label: 'Cấu hình Điều khoản' },
-    { key: 'ai_configs', label: ' Cấu hình trọng số AI' },
+    { key: 'terms', label: 'Điều khoản sử dụng' },
+    { key: 'ai_configs', label: 'Thiết lập trọng số AI' },
   ];
 
   const fetchSectors = async () => {
@@ -643,19 +643,19 @@ export const AdminDashboard = () => {
     );
 
     if (jobPostCost < 1000) {
-      toast('Chi phí đăng job phải lớn hơn hoặc bằng 1,000 point', 'error');
+      toast('Chi phí đăng tin phải từ 1.000 điểm trở lên', 'error');
       return;
     }
     if (boostCost < 1000) {
-      toast('Chi phí boost job phải lớn hơn hoặc bằng 1,000 point', 'error');
+      toast('Chi phí đẩy tin phải từ 1.000 điểm trở lên', 'error');
       return;
     }
     if (!Number.isFinite(boostDays) || boostDays < 1) {
-      toast('Thời gian boost phải lớn hơn hoặc bằng 1 ngày', 'error');
+      toast('Thời gian đẩy tin phải từ 1 ngày trở lên', 'error');
       return;
     }
     if (inviteCost < 100) {
-      toast('Chi phí AI gợi ý phải lớn hơn hoặc bằng 100 point', 'error');
+      toast('Chi phí AI gợi ý phải từ 100 điểm trở lên', 'error');
       return;
     }
 
@@ -666,12 +666,12 @@ export const AdminDashboard = () => {
         BOOST_JOB_DURATION_DAYS: boostDays,
         AI_INVITE_POINT_COST_PER_WORKER: inviteCost,
       });
-      toast('Cập nhật bảng giá point thành công');
+      toast('Đã cập nhật mức điểm thành công');
     } catch (error) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Không thể cập nhật bảng giá point';
+        'Không thể cập nhật mức điểm';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     }
   };
@@ -693,11 +693,11 @@ export const AdminDashboard = () => {
     );
     const price = parseCommaNumber(boostPackageForm.price);
     if (!Number.isFinite(durationDays) || durationDays < 1) {
-      toast('Số ngày gói boost phải lớn hơn hoặc bằng 1', 'error');
+      toast('Số ngày của gói phải từ 1 ngày trở lên', 'error');
       return;
     }
     if (!Number.isFinite(price) || price < 1000) {
-      toast('Giá gói boost phải lớn hơn hoặc bằng 1.000 point', 'error');
+      toast('Giá gói đẩy tin phải từ 1.000 điểm trở lên', 'error');
       return;
     }
 
@@ -706,20 +706,20 @@ export const AdminDashboard = () => {
     try {
       await createPaymentPackageMutation.mutateAsync({
         orderType: 'BOOST_JOB',
-        name: normalizedName || `Gói boost ${durationDays} ngày`,
+        name: normalizedName || `Gói đẩy tin ${durationDays} ngày`,
         description: boostPackageForm.description?.trim() || undefined,
         durationDays,
         price,
         isDefault: Boolean(boostPackageForm.isDefault),
         isActive: Boolean(boostPackageForm.isActive),
       });
-      toast('Tạo gói boost thành công', 'success');
+      toast('Tạo gói đẩy tin thành công', 'success');
       resetBoostPackageForm();
     } catch (error) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Không thể tạo gói boost';
+        'Không thể tạo gói đẩy tin';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     }
   };
@@ -744,11 +744,11 @@ export const AdminDashboard = () => {
     );
     const price = parseCommaNumber(editingBoostPackageForm.price);
     if (!Number.isFinite(durationDays) || durationDays < 1) {
-      toast('Số ngày gói boost phải lớn hơn hoặc bằng 1', 'error');
+      toast('Số ngày của gói phải từ 1 ngày trở lên', 'error');
       return;
     }
     if (!Number.isFinite(price) || price < 1000) {
-      toast('Giá gói boost phải lớn hơn hoặc bằng 1.000 point', 'error');
+      toast('Giá gói đẩy tin phải từ 1.000 điểm trở lên', 'error');
       return;
     }
 
@@ -759,7 +759,7 @@ export const AdminDashboard = () => {
           orderType: 'BOOST_JOB',
           name:
             editingBoostPackageForm.name?.trim() ||
-            `Gói boost ${durationDays} ngày`,
+            `Gói đẩy tin ${durationDays} ngày`,
           description: editingBoostPackageForm.description?.trim() || '',
           durationDays,
           price,
@@ -767,13 +767,13 @@ export const AdminDashboard = () => {
           isActive: Boolean(editingBoostPackageForm.isActive),
         },
       });
-      toast('Cập nhật gói boost thành công', 'success');
+      toast('Cập nhật gói đẩy tin thành công', 'success');
       setEditingBoostPackageId(null);
     } catch (error) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Không thể cập nhật gói boost';
+        'Không thể cập nhật gói đẩy tin';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     }
   };
@@ -789,7 +789,7 @@ export const AdminDashboard = () => {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Không thể cập nhật gói boost';
+        'Không thể cập nhật gói đẩy tin';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     }
   };
@@ -798,7 +798,7 @@ export const AdminDashboard = () => {
 
   return (
     <DashboardLayout
-      title="Admin Dashboard"
+      title="Trang quản trị hệ thống"
       menu={menu}
       activeKey={active}
       onSelect={setActive}
@@ -862,7 +862,7 @@ export const AdminDashboard = () => {
                 <div>
                   <h3 className="text-lg font-semibold">Gói thanh toán</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Quản lý giá gói boost, gói đăng tin và trạng thái hoạt động.
+                    Quản lý mức giá gói đẩy tin và trạng thái áp dụng.
                   </p>
                 </div>
                 <Button onClick={() => setActive('payment_packages')} className="rounded-xl">
@@ -949,21 +949,21 @@ export const AdminDashboard = () => {
           <Card className="p-6 border-primary/20 bg-linear-to-br from-amber-50/40 to-white">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold">Bảng giá point hệ thống</h3>
+                <h3 className="text-lg font-semibold">Thiết lập mức điểm</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Mỗi cấu hình là một khối riêng để dễ nhập và tránh nhầm lẫn.
+                  Cập nhật nhanh mức điểm phải trả cho các thao tác chính của nhà tuyển dụng.
                 </p>
               </div>
               <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
-                1.000đ = 1.000 point
+                1.000đ = 1.000 điểm
               </Badge>
             </div>
           </Card>
 
           <div className="grid md:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2 shadow-xs">
-              <p className="text-sm font-semibold text-slate-800">Đăng job</p>
-              <p className="text-xs text-slate-500">Số point trừ mỗi lần xuất bản tin.</p>
+              <p className="text-sm font-semibold text-slate-800">Đăng tin tuyển dụng</p>
+              <p className="text-xs text-slate-500">Số điểm trừ cho mỗi lần đăng tin.</p>
               <Input
                 type="text"
                 inputMode="numeric"
@@ -979,8 +979,8 @@ export const AdminDashboard = () => {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2 shadow-xs">
-              <p className="text-sm font-semibold text-slate-800">Boost job</p>
-              <p className="text-xs text-slate-500">Fallback khi chưa có gói boost tương ứng.</p>
+              <p className="text-sm font-semibold text-slate-800">Đẩy tin tuyển dụng</p>
+              <p className="text-xs text-slate-500">Mức điểm mặc định khi chưa chọn gói đẩy tin.</p>
               <Input
                 type="text"
                 inputMode="numeric"
@@ -996,8 +996,8 @@ export const AdminDashboard = () => {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2 shadow-xs">
-              <p className="text-sm font-semibold text-slate-800">Thời gian boost job</p>
-              <p className="text-xs text-slate-500">Fallback khi chưa có gói active phù hợp.</p>
+              <p className="text-sm font-semibold text-slate-800">Thời gian đẩy tin</p>
+              <p className="text-xs text-slate-500">Số ngày mặc định khi chưa có gói phù hợp.</p>
               <Input
                 type="text"
                 inputMode="numeric"
@@ -1014,7 +1014,7 @@ export const AdminDashboard = () => {
 
             <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2 shadow-xs">
               <p className="text-sm font-semibold text-slate-800">AI gợi ý ứng viên</p>
-              <p className="text-xs text-slate-500">Point trừ trên mỗi worker khi gửi lời mời.</p>
+              <p className="text-xs text-slate-500">Số điểm trừ cho mỗi ứng viên được mời.</p>
               <Input
                 type="text"
                 inputMode="numeric"
@@ -1037,16 +1037,16 @@ export const AdminDashboard = () => {
             >
               {updatePointPricingMutation.isPending
                 ? 'Đang lưu...'
-                : 'Lưu bảng giá point'}
+                : 'Lưu thiết lập điểm'}
             </Button>
           </div>
 
           <Card className="p-6 space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-lg font-semibold">Gói Boost Job</h3>
+                <h3 className="text-lg font-semibold">Gói đẩy tin tuyển dụng</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Admin có thể cấu hình nhiều gói boost theo thời hạn khác nhau (7 ngày, 30 ngày, ...).
+                  Tạo nhiều gói theo số ngày và mức điểm để nhà tuyển dụng dễ chọn.
                 </p>
               </div>
               <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -1055,10 +1055,10 @@ export const AdminDashboard = () => {
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-              <p className="text-sm font-semibold text-slate-800">Tạo gói boost mới</p>
+              <p className="text-sm font-semibold text-slate-800">Tạo gói đẩy tin mới</p>
               <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3">
                 <Input
-                  placeholder="Tên gói (vd: Gói boost 7 ngày)"
+                  placeholder="Tên gói (ví dụ: Đẩy tin 7 ngày)"
                   value={boostPackageForm.name}
                   onChange={(e) =>
                     setBoostPackageForm((prev) => ({ ...prev, name: e.target.value }))
@@ -1079,7 +1079,7 @@ export const AdminDashboard = () => {
                 <Input
                   type="text"
                   inputMode="numeric"
-                  placeholder="Giá point"
+                  placeholder="Giá điểm"
                   value={boostPackageForm.price}
                   onChange={(e) =>
                     setBoostPackageForm((prev) => ({
@@ -1122,20 +1122,22 @@ export const AdminDashboard = () => {
                     }))
                   }
                 >
-                  {boostPackageForm.isActive ? 'Trạng thái: Active' : 'Trạng thái: Inactive'}
+                  {boostPackageForm.isActive
+                    ? 'Trạng thái: Đang áp dụng'
+                    : 'Trạng thái: Tạm ngưng'}
                 </Button>
                 <Button
                   onClick={handleCreateBoostPackage}
                   disabled={createPaymentPackageMutation.isPending}
                 >
-                  {createPaymentPackageMutation.isPending ? 'Đang tạo...' : 'Tạo gói'}
+                  {createPaymentPackageMutation.isPending ? 'Đang tạo...' : 'Tạo gói mới'}
                 </Button>
               </div>
             </div>
 
             {boostPackages.length === 0 ? (
               <div className="rounded-xl border border-dashed border-slate-300 p-6 text-sm text-slate-500 text-center">
-                Chưa có gói boost nào. Hãy tạo gói 7 ngày, 30 ngày hoặc gói tuỳ chỉnh.
+                Chưa có gói đẩy tin. Hãy tạo gói mới để bắt đầu sử dụng.
               </div>
             ) : (
               <div className="grid lg:grid-cols-2 gap-4">
@@ -1147,7 +1149,8 @@ export const AdminDashboard = () => {
                         <div>
                           <p className="text-base font-semibold text-slate-900">{pkg.name}</p>
                           <p className="text-sm text-slate-500 mt-1">
-                            {Number(pkg.durationDays || 0)} ngày • {Number(pkg.price || 0).toLocaleString('vi-VN')} point
+                            {Number(pkg.durationDays || 0)} ngày •{' '}
+                            {Number(pkg.price || 0).toLocaleString('vi-VN')} điểm
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-1.5 justify-end">
@@ -1158,7 +1161,7 @@ export const AdminDashboard = () => {
                             variant="outline"
                             className={pkg.isActive ? 'text-emerald-700 border-emerald-200 bg-emerald-50' : 'text-slate-600'}
                           >
-                            {pkg.isActive ? 'Active' : 'Inactive'}
+                            {pkg.isActive ? 'Đang áp dụng' : 'Tạm ngưng'}
                           </Badge>
                         </div>
                       </div>
@@ -1235,7 +1238,7 @@ export const AdminDashboard = () => {
                                 }))
                               }
                             >
-                              {editingBoostPackageForm.isActive ? 'Active' : 'Inactive'}
+                              {editingBoostPackageForm.isActive ? 'Đang áp dụng' : 'Tạm ngưng'}
                             </Button>
                             <Button
                               size="sm"
@@ -1265,12 +1268,14 @@ export const AdminDashboard = () => {
                               handleQuickToggleBoostPackage(
                                 pkg,
                                 { isActive: !pkg.isActive },
-                                pkg.isActive ? 'Đã tạm ngưng gói boost' : 'Đã kích hoạt gói boost',
+                                pkg.isActive
+                                  ? 'Đã tạm ngưng gói'
+                                  : 'Đã mở lại gói',
                               )
                             }
                             disabled={updatePaymentPackageMutation.isPending}
                           >
-                            {pkg.isActive ? 'Tạm ngưng' : 'Kích hoạt'}
+                            {pkg.isActive ? 'Tạm dừng' : 'Mở lại'}
                           </Button>
                           <Button
                             size="sm"
@@ -1311,10 +1316,10 @@ export const AdminDashboard = () => {
                 })
               }
             >
-              <option value="">Role</option>
-              <option value="WORKER">Worker</option>
-              <option value="EMPLOYER">Employer</option>
-              <option value="MANAGER">Manager</option>
+              <option value="">Vai trò</option>
+              <option value="WORKER">Người lao động</option>
+              <option value="EMPLOYER">Nhà tuyển dụng</option>
+              <option value="MANAGER">Quản lý</option>
             </select>
             <select
               className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
@@ -1326,9 +1331,9 @@ export const AdminDashboard = () => {
                 })
               }
             >
-              <option value="">Status</option>
-              <option value="ACTIVE">Active</option>
-              <option value="DELETED">Disabled</option>
+              <option value="">Trạng thái</option>
+              <option value="ACTIVE">Đang hoạt động</option>
+              <option value="DELETED">Đã vô hiệu</option>
             </select>
             <Input
               type="date"
@@ -1370,7 +1375,7 @@ export const AdminDashboard = () => {
                 setUserFilters(initialUserFilters);
               }}
             >
-              Reset
+              Làm mới bộ lọc
             </Button>
           </Card>
 
@@ -1387,12 +1392,12 @@ export const AdminDashboard = () => {
                 <table className="w-full text-sm">
                   <thead className="text-left text-muted-foreground">
                     <tr className="border-b">
-                      <th className="py-2 font-medium">Name</th>
+                      <th className="py-2 font-medium">Họ tên</th>
                       <th className="font-medium">Email</th>
-                      <th className="font-medium">Role</th>
-                      <th className="font-medium">Status</th>
-                      <th className="font-medium">Created date</th>
-                      <th className="font-medium">Actions</th>
+                      <th className="font-medium">Vai trò</th>
+                      <th className="font-medium">Trạng thái</th>
+                      <th className="font-medium">Ngày tạo</th>
+                      <th className="font-medium">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1419,7 +1424,7 @@ export const AdminDashboard = () => {
                                 : ''
                             }
                           >
-                            {user.status === 'ACTIVE' ? 'Active' : 'Disabled'}
+                            {user.status === 'ACTIVE' ? 'Đang hoạt động' : 'Đã vô hiệu'}
                           </Badge>
                         </td>
                         <td className="text-slate-600">
@@ -1444,7 +1449,7 @@ export const AdminDashboard = () => {
                               setConfirmOpen(true);
                             }}
                           >
-                            {user.status === 'ACTIVE' ? 'Disable' : 'Enable'}
+                            {user.status === 'ACTIVE' ? 'Vô hiệu hóa' : 'Kích hoạt lại'}
                           </Button>
                         </td>
                       </tr>
@@ -1486,8 +1491,8 @@ export const AdminDashboard = () => {
               <thead className="text-left text-muted-foreground">
                 <tr className="border-b">
                   <th className="py-2">Sector name</th>
-                  <th>Created</th>
-                  <th>Actions</th>
+                  <th>Ngày tạo</th>
+                  <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -1522,7 +1527,7 @@ export const AdminDashboard = () => {
                             setSectorModal(true);
                           }}
                         >
-                          Edit
+                          Sửa
                         </Button>
 
                         <Button
@@ -1531,7 +1536,7 @@ export const AdminDashboard = () => {
                           className="rounded-full"
                           onClick={() => setSectorToDelete(sector)}
                         >
-                          Delete
+                          Xóa
                         </Button>
                       </td>
                     </tr>
@@ -1637,7 +1642,7 @@ export const AdminDashboard = () => {
                               setOccupationModal(true);
                             }}
                           >
-                            Edit
+                            Sửa
                           </Button>
 
                           <Button
@@ -1646,7 +1651,7 @@ export const AdminDashboard = () => {
                             className="rounded-full"
                             onClick={() => setOccupationToDelete(occ)}
                           >
-                            Delete
+                            Xóa
                           </Button>
                         </td>
                       </tr>

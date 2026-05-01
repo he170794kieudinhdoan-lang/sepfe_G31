@@ -337,7 +337,7 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
         <div className="mb-6 pt-2">
           <h1 className="text-2xl font-semibold">Chỉnh sửa tin tuyển dụng</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Hoàn thành các bước để cập nhập tin tuyển dụng
+            Hoàn thành các bước để cập nhật tin tuyển dụng
           </p>
         </div>
 
@@ -730,3 +730,4 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
     </div>
   );
 };
+
