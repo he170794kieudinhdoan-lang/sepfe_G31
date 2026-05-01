@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -103,6 +106,129 @@ const splitAddressParts = (address = '') =>
     .split(',')
     .map((part) => part.trim())
     .filter(Boolean);
+
+const WEBSITE_SHAPE = /^[^\s]+\.[^\s]+$/;
+
+/** CompanyRegisterPage gán `companyRegistrationEditMode = isEdit` mỗi render (trước submit/validate). */
+let companyRegistrationEditMode = false;
+let companyRegistrationHasExistingLogo = false;
+let companyRegistrationHasExistingLicense = false;
+
+const companyRegistrationSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(1, 'Tên công ty không được để trống')
+      .min(3, 'Tên công ty phải từ 3 – 100 ký tự')
+      .max(100, 'Tên công ty phải từ 3 – 100 ký tự'),
+    taxCode: z
+      .string()
+      .trim()
+      .min(1, 'Mã số thuế không được để trống')
+      .regex(/^[0-9]{10,13}$/, 'Mã số thuế phải từ 10 – 13 chữ số'),
+    address: z
+      .string()
+      .trim()
+      .min(1, 'Địa chỉ không được để trống')
+      .min(5, 'Địa chỉ phải từ 5 – 255 ký tự')
+      .max(255, 'Địa chỉ phải từ 5 – 255 ký tự'),
+    description: z.string(),
+    provinceCode: z
+      .string()
+      .trim()
+      .min(1, 'Vui lòng chọn Tỉnh / Thành phố'),
+    wardCode: z
+      .string()
+      .trim()
+      .min(1, 'Vui lòng chọn Xã / Phường'),
+    website: z
+      .string()
+      .trim()
+      .min(1, 'Website không được để trống')
+      .regex(WEBSITE_SHAPE, 'Website không hợp lệ (VD: tencongty.vn)'),
+    logoFile: z.any().optional().nullable(),
+    businessLicenseFile: z.any().optional().nullable(),
+  })
+  .superRefine((data, ctx) => {
+    const plain = getPlainTextFromHtml(data.description || '');
+    if (!plain) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Mô tả không được để trống',
+        path: ['description'],
+      });
+    } else if (plain.length < 10) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Mô tả phải tối thiểu 10 ký tự',
+        path: ['description'],
+      });
+    }
+  })
+  .superRefine((data, ctx) => {
+    const hasLogo = data.logoFile instanceof File || companyRegistrationHasExistingLogo;
+    if (!hasLogo) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Logo không được để trống',
+        path: ['logoFile'],
+      });
+    }
+  })
+  .superRefine((data, ctx) => {
+    const hasLicense =
+      data.businessLicenseFile instanceof File ||
+      companyRegistrationHasExistingLicense;
+    if (!hasLicense) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Giấy phép kinh doanh không được để trống',
+        path: ['businessLicenseFile'],
+      });
+    }
+  })
+  .superRefine((data, ctx) => {
+    const f = data.logoFile;
+    if (f instanceof File) {
+      if (!['image/jpeg', 'image/png'].includes(f.type)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Logo phải là file JPG hoặc PNG',
+          path: ['logoFile'],
+        });
+      }
+      if (f.size > 2 * 1024 * 1024) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Logo không được vượt quá 2MB',
+          path: ['logoFile'],
+        });
+      }
+    }
+  })
+  .superRefine((data, ctx) => {
+    const f = data.businessLicenseFile;
+    if (f instanceof File) {
+      const ok = ['application/pdf', 'image/jpeg', 'image/png'].includes(
+        f.type,
+      );
+      if (!ok) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Giấy phép phải là PDF, JPG hoặc PNG',
+          path: ['businessLicenseFile'],
+        });
+      }
+      if (f.size > 5 * 1024 * 1024) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Giấy phép không được vượt quá 5MB',
+          path: ['businessLicenseFile'],
+        });
+      }
+    }
+  });
 
 const EditorButton = ({ onClick, isActive, children, title }) => (
   <button
@@ -269,20 +395,10 @@ const CompanyDescriptionEditor = ({ value, onChange }) => {
 
 export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const navigate = useNavigate();
-  const { toast, clearToasts } = useToast();
+  const { toast } = useToast();
 
   const logoInputRef = useRef(null);
   const licenseInputRef = useRef(null);
-
-  const [form, setForm] = useState({
-    name: '',
-    taxCode: '',
-    address: '',
-    description: '',
-    website: '',
-    logoFile: null,
-    businessLicenseFile: null,
-  });
 
   const [companyId, setCompanyId] = useState(null);
   const [logoUrl, setLogoUrl] = useState(null);
@@ -291,7 +407,6 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const [licensePreview, setLicensePreview] = useState(null);
   const [isEdit, setIsEdit] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [initialForm, setInitialForm] = useState(null);
   const [provinces, setProvinces] = useState([]);
   const [wards, setWards] = useState([]);
   const [selectedProvinceCode, setSelectedProvinceCode] = useState('');
@@ -309,6 +424,52 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   const { mutateAsync: createCompanyMutate } = useCreateCompany();
   const { mutateAsync: updateCompanyMutate } = useUpdateCompany();
 
+  const {
+    register,
+    handleSubmit: rhfHandleSubmit,
+    control,
+    watch,
+    setValue,
+    reset,
+    formState: { errors, submitCount },
+  } = useForm({
+    resolver: zodResolver(companyRegistrationSchema),
+    mode: 'onSubmit',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      name: '',
+      taxCode: '',
+      address: '',
+      description: '',
+      website: '',
+      logoFile: null,
+      businessLicenseFile: null,
+      provinceCode: '',
+      wardCode: '',
+    },
+  });
+
+  /** Đồng bộ mã tỉnh/xã vào giá trị form; validate khi đã thử submit (tránh báo lỗi ngay khi vào trang). */
+  useEffect(() => {
+    setValue('provinceCode', selectedProvinceCode, {
+      shouldValidate: submitCount > 0,
+    });
+  }, [selectedProvinceCode, setValue, submitCount]);
+
+  useEffect(() => {
+    setValue('wardCode', selectedWardCode, {
+      shouldValidate: submitCount > 0,
+    });
+  }, [selectedWardCode, setValue, submitCount]);
+
+  const watchedAddress = watch('address');
+  /** Zod resolver dùng khi kiểm tra bắt buộc file trên cả tạo mới/cập nhật */
+  companyRegistrationEditMode = isEdit;
+  companyRegistrationHasExistingLogo = Boolean(logoUrl);
+  companyRegistrationHasExistingLicense = Boolean(licenseUrl);
+
+  const bizLicenseFileWatch = watch('businessLicenseFile');
+
   const buildFullAddress = (detail, wardCode, provinceCode) => {
     const wardName =
       wards.find((item) => String(item.code) === String(wardCode))?.name || '';
@@ -321,26 +482,13 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
   const syncAddress = (detail, wardCode, provinceCode) => {
     const fullAddress = buildFullAddress(detail, wardCode, provinceCode);
-    setForm((prev) => ({
-      ...prev,
-      address: fullAddress || detail,
-    }));
-  };
-
-  const isFormChanged = () => {
-    if (!initialForm) return true;
-
-    const textChanged =
-      form.name !== initialForm.name ||
-      form.taxCode !== initialForm.taxCode ||
-      form.address !== initialForm.address ||
-      form.description !== initialForm.description ||
-      form.website !== initialForm.website;
-
-    const fileChanged =
-      form.logoFile !== null || form.businessLicenseFile !== null;
-
-    return textChanged || fileChanged;
+    const merged =
+      (typeof fullAddress === 'string' && fullAddress.trim()
+        ? fullAddress
+        : detail) ?? '';
+    setValue('address', typeof merged === 'string' ? merged : '', {
+      shouldValidate: true,
+    });
   };
 
   useEffect(() => {
@@ -353,7 +501,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     if (myCompany && myCompany.id) {
       setCompanyId(myCompany.id);
 
-      const fetchedForm = {
+      reset({
         name: myCompany.name ?? '',
         taxCode: myCompany.taxCode ?? '',
         address: myCompany.address ?? '',
@@ -361,10 +509,9 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
         website: myCompany.website ?? '',
         logoFile: null,
         businessLicenseFile: null,
-      };
-
-      setForm(fetchedForm);
-      setInitialForm(fetchedForm);
+        provinceCode: '',
+        wardCode: '',
+      });
       setAddressDetail('');
       setSelectedProvinceCode('');
       setSelectedWardCode('');
@@ -458,10 +605,15 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
   }, [selectedProvinceCode]);
 
   useEffect(() => {
-    if (!isEdit || addressHydrated || !form.address || provinces.length === 0)
+    if (
+      !isEdit ||
+      addressHydrated ||
+      !watchedAddress ||
+      provinces.length === 0
+    )
       return;
 
-    const addressParts = splitAddressParts(form.address);
+    const addressParts = splitAddressParts(watchedAddress);
     const provinceMatch = findBestRegionMatch(
       addressParts,
       provinces,
@@ -469,7 +621,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     );
 
     if (!provinceMatch) {
-      setAddressDetail(form.address);
+      setAddressDetail(watchedAddress);
       setAddressHydrated(true);
       return;
     }
@@ -482,7 +634,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       remainingAddress: remainingParts.join(', '),
       provinceCode: String(provinceMatch.item.code),
     });
-  }, [isEdit, addressHydrated, form.address, provinces]);
+  }, [isEdit, addressHydrated, watchedAddress, provinces]);
 
   useEffect(() => {
     if (!pendingAddressParse) return;
@@ -510,7 +662,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
       setAddressDetail(detailParts.join(', '));
     } else {
       setSelectedWardCode('');
-      setAddressDetail(pendingAddressParse.remainingAddress || form.address);
+      setAddressDetail(pendingAddressParse.remainingAddress || watchedAddress);
     }
 
     setPendingAddressParse(null);
@@ -521,122 +673,45 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
     wards,
     loadingWards,
     loadedWardProvinceCode,
-    form.address,
+    watchedAddress,
   ]);
 
-  const validateForm = (formData, inEditMode) => {
-    const errors = [];
+  const onSubmit = async (values) => {
+    if (loadingSubmit) return;
 
-    if (!formData.name || formData.name.trim() === '') {
-      errors.push('Tên công ty không được để trống');
-    } else if (formData.name.length < 3 || formData.name.length > 100) {
-      errors.push('Tên công ty phải từ 3 - 100 ký tự');
-    }
+    const hasCompanyProfileChanged =
+      !isEdit ||
+      !myCompany ||
+      values.name.trim() !== (myCompany.name ?? '').trim() ||
+      values.taxCode.trim() !== (myCompany.taxCode ?? '').trim() ||
+      values.address.trim() !== (myCompany.address ?? '').trim() ||
+      values.description !== (myCompany.description ?? '') ||
+      values.website.trim() !== (myCompany.website ?? '').trim() ||
+      values.logoFile instanceof File ||
+      values.businessLicenseFile instanceof File;
 
-    const taxCodeRegex = /^[0-9]{10,13}$/;
-    if (!formData.taxCode || formData.taxCode.trim() === '') {
-      errors.push('Mã số thuế không được để trống');
-    } else if (!taxCodeRegex.test(formData.taxCode)) {
-      errors.push('Mã số thuế phải từ 10 - 13 chữ số');
-    }
-
-    if (!formData.address || formData.address.trim() === '') {
-      errors.push('Địa chỉ không được để trống');
-    } else if (formData.address.length < 5 || formData.address.length > 255) {
-      errors.push('Địa chỉ phải từ 5 - 255 ký tự');
-    }
-
-    const descriptionText = getPlainTextFromHtml(formData.description);
-    if (!descriptionText) {
-      errors.push('Mô tả không được để trống');
-    } else if (descriptionText.length < 10) {
-      errors.push('Mô tả phải tối thiểu 10 ký tự');
-    }
-
-    const websiteRegex = /^[^\s]+\.[^\s]+$/;
-    if (!formData.website || formData.website.trim() === '') {
-      errors.push('Website không được để trống');
-    } else if (!websiteRegex.test(formData.website)) {
-      errors.push('Website không hợp lệ');
-    }
-
-    if (!inEditMode && !formData.logoFile) {
-      errors.push('Logo không được để trống');
-    }
-
-    if (formData.logoFile) {
-      const allowedImageTypes = ['image/jpeg', 'image/png'];
-      if (!allowedImageTypes.includes(formData.logoFile.type)) {
-        errors.push('Logo phải là file JPG hoặc PNG');
-      }
-      if (formData.logoFile.size > 2 * 1024 * 1024) {
-        errors.push('Logo không được vượt quá 2MB');
-      }
-    }
-
-    if (!inEditMode && !formData.businessLicenseFile) {
-      errors.push('Giấy phép kinh doanh không được để trống');
-    }
-
-    if (formData.businessLicenseFile) {
-      const allowedLicenseTypes = [
-        'application/pdf',
-        'image/jpeg',
-        'image/png',
-      ];
-      if (!allowedLicenseTypes.includes(formData.businessLicenseFile.type)) {
-        errors.push('Giấy phép phải là PDF, JPG hoặc PNG');
-      }
-      if (formData.businessLicenseFile.size > 5 * 1024 * 1024) {
-        errors.push('Giấy phép không được vượt quá 5MB');
-      }
-    }
-
-    /* ========= HIỂN THỊ TẤT CẢ LỖI ========= */
-    if (errors.length > 0) {
-      clearToasts();
-      const errorData = (
-        <div>
-          {errors.map((msg, index) => (
-            <div key={index}>{msg}</div>
-          ))}
-        </div>
-      );
-      toast(errorData, 'error');
-      return false;
-    }
-
-    return true;
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (loadingSubmit) return; // chống double click
-
-    if (isEdit && !isFormChanged()) {
+    if (!hasCompanyProfileChanged) {
       toast('Không có thay đổi để cập nhật', 'error');
       return;
     }
 
-    if (!validateForm(form, isEdit)) return;
-
     const fd = new FormData();
-    fd.append('name', form.name);
-    fd.append('taxCode', form.taxCode);
-    fd.append('address', form.address);
-    fd.append('description', form.description);
-    fd.append('website', form.website);
-    if (form.logoFile) fd.append('logo', form.logoFile);
-    if (form.businessLicenseFile)
-      fd.append('businessLicense', form.businessLicenseFile);
+    fd.append('name', values.name.trim());
+    fd.append('taxCode', values.taxCode.trim());
+    fd.append('address', values.address.trim());
+    fd.append('description', values.description);
+    fd.append('website', values.website.trim());
+    if (values.logoFile instanceof File)
+      fd.append('logo', values.logoFile);
+    if (values.businessLicenseFile instanceof File)
+      fd.append('businessLicense', values.businessLicenseFile);
 
     try {
       setLoadingSubmit(true);
 
       if (isEdit) {
         await updateCompanyMutate({ companyId, formData: fd });
-        toast('Cập nhật thông tin công ty thành công');
+        toast('Đã gửi cập nhật thông tin công ty, vui lòng chờ quản lý duyệt lại');
       } else {
         await createCompanyMutate(fd);
         toast('Gửi đăng ký công ty thành công');
@@ -693,7 +768,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={rhfHandleSubmit(onSubmit)} className="space-y-5">
           {/* ===== SECTION 1: Thông tin chung ===== */}
           <Card className="rounded-2xl border-slate-100 shadow-sm overflow-hidden">
             <div className="flex items-center gap-3 border-b border-slate-100 bg-linear-to-r from-slate-50 to-white px-5 py-4">
@@ -716,11 +791,13 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                   Tên công ty <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  {...register('name')}
                   placeholder="VD: Công ty CP Giải pháp Công nghệ ABC"
                   className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-colors"
                 />
+                {errors.name && (
+                  <p className="text-xs text-destructive">{errors.name.message}</p>
+                )}
               </div>
 
               <div className="grid md:grid-cols-2 gap-4">
@@ -729,13 +806,15 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                     Mã số thuế <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    value={form.taxCode}
-                    onChange={(e) =>
-                      setForm({ ...form, taxCode: e.target.value })
-                    }
+                    {...register('taxCode')}
                     placeholder="0123456789"
                     className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-colors"
                   />
+                  {errors.taxCode && (
+                    <p className="text-xs text-destructive">
+                      {errors.taxCode.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -748,14 +827,16 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                       className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
                     />
                     <Input
-                      value={form.website}
-                      onChange={(e) =>
-                        setForm({ ...form, website: e.target.value })
-                      }
+                      {...register('website')}
                       placeholder="company.vn"
                       className="h-11 rounded-xl border-slate-200 bg-slate-50/50 pl-9 focus:bg-white transition-colors"
                     />
                   </div>
+                  {errors.website && (
+                    <p className="text-xs text-destructive">
+                      {errors.website.message}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -796,12 +877,17 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                   placeholder="Số nhà, tên ngõ, tên đường..."
                   className="h-11 rounded-xl border-slate-200 bg-slate-50/50 focus:bg-white transition-colors"
                 />
+                {errors.address && (
+                  <p className="text-xs text-destructive">
+                    {errors.address.message}
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div className="space-y-1.5">
                   <Label className="text-sm font-medium text-slate-700">
-                    Tỉnh / Thành phố
+                    Tỉnh / Thành phố <span className="text-red-500">*</span>
                   </Label>
                   <select
                     value={selectedProvinceCode}
@@ -825,11 +911,16 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                       </option>
                     ))}
                   </select>
+                  {errors.provinceCode && (
+                    <p className="text-xs text-destructive">
+                      {errors.provinceCode.message}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
                   <Label className="text-sm font-medium text-slate-700">
-                    Xã / Phường
+                    Xã / Phường <span className="text-red-500">*</span>
                   </Label>
                   <select
                     value={selectedWardCode}
@@ -859,6 +950,11 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                       </option>
                     ))}
                   </select>
+                  {errors.wardCode && (
+                    <p className="text-xs text-destructive">
+                      {errors.wardCode.message}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -880,15 +976,24 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
               </div>
             </div>
 
-            <div className="p-5">
+            <div className="p-5 space-y-1.5">
               <div className="rounded-xl border border-slate-200 overflow-hidden">
-                <CompanyDescriptionEditor
-                  value={form.description}
-                  onChange={(html) =>
-                    setForm((prev) => ({ ...prev, description: html }))
-                  }
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <CompanyDescriptionEditor
+                      value={field.value || ''}
+                      onChange={(html) => field.onChange(html)}
+                    />
+                  )}
                 />
               </div>
+              {errors.description && (
+                <p className="text-xs text-destructive px-1">
+                  {errors.description.message}
+                </p>
+              )}
             </div>
           </Card>
 
@@ -912,13 +1017,7 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
               {/* --- Logo Upload --- */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700">
-                  Logo công ty{' '}
-                  {!isEdit && <span className="text-red-500">*</span>}
-                  {isEdit && (
-                    <span className="ml-1 text-xs font-normal text-slate-400">
-                      (tuỳ chọn)
-                    </span>
-                  )}
+                  Logo công ty <span className="text-red-500">*</span>
                 </Label>
                 <input
                   ref={logoInputRef}
@@ -928,7 +1027,10 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      setForm({ ...form, logoFile: file });
+                      setValue('logoFile', file, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
                       setLogoPreview(URL.createObjectURL(file));
                     }
                   }}
@@ -968,18 +1070,17 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                     </>
                   )}
                 </button>
+                {errors.logoFile && (
+                  <p className="text-xs text-destructive">
+                    {errors.logoFile.message}
+                  </p>
+                )}
               </div>
 
               {/* --- License Upload --- */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium text-slate-700">
-                  Giấy phép kinh doanh{' '}
-                  {!isEdit && <span className="text-red-500">*</span>}
-                  {isEdit && (
-                    <span className="ml-1 text-xs font-normal text-slate-400">
-                      (tuỳ chọn)
-                    </span>
-                  )}
+                  Giấy phép kinh doanh <span className="text-red-500">*</span>
                 </Label>
                 <input
                   ref={licenseInputRef}
@@ -989,7 +1090,10 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
-                      setForm({ ...form, businessLicenseFile: file });
+                      setValue('businessLicenseFile', file, {
+                        shouldValidate: true,
+                        shouldDirty: true,
+                      });
                       setLicensePreview(URL.createObjectURL(file));
                     }
                   }}
@@ -1005,8 +1109,9 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                         <Check size={22} className="text-green-600" />
                       </div>
                       <p className="w-full truncate text-center text-sm font-medium text-slate-700">
-                        {form.businessLicenseFile?.name ||
-                          'Giấy phép đã tải lên'}
+                        {bizLicenseFileWatch instanceof File
+                          ? bizLicenseFileWatch.name
+                          : 'Giấy phép đã tải lên'}
                       </p>
                       <a
                         href={licensePreview || licenseUrl}
@@ -1038,6 +1143,11 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
                     </>
                   )}
                 </button>
+                {errors.businessLicenseFile && (
+                  <p className="text-xs text-destructive">
+                    {errors.businessLicenseFile.message}
+                  </p>
+                )}
               </div>
             </div>
           </Card>

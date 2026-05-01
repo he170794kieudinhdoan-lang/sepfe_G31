@@ -16,3 +16,11 @@ export const createPaymentPackageApi = async (payload) => {
 export const updatePaymentPackageApi = async ({ id, payload }) => {
   return await apiClient.patch(`/admin/payment-packages/${id}`, payload);
 };
+
+export const getPointPricingApi = async () => {
+  return await apiClient.get('/admin/point-pricing');
+};
+
+export const updatePointPricingApi = async (payload) => {
+  return await apiClient.patch('/admin/point-pricing', payload);
+};

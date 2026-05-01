@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,9 +19,8 @@ import {
 import { apiClient } from '@/shared/api/apiClient';
 import { useProvinces } from '@/shared/hooks/useProvinces';
 import { useCreateJob } from '@/features/jobs/useJobMutation';
-import { useJobDetail } from '@/features/jobs/api/useJobs';
 import { useToast } from '@/shared/contexts/ToastContext';
-import { Modal } from '@/shared/components/Modal';
+import { useMyWallet, useWalletPricing } from '@/features/wallet/api/useWallet';
 import {
   Briefcase,
   MapPin,
@@ -168,23 +167,15 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [sectors, setSectors] = useState([]);
   const [loadingSector, setLoadingSector] = useState(false);
-  const [jobPaymentModalOpen, setJobPaymentModalOpen] = useState(false);
-  const [jobPaymentData, setJobPaymentData] = useState(null);
-  const paymentHandledRef = useRef(false);
 
   const { provinces, isLoading: loadingProvince } = useProvinces();
   const [districts, setDistricts] = useState([]);
   const [loadingDistrict, setLoadingDistrict] = useState(false);
 
-  const paymentJobId = jobPaymentData?.job?.id;
-  const { data: paymentJobDetail } = useJobDetail(paymentJobId, {
-    enabled: !!paymentJobId && jobPaymentModalOpen,
-    refetchInterval: jobPaymentModalOpen ? 3000 : false,
-    refetchIntervalInBackground: true,
-  });
-
-  const resolvedPaymentJobDetail = paymentJobDetail?.data || paymentJobDetail;
-  const isPaymentConfirmed = resolvedPaymentJobDetail?.status === 'PUBLISHED';
+  const { data: walletRes } = useMyWallet();
+  const wallet = walletRes?.data || walletRes;
+  const { data: walletPricingRes } = useWalletPricing();
+  const walletPricing = walletPricingRes?.data || walletPricingRes || {};
 
   const form = useForm({
     resolver: zodResolver(schema),
@@ -319,34 +310,6 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
     window.scrollTo(0, 0);
   };
 
-  const closePaymentModal = () => {
-    setJobPaymentModalOpen(false);
-    setJobPaymentData(null);
-
-    if (onSuccessProp) {
-      onSuccessProp();
-    } else if (onBack) {
-      onBack();
-    } else {
-      navigate('/employer/jobs');
-    }
-  };
-
-  useEffect(() => {
-    if (!jobPaymentModalOpen) {
-      paymentHandledRef.current = false;
-      return;
-    }
-
-    if (!isPaymentConfirmed || paymentHandledRef.current) {
-      return;
-    }
-
-    paymentHandledRef.current = true;
-    toast('Thanh toán thành công. Tin đã được xuất bản.', 'success');
-    closePaymentModal();
-  }, [jobPaymentModalOpen, isPaymentConfirmed, toast]);
-
   const onSubmit = (data) => {
     const payload = {
       title: data.title,
@@ -369,19 +332,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
 
     createJob(payload, {
       onSuccess: (res) => {
-        const payment = res?.payment || res?.data?.payment || null;
-        const job = res?.job || res?.data?.job || null;
-        const msg =
-          res?.message || 'Đã tạo tin. Vui lòng thanh toán để hiển thị công khai';
-
-        if (payment?.paymentCode) {
-          paymentHandledRef.current = false;
-          setJobPaymentData({ ...payment, job });
-          setJobPaymentModalOpen(true);
-          toast(msg, 'success');
-          return;
-        }
-
+        const msg = res?.message || 'Đã đăng tin tuyển dụng thành công';
         toast(msg, 'success');
         if (onSuccessProp) {
           onSuccessProp();
@@ -480,6 +431,19 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                   <h2 className="text-xl font-semibold flex items-center gap-2 mb-6">
                     <Briefcase className="text-primary" /> Thông tin công việc
                   </h2>
+                  <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-slate-700">
+                    <p>
+                      Số dư ví hiện tại:{' '}
+                      <strong>{(wallet?.balancePoint || 0).toLocaleString('vi-VN')} point</strong>
+                    </p>
+                    <p className="mt-1">
+                      Chi phí đăng tin tiêu chuẩn:{' '}
+                      <strong>
+                        {Number(walletPricing?.JOB_POST_POINT_COST || 0).toLocaleString('vi-VN')} point
+                      </strong>
+                      {' '} (job đầu tiên được miễn phí theo chính sách hệ thống).
+                    </p>
+                  </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
@@ -892,11 +856,11 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="animate-spin" size={18} /> Đang tạo tin và chuẩn bị thanh toán...
+                      <Loader2 className="animate-spin" size={18} /> Đang tạo tin...
                     </>
                   ) : (
                     <>
-                      <CheckCircle size={18} /> Đăng tin tuyển dụng
+                      <CheckCircle size={18} /> Đăng tin bằng point
                     </>
                   )}
                 </Button>
@@ -906,73 +870,6 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
         </div>
       </div>
 
-      <Modal
-        open={jobPaymentModalOpen && !!jobPaymentData}
-        variant="custom"
-        contentClassName="max-w-3xl"
-        title="Thanh toán để đăng tin"
-        description="Tin đã được tạo ở trạng thái chờ thanh toán. Quét QR hoặc chuyển khoản đúng nội dung để hệ thống tự xuất bản tin."
-        onClose={closePaymentModal}
-      >
-        {jobPaymentData && (
-          <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr] items-start">
-            <div className="space-y-4">
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Tin đăng</p>
-                <p className="text-lg font-bold text-slate-900">{jobPaymentData.job?.title || 'Tin tuyển dụng mới'}</p>
-                <p className="text-sm text-slate-600">
-                  Sau khi thanh toán thành công, tin sẽ tự động được xuất bản.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Mã chuyển khoản</p>
-                  <p className="mt-1 text-lg font-bold text-slate-900 break-all">{jobPaymentData.paymentCode}</p>
-                </div>
-                <div className="rounded-xl border border-slate-200 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Số tiền</p>
-                  <p className="mt-1 text-lg font-bold text-slate-900">{(jobPaymentData.amount || 0).toLocaleString('vi-VN')}đ</p>
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 p-4 space-y-2 text-sm text-slate-700">
-                <p><span className="font-semibold">Ngân hàng:</span> {jobPaymentData.bankCode}</p>
-                <p><span className="font-semibold">Số tài khoản:</span> {jobPaymentData.accountNumber}</p>
-                <p><span className="font-semibold">Tên tài khoản:</span> {jobPaymentData.accountName || 'Chưa cấu hình'}</p>
-                <p><span className="font-semibold">Nội dung:</span> {jobPaymentData.transferNote}</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {jobPaymentData.paymentUrl ? (
-                <div className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
-                  <img
-                    src={jobPaymentData.paymentUrl}
-                    alt="QR thanh toán tin tuyển dụng"
-                    className="w-full rounded-xl"
-                  />
-                </div>
-              ) : null}
-
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-2">
-                <p className="font-semibold">Lưu ý</p>
-                <p>Giữ nguyên nội dung chuyển khoản để hệ thống tự nhận diện giao dịch.</p>
-                <p>Đóng cửa sổ này sau khi thanh toán xong để quay lại danh sách tin đăng.</p>
-              </div>
-
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
-                <Loader2 className={`h-4 w-4 ${isPaymentConfirmed ? '' : 'animate-spin'} text-primary`} />
-                <p className="text-xs text-slate-600">
-                  {isPaymentConfirmed
-                    ? 'Đã xác nhận thanh toán từ SePay. Đang chuyển trang...'
-                    : 'Đang chờ SePay xác nhận thanh toán...'}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-      </Modal>
     </>
   );
 };

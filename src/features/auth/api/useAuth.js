@@ -4,6 +4,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { MSG } from '@/shared/constants/messages';
 import * as authApi from './authApi';
+import {
+  WL_GOOGLE_PENDING_KEY,
+  getSocialLoginErrorCode,
+} from '../utils/socialAuthErrors';
 import { getUsers, getWorkerProfile } from '@/features/users/api/userApi';
 
 export const useSignUp = () => {
@@ -87,8 +91,10 @@ export const useLoginGoogle = () => {
 
   return useMutation({
     mutationFn: ({ googleToken, additionalData }) =>
-      authApi.loginWithGoogle(googleToken, additionalData),
+      authApi.loginWithGoogle(googleToken, additionalData ?? {}),
     onSuccess: async (data) => {
+      sessionStorage.removeItem(WL_GOOGLE_PENDING_KEY);
+
       toast(MSG.MSG_LOGIN_GOOGLE_SUCCESS);
 
       const roleType = data.tokens?.roleType || data.tokens?.role || '';
@@ -106,8 +112,26 @@ export const useLoginGoogle = () => {
 
       await navigateAfterLogin(navigate, roleType);
     },
-    onError: (error) => {
-      const message = error.response?.data?.message || MSG.MSG_LOGIN_ERROR;
+    onError: (error, variables) => {
+      const apiCode = getSocialLoginErrorCode(error);
+      if (
+        apiCode === 'SOCIAL_ROLE_REQUIRED' &&
+        variables?.googleToken &&
+        !variables?.additionalData?.role
+      ) {
+        sessionStorage.setItem(WL_GOOGLE_PENDING_KEY, variables.googleToken);
+        navigate('/auth/register', {
+          replace: true,
+          state: { googlePending: true },
+        });
+        return;
+      }
+
+      const raw = error.response?.data?.message;
+      const message =
+        typeof raw === 'string'
+          ? raw
+          : raw?.message || MSG.MSG_LOGIN_ERROR;
       toast(message, 'error');
     },
   });

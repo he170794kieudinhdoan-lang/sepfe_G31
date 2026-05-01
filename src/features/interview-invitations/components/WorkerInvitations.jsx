@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useWorkerInvitations } from '../hooks/useWorkerInvitations'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -12,7 +11,7 @@ const PAGE_SIZE = 10
 
 const STATUS_META = {
   PENDING: {
-    label: 'Chờ phản hồi',
+    label: 'Chờ trả lời',
     className: 'bg-amber-50 text-amber-700 border-amber-200',
   },
   ACCEPTED: {
@@ -24,7 +23,7 @@ const STATUS_META = {
     className: 'bg-rose-50 text-rose-700 border-rose-200',
   },
   EXPIRED: {
-    label: 'Đã hết hạn',
+    label: 'Hết hạn',
     className: 'bg-slate-100 text-slate-600 border-slate-200',
   },
   CANCELLED: {
@@ -46,7 +45,7 @@ const formatDateTime = (value) => {
   })
 }
 
-const WorkerInvitations = () => {
+const WorkerInvitations = ({ embedded = false }) => {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -87,23 +86,13 @@ const WorkerInvitations = () => {
     ? rejectReasonByInvitation[selectedInvitation.id] || ''
     : ''
 
-  const invitationStats = useMemo(
-    () => ({
-      total: invitations.length,
-      pending: invitations.filter((item) => item.status === 'PENDING').length,
-      accepted: invitations.filter((item) => item.status === 'ACCEPTED').length,
-      rejected: invitations.filter((item) => item.status === 'REJECTED').length,
-    }),
-    [invitations],
-  )
-
   const handleAccept = async (invitationId) => {
     const invitation = invitations.find((item) => item.id === invitationId)
     const slotId = Number(
       selectedSlotByInvitation[invitationId] || invitation?.selectedSlot?.id,
     )
     if (!slotId) {
-      alert('Vui lòng chọn ca phỏng vấn trước khi chấp nhận lời mời')
+      alert('Chọn giờ trước.')
       return
     }
 
@@ -115,8 +104,8 @@ const WorkerInvitations = () => {
       const isRescheduled = invitation?.status === 'ACCEPTED'
       setSuccessMessage(
         isRescheduled
-          ? 'Đã đổi ca phỏng vấn thành công.'
-          : 'Đã xác nhận lịch phỏng vấn thành công.',
+          ? 'Đã đổi giờ. Công ty nhận theo giờ mới.'
+          : 'Đã ghi nhận. Vui lòng đi đúng giờ, đúng nơi.',
       )
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
@@ -127,7 +116,7 @@ const WorkerInvitations = () => {
   const handleReject = async (invitationId) => {
     const rejectReason = (rejectReasonByInvitation[invitationId] || '').trim()
     if (!rejectReason) {
-      alert('Vui lòng nhập lý do từ chối')
+      alert('Nhập lý do từ chối.')
       return
     }
 
@@ -138,7 +127,7 @@ const WorkerInvitations = () => {
       })
       setRejectReasonByInvitation((prev) => ({ ...prev, [invitationId]: '' }))
       setRespondingId(null)
-      setSuccessMessage('Bạn đã từ chối lời mời phỏng vấn')
+      setSuccessMessage('Đã từ chối.')
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
       console.error('Error rejecting invitation:', err)
@@ -146,58 +135,30 @@ const WorkerInvitations = () => {
   }
 
   if (loading) {
-    return (
-      <div className="px-4 py-6">
-        <AppLoadingScene
-          title="Đang tải lời mời phỏng vấn"
-          subtitle="Hệ thống đang đồng bộ lịch hẹn và trạng thái phản hồi"
-          className="mx-auto max-w-5xl"
-        />
-      </div>
-    )
+    return <AppLoadingScene />
   }
 
   return (
-    <div className="relative mx-auto max-w-6xl space-y-6 overflow-hidden px-4 py-8">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.16),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(15,23,42,0.06),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(255,255,255,0.72))]" />
+    <div
+      className={
+        embedded
+          ? 'space-y-4'
+          : 'relative mx-auto max-w-6xl space-y-6 overflow-hidden px-4 py-8'
+      }
+    >
+      {!embedded && (
+        <>
+          <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.16),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(15,23,42,0.06),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(255,255,255,0.72))]" />
 
-      <div className="overflow-hidden rounded-[2rem] border border-amber-200/70 bg-white/85 shadow-[0_20px_60px_-28px_rgba(15,23,42,0.24)] backdrop-blur">
-        <div className="flex flex-col gap-6 border-b border-slate-100 px-6 py-6 md:flex-row md:items-end md:justify-between md:px-8">
-          <div className="max-w-2xl">
-            <p className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-amber-700">
-              Interview Invitation
-            </p>
-            <h2 className="mt-4 text-3xl font-black tracking-tight text-slate-950 md:text-4xl">
-              Lời mời phỏng vấn của bạn
-            </h2>
-            <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 md:text-base">
-              Xem từng lời mời, chọn ca phù hợp và phản hồi ngay để giữ chỗ đẹp nhất. Màn này ưu tiên đọc nhanh, chọn nhanh, xử lý nhanh.
-            </p>
+          <div className="overflow-hidden rounded-[2rem] border border-amber-200/70 bg-white/85 shadow-[0_20px_60px_-28px_rgba(15,23,42,0.24)] backdrop-blur">
+            <div className="px-6 py-6 md:px-8">
+              <h2 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                Lời mời phỏng vấn
+              </h2>
+            </div>
           </div>
-
-          <div className="grid grid-cols-2 gap-3 md:min-w-[19rem]">
-            {[
-              { label: 'Tổng', value: invitationStats.total, tone: 'text-slate-900' },
-              { label: 'Chờ phản hồi', value: invitationStats.pending, tone: 'text-amber-700' },
-              { label: 'Đã chấp nhận', value: invitationStats.accepted, tone: 'text-emerald-700' },
-              { label: 'Đã từ chối', value: invitationStats.rejected, tone: 'text-rose-700' },
-            ].map((item) => (
-              <div key={item.label} className="rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 shadow-sm">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                  {item.label}
-                </p>
-                <p className={`mt-1 text-2xl font-black tabular-nums ${item.tone}`}>
-                  {item.value}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="px-6 py-4 text-sm text-slate-600 md:px-8">
-          Chọn ca phù hợp, rồi xác nhận ngay để giữ chỗ. Các ca đầy sẽ bị khóa lại để tránh chọn nhầm.
-        </div>
-      </div>
+        </>
+      )}
 
       {error && (
         <Card className="rounded-2xl border-rose-200 bg-rose-50 p-4 text-sm text-rose-700 shadow-sm">
@@ -211,10 +172,7 @@ const WorkerInvitations = () => {
       )}
 
       {invitations.length === 0 ? (
-        <EmptyState
-          title="Bạn chưa có lời mời phỏng vấn"
-          description="Khi employer gửi lời mời, danh sách sẽ hiển thị tại đây."
-        />
+        <EmptyState title="Chưa có lời mời" description="Quay lại sau." />
       ) : (
         <>
           <div className="space-y-5">
@@ -238,10 +196,6 @@ const WorkerInvitations = () => {
 
               const preselectedSlotId =
                 selectedSlotByInvitation[invitation.id] || currentSelectedSlotId
-
-              const selectedSlot = invitation.selectedSlot
-                ? `${formatDateTime(invitation.selectedSlot.startAt)} - ${formatDateTime(invitation.selectedSlot.endAt)} | ${invitation.selectedSlot.location || 'Chưa cập nhật địa điểm'}`
-                : null
 
               const canChooseOrChangeSlot =
                 (invitation.status === 'PENDING' || invitation.status === 'ACCEPTED') &&
@@ -290,26 +244,15 @@ const WorkerInvitations = () => {
                           )}
                         </div>
                       </div>
-                      <Badge
-                        variant="outline"
-                        className={`rounded-full px-3 py-1 font-semibold ${statusBadge.className}`}
-                      >
-                        {statusBadge.label}
-                      </Badge>
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                      <span className="rounded-full bg-white px-3 py-1.5 font-medium shadow-sm ring-1 ring-slate-200">
-                        Nhận vào: {formatDateTime(invitation.createdAt)}
+                        <span className="rounded-full bg-white px-3 py-1.5 font-medium shadow-sm ring-1 ring-slate-200">
+                        Gửi: {formatDateTime(invitation.createdAt)}
                       </span>
                       {invitation.campaign.expiresAt && (
                         <span className="rounded-full bg-white px-3 py-1.5 font-medium shadow-sm ring-1 ring-slate-200">
-                          Hết hạn: {formatDateTime(invitation.campaign.expiresAt)}
-                        </span>
-                      )}
-                      {selectedSlot && invitation.status === 'ACCEPTED' && (
-                        <span className="rounded-full bg-emerald-50 px-3 py-1.5 font-medium text-emerald-700 ring-1 ring-emerald-200">
-                          Ca đã chọn: {selectedSlot}
+                          Hạn: {formatDateTime(invitation.campaign.expiresAt)}
                         </span>
                       )}
                     </div>
@@ -318,9 +261,7 @@ const WorkerInvitations = () => {
                   <div className="grid gap-4 px-5 py-5 md:grid-cols-[1.15fr_0.85fr] md:px-6">
                     <div className="space-y-4">
                       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                          Nội dung từ employer
-                        </p>
+                        <p className="text-xs font-semibold text-slate-600">Tin công ty</p>
                         <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
                           {invitation.campaign.message}
                         </p>
@@ -329,7 +270,7 @@ const WorkerInvitations = () => {
                       {invitation.responseMessage && (
                         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
-                            Lý do từ chối
+                            Lý do từ chối (đã gửi)
                           </p>
                           <p className="mt-2 whitespace-pre-wrap leading-6">
                             {invitation.responseMessage}
@@ -339,29 +280,16 @@ const WorkerInvitations = () => {
                     </div>
 
                     <div className="space-y-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                      <div className="flex items-center justify-between gap-3">
+                      {canChooseOrChangeSlot ? (
                         <p className="text-sm font-bold text-slate-900">
-                          {canChooseOrChangeSlot
-                            ? invitation.status === 'ACCEPTED'
-                              ? 'Đổi ca phỏng vấn'
-                              : 'Chọn ca phỏng vấn'
-                            : invitation.status === 'ACCEPTED'
-                              ? 'Lịch hẹn đã xác nhận'
-                              : 'Trạng thái hiện tại'}
+                          {invitation.status === 'ACCEPTED' ? 'Đổi giờ' : 'Chọn giờ'}
                         </p>
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                          {canChooseOrChangeSlot
-                            ? invitation.status === 'ACCEPTED'
-                              ? 'Có thể đổi ca'
-                              : 'Có thể phản hồi'
-                            : statusBadge.label}
-                        </span>
-                      </div>
+                      ) : null}
 
                       {canChooseOrChangeSlot ? (
                         selectableSlots.length === 0 ? (
-                          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                            Hiện không còn ca nào trống. Vui lòng liên hệ employer để mở thêm ca.
+                          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-800">
+                            Hết suất. Nhắn công ty.
                           </div>
                         ) : (
                           <div className="grid gap-3">
@@ -396,9 +324,8 @@ const WorkerInvitations = () => {
                                         {formatDateTime(slot.startAt)} - {formatDateTime(slot.endAt)}
                                       </p>
                                       <p className="mt-1 text-xs text-slate-600">
-                                        Địa điểm:{' '}
                                         <span className="font-medium text-slate-800">
-                                          {slot.location || 'Chưa cập nhật'}
+                                          {slot.location || 'Chưa rõ'}
                                         </span>
                                       </p>
                                     </div>
@@ -409,7 +336,7 @@ const WorkerInvitations = () => {
                                           : 'bg-emerald-100 text-emerald-700'
                                       }`}
                                     >
-                                      {isFull ? 'Đã đầy' : `${remainingSeats}/${slot.capacity} chỗ`}
+                                      {isFull ? 'Hết chỗ' : `Còn ${remainingSeats} chỗ / ${slot.capacity}`}
                                     </span>
                                   </div>
                                   {slot.note ? (
@@ -417,13 +344,11 @@ const WorkerInvitations = () => {
                                       {slot.note}
                                     </p>
                                   ) : null}
-                                  {isSelected && (
-                                    <p className="mt-3 text-xs font-semibold text-primary">
-                                      {invitation.status === 'ACCEPTED'
-                                        ? 'Bạn sẽ đổi sang ca này'
-                                        : 'Bạn đang chọn ca này'}
+                                  {isSelected ? (
+                                    <p className="mt-2 text-xs font-medium text-primary">
+                                      {invitation.status === 'ACCEPTED' ? 'Bấm xác nhận' : 'Bấm đồng ý'}
                                     </p>
-                                  )}
+                                  ) : null}
                                 </button>
                               )
                             })}
@@ -432,32 +357,21 @@ const WorkerInvitations = () => {
                       ) : (
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                           {invitation.status === 'ACCEPTED'
-                            ? 'Bạn đã xác nhận lịch phỏng vấn. Employer sẽ nhìn thấy ca bạn chọn.'
+                            ? 'Lịch đã lưu.'
                             : invitation.status === 'REJECTED'
-                              ? 'Bạn đã từ chối lời mời này.'
-                              : 'Lời mời này không còn ở trạng thái chờ phản hồi.'}
+                              ? 'Đã từ chối.'
+                              : 'Không chọn giờ ở đây.'}
                         </div>
                       )}
 
-                      {selectedSlot ? (
-                        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                          <span className="font-semibold">Ca đã chọn: </span>
-                          <span>{selectedSlot}</span>
-                        </div>
-                      ) : null}
-
                       {invitation.status === 'ACCEPTED' && invitation.selectedSlot ? (
                         <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-slate-700">
-                          <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                            Lịch hẹn phỏng vấn đã chấp nhận
+                          <p className="font-medium">
+                            {formatDateTime(invitation.selectedSlot.startAt)} –{' '}
+                            {formatDateTime(invitation.selectedSlot.endAt)}
                           </p>
-                          <p className="mt-2">
-                            <span className="font-semibold">Thời gian: </span>
-                            {formatDateTime(invitation.selectedSlot.startAt)} - {formatDateTime(invitation.selectedSlot.endAt)}
-                          </p>
-                          <p className="mt-1">
-                            <span className="font-semibold">Địa điểm: </span>
-                            {invitation.selectedSlot.location || 'Chưa cập nhật địa điểm'}
+                          <p className="mt-1 text-slate-600">
+                            {invitation.selectedSlot.location || 'Chưa rõ'}
                           </p>
                         </div>
                       ) : null}
@@ -470,21 +384,13 @@ const WorkerInvitations = () => {
                               disabled={!hasSelectedSlot}
                               onClick={() => handleAccept(invitation.id)}
                             >
-                              Chấp nhận và giữ chỗ
+                              Đồng ý nhận lịch
                             </Button>
 
                             {respondingId === invitation.id ? (
                               <div className="w-full space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                <div>
-                                  <p className="text-sm font-semibold text-slate-800">
-                                    Lý do từ chối
-                                  </p>
-                                  <p className="mt-1 text-xs text-slate-500">
-                                    Cho employer biết vì sao bạn không thể tham gia.
-                                  </p>
-                                </div>
                                 <Textarea
-                                  placeholder="Nhập lý do từ chối..."
+                                  placeholder="Lý do"
                                   value={selectedRejectReason}
                                   onChange={(e) =>
                                     setRejectReasonByInvitation((prev) => ({
@@ -502,7 +408,7 @@ const WorkerInvitations = () => {
                                     className="rounded-full px-4"
                                     onClick={() => handleReject(invitation.id)}
                                   >
-                                    Xác nhận từ chối
+                                    Gửi từ chối
                                   </Button>
                                   <Button
                                     variant="outline"
@@ -516,7 +422,7 @@ const WorkerInvitations = () => {
                                       }))
                                     }}
                                   >
-                                    Hủy
+                                    Bỏ qua
                                   </Button>
                                 </div>
                               </div>
@@ -526,7 +432,7 @@ const WorkerInvitations = () => {
                                 className="rounded-full border-slate-200 px-5 shadow-sm"
                                 onClick={() => setRespondingId(invitation.id)}
                               >
-                                Từ chối
+                                Không nhận lịch
                               </Button>
                             )}
 
@@ -535,7 +441,7 @@ const WorkerInvitations = () => {
                               className="rounded-full border-slate-200 px-5"
                               onClick={() => navigate('/chat')}
                             >
-                              Mở chat với employer
+                              Nhắn công ty
                             </Button>
                           </>
                         ) : canReschedule ? (
@@ -545,14 +451,14 @@ const WorkerInvitations = () => {
                               disabled={!hasSelectedSlot}
                               onClick={() => handleAccept(invitation.id)}
                             >
-                              Đổi sang ca đã chọn
+                              Xác nhận đổi giờ
                             </Button>
                             <Button
                               variant="outline"
                               className="rounded-full border-slate-200 px-5"
                               onClick={() => navigate('/chat')}
                             >
-                              Mở chat với employer
+                              Nhắn công ty
                             </Button>
                           </>
                         ) : (
@@ -562,14 +468,14 @@ const WorkerInvitations = () => {
                               className="rounded-full border-slate-200 px-5"
                               onClick={() => navigate('/chat')}
                             >
-                              Đi tới chat
+                              Mở tin nhắn
                             </Button>
                             <Button
                               variant="ghost"
                               className="rounded-full px-5 text-slate-600 hover:bg-slate-100"
                               onClick={() => navigate('/')}
                             >
-                              Về trang chủ
+                              Về trang chính
                             </Button>
                           </>
                         )}

@@ -12,8 +12,10 @@ export const sendMessage = async (id, content) => {
   return apiClient.post(`/chat/conversations/${id}/messages`, { content });
 };
 
-export const getMessages = async (id, query) => {
-  return apiClient.get(`/chat/conversations/${id}/messages`, query);
+export const getMessages = async (id, query = {}) => {
+  return apiClient.get(`/chat/conversations/${id}/messages`, {
+    params: query,
+  });
 };
 
 export const markAsRead = async (id) => {

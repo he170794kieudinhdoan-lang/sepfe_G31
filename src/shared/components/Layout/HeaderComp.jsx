@@ -119,6 +119,10 @@ export const Header = () => {
     });
   };
 
+  const showSupportAskLink =
+    !isAuthenticated ||
+    (user?.roleType !== 'ADMIN' && user?.roleType !== 'MANAGER');
+
   return (
     <>
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
@@ -146,16 +150,18 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <Button
-              variant="ghost"
-              className="hidden sm:inline-flex rounded-full px-4 font-semibold text-gray-700 hover:bg-primary/10 hover:text-primary transition"
-              asChild
-            >
-              <Link to="/support">
-                <HelpCircle className="mr-2 h-4 w-4" />
-                Đặt câu hỏi
-              </Link>
-            </Button>
+            {showSupportAskLink && (
+              <Button
+                variant="ghost"
+                className="hidden sm:inline-flex rounded-full px-4 font-semibold text-gray-700 hover:bg-primary/10 hover:text-primary transition"
+                asChild
+              >
+                <Link to="/support">
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Đặt câu hỏi
+                </Link>
+              </Button>
+            )}
             {isAuthenticated && user?.roleType === 'EMPLOYER' && (
               <Button
                 className="hidden sm:flex rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 font-semibold transition-all shadow-sm border border-primary/20 hover:shadow-md"
@@ -366,13 +372,22 @@ export const Header = () => {
                         Hồ sơ của tôi
                       </Link>
                       {isWorkerRole(user) && (
-                        <Link
-                          to="/wishlist"
-                          className="block px-4 py-2 text-sm hover:bg-gray-50"
-                          onClick={() => setAvatarOpen(false)}
-                        >
-                          Việc làm đã lưu
-                        </Link>
+                        <>
+                          <Link
+                            to="/wishlist"
+                            className="block px-4 py-2 text-sm hover:bg-gray-50"
+                            onClick={() => setAvatarOpen(false)}
+                          >
+                            Việc làm đã lưu
+                          </Link>
+                          <Link
+                            to="/profile?tab=invitations"
+                            className="block px-4 py-2 text-sm hover:bg-gray-50"
+                            onClick={() => setAvatarOpen(false)}
+                          >
+                            Lời mời phỏng vấn
+                          </Link>
+                        </>
                       )}
 
                       {user?.roleType === 'ADMIN' && (

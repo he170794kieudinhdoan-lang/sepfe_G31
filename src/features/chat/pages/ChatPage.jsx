@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { MessagesSquare, Send } from 'lucide-react';
+import { MessagesSquare, Search, Send, X } from 'lucide-react';
 import {
   useGetMessages,
   useGetUserConversations,
@@ -15,6 +15,74 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useChatRealtime } from '../hooks/useChatRealtime';
 import { formatMessageTime } from '@/shared/utils/dateUtils';
 
+const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** @param {string} text */
+const highlightFragments = (text, rawQuery) => {
+  const q = rawQuery?.trim();
+  if (!q || !text) return text;
+  try {
+    const re = new RegExp(`(${escapeRegex(q)})`, 'gi');
+    const nodes = [];
+    let last = 0;
+    let m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) {
+        nodes.push(text.slice(last, m.index));
+      }
+      nodes.push(
+        <mark key={`h-${last}-${nodes.length}-${m.index}`} className="rounded px-0.5">
+          {m[0]}
+        </mark>,
+      );
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) nodes.push(text.slice(last));
+    return nodes.length > 0 ? nodes : text;
+  } catch {
+    return text;
+  }
+};
+
+/** Renders markdown links + optional search highlight inside non-link spans and link titles. */
+const renderMessagePieces = (content, highlightQuery) => {
+  const raw = content ?? '';
+  return raw.split(/(\[[^\]]+\]\([^)]+\))/g).map((part, index) => {
+    const linkMatch = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+    if (linkMatch) {
+      const labelHighlighted = highlightFragments(linkMatch[1], highlightQuery);
+      const url = linkMatch[2];
+      const isInternal = url.startsWith(window.location.origin);
+      const path = isInternal ? url.replace(window.location.origin, '') : url;
+      const commonProps = {
+        className:
+          'text-black font-bold font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity ',
+      };
+
+      if (isInternal) {
+        return (
+          <Link key={index} to={path} {...commonProps}>
+            {labelHighlighted}
+          </Link>
+        );
+      }
+
+      return (
+        <a
+          key={index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          {...commonProps}
+        >
+          {labelHighlighted}
+        </a>
+      );
+    }
+    return <span key={index}>{highlightFragments(part, highlightQuery)}</span>;
+  });
+};
+
 const ChatAvatar = ({ src, alt }) => (
   <Avatar className="h-full w-full rounded-full border-white shadow-md group-hover:opacity-90 transition-all duration-200">
     <AvatarImage
@@ -25,12 +93,46 @@ const ChatAvatar = ({ src, alt }) => (
   </Avatar>
 );
 
-const ConverSationList = ({ items, selectedId, onSelect }) => (
+const ConverSationList = ({
+  items,
+  selectedId,
+  onSelect,
+  listSearch,
+  onListSearchChange,
+}) => (
   <aside className="w-full lg:w-80 border-r bg-white shrink-0 flex flex-col max-h-[calc(100vh-8rem)] rounded-l-xl">
-    <div className="p-4 border-b">
+    <div className="p-4 border-b space-y-3">
       <h2 className="font-semibold">Tin nhắn</h2>
+      <div className="relative">
+        <Search
+          className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+          aria-hidden
+        />
+        <Input
+          value={listSearch}
+          onChange={(e) => onListSearchChange(e.target.value)}
+          placeholder="Tìm cuộc trò chuyện..."
+          className="pl-9 pr-9 rounded-xl h-10"
+          aria-label="Tìm cuộc trò chuyện"
+        />
+        {listSearch.trim() !== '' && (
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted text-muted-foreground"
+            onClick={() => onListSearchChange('')}
+            aria-label="Xóa tìm kiếm"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
     </div>
     <div className="flex-1 overflow-y-auto">
+      {items?.length === 0 && (
+        <p className="text-sm text-muted-foreground text-center px-4 py-8">
+          Không có cuộc trò chuyện nào khớp.
+        </p>
+      )}
       {items?.map((c) => (
         <button
           key={c.id}
@@ -67,7 +169,7 @@ const ConverSationList = ({ items, selectedId, onSelect }) => (
   </aside>
 );
 
-const MessageThread = ({ messages, isTyping, avatar }) => {
+const MessageThread = ({ messages, isTyping, avatar, highlightQuery }) => {
   const { user } = useAuth();
   const containerRef = useRef(null);
 
@@ -89,7 +191,9 @@ const MessageThread = ({ messages, isTyping, avatar }) => {
     <div ref={containerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
       {messages?.length === 0 && (
         <p className="text-sm text-muted-foreground text-center py-8">
-          Chưa có tin nhắn.
+          {highlightQuery?.trim()
+            ? 'Không có tin nhắn nào khớp từ khóa trong cuộc trò chuyện này.'
+            : 'Chưa có tin nhắn.'}
         </p>
       )}
       {messages
@@ -101,49 +205,14 @@ const MessageThread = ({ messages, isTyping, avatar }) => {
             className={`flex ${m.senderId === user.id ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+              className={`max-w-[75%] rounded-2xl px-4 py-2 [&_mark]:rounded [&_mark]:px-0.5 ${
                 m.senderId === user.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-gray-100'
+                  ? 'bg-primary text-primary-foreground [&_mark]:bg-white/35 [&_mark]:text-white'
+                  : 'bg-gray-100 [&_mark]:bg-amber-200/95 [&_mark]:text-slate-900'
               }`}
             >
               <p className="text-sm whitespace-pre-wrap wrap-break-word">
-                {m?.content
-                  ?.split(/(\[[^\]]+\]\([^)]+\))/g)
-                  .map((part, index) => {
-                    const match = part.match(/\[([^\]]+)\]\(([^)]+)\)/);
-                    if (match) {
-                      const url = match[2];
-                      const isInternal = url.startsWith(window.location.origin);
-                      const path = isInternal
-                        ? url.replace(window.location.origin, '')
-                        : url;
-                      const commonProps = {
-                        key: index,
-                        className: `text-black font-bold font-semibold underline underline-offset-2 hover:opacity-80 transition-opacity `,
-                      };
-
-                      if (isInternal) {
-                        return (
-                          <Link to={path} {...commonProps}>
-                            {match[1]}
-                          </Link>
-                        );
-                      }
-
-                      return (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          {...commonProps}
-                        >
-                          {match[1]}
-                        </a>
-                      );
-                    }
-                    return part;
-                  })}
+                {renderMessagePieces(m?.content, highlightQuery)}
               </p>
               <p className="text-xs opacity-80 mt-1">
                 {formatMessageTime(m?.createdAt)}
@@ -195,14 +264,56 @@ export const ChatPage = () => {
   const { conversationId } = useParams();
   const [selected, setSelected] = useState(conversationId);
   const [input, setInput] = useState('');
+  const [listSearch, setListSearch] = useState('');
+  const [threadSearchInput, setThreadSearchInput] = useState('');
+  const [threadSearchDebounced, setThreadSearchDebounced] = useState('');
 
   const { user } = useAuth();
   const { data: conversations, isLoading, error } = useGetUserConversations();
-  const { data: messages } = useGetMessages(selected);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setThreadSearchDebounced(threadSearchInput.trim());
+    }, 320);
+    return () => clearTimeout(t);
+  }, [threadSearchInput]);
+
+  useEffect(() => {
+    setSelected(conversationId);
+  }, [conversationId]);
+
+  useEffect(() => {
+    setThreadSearchInput('');
+    setThreadSearchDebounced('');
+  }, [selected]);
+
+  const activeThreadSearch =
+    threadSearchDebounced.length > 0 ? threadSearchDebounced : '';
+
+  const messageQueryParams =
+    activeThreadSearch.length > 0
+      ? { search: activeThreadSearch, limit: 120 }
+      : { limit: 80 };
+
+  const { data: messages } = useGetMessages(selected, messageQueryParams);
   const { mutate: sendMessage } = useSendMessage();
   const { mutate: markAsRead } = useMarkAsRead();
 
   useChatRealtime(conversationId, user.id);
+
+  const listQuery = listSearch.trim().toLowerCase();
+  const filteredConversations =
+    !conversations || !listQuery
+      ? conversations
+      : conversations.filter((c) => {
+          const title = (
+            c.partner?.company?.name ||
+            c.partner?.fullName ||
+            ''
+          ).toLowerCase();
+          const last = (c?.lastMessage?.content || '').toLowerCase();
+          return title.includes(listQuery) || last.includes(listQuery);
+        });
 
   const send = () => {
     if (!input.trim() || !selected) return;
@@ -235,22 +346,59 @@ export const ChatPage = () => {
   return (
     <div className="flex flex-col lg:flex-row gap-6 min-h-[600px] w-full bg-white rounded-xl shadow-sm border">
       <ConverSationList
-        items={conversations}
+        items={filteredConversations}
         selectedId={selected}
         onSelect={handleSelect}
+        listSearch={listSearch}
+        onListSearchChange={setListSearch}
       />
       <main className="flex-1 flex flex-col bg-white min-h-[400px] rounded-r-xl max-h-[calc(100vh-8rem)] min-w-0">
         {selected ? (
           <>
-            <div className="p-4 border-b flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center">
-                <ChatAvatar src={avatar} alt={avatar || ''} />
+            <div className="p-4 border-b space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                  <ChatAvatar src={avatar} alt={avatar || ''} />
+                </div>
+                <span className="font-semibold truncate min-w-0">
+                  {chatPartner?.company?.name || chatPartner?.fullName}
+                </span>
               </div>
-              <span className="font-semibold">
-                {chatPartner?.company?.name || chatPartner?.fullName}
-              </span>
+              <div className="relative">
+                <Search
+                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                  aria-hidden
+                />
+                <Input
+                  value={threadSearchInput}
+                  onChange={(e) => setThreadSearchInput(e.target.value)}
+                  placeholder="Tìm trong cuộc trò chuyện..."
+                  className="pl-9 pr-10 rounded-xl h-10"
+                  aria-label="Tìm trong cuộc trò chuyện"
+                />
+                {threadSearchInput.trim() !== '' && (
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted text-muted-foreground"
+                    onClick={() => setThreadSearchInput('')}
+                    aria-label="Xóa tìm trong cuộc trò chuyện"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+              {activeThreadSearch ? (
+                <p className="text-xs text-muted-foreground leading-snug">
+                  Đang hiển thị tin nhắn khớp “{activeThreadSearch}” (tối đa{' '}
+                  {messageQueryParams.limit} kết quả). Xóa ô tìm để xem lại toàn bộ cuộc trò chuyện.
+                </p>
+              ) : null}
             </div>
-            <MessageThread messages={messages} avatar={avatar} />
+            <MessageThread
+              messages={messages}
+              avatar={avatar}
+              highlightQuery={activeThreadSearch}
+            />
             <MessageInput value={input} onChange={setInput} onSend={send} />
           </>
         ) : (

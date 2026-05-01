@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import {
   getTermsCondition,
@@ -26,6 +26,8 @@ import {
   useAdminStatistics,
   useCreatePaymentPackage,
   usePaymentPackages,
+  usePointPricing,
+  useUpdatePointPricing,
   useUpdatePaymentPackage,
 } from '@/features/admin/api/useAdmin';
 
@@ -57,12 +59,13 @@ const formatCompactVND = (value) => {
 export const AdminDashboard = () => {
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
-  const sectorRowsPerPage = 20;
-  const occupationRowsPerPage = 20;
+  const sectorRowsPerPage = 10;
+  const occupationRowsPerPage =10;
 
   // Users state
   const initialUserFilters = {
     page: 1,
+    limit: 10,
     role: '',
     status: '',
     fromDate: '',
@@ -97,6 +100,8 @@ export const AdminDashboard = () => {
   const [isTermsLoading, setIsTermsLoading] = useState(false);
   const [sectorName, setSectorName] = useState('');
   const [sectors, setSectors] = useState([]);
+  const [sectorsTableRows, setSectorsTableRows] = useState([]);
+  const [sectorsTableTotalPages, setSectorsTableTotalPages] = useState(1);
   const [loadingSectors, setLoadingSectors] = useState(false);
   const [sectorPage, setSectorPage] = useState(1);
 
@@ -110,10 +115,9 @@ export const AdminDashboard = () => {
   const [selectedSectorId, setSelectedSectorId] = useState('');
   const [filterSectorId, setFilterSectorId] = useState('');
   const [occupationPage, setOccupationPage] = useState(1);
-
-  // Moderation state
-  const [warningJobs, setWarningJobs] = useState([]);
-  const [loadingModeration, setLoadingModeration] = useState(false);
+  const [occupationSearch, setOccupationSearch] = useState('');
+  const [occupationSearchDebounced, setOccupationSearchDebounced] =
+    useState('');
 
   // AI Matching Weights State
   const { data: configsData, isLoading: loadingConfigs } = useGetAiConfigs();
@@ -141,6 +145,13 @@ export const AdminDashboard = () => {
     usePaymentPackages({ includeInactive: true });
   const createPaymentPackageMutation = useCreatePaymentPackage();
   const updatePaymentPackageMutation = useUpdatePaymentPackage();
+  const { data: pointPricingRes } = usePointPricing();
+  const updatePointPricingMutation = useUpdatePointPricing();
+  const [pointPricingForm, setPointPricingForm] = useState({
+    JOB_POST_POINT_COST: 50000,
+    BOOST_JOB_POINT_COST: 50000,
+    AI_INVITE_POINT_COST_PER_WORKER: 1000,
+  });
   const paymentPackages =
     paymentPackagesRes?.items || paymentPackagesRes?.data || [];
 
@@ -245,6 +256,16 @@ export const AdminDashboard = () => {
   };
 
   useEffect(() => {
+    const pricing = pointPricingRes?.items || pointPricingRes?.data || [];
+    if (!Array.isArray(pricing) || pricing.length === 0) return;
+    const next = { ...pointPricingForm };
+    pricing.forEach((item) => {
+      next[item.key] = Number(item.value || 0);
+    });
+    setPointPricingForm(next);
+  }, [pointPricingRes]);
+
+  useEffect(() => {
     if (configsData && Array.isArray(configsData)) {
       const newConfigs = { ...aiConfigs };
       const newLabels = { ...aiLabels };
@@ -268,7 +289,6 @@ export const AdminDashboard = () => {
     { key: 'overview', label: 'Tổng quan' },
     { key: 'payment_packages', label: 'Gói thanh toán' },
     { key: 'users', label: 'Quản lý người dùng' },
-    { key: 'moderation', label: 'Duyệt công việc' },
     { key: 'sectors', label: 'Quản lý ngành nghề' },
     { key: 'occupations', label: 'Quản lý nghề nghiệp' },
     { key: 'terms', label: 'Điều khoản' },
@@ -277,12 +297,25 @@ export const AdminDashboard = () => {
 
   const fetchSectors = async () => {
     try {
-      setLoadingSectors(true);
-
-      const sectors = await SectorManagementService.getAllSectors();
-      setSectors(sectors);
+      const data = await SectorManagementService.getAllSectors();
+      setSectors(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const fetchSectorsTable = async (page) => {
+    try {
+      setLoadingSectors(true);
+      const res = await SectorManagementService.getSectorsPaginated({
+        page,
+        limit: sectorRowsPerPage,
+      });
+      setSectorsTableRows(Array.isArray(res?.data) ? res.data : []);
+      setSectorsTableTotalPages(res?.totalPages ?? 1);
+    } catch (e) {
+      console.error(e);
+      toast('Lỗi khi tải danh sách ngành nghề', 'error');
     } finally {
       setLoadingSectors(false);
     }
@@ -320,19 +353,29 @@ export const AdminDashboard = () => {
     fetchTerms();
   }, []);
 
-  const sectorTotalPages = Math.max(
-    1,
-    Math.ceil(sectors.length / sectorRowsPerPage),
-  );
-  const paginatedSectors = sectors.slice(
-    (sectorPage - 1) * sectorRowsPerPage,
-    sectorPage * sectorRowsPerPage,
-  );
+  useEffect(() => {
+    if (active !== 'sectors') return;
+    fetchSectorsTable(sectorPage);
+  }, [active, sectorPage]);
+
+  const filteredOccupations = useMemo(() => {
+    const q = occupationSearchDebounced.trim().toLowerCase();
+    if (!q) return occupations;
+    return occupations.filter((occ) => {
+      const name = String(occ.name || '').toLowerCase();
+      if (name.includes(q)) return true;
+      const sector = sectors.find(
+        (s) => String(s.id) === String(occ.sectorId ?? occ.sector?.id),
+      );
+      return String(sector?.name || '').toLowerCase().includes(q);
+    });
+  }, [occupations, occupationSearchDebounced, sectors]);
+
   const occupationTotalPages = Math.max(
     1,
-    Math.ceil(occupations.length / occupationRowsPerPage),
+    Math.ceil(filteredOccupations.length / occupationRowsPerPage),
   );
-  const paginatedOccupations = occupations.slice(
+  const paginatedOccupations = filteredOccupations.slice(
     (occupationPage - 1) * occupationRowsPerPage,
     occupationPage * occupationRowsPerPage,
   );
@@ -348,10 +391,10 @@ export const AdminDashboard = () => {
   }, [active]);
 
   useEffect(() => {
-    if (sectorPage > sectorTotalPages) {
-      setSectorPage(sectorTotalPages);
+    if (sectorPage > sectorsTableTotalPages) {
+      setSectorPage(sectorsTableTotalPages);
     }
-  }, [sectorPage, sectorTotalPages]);
+  }, [sectorPage, sectorsTableTotalPages]);
 
   useEffect(() => {
     if (occupationPage > occupationTotalPages) {
@@ -361,37 +404,16 @@ export const AdminDashboard = () => {
 
   useEffect(() => {
     setOccupationPage(1);
-  }, [filterSectorId]);
-
-  const fetchWarningJobs = async () => {
-    try {
-      setLoadingModeration(true);
-      const res = await getWarningJobsApi({ page: 1, limit: 100 });
-      setWarningJobs(res.items || []);
-    } catch (e) {
-      console.error(e);
-      toast('Lỗi khi tải danh sách kiểm duyệt', 'error');
-    } finally {
-      setLoadingModeration(false);
-    }
-  };
+  }, [filterSectorId, occupationSearchDebounced]);
 
   useEffect(() => {
-    if (active === 'moderation') {
-      fetchWarningJobs();
-    }
-  }, [active]);
+    const ms = 320;
+    const id = setTimeout(() => {
+      setOccupationSearchDebounced(occupationSearch);
+    }, ms);
+    return () => clearTimeout(id);
+  }, [occupationSearch]);
 
-  const handleUpdateJobStatus = async (jobId, status) => {
-    try {
-      await updateJobStatusApi({ id: jobId, status });
-      toast('Cập nhật trạng thái thành công');
-      fetchWarningJobs();
-    } catch (e) {
-      console.error(e);
-      toast('Cập nhật thất bại', 'error');
-    }
-  };
   const createSector = async () => {
     try {
       if (!sectorName.trim()) {
@@ -405,6 +427,7 @@ export const AdminDashboard = () => {
 
       // cập nhật list sector ngay lập tức
       await fetchSectors();
+      if (active === 'sectors') await fetchSectorsTable(sectorPage);
 
       toast('Tạo ngành nghề thành công');
 
@@ -435,6 +458,7 @@ export const AdminDashboard = () => {
       setSectorName('');
 
       await fetchSectors();
+      if (active === 'sectors') await fetchSectorsTable(sectorPage);
     } catch (e) {
       console.error(e);
       toast('Cập nhật ngành nghề thất bại', 'error');
@@ -451,6 +475,7 @@ export const AdminDashboard = () => {
       setSectorToDelete(null);
 
       await fetchSectors();
+      if (active === 'sectors') await fetchSectorsTable(sectorPage);
     } catch (e) {
       console.error(e);
       toast('Xóa ngành nghề thất bại', 'error');
@@ -647,6 +672,25 @@ export const AdminDashboard = () => {
     });
   };
 
+  const handleSavePointPricing = async () => {
+    try {
+      await updatePointPricingMutation.mutateAsync({
+        JOB_POST_POINT_COST: Number(pointPricingForm.JOB_POST_POINT_COST || 0),
+        BOOST_JOB_POINT_COST: Number(pointPricingForm.BOOST_JOB_POINT_COST || 0),
+        AI_INVITE_POINT_COST_PER_WORKER: Number(
+          pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER || 0,
+        ),
+      });
+      toast('Cập nhật bảng giá point thành công');
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Không thể cập nhật bảng giá point';
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    }
+  };
+
   console.log(configsData);
 
   return (
@@ -799,6 +843,58 @@ export const AdminDashboard = () => {
 
       {active === 'payment_packages' && (
         <div className="space-y-6">
+          <Card className="p-6 space-y-4">
+            <h3 className="text-lg font-semibold">Bảng giá point hệ thống</h3>
+            <p className="text-sm text-muted-foreground">
+              Employer sẽ bị trừ point theo các đơn giá này.
+            </p>
+            <div className="grid md:grid-cols-3 gap-4">
+              <Input
+                type="number"
+                placeholder="Giá đăng job"
+                value={pointPricingForm.JOB_POST_POINT_COST}
+                onChange={(e) =>
+                  setPointPricingForm((prev) => ({
+                    ...prev,
+                    JOB_POST_POINT_COST: e.target.value,
+                  }))
+                }
+              />
+              <Input
+                type="number"
+                placeholder="Giá boost job"
+                value={pointPricingForm.BOOST_JOB_POINT_COST}
+                onChange={(e) =>
+                  setPointPricingForm((prev) => ({
+                    ...prev,
+                    BOOST_JOB_POINT_COST: e.target.value,
+                  }))
+                }
+              />
+              <Input
+                type="number"
+                placeholder="Giá AI invite / worker"
+                value={pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER}
+                onChange={(e) =>
+                  setPointPricingForm((prev) => ({
+                    ...prev,
+                    AI_INVITE_POINT_COST_PER_WORKER: e.target.value,
+                  }))
+                }
+              />
+            </div>
+            <div className="flex justify-end">
+              <Button
+                onClick={handleSavePointPricing}
+                disabled={updatePointPricingMutation.isPending}
+              >
+                {updatePointPricingMutation.isPending
+                  ? 'Đang lưu...'
+                  : 'Lưu bảng giá point'}
+              </Button>
+            </div>
+          </Card>
+
           <Card className="p-6 space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">
@@ -1144,100 +1240,6 @@ export const AdminDashboard = () => {
         </div>
       )}
 
-      {active === 'moderation' && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Duyệt công việc (Warning)</h2>
-            <Button
-              variant="outline"
-              onClick={fetchWarningJobs}
-              disabled={loadingModeration}
-              className="rounded-xl"
-            >
-              Làm mới
-            </Button>
-          </div>
-
-          <Card className="p-4 rounded-xl shadow-sm">
-            <table className="w-full text-sm">
-              <thead className="text-left text-muted-foreground">
-                <tr className="border-b">
-                  <th className="py-2">Công việc</th>
-                  <th>Công ty</th>
-                  <th>Nghề nghiệp</th>
-                  <th>Ngày tạo</th>
-                  <th>Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingModeration ? (
-                  <tr>
-                    <td colSpan="5" className="text-center py-6">
-                      <Skeleton className="h-20 w-full" />
-                    </td>
-                  </tr>
-                ) : warningJobs.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="text-center py-10 text-muted-foreground"
-                    >
-                      Không có công việc nào cần duyệt
-                    </td>
-                  </tr>
-                ) : (
-                  warningJobs.map((job) => (
-                    <tr
-                      key={job.id}
-                      className="border-b last:border-0 hover:bg-slate-50/50 transition-colors"
-                    >
-                      <td className="py-4">
-                        <div className="font-semibold text-slate-800">
-                          {job.title}
-                        </div>
-                        <div className="text-xs text-muted-foreground line-clamp-1">
-                          {job.address}
-                        </div>
-                      </td>
-                      <td>{job.company?.name}</td>
-                      <td>
-                        <Badge variant="outline" className="font-normal">
-                          {job.occupation?.name}
-                        </Badge>
-                      </td>
-                      <td className="text-muted-foreground">
-                        {new Date(job.createdAt).toLocaleDateString()}
-                      </td>
-                      <td className="flex gap-2 py-4">
-                        <Button
-                          size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4"
-                          onClick={() =>
-                            handleUpdateJobStatus(job.id, 'PUBLISHED')
-                          }
-                        >
-                          Duyệt
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="rounded-lg px-4"
-                          onClick={() =>
-                            handleUpdateJobStatus(job.id, 'DELETED')
-                          }
-                        >
-                          Xóa
-                        </Button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </Card>
-        </div>
-      )}
-
       {active === 'sectors' && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -1269,7 +1271,7 @@ export const AdminDashboard = () => {
                       <Skeleton className="h-6 w-full" />
                     </td>
                   </tr>
-                ) : sectors.length === 0 ? (
+                ) : sectorsTableRows.length === 0 ? (
                   <tr>
                     <td
                       colSpan="3"
@@ -1279,7 +1281,7 @@ export const AdminDashboard = () => {
                     </td>
                   </tr>
                 ) : (
-                  paginatedSectors.map((sector) => (
+                  sectorsTableRows.map((sector) => (
                     <tr key={sector.id} className="border-b last:border-b-0">
                       <td className="py-3 font-semibold">{sector.name}</td>
                       <td>{new Date(sector.createdAt).toLocaleDateString()}</td>
@@ -1313,7 +1315,7 @@ export const AdminDashboard = () => {
             </table>
             <AppPagination
               page={sectorPage}
-              totalPage={sectorTotalPages}
+              totalPage={sectorsTableTotalPages}
               onPageChange={setSectorPage}
             />
           </Card>
@@ -1322,11 +1324,18 @@ export const AdminDashboard = () => {
 
       {active === 'occupations' && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <h2 className="text-xl font-semibold">Quản lý nghề nghiệp</h2>
-            <div className="flex gap-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+              <Input
+                type="search"
+                placeholder="Tìm theo tên nghề hoặc ngành..."
+                value={occupationSearch}
+                onChange={(e) => setOccupationSearch(e.target.value)}
+                className="rounded-xl shadow-sm bg-white sm:w-64"
+              />
               <select
-                className="rounded-xl border px-4 py-2 text-sm bg-white"
+                className="rounded-xl border px-4 py-2 text-sm bg-white h-10"
                 value={filterSectorId}
                 onChange={(e) => setFilterSectorId(e.target.value)}
               >
@@ -1362,17 +1371,19 @@ export const AdminDashboard = () => {
               <tbody>
                 {loadingOccupations ? (
                   <tr>
-                    <td colSpan="4" className="text-center py-6">
+                    <td colSpan="3" className="text-center py-6">
                       <Skeleton className="h-6 w-full" />
                     </td>
                   </tr>
-                ) : occupations.length === 0 ? (
+                ) : filteredOccupations.length === 0 ? (
                   <tr>
                     <td
-                      colSpan="4"
+                      colSpan="3"
                       className="text-center py-6 text-muted-foreground"
                     >
-                      Không có nghề nghiệp
+                      {occupations.length === 0
+                        ? 'Không có nghề nghiệp'
+                        : 'Không tìm thấy nghề nghiệp phù hợp'}
                     </td>
                   </tr>
                 ) : (
