@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -24,8 +24,9 @@ export const EmployerWalletPage = () => {
   const { toast } = useToast();
   const [topupAmount, setTopupAmount] = useState('100000');
   const [checkoutData, setCheckoutData] = useState(null);
+  const [topupStartBalance, setTopupStartBalance] = useState(0);
 
-  const { data: walletRes } = useMyWallet();
+  const { data: walletRes, refetch: refetchWallet } = useMyWallet();
   const wallet = walletRes?.data || walletRes;
   const { data: txRes } = useWalletTransactions({ page: 1, limit: 20 });
   const transactions = txRes?.items || txRes?.data || [];
@@ -41,6 +42,7 @@ export const EmployerWalletPage = () => {
     try {
       const res = await topupMutation.mutateAsync({ amount: amountNumber });
       const data = res?.data || res;
+      setTopupStartBalance(Number(wallet?.balancePoint || 0));
       setCheckoutData(data);
       toast('Đã tạo QR nạp point thành công', 'success');
     } catch (error) {
@@ -48,6 +50,29 @@ export const EmployerWalletPage = () => {
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     }
   };
+
+  useEffect(() => {
+    if (!checkoutData) return;
+
+    const expectedBalance =
+      Number(topupStartBalance || 0) + Number(checkoutData.pointAmount || 0);
+    const currentBalance = Number(wallet?.balancePoint || 0);
+
+    if (currentBalance >= expectedBalance) {
+      toast('Đã xác nhận thanh toán. Point đã được cộng vào ví.', 'success');
+      setCheckoutData(null);
+    }
+  }, [checkoutData, topupStartBalance, wallet?.balancePoint, toast]);
+
+  useEffect(() => {
+    if (!checkoutData) return;
+
+    const timer = setInterval(() => {
+      refetchWallet();
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [checkoutData, refetchWallet]);
 
   return (
     <DashboardLayout
@@ -137,6 +162,7 @@ export const EmployerWalletPage = () => {
         open={!!checkoutData}
         title="Quét QR để nạp point"
         description="Chuyển khoản đúng nội dung để hệ thống tự cộng point."
+        variant="custom"
         onClose={() => setCheckoutData(null)}
       >
         {checkoutData && (
@@ -154,6 +180,12 @@ export const EmployerWalletPage = () => {
             {checkoutData.paymentUrl ? (
               <img src={checkoutData.paymentUrl} alt="QR nạp point" className="w-64 mx-auto" />
             ) : null}
+            <div className="rounded-xl border bg-slate-50 p-3 text-xs text-slate-600">
+              <p>Hệ thống đang tự động kiểm tra số dư ví mỗi 3 giây.</p>
+              <p className="mt-1">
+                Số dư hiện tại: <strong>{(wallet?.balancePoint || 0).toLocaleString('vi-VN')} point</strong>
+              </p>
+            </div>
           </div>
         )}
       </Modal>

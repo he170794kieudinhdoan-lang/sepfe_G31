@@ -15,3 +15,7 @@ export const createTopupCheckoutApi = async (payload) => {
 export const getWalletPricingApi = async () => {
   return await apiClient.get('/wallet/pricing');
 };
+
+export const getTopupOrderStatusApi = async (orderId) => {
+  return await apiClient.get(`/wallet/topup/orders/${orderId}/status`);
+};

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createTopupCheckoutApi,
+  getTopupOrderStatusApi,
   getMyWalletApi,
   getWalletPricingApi,
   getWalletTransactionsApi,
@@ -39,5 +40,14 @@ export const useTopupCheckout = () => {
       queryClient.invalidateQueries({ queryKey: ['my-wallet'] });
       queryClient.invalidateQueries({ queryKey: ['wallet-transactions'] });
     },
+  });
+};
+
+export const useTopupOrderStatus = (orderId, options = {}) => {
+  return useQuery({
+    queryKey: ['topup-order-status', orderId],
+    queryFn: () => getTopupOrderStatusApi(orderId),
+    enabled: !!orderId,
+    ...options,
   });
 };
