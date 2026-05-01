@@ -24,8 +24,10 @@ import {
 import { AppPagination } from '@/shared/components/AppPagination';
 import {
   useAdminStatistics,
+  useCreatePaymentPackage,
   usePaymentPackages,
   usePointPricing,
+  useUpdatePaymentPackage,
   useUpdatePointPricing,
 } from '@/features/admin/api/useAdmin';
 
@@ -52,6 +54,24 @@ const formatCompactVND = (value) => {
     );
   }
   return value.toLocaleString('vi-VN');
+};
+
+const formatCommaNumber = (value) => {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
+const parseCommaNumber = (value) => {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  if (!digits) return 0;
+  return Number(digits);
+};
+
+const toCurrencyInput = (value, fallback = 0) => {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return formatCommaNumber(fallback);
+  return formatCommaNumber(Math.max(0, Math.floor(numeric)));
 };
 
 export const AdminDashboard = () => {
@@ -131,15 +151,42 @@ export const AdminDashboard = () => {
 
   const { data: paymentPackagesRes } = usePaymentPackages({ includeInactive: true });
   const { data: pointPricingRes } = usePointPricing();
+  const createPaymentPackageMutation = useCreatePaymentPackage();
+  const updatePaymentPackageMutation = useUpdatePaymentPackage();
   const updatePointPricingMutation = useUpdatePointPricing();
   const [pointPricingForm, setPointPricingForm] = useState({
-    JOB_POST_POINT_COST: 50000,
-    BOOST_JOB_POINT_COST: 50000,
-    BOOST_JOB_DURATION_DAYS: 7,
-    AI_INVITE_POINT_COST_PER_WORKER: 1000,
+    JOB_POST_POINT_COST: '50,000',
+    BOOST_JOB_POINT_COST: '50,000',
+    BOOST_JOB_DURATION_DAYS: '7',
+    AI_INVITE_POINT_COST_PER_WORKER: '1,000',
   });
   const paymentPackages =
     paymentPackagesRes?.items || paymentPackagesRes?.data || [];
+  const boostPackages = paymentPackages
+    .filter((pkg) => pkg.orderType === 'BOOST_JOB')
+    .sort((a, b) => {
+      const aDays = Number(a.durationDays || 0);
+      const bDays = Number(b.durationDays || 0);
+      if (aDays !== bDays) return aDays - bDays;
+      return Number(a.price || 0) - Number(b.price || 0);
+    });
+  const [boostPackageForm, setBoostPackageForm] = useState({
+    name: '',
+    durationDays: '7',
+    price: '50,000',
+    description: '',
+    isDefault: false,
+    isActive: true,
+  });
+  const [editingBoostPackageId, setEditingBoostPackageId] = useState(null);
+  const [editingBoostPackageForm, setEditingBoostPackageForm] = useState({
+    name: '',
+    durationDays: '7',
+    price: '50,000',
+    description: '',
+    isDefault: false,
+    isActive: true,
+  });
 
   const kpi = [
     { label: 'Tổng người dùng', value: statsData?.users?.total || 0 },
@@ -246,9 +293,14 @@ export const AdminDashboard = () => {
     if (!Array.isArray(pricing) || pricing.length === 0) return;
     const next = { ...pointPricingForm };
     pricing.forEach((item) => {
-      next[item.key] = Number(item.value || 0);
+      if (item.key === 'BOOST_JOB_DURATION_DAYS') {
+        next[item.key] = String(Math.max(1, Number(item.value || 0)));
+      } else {
+        next[item.key] = toCurrencyInput(item.value || 0);
+      }
     });
     setPointPricingForm(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pointPricingRes]);
 
   useEffect(() => {
@@ -581,16 +633,38 @@ export const AdminDashboard = () => {
   };
 
   const handleSavePointPricing = async () => {
+    const jobPostCost = parseCommaNumber(pointPricingForm.JOB_POST_POINT_COST);
+    const boostCost = parseCommaNumber(pointPricingForm.BOOST_JOB_POINT_COST);
+    const inviteCost = parseCommaNumber(
+      pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER,
+    );
+    const boostDays = Number(
+      String(pointPricingForm.BOOST_JOB_DURATION_DAYS || '').replace(/\D/g, ''),
+    );
+
+    if (jobPostCost < 1000) {
+      toast('Chi phí đăng job phải lớn hơn hoặc bằng 1,000 point', 'error');
+      return;
+    }
+    if (boostCost < 1000) {
+      toast('Chi phí boost job phải lớn hơn hoặc bằng 1,000 point', 'error');
+      return;
+    }
+    if (!Number.isFinite(boostDays) || boostDays < 1) {
+      toast('Thời gian boost phải lớn hơn hoặc bằng 1 ngày', 'error');
+      return;
+    }
+    if (inviteCost < 100) {
+      toast('Chi phí AI gợi ý phải lớn hơn hoặc bằng 100 point', 'error');
+      return;
+    }
+
     try {
       await updatePointPricingMutation.mutateAsync({
-        JOB_POST_POINT_COST: Number(pointPricingForm.JOB_POST_POINT_COST || 0),
-        BOOST_JOB_POINT_COST: Number(pointPricingForm.BOOST_JOB_POINT_COST || 0),
-        BOOST_JOB_DURATION_DAYS: Number(
-          pointPricingForm.BOOST_JOB_DURATION_DAYS || 0,
-        ),
-        AI_INVITE_POINT_COST_PER_WORKER: Number(
-          pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER || 0,
-        ),
+        JOB_POST_POINT_COST: jobPostCost,
+        BOOST_JOB_POINT_COST: boostCost,
+        BOOST_JOB_DURATION_DAYS: boostDays,
+        AI_INVITE_POINT_COST_PER_WORKER: inviteCost,
       });
       toast('Cập nhật bảng giá point thành công');
     } catch (error) {
@@ -598,6 +672,124 @@ export const AdminDashboard = () => {
         error?.response?.data?.message ||
         error?.message ||
         'Không thể cập nhật bảng giá point';
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    }
+  };
+
+  const resetBoostPackageForm = () => {
+    setBoostPackageForm({
+      name: '',
+      durationDays: '7',
+      price: '50,000',
+      description: '',
+      isDefault: false,
+      isActive: true,
+    });
+  };
+
+  const handleCreateBoostPackage = async () => {
+    const durationDays = Number(
+      String(boostPackageForm.durationDays || '').replace(/\D/g, ''),
+    );
+    const price = parseCommaNumber(boostPackageForm.price);
+    if (!Number.isFinite(durationDays) || durationDays < 1) {
+      toast('Số ngày gói boost phải lớn hơn hoặc bằng 1', 'error');
+      return;
+    }
+    if (!Number.isFinite(price) || price < 1000) {
+      toast('Giá gói boost phải lớn hơn hoặc bằng 1.000 point', 'error');
+      return;
+    }
+
+    const normalizedName = (boostPackageForm.name || '').trim();
+
+    try {
+      await createPaymentPackageMutation.mutateAsync({
+        orderType: 'BOOST_JOB',
+        name: normalizedName || `Gói boost ${durationDays} ngày`,
+        description: boostPackageForm.description?.trim() || undefined,
+        durationDays,
+        price,
+        isDefault: Boolean(boostPackageForm.isDefault),
+        isActive: Boolean(boostPackageForm.isActive),
+      });
+      toast('Tạo gói boost thành công', 'success');
+      resetBoostPackageForm();
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Không thể tạo gói boost';
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    }
+  };
+
+  const handleStartEditBoostPackage = (pkg) => {
+    setEditingBoostPackageId(pkg.id);
+    setEditingBoostPackageForm({
+      name: pkg.name || '',
+      durationDays: String(Number(pkg.durationDays || 7)),
+      price: toCurrencyInput(pkg.price || 50000),
+      description: pkg.description || '',
+      isDefault: Boolean(pkg.isDefault),
+      isActive: Boolean(pkg.isActive),
+    });
+  };
+
+  const handleSaveEditBoostPackage = async () => {
+    if (!editingBoostPackageId) return;
+
+    const durationDays = Number(
+      String(editingBoostPackageForm.durationDays || '').replace(/\D/g, ''),
+    );
+    const price = parseCommaNumber(editingBoostPackageForm.price);
+    if (!Number.isFinite(durationDays) || durationDays < 1) {
+      toast('Số ngày gói boost phải lớn hơn hoặc bằng 1', 'error');
+      return;
+    }
+    if (!Number.isFinite(price) || price < 1000) {
+      toast('Giá gói boost phải lớn hơn hoặc bằng 1.000 point', 'error');
+      return;
+    }
+
+    try {
+      await updatePaymentPackageMutation.mutateAsync({
+        id: editingBoostPackageId,
+        payload: {
+          orderType: 'BOOST_JOB',
+          name:
+            editingBoostPackageForm.name?.trim() ||
+            `Gói boost ${durationDays} ngày`,
+          description: editingBoostPackageForm.description?.trim() || '',
+          durationDays,
+          price,
+          isDefault: Boolean(editingBoostPackageForm.isDefault),
+          isActive: Boolean(editingBoostPackageForm.isActive),
+        },
+      });
+      toast('Cập nhật gói boost thành công', 'success');
+      setEditingBoostPackageId(null);
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Không thể cập nhật gói boost';
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    }
+  };
+
+  const handleQuickToggleBoostPackage = async (pkg, payload, successMessage) => {
+    try {
+      await updatePaymentPackageMutation.mutateAsync({
+        id: pkg.id,
+        payload,
+      });
+      toast(successMessage, 'success');
+    } catch (error) {
+      const message =
+        error?.response?.data?.message ||
+        error?.message ||
+        'Không thể cập nhật gói boost';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     }
   };
@@ -665,7 +857,7 @@ export const AdminDashboard = () => {
               </div>
             </Card>
 
-            <Card className="p-6 lg:col-span-1 border-primary/15 bg-gradient-to-br from-white to-slate-50">
+            <Card className="p-6 lg:col-span-1 border-primary/15 bg-linear-to-br from-white to-slate-50">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-lg font-semibold">Gói thanh toán</h3>
@@ -754,90 +946,352 @@ export const AdminDashboard = () => {
 
       {active === 'payment_packages' && (
         <div className="space-y-6">
-          <Card className="p-6 space-y-4">
+          <Card className="p-6 border-primary/20 bg-linear-to-br from-amber-50/40 to-white">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-lg font-semibold">Bảng giá point hệ thống</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Cấu hình chi phí cho đăng tin, boost và lời mời AI theo point.
+                  Mỗi cấu hình là một khối riêng để dễ nhập và tránh nhầm lẫn.
                 </p>
               </div>
               <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20">
                 1.000đ = 1.000 point
               </Badge>
             </div>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                <p className="text-sm font-semibold text-slate-800">Đăng job</p>
-                <p className="text-xs text-slate-500">Số point trừ mỗi lần xuất bản tin.</p>
+          </Card>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2 shadow-xs">
+              <p className="text-sm font-semibold text-slate-800">Đăng job</p>
+              <p className="text-xs text-slate-500">Số point trừ mỗi lần xuất bản tin.</p>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="50,000"
+                value={pointPricingForm.JOB_POST_POINT_COST}
+                onChange={(e) =>
+                  setPointPricingForm((prev) => ({
+                    ...prev,
+                    JOB_POST_POINT_COST: formatCommaNumber(e.target.value),
+                  }))
+                }
+              />
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2 shadow-xs">
+              <p className="text-sm font-semibold text-slate-800">Boost job</p>
+              <p className="text-xs text-slate-500">Fallback khi chưa có gói boost tương ứng.</p>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="50,000"
+                value={pointPricingForm.BOOST_JOB_POINT_COST}
+                onChange={(e) =>
+                  setPointPricingForm((prev) => ({
+                    ...prev,
+                    BOOST_JOB_POINT_COST: formatCommaNumber(e.target.value),
+                  }))
+                }
+              />
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2 shadow-xs">
+              <p className="text-sm font-semibold text-slate-800">Thời gian boost job</p>
+              <p className="text-xs text-slate-500">Fallback khi chưa có gói active phù hợp.</p>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="7"
+                value={pointPricingForm.BOOST_JOB_DURATION_DAYS}
+                onChange={(e) =>
+                  setPointPricingForm((prev) => ({
+                    ...prev,
+                    BOOST_JOB_DURATION_DAYS: String(e.target.value || '').replace(/\D/g, ''),
+                  }))
+                }
+              />
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2 shadow-xs">
+              <p className="text-sm font-semibold text-slate-800">AI gợi ý ứng viên</p>
+              <p className="text-xs text-slate-500">Point trừ trên mỗi worker khi gửi lời mời.</p>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="1,000"
+                value={pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER}
+                onChange={(e) =>
+                  setPointPricingForm((prev) => ({
+                    ...prev,
+                    AI_INVITE_POINT_COST_PER_WORKER: formatCommaNumber(e.target.value),
+                  }))
+                }
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              onClick={handleSavePointPricing}
+              disabled={updatePointPricingMutation.isPending}
+            >
+              {updatePointPricingMutation.isPending
+                ? 'Đang lưu...'
+                : 'Lưu bảng giá point'}
+            </Button>
+          </div>
+
+          <Card className="p-6 space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">Gói Boost Job</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Admin có thể cấu hình nhiều gói boost theo thời hạn khác nhau (7 ngày, 30 ngày, ...).
+                </p>
+              </div>
+              <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                {boostPackages.length} gói
+              </Badge>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+              <p className="text-sm font-semibold text-slate-800">Tạo gói boost mới</p>
+              <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-3">
                 <Input
-                  type="number"
-                  min={0}
-                  value={pointPricingForm.JOB_POST_POINT_COST}
+                  placeholder="Tên gói (vd: Gói boost 7 ngày)"
+                  value={boostPackageForm.name}
                   onChange={(e) =>
-                    setPointPricingForm((prev) => ({
+                    setBoostPackageForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Số ngày"
+                  value={boostPackageForm.durationDays}
+                  onChange={(e) =>
+                    setBoostPackageForm((prev) => ({
                       ...prev,
-                      JOB_POST_POINT_COST: e.target.value,
+                      durationDays: String(e.target.value || '').replace(/\D/g, ''),
+                    }))
+                  }
+                />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Giá point"
+                  value={boostPackageForm.price}
+                  onChange={(e) =>
+                    setBoostPackageForm((prev) => ({
+                      ...prev,
+                      price: formatCommaNumber(e.target.value),
+                    }))
+                  }
+                />
+                <Input
+                  placeholder="Mô tả ngắn"
+                  value={boostPackageForm.description}
+                  onChange={(e) =>
+                    setBoostPackageForm((prev) => ({
+                      ...prev,
+                      description: e.target.value,
                     }))
                   }
                 />
               </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                <p className="text-sm font-semibold text-slate-800">Boost job</p>
-                <p className="text-xs text-slate-500">Số point trừ cho một lần boost.</p>
-                <Input
-                  type="number"
-                  min={0}
-                  value={pointPricingForm.BOOST_JOB_POINT_COST}
-                  onChange={(e) =>
-                    setPointPricingForm((prev) => ({
+              <div className="flex flex-wrap items-center gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant={boostPackageForm.isDefault ? 'default' : 'outline'}
+                  onClick={() =>
+                    setBoostPackageForm((prev) => ({
                       ...prev,
-                      BOOST_JOB_POINT_COST: e.target.value,
+                      isDefault: !prev.isDefault,
                     }))
                   }
-                />
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                <p className="text-sm font-semibold text-slate-800">Thời gian boost job</p>
-                <p className="text-xs text-slate-500">Số ngày hiệu lực của mỗi lần boost.</p>
-                <Input
-                  type="number"
-                  min={1}
-                  value={pointPricingForm.BOOST_JOB_DURATION_DAYS}
-                  onChange={(e) =>
-                    setPointPricingForm((prev) => ({
+                >
+                  {boostPackageForm.isDefault ? 'Mặc định: Bật' : 'Đặt mặc định'}
+                </Button>
+                <Button
+                  type="button"
+                  variant={boostPackageForm.isActive ? 'default' : 'outline'}
+                  onClick={() =>
+                    setBoostPackageForm((prev) => ({
                       ...prev,
-                      BOOST_JOB_DURATION_DAYS: e.target.value,
+                      isActive: !prev.isActive,
                     }))
                   }
-                />
-              </div>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2">
-                <p className="text-sm font-semibold text-slate-800">AI gợi ý ứng viên</p>
-                <p className="text-xs text-slate-500">Point trừ trên mỗi worker khi gửi lời mời.</p>
-                <Input
-                  type="number"
-                  min={0}
-                  value={pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER}
-                  onChange={(e) =>
-                    setPointPricingForm((prev) => ({
-                      ...prev,
-                      AI_INVITE_POINT_COST_PER_WORKER: e.target.value,
-                    }))
-                  }
-                />
+                >
+                  {boostPackageForm.isActive ? 'Trạng thái: Active' : 'Trạng thái: Inactive'}
+                </Button>
+                <Button
+                  onClick={handleCreateBoostPackage}
+                  disabled={createPaymentPackageMutation.isPending}
+                >
+                  {createPaymentPackageMutation.isPending ? 'Đang tạo...' : 'Tạo gói'}
+                </Button>
               </div>
             </div>
-            <div className="flex justify-end">
-              <Button
-                onClick={handleSavePointPricing}
-                disabled={updatePointPricingMutation.isPending}
-              >
-                {updatePointPricingMutation.isPending
-                  ? 'Đang lưu...'
-                  : 'Lưu bảng giá point'}
-              </Button>
-            </div>
+
+            {boostPackages.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 p-6 text-sm text-slate-500 text-center">
+                Chưa có gói boost nào. Hãy tạo gói 7 ngày, 30 ngày hoặc gói tuỳ chỉnh.
+              </div>
+            ) : (
+              <div className="grid lg:grid-cols-2 gap-4">
+                {boostPackages.map((pkg) => {
+                  const isEditing = editingBoostPackageId === pkg.id;
+                  return (
+                    <div key={pkg.id} className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-base font-semibold text-slate-900">{pkg.name}</p>
+                          <p className="text-sm text-slate-500 mt-1">
+                            {Number(pkg.durationDays || 0)} ngày • {Number(pkg.price || 0).toLocaleString('vi-VN')} point
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 justify-end">
+                          {pkg.isDefault && (
+                            <Badge className="bg-blue-100 text-blue-700 border-blue-200">Mặc định</Badge>
+                          )}
+                          <Badge
+                            variant="outline"
+                            className={pkg.isActive ? 'text-emerald-700 border-emerald-200 bg-emerald-50' : 'text-slate-600'}
+                          >
+                            {pkg.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                      </div>
+
+                      {pkg.description && (
+                        <p className="text-xs text-slate-500">{pkg.description}</p>
+                      )}
+
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <Input
+                            value={editingBoostPackageForm.name}
+                            onChange={(e) =>
+                              setEditingBoostPackageForm((prev) => ({
+                                ...prev,
+                                name: e.target.value,
+                              }))
+                            }
+                          />
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={editingBoostPackageForm.durationDays}
+                              onChange={(e) =>
+                                setEditingBoostPackageForm((prev) => ({
+                                  ...prev,
+                                  durationDays: String(e.target.value || '').replace(/\D/g, ''),
+                                }))
+                              }
+                            />
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={editingBoostPackageForm.price}
+                              onChange={(e) =>
+                                setEditingBoostPackageForm((prev) => ({
+                                  ...prev,
+                                  price: formatCommaNumber(e.target.value),
+                                }))
+                              }
+                            />
+                          </div>
+                          <Input
+                            value={editingBoostPackageForm.description}
+                            onChange={(e) =>
+                              setEditingBoostPackageForm((prev) => ({
+                                ...prev,
+                                description: e.target.value,
+                              }))
+                            }
+                            placeholder="Mô tả"
+                          />
+                          <div className="flex gap-2 justify-end">
+                            <Button
+                              size="sm"
+                              variant={editingBoostPackageForm.isDefault ? 'default' : 'outline'}
+                              onClick={() =>
+                                setEditingBoostPackageForm((prev) => ({
+                                  ...prev,
+                                  isDefault: !prev.isDefault,
+                                }))
+                              }
+                            >
+                              {editingBoostPackageForm.isDefault ? 'Mặc định: Bật' : 'Đặt mặc định'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant={editingBoostPackageForm.isActive ? 'default' : 'outline'}
+                              onClick={() =>
+                                setEditingBoostPackageForm((prev) => ({
+                                  ...prev,
+                                  isActive: !prev.isActive,
+                                }))
+                              }
+                            >
+                              {editingBoostPackageForm.isActive ? 'Active' : 'Inactive'}
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setEditingBoostPackageId(null)}
+                            >
+                              Hủy
+                            </Button>
+                            <Button
+                              size="sm"
+                              onClick={handleSaveEditBoostPackage}
+                              disabled={updatePaymentPackageMutation.isPending}
+                            >
+                              Lưu
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2 justify-end">
+                          <Button size="sm" variant="outline" onClick={() => handleStartEditBoostPackage(pkg)}>
+                            Chỉnh sửa
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleQuickToggleBoostPackage(
+                                pkg,
+                                { isActive: !pkg.isActive },
+                                pkg.isActive ? 'Đã tạm ngưng gói boost' : 'Đã kích hoạt gói boost',
+                              )
+                            }
+                            disabled={updatePaymentPackageMutation.isPending}
+                          >
+                            {pkg.isActive ? 'Tạm ngưng' : 'Kích hoạt'}
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={() =>
+                              handleQuickToggleBoostPackage(
+                                pkg,
+                                { isDefault: true },
+                                'Đã cập nhật gói mặc định',
+                              )
+                            }
+                            disabled={updatePaymentPackageMutation.isPending || pkg.isDefault}
+                          >
+                            Đặt mặc định
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </Card>
 
 

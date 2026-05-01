@@ -60,6 +60,7 @@ import {
   useEmployerApplications,
   useUpdateApplicationStatus,
   useDeleteJob,
+  useBoostPackages,
   useCreateBoostCheckout,
   useCreatePostingCheckout,
   useMatchedWorkers,
@@ -2114,7 +2115,7 @@ export const EmployerDashboard = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [boostModalOpen, setBoostModalOpen] = useState(false);
   const [selectedBoostJob, setSelectedBoostJob] = useState(null);
-  const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
+  const [selectedBoostPackageId, setSelectedBoostPackageId] = useState(null);
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
     useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
@@ -2188,8 +2189,11 @@ export const EmployerDashboard = () => {
   );
   const createBoostCheckoutMutation = useCreateBoostCheckout();
   const createPostingCheckoutMutation = useCreatePostingCheckout();
+  const { data: boostPackagesRes } = useBoostPackages();
   const { data: walletPricingRes } = useWalletPricing();
   const walletPricing = walletPricingRes?.data || walletPricingRes || {};
+  const boostPackages = boostPackagesRes?.items || boostPackagesRes?.data || [];
+  const activeBoostPackages = boostPackages.filter((item) => item?.isActive !== false);
   const aiInviteUnitCost = walletPricing?.AI_INVITE_POINT_COST_PER_WORKER || 0;
   const configuredBoostDays = Math.max(
     1,
@@ -2199,12 +2203,38 @@ export const EmployerDashboard = () => {
     0,
     Number(walletPricing?.BOOST_JOB_POINT_COST || 50000),
   );
+  const fallbackBoostPackage = useMemo(
+    () => ({
+      id: 0,
+      name: `Gói boost ${configuredBoostDays} ngày`,
+      description: 'Gói mặc định theo cấu hình hệ thống',
+      durationDays: configuredBoostDays,
+      price: configuredBoostPointCost,
+      isDefault: true,
+      isActive: true,
+    }),
+    [configuredBoostDays, configuredBoostPointCost],
+  );
+  const boostPackageOptions =
+    activeBoostPackages.length > 0 ? activeBoostPackages : [fallbackBoostPackage];
+  const selectedBoostPackage =
+    boostPackageOptions.find(
+      (item) => String(item.id) === String(selectedBoostPackageId),
+    ) || boostPackageOptions[0] || null;
 
   useEffect(() => {
-    if (selectedBoostPackageDays !== configuredBoostDays) {
-      setSelectedBoostPackageDays(configuredBoostDays);
+    if (!boostPackageOptions.length) {
+      return;
     }
-  }, [configuredBoostDays, selectedBoostPackageDays]);
+    const hasSelection = boostPackageOptions.some(
+      (item) => String(item.id) === String(selectedBoostPackageId),
+    );
+    if (!hasSelection) {
+      const defaultPackage =
+        boostPackageOptions.find((item) => item.isDefault) || boostPackageOptions[0];
+      setSelectedBoostPackageId(defaultPackage?.id ?? null);
+    }
+  }, [boostPackageOptions, selectedBoostPackageId]);
 
   const applicantsList = applicationsResult?.data || [];
   const filteredApplicants = applicantsList.filter((a) => {
@@ -2419,8 +2449,15 @@ export const EmployerDashboard = () => {
     if (restored?.type === 'boost-checkout') {
       setActive('jobs');
       setSelectedBoostJob(restored?.selectedBoostJob || null);
-      if (restored?.selectedBoostPackageDays) {
-        setSelectedBoostPackageDays(Number(restored.selectedBoostPackageDays));
+      if (restored?.selectedBoostPackageId !== undefined) {
+        setSelectedBoostPackageId(restored.selectedBoostPackageId);
+      } else if (restored?.selectedBoostPackageDays) {
+        const matchedByDays = boostPackageOptions.find(
+          (item) =>
+            Number(item?.durationDays || 0) ===
+            Number(restored.selectedBoostPackageDays || 0),
+        );
+        setSelectedBoostPackageId(matchedByDays?.id ?? boostPackageOptions[0]?.id ?? null);
       }
       setBoostModalOpen(Boolean(restored?.selectedBoostJob));
     }
@@ -2443,6 +2480,7 @@ export const EmployerDashboard = () => {
       { replace: true },
     );
   }, [
+    boostPackageOptions,
     resumeKeyFromUrl,
     setSearchParams,
     toast,
@@ -2487,7 +2525,7 @@ export const EmployerDashboard = () => {
       const checkoutRes = await createBoostCheckoutMutation.mutateAsync({
         jobId: selectedBoostJob.id,
         payload: {
-          packageDays: selectedBoostPackageDays,
+          packageDays: Number(selectedBoostPackage?.durationDays || configuredBoostDays),
         },
       });
       const checkout = checkoutRes?.data || checkoutRes;
@@ -2520,7 +2558,8 @@ export const EmployerDashboard = () => {
       resumePayload: {
         type: 'boost-checkout',
         selectedBoostJob,
-        selectedBoostPackageDays,
+        selectedBoostPackageId,
+        selectedBoostPackageDays: Number(selectedBoostPackage?.durationDays || configuredBoostDays),
       },
     });
   };
@@ -3247,8 +3286,14 @@ export const EmployerDashboard = () => {
                                             size="sm"
                                             className="h-7 text-xs text-primary bg-primary/10 hover:bg-primary/20 rounded-lg"
                                             onClick={() => {
+                                              const defaultPackage =
+                                                boostPackageOptions.find(
+                                                  (item) => item.isDefault,
+                                                ) || boostPackageOptions[0];
                                               setSelectedBoostJob(job);
-                                              setSelectedBoostPackageDays(configuredBoostDays);
+                                              setSelectedBoostPackageId(
+                                                defaultPackage?.id ?? null,
+                                              );
                                               setBoostModalOpen(true);
                                             }}
                                             disabled={
@@ -3702,25 +3747,88 @@ export const EmployerDashboard = () => {
         }
         cancelLabel="Hủy"
         confirmDisabled={createBoostCheckoutMutation.isPending}
+        contentClassName="max-w-4xl"
+        bodyClassName="space-y-4 overflow-x-hidden p-5 sm:p-6"
       >
-        <div className="space-y-4 mt-4">
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+        <div className="space-y-4 mt-2">
+          <div className="space-y-2">
             <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-              Gói boost theo cấu hình hệ thống
+              Chọn thời hạn boost
             </p>
-            <div className="mt-2 flex items-end justify-between gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {boostPackageOptions.map((pkg) => {
+                const isSelected =
+                  String(pkg.id) === String(selectedBoostPackage?.id);
+                const durationDays = Number(pkg.durationDays || 0);
+                const price = Number(pkg.price || 0);
+                const pointPerDay =
+                  durationDays > 0 ? Math.round(price / durationDays) : price;
+                return (
+                  <button
+                    key={`${pkg.id}-${pkg.durationDays}`}
+                    type="button"
+                    className={`w-full rounded-2xl border p-4 text-left transition-all ${
+                      isSelected
+                        ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                    }`}
+                    onClick={() => setSelectedBoostPackageId(pkg.id)}
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div
+                          className={`h-10 w-10 rounded-xl border flex items-center justify-center text-sm font-extrabold ${
+                            isSelected
+                              ? 'border-primary/30 bg-primary/15 text-primary'
+                              : 'border-slate-200 bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          {durationDays}N
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-900">
+                            {durationDays} ngày
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            Khoảng {pointPerDay.toLocaleString('vi-VN')} point/ngày
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-left sm:text-right sm:shrink-0">
+                        <p className="text-base font-extrabold text-slate-900">
+                          {price.toLocaleString('vi-VN')} point
+                        </p>
+                        {pkg.isDefault ? (
+                          <span className="inline-block mt-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                            Mặc định
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm text-slate-600">
-                  Thời gian nổi bật: <strong>{selectedBoostPackageDays} ngày</strong>
-                </p>
+                <p className="text-sm text-slate-700 font-semibold">Xác nhận gói đã chọn</p>
                 <p className="text-sm text-slate-600 mt-1">
-                  Chi phí mỗi lần boost:{' '}
-                  <strong>{configuredBoostPointCost.toLocaleString('vi-VN')} point</strong>
+                  Thời gian nổi bật:{' '}
+                  <strong>{Number(selectedBoostPackage?.durationDays || configuredBoostDays)} ngày</strong>
                 </p>
               </div>
-              <p className="text-2xl font-extrabold text-slate-900">
-                {configuredBoostPointCost.toLocaleString('vi-VN')}đ
-              </p>
+              <div className="text-right">
+                <p className="text-xs text-slate-500">Chi phí</p>
+                <p className="text-lg font-extrabold text-slate-900">
+                  {Number(selectedBoostPackage?.price || configuredBoostPointCost).toLocaleString(
+                    'vi-VN',
+                  )}{' '}
+                  point
+                </p>
+              </div>
             </div>
           </div>
 
