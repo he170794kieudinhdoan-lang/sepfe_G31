@@ -98,6 +98,7 @@ import {
   goToWalletTopup,
   isInsufficientPointError,
 } from '@/shared/utils/walletPointFlow';
+import { DashboardChatPanel } from '@/features/chat/components/DashboardChatPanel';
 
 const EMPLOYER_MENU = [
   {
@@ -128,8 +129,6 @@ const EMPLOYER_MENU = [
     key: 'chat',
     label: 'Tin nhắn',
     icon: MessageCircle,
-    path: '/chat',
-    externalNav: true,
   },
   { key: 'home', label: 'Trang chủ', icon: Home, path: '/', externalNav: true },
 ];
@@ -3678,6 +3677,12 @@ export const EmployerDashboard = () => {
           )}
 
           {/* STATS TAB */}
+          {active === 'chat' && (
+            <div className="animate-in fade-in py-2 overflow-hidden pb-6">
+              <DashboardChatPanel />
+            </div>
+          )}
+
           {active === 'stats' && (
             <div className="space-y-6 animate-in fade-in py-2 overflow-y-auto pb-6">
               <div className="rounded-xl border border-slate-200 bg-white shadow-sm ring-1 ring-primary/5 px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3">
