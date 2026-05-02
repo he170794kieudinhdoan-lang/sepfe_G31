@@ -136,8 +136,8 @@ export const getWards = async (wardsId) => {
 };
 
 //AI
-export const getMatchedJobsApi = async (limit = 10) => {
-  return await apiClient.get('/ai-matching/jobs', { params: { limit } });
+export const getMatchedJobsApi = async () => {
+  return await apiClient.get('/ai-matching/jobs');
 };
 
 export const getMatchedWorkersApi = async (jobId, limit = 10) => {

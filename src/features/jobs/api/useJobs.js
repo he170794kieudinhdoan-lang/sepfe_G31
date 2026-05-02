@@ -279,10 +279,10 @@ export const useCancelApplyJob = () => {
 };
 
 //AI
-export const useMatchedJobs = (limit = 10, options = {}) => {
+export const useMatchedJobs = (options = {}) => {
   return useQuery({
-    queryKey: ['matched-jobs', limit],
-    queryFn: () => getMatchedJobsApi(limit),
+    queryKey: ['matched-jobs'],
+    queryFn: () => getMatchedJobsApi(),
     staleTime: 5 * 60 * 1000,
     ...options,
   });

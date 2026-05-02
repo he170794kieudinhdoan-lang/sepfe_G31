@@ -153,14 +153,16 @@ function JobCardHoverPreview({
       </PopoverAnchor>
       <PopoverContent
         className={cn(
-          'w-[450px] p-0 overflow-hidden rounded-[24px] border border-slate-100 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.15)] bg-white z-100',
+          'w-[450px] p-0 overflow-hidden rounded-[24px] border border-slate-100 shadow-[0_24px_60px_-15px_rgba(0,0,0,0.15)] bg-white z-[1000]',
           /* Ghi đè animate mặc định của Popover (zoom ~95 + fade) — cảm giác mở chậm / không mượt */
           'data-[state=open]:duration-100 data-[state=closed]:duration-75',
           'data-[state=open]:zoom-in-100 data-[state=closed]:zoom-out-100',
           'data-[side=left]:slide-in-from-right-0',
         )}
-        side="left"
-        sideOffset={4}
+        side="right"
+        align="start"
+        sideOffset={10}
+        collisionPadding={20}
         onMouseEnter={() => handleMouseEnter(previewKey)}
         onMouseLeave={handleMouseLeave}
       >
@@ -581,13 +583,16 @@ export function HomePage() {
 
   const handlePreviewMouseEnter = (key) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setActivePreviewKey(key);
+    timeoutRef.current = setTimeout(() => {
+      setActivePreviewKey(key);
+    }, 300);
   };
 
   const handlePreviewMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setActivePreviewKey(null);
-    }, 80);
+    }, 200);
   };
 
   const { data: newestJobs, isLoading } = useSearchJobs({
