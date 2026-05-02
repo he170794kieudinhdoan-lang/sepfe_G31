@@ -6,14 +6,19 @@ import {
     supabaseClient,
 } from '@/shared/api/supabaseClient';
 
-export const useNotificationRealtime = ({ enabled = true, userId } = {}) => {
+export const useNotificationRealtime = ({ enabled = true, userId, onEvent } = {}) => {
     const queryClient = useQueryClient();
     const [status, setStatus] = useState('IDLE');
+    const onEventRef = useRef(onEvent);
     const channelInstanceIdRef = useRef(
         typeof crypto !== 'undefined' && crypto.randomUUID
             ? crypto.randomUUID()
             : `${Date.now()}-${Math.random().toString(16).slice(2)}`
     );
+
+    useEffect(() => {
+        onEventRef.current = onEvent;
+    }, [onEvent]);
 
     useEffect(() => {
         if (!enabled || !isSupabaseConfigured || !supabaseClient || !userId) {
@@ -97,6 +102,9 @@ export const useNotificationRealtime = ({ enabled = true, userId } = {}) => {
                     }
                     queryClient.invalidateQueries({ queryKey: ['notifications'] });
                     queryClient.refetchQueries({ queryKey: ['notifications'], type: 'active' });
+                    if (typeof onEventRef.current === 'function') {
+                        onEventRef.current(payload);
+                    }
                 }
             )
             .subscribe((status, err) => {

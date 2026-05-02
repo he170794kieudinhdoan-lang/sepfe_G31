@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/shared/components/Modal';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
+import { useNotificationRealtime } from '@/features/notifications';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { parseNumber } from '@/shared/utils/formatCurrency';
 import {
@@ -85,6 +87,7 @@ const PROMO_SLIDES = [
 
 export const EmployerWalletPage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [topupAmount, setTopupAmount] = useState('100000');
@@ -92,17 +95,8 @@ export const EmployerWalletPage = () => {
   const [orderId, setOrderId] = useState(null);
   const [isPolling, setIsPolling] = useState(false);
   const [txPage, setTxPage] = useState(1);
-  const [selectedSlide, setSelectedSlide] = useState(0);
-  const txPageSize = 10;
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start' });
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    const interval = setInterval(() => {
-      emblaApi.scrollNext();
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [emblaApi]);
+  const handledOrderIdRef = useRef(null);
+  const txLimit = 10;
 
   const { data: walletRes, refetch: refetchWallet } = useMyWallet();
   const wallet = walletRes?.data || walletRes;
@@ -139,11 +133,62 @@ export const EmployerWalletPage = () => {
   const txMeta = txPayload?.meta;
   const totalPages = Math.max(Number(txMeta?.totalPages || txMeta?.totalPage || 1), 1);
   const topupMutation = useTopupCheckout();
+  const userId = user?.userId || user?.id || user?._id;
+
+  const handleCheckoutSuccess = () => {
+    if (handledOrderIdRef.current === orderId) return;
+
+    handledOrderIdRef.current = orderId;
+    setIsPolling(false);
+    refetchWallet();
+    toast('Thanh toán thành công! Point đã được cộng vào ví.', 'success');
+
+    const returnTo = searchParams.get('returnTo');
+    const resumeKey = searchParams.get('resumeKey');
+    closeCheckoutModal();
+
+    if (returnTo) {
+      const [returnPath, returnQuery = ''] = returnTo.split('?');
+      const nextParams = new URLSearchParams(returnQuery);
+      nextParams.set('walletTopupSuccess', '1');
+      if (resumeKey) {
+        nextParams.set('resumeKey', resumeKey);
+      }
+      navigate(nextParams.toString() ? `${returnPath}?${nextParams.toString()}` : returnPath, {
+        replace: true,
+      });
+    }
+  };
+
+  useNotificationRealtime({
+    enabled: !!checkoutData && !!orderId && !!userId,
+    userId,
+    onEvent: (payload) => {
+      const notification = payload?.new || payload?.old;
+      if (!notification) return;
+
+      const title = typeof notification.title === 'string' ? notification.title : '';
+      const link = typeof notification.link === 'string' ? notification.link : '';
+      const message = typeof notification.message === 'string' ? notification.message : '';
+      const isTopupSuccess =
+        title.toLowerCase().includes('nạp point thành công') ||
+        link.includes('walletTopupSuccess=1') ||
+        message.toLowerCase().includes('đã cộng') && message.toLowerCase().includes('point');
+
+      if (isTopupSuccess) {
+        handleCheckoutSuccess();
+      }
+    },
+  });
 
   // Poll the order status while modal is open
   const { data: orderStatusRes } = useTopupOrderStatus(orderId, {
     enabled: !!orderId && isPolling,
-    refetchInterval: 2000, // Check every 2 seconds
+    refetchInterval: (query) => {
+      const status = query?.state?.data?.data?.status || query?.state?.data?.status;
+      return status === 'PENDING' && isPolling ? 1000 : false;
+    },
+    refetchIntervalInBackground: true,
     refetchOnFocus: false,
   });
   const orderStatus = orderStatusRes?.data || orderStatusRes;
@@ -156,6 +201,7 @@ export const EmployerWalletPage = () => {
     amountNumber <= TOPUP_MAX_AMOUNT;
 
   const closeCheckoutModal = () => {
+    handledOrderIdRef.current = null;
     setIsPolling(false);
     setOrderId(null);
     setCheckoutData(null);
@@ -180,7 +226,8 @@ export const EmployerWalletPage = () => {
       setCheckoutData(data);
       setOrderId(data.paymentOrderId);
       setIsPolling(true);
-      toast('Đã tạo QR nạp điểm thành công', 'success');
+      handledOrderIdRef.current = null;
+      toast('Đã tạo QR nạp point thành công', 'success');
     } catch (error) {
       const message = error?.response?.data?.message || 'Không thể tạo QR nạp điểm';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
@@ -188,7 +235,8 @@ export const EmployerWalletPage = () => {
   };
 
   useEffect(() => {
-    if (!orderStatus) return;
+    if (!orderId || !orderStatus) return;
+    if (handledOrderIdRef.current === orderId) return;
 
     const PaymentStatus = {
       PENDING: 'PENDING',
@@ -198,38 +246,17 @@ export const EmployerWalletPage = () => {
     };
 
     if (orderStatus.status === PaymentStatus.COMPLETED) {
-      setIsPolling(false);
-      refetchWallet();
-
-      setTimeout(() => {
-        toast('Thanh toán thành công! Điểm đã được cộng vào ví.', 'success');
-
-        const returnTo = searchParams.get('returnTo');
-        const resumeKey = searchParams.get('resumeKey');
-        if (returnTo) {
-          const [returnPath, returnQuery = ''] = returnTo.split('?');
-          const nextParams = new URLSearchParams(returnQuery);
-          nextParams.set('walletTopupSuccess', '1');
-          if (resumeKey) {
-            nextParams.set('resumeKey', resumeKey);
-          }
-          navigate(
-            nextParams.toString() ? `${returnPath}?${nextParams.toString()}` : returnPath,
-            { replace: true },
-          );
-          return;
-        }
-        closeCheckoutModal();
-      }, 500);
+      handleCheckoutSuccess();
     } else if (
       orderStatus.status === PaymentStatus.FAILED ||
       orderStatus.status === PaymentStatus.CANCELLED
     ) {
+      handledOrderIdRef.current = orderId;
       setIsPolling(false);
       toast(`Thanh toán ${orderStatus.status === PaymentStatus.FAILED ? 'thất bại' : 'bị hủy'}. Vui lòng thử lại.`, 'error');
       closeCheckoutModal();
     }
-  }, [orderStatus, navigate, searchParams, refetchWallet, toast]);
+  }, [orderId, orderStatus, navigate, searchParams, refetchWallet, toast]);
 
   const quickTopupOptions = useMemo(
     () =>
