@@ -103,16 +103,7 @@ export const apiClientCustom = (baseURL) => {
     },
   });
 
-  client.interceptors.request.use((config) => {
-    console.log(
-      'API Request:',
-      config.method?.toUpperCase(),
-      config.baseURL,
-      config.url,
-    );
-
-    return config;
-  });
+  client.interceptors.request.use((config) => config);
 
   client.interceptors.response.use(
     (response) => {

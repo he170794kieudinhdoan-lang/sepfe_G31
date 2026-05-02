@@ -794,8 +794,6 @@ export const AdminDashboard = () => {
     }
   };
 
-  console.log(configsData);
-
   return (
     <DashboardLayout
       title="Trang quản trị hệ thống"

@@ -19,8 +19,6 @@ const InfoItem = ({ icon, label, value }) => (
 );
 
 export const JobDetailHeader = ({ job, onApply, onSave, hasApplied }) => {
-  console.log(job);
-
   const salaryDisplay = formatSalary(job.salaryMin, job.salaryMax, 'full');
   const shiftDisplay =
     SHIFTS.find((s) => s.value === job.workingShift)?.label || 'Không yêu cầu';

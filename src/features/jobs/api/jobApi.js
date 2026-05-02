@@ -23,7 +23,6 @@ export const getJobDetail = async (id) => {
 
 export const getJobDetailApi = async (jobId) => {
   const res = await apiClient.get(`/job/${jobId}`);
-  console.log('RAW RESPONSE:', res.data);
   return res.data;
 };
 
@@ -35,7 +34,6 @@ export const getRelatedJobs = async (id) => {
 
 export const getJobApplyApi = async (jobId) => {
   const res = await apiClient.get(`/job/${jobId}/apply-form`);
-  console.log('Job apply form:', res);
   return res;
 };
 

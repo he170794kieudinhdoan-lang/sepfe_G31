@@ -510,8 +510,6 @@ export const WorkerProfileView = () => {
                         !Number.isNaN(Number(field.value))
                           ? field.value.toString()
                           : '';
-
-                      console.log(selectValue);
                       return (
                         <Select
                           value={selectValue}

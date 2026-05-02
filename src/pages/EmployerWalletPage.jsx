@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,8 @@ import { Input } from '@/components/ui/input';
 import { Modal } from '@/shared/components/Modal';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
+import { useNotificationRealtime } from '@/features/notifications';
+import { useAuth } from '@/shared/contexts/AuthContext';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { parseNumber } from '@/shared/utils/formatCurrency';
 import {
@@ -16,6 +18,8 @@ import {
   useWalletPricing,
   useWalletTransactions,
 } from '@/features/wallet/api/useWallet';
+import { usePointPricingRealtime } from '@/features/admin/hooks/usePointPricingRealtime';
+import { usePaymentOrderRealtime } from '@/features/wallet/hooks/usePaymentOrderRealtime';
 import { useBoostPackages } from '@/features/jobs/api/useJobs';
 import { cn } from '@/lib/utils';
 import useEmblaCarousel from 'embla-carousel-react';
@@ -85,24 +89,17 @@ const PROMO_SLIDES = [
 
 export const EmployerWalletPage = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [topupAmount, setTopupAmount] = useState('100000');
   const [checkoutData, setCheckoutData] = useState(null);
   const [orderId, setOrderId] = useState(null);
-  const [isPolling, setIsPolling] = useState(false);
   const [txPage, setTxPage] = useState(1);
+  const handledOrderIdRef = useRef(null);
+  const txLimit = 10;
   const [selectedSlide, setSelectedSlide] = useState(0);
-  const txPageSize = 10;
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start' });
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    const interval = setInterval(() => {
-      emblaApi.scrollNext();
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [emblaApi]);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
   const { data: walletRes, refetch: refetchWallet } = useMyWallet();
   const wallet = walletRes?.data || walletRes;
@@ -133,30 +130,109 @@ export const EmployerWalletPage = () => {
     activeBoostPackages.length > 0 ? activeBoostPackages : [fallbackBoostPackage];
   const referenceBoostPackage =
     boostPackageOptions.find((item) => item.isDefault) || boostPackageOptions[0] || fallbackBoostPackage;
-  const { data: txRes } = useWalletTransactions({ page: txPage, limit: txPageSize });
+  const minBoostPrice = useMemo(() => {
+    try {
+      const prices = (boostPackageOptions || []).map((p) => Number(p?.price || configuredBoostPointCost));
+      if (!prices.length) return Number(configuredBoostPointCost || 0);
+      return Math.max(0, Math.min(...prices));
+    } catch (e) {
+      return Number(configuredBoostPointCost || 0);
+    }
+  }, [boostPackageOptions, configuredBoostPointCost]);
+  // Subscribe to realtime pricing updates so UI reflects admin changes immediately
+  usePointPricingRealtime({
+    enabled: true,
+    onEvent: () => {
+      // nothing extra to do here; the hook already invalidates queries
+    },
+  });
+
+  // Subscribe to payment order realtime updates (disables polling when connected)
+  const { realtimeStatus: orderRealtimeStatus, isRealtimeSubscribed: isOrderRealtimeSubscribed } = usePaymentOrderRealtime({
+    orderId,
+    enabled: !!orderId && !!checkoutData,
+    onEvent: () => {
+      // hook already invalidates query; no extra action needed
+    },
+  });
+
+  const { data: txRes } = useWalletTransactions({ page: txPage, limit: txLimit });
   const txPayload = txRes?.data || txRes;
   const transactions = txPayload?.items || [];
   const txMeta = txPayload?.meta;
   const totalPages = Math.max(Number(txMeta?.totalPages || txMeta?.totalPage || 1), 1);
   const topupMutation = useTopupCheckout();
+  const userId = user?.userId || user?.id || user?._id;
 
-  // Poll the order status while modal is open
+  const handleCheckoutSuccess = () => {
+    if (handledOrderIdRef.current === orderId) return;
+
+    handledOrderIdRef.current = orderId;
+    refetchWallet();
+    toast('Thanh toán thành công! Point đã được cộng vào ví.', 'success');
+
+    const returnTo = searchParams.get('returnTo');
+    const resumeKey = searchParams.get('resumeKey');
+    closeCheckoutModal();
+
+    if (returnTo) {
+      const [returnPath, returnQuery = ''] = returnTo.split('?');
+      const nextParams = new URLSearchParams(returnQuery);
+      nextParams.set('walletTopupSuccess', '1');
+      if (resumeKey) {
+        nextParams.set('resumeKey', resumeKey);
+      }
+      navigate(nextParams.toString() ? `${returnPath}?${nextParams.toString()}` : returnPath, {
+        replace: true,
+      });
+    }
+  };
+
+  useNotificationRealtime({
+    enabled: !!checkoutData && !!orderId && !!userId,
+    userId,
+    onEvent: (payload) => {
+      const notification = payload?.new || payload?.old;
+      if (!notification) return;
+
+      const title = typeof notification.title === 'string' ? notification.title : '';
+      const link = typeof notification.link === 'string' ? notification.link : '';
+      const message = typeof notification.message === 'string' ? notification.message : '';
+      const isTopupSuccess =
+        title.toLowerCase().includes('nạp point thành công') ||
+        link.includes('walletTopupSuccess=1') ||
+        message.toLowerCase().includes('đã cộng') && message.toLowerCase().includes('point');
+
+      if (isTopupSuccess) {
+        handleCheckoutSuccess();
+      }
+    },
+  });
+
+  // Poll the order status while modal is open (always enabled as fallback; realtime is preferred but polling is reliable)
   const { data: orderStatusRes } = useTopupOrderStatus(orderId, {
-    enabled: !!orderId && isPolling,
-    refetchInterval: 2000, // Check every 2 seconds
+    enabled: !!orderId && !!checkoutData,
+    refetchInterval: (query) => {
+      const currentStatus = query?.state?.data?.data?.status || query?.state?.data?.status;
+      if (currentStatus && currentStatus !== 'PENDING') return false;
+
+      // Realtime-first: only fallback to a light interval while socket is not subscribed.
+      return isOrderRealtimeSubscribed ? false : 3000;
+    },
+    refetchIntervalInBackground: true,
     refetchOnFocus: false,
   });
   const orderStatus = orderStatusRes?.data || orderStatusRes;
 
   const amountNumber = useMemo(() => parseNumber(topupAmount), [topupAmount]);
-  const isBelowBoostThreshold = amountNumber > 0 && amountNumber < Number(referenceBoostPackage?.price || 0);
+  const isBelowBoostThreshold = amountNumber > 0 && amountNumber < Number(minBoostPrice || 0);
   const isTopupAmountValid =
     Number.isInteger(amountNumber) &&
     amountNumber >= TOPUP_MIN_AMOUNT &&
     amountNumber <= TOPUP_MAX_AMOUNT;
 
   const closeCheckoutModal = () => {
-    setIsPolling(false);
+    handledOrderIdRef.current = null;
     setOrderId(null);
     setCheckoutData(null);
   };
@@ -179,8 +255,8 @@ export const EmployerWalletPage = () => {
       const data = res?.data || res;
       setCheckoutData(data);
       setOrderId(data.paymentOrderId);
-      setIsPolling(true);
-      toast('Đã tạo QR nạp điểm thành công', 'success');
+      handledOrderIdRef.current = null;
+      toast('Đã tạo QR nạp point thành công', 'success');
     } catch (error) {
       const message = error?.response?.data?.message || 'Không thể tạo QR nạp điểm';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
@@ -188,7 +264,8 @@ export const EmployerWalletPage = () => {
   };
 
   useEffect(() => {
-    if (!orderStatus) return;
+    if (!orderId || !orderStatus) return;
+    if (handledOrderIdRef.current === orderId) return;
 
     const PaymentStatus = {
       PENDING: 'PENDING',
@@ -198,38 +275,16 @@ export const EmployerWalletPage = () => {
     };
 
     if (orderStatus.status === PaymentStatus.COMPLETED) {
-      setIsPolling(false);
-      refetchWallet();
-
-      setTimeout(() => {
-        toast('Thanh toán thành công! Điểm đã được cộng vào ví.', 'success');
-
-        const returnTo = searchParams.get('returnTo');
-        const resumeKey = searchParams.get('resumeKey');
-        if (returnTo) {
-          const [returnPath, returnQuery = ''] = returnTo.split('?');
-          const nextParams = new URLSearchParams(returnQuery);
-          nextParams.set('walletTopupSuccess', '1');
-          if (resumeKey) {
-            nextParams.set('resumeKey', resumeKey);
-          }
-          navigate(
-            nextParams.toString() ? `${returnPath}?${nextParams.toString()}` : returnPath,
-            { replace: true },
-          );
-          return;
-        }
-        closeCheckoutModal();
-      }, 500);
+      handleCheckoutSuccess();
     } else if (
       orderStatus.status === PaymentStatus.FAILED ||
       orderStatus.status === PaymentStatus.CANCELLED
     ) {
-      setIsPolling(false);
+      handledOrderIdRef.current = orderId;
       toast(`Thanh toán ${orderStatus.status === PaymentStatus.FAILED ? 'thất bại' : 'bị hủy'}. Vui lòng thử lại.`, 'error');
       closeCheckoutModal();
     }
-  }, [orderStatus, navigate, searchParams, refetchWallet, toast]);
+  }, [orderId, orderStatus, navigate, searchParams, refetchWallet, toast]);
 
   const quickTopupOptions = useMemo(
     () =>
@@ -524,7 +579,7 @@ export const EmployerWalletPage = () => {
                       <div>
                         {!isTopupAmountValid
                           ? 'Số tiền nạp không hợp lệ.'
-                          : `Cần tối thiểu ${formatNumber(Number(referenceBoostPackage?.price || configuredBoostPointCost))} điểm để dùng dịch vụ đẩy tin.`}
+                          : `Cần tối thiểu ${formatNumber(Number(minBoostPrice || configuredBoostPointCost))} điểm để dùng dịch vụ đẩy tin.`}
                       </div>
                     </div>
                   )}
@@ -582,7 +637,7 @@ export const EmployerWalletPage = () => {
                   <h4 className="mt-1 text-xl font-black text-slate-900">{checkoutData.paymentCode}</h4>
                 </div>
                 <div className="rounded-none bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-                  Đang chờ thanh toán
+                  {isOrderRealtimeSubscribed ? 'Đang theo dõi realtime' : 'Đang chờ thanh toán'}
                 </div>
               </div>
 
@@ -612,7 +667,11 @@ export const EmployerWalletPage = () => {
                   <div className="mt-0.5 rounded-none bg-white p-1.5 text-slate-700 shadow-sm">
                     <Clock3 className="h-4 w-4" />
                   </div>
-                  <p>Hệ thống đang tự động kiểm tra trạng thái giao dịch vài giây một lần.</p>
+                  <p>
+                    {isOrderRealtimeSubscribed
+                      ? 'Trạng thái thanh toán đang được cập nhật realtime.'
+                      : 'Hệ thống đang kết nối kênh realtime để cập nhật thanh toán.'}
+                  </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 rounded-none bg-white p-1.5 text-slate-700 shadow-sm">

@@ -6,9 +6,10 @@ import {
     supabaseClient,
 } from '@/shared/api/supabaseClient';
 
-export const useNotificationRealtime = ({ enabled = true, userId } = {}) => {
+export const useNotificationRealtime = ({ enabled = true, userId, onEvent } = {}) => {
     const queryClient = useQueryClient();
     const [status, setStatus] = useState('IDLE');
+    const onEventRef = useRef(onEvent);
     const channelInstanceIdRef = useRef(
         typeof crypto !== 'undefined' && crypto.randomUUID
             ? crypto.randomUUID()
@@ -16,28 +17,20 @@ export const useNotificationRealtime = ({ enabled = true, userId } = {}) => {
     );
 
     useEffect(() => {
+        onEventRef.current = onEvent;
+    }, [onEvent]);
+
+    useEffect(() => {
         if (!enabled || !isSupabaseConfigured || !supabaseClient || !userId) {
             setStatus('DISABLED');
             return undefined;
         }
 
-        const DEBUG = false;
         const { schema, table, userColumn } = notificationRealtimeConfig;
         const channelName = `notifications-realtime-${userId}-${channelInstanceIdRef.current}`;
         const channel = supabaseClient.channel(channelName);
         let isUnmounted = false;
         setStatus('CONNECTING');
-
-        if (DEBUG) {
-            console.log('[REALTIME] Subscribing with config:', {
-                schema,
-                table,
-                userColumn,
-                userId,
-                filter: 'client-side',
-                channelName,
-            });
-        }
 
         channel
             .on(
@@ -73,36 +66,18 @@ export const useNotificationRealtime = ({ enabled = true, userId } = {}) => {
                         !hasPayloadUserId || normalizedPayloadUserId === normalizedCurrentUserId;
 
                     if (!matchesFilter) {
-                        if (DEBUG) {
-                            console.log('[REALTIME] Ignored event (user mismatch):', {
-                                eventType,
-                                payloadUserId,
-                                currentUserId: userId,
-                                normalizedPayloadUserId,
-                                normalizedCurrentUserId,
-                                payload,
-                            });
-                        }
                         return;
-                    }
-
-                    if (DEBUG) {
-                        console.log('[REALTIME] 🔔 Event received:', {
-                            eventType,
-                            payloadUserId,
-                            currentUserId: userId,
-                            matchesFilter,
-                            payload,
-                        });
                     }
                     queryClient.invalidateQueries({ queryKey: ['notifications'] });
                     queryClient.refetchQueries({ queryKey: ['notifications'], type: 'active' });
+                    if (typeof onEventRef.current === 'function') {
+                        onEventRef.current(payload);
+                    }
                 }
             )
             .subscribe((status, err) => {
                 if (isUnmounted && status === 'CLOSED') return;
                 setStatus(status);
-                if (DEBUG) console.log('[REALTIME] Subscribe status:', status);
                 if (status === 'SUBSCRIBED') {
                     queryClient.refetchQueries({ queryKey: ['notifications'], type: 'active' });
                 }

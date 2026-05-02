@@ -14,9 +14,6 @@ import { useParams } from "react-router-dom"
 export function JobApplyPage() {
     const { id } = useParams()
     const { data, loading } = useJobApply(id)
-    console.log(data)
-
-
 
     return (
         <div className="flex items-center justify-center h-screen">
