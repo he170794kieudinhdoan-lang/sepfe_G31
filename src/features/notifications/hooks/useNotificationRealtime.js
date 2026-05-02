@@ -26,23 +26,11 @@ export const useNotificationRealtime = ({ enabled = true, userId, onEvent } = {}
             return undefined;
         }
 
-        const DEBUG = false;
         const { schema, table, userColumn } = notificationRealtimeConfig;
         const channelName = `notifications-realtime-${userId}-${channelInstanceIdRef.current}`;
         const channel = supabaseClient.channel(channelName);
         let isUnmounted = false;
         setStatus('CONNECTING');
-
-        if (DEBUG) {
-            console.log('[REALTIME] Subscribing with config:', {
-                schema,
-                table,
-                userColumn,
-                userId,
-                filter: 'client-side',
-                channelName,
-            });
-        }
 
         channel
             .on(
@@ -78,27 +66,7 @@ export const useNotificationRealtime = ({ enabled = true, userId, onEvent } = {}
                         !hasPayloadUserId || normalizedPayloadUserId === normalizedCurrentUserId;
 
                     if (!matchesFilter) {
-                        if (DEBUG) {
-                            console.log('[REALTIME] Ignored event (user mismatch):', {
-                                eventType,
-                                payloadUserId,
-                                currentUserId: userId,
-                                normalizedPayloadUserId,
-                                normalizedCurrentUserId,
-                                payload,
-                            });
-                        }
                         return;
-                    }
-
-                    if (DEBUG) {
-                        console.log('[REALTIME] 🔔 Event received:', {
-                            eventType,
-                            payloadUserId,
-                            currentUserId: userId,
-                            matchesFilter,
-                            payload,
-                        });
                     }
                     queryClient.invalidateQueries({ queryKey: ['notifications'] });
                     queryClient.refetchQueries({ queryKey: ['notifications'], type: 'active' });
@@ -110,7 +78,6 @@ export const useNotificationRealtime = ({ enabled = true, userId, onEvent } = {}
             .subscribe((status, err) => {
                 if (isUnmounted && status === 'CLOSED') return;
                 setStatus(status);
-                if (DEBUG) console.log('[REALTIME] Subscribe status:', status);
                 if (status === 'SUBSCRIBED') {
                     queryClient.refetchQueries({ queryKey: ['notifications'], type: 'active' });
                 }

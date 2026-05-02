@@ -186,12 +186,6 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
     if (foundSector) {
       setSelectedSector(foundSector.id.toString());
     }
-    console.log('jobDetail:', jobDetail);
-    console.log('sectors:', sectors);
-    console.log('form:', form);
-    console.log('jobId:', jobId);
-    console.log('jobDetail:', jobDetail);
-    console.log('isLoading:', isLoading);
   }, [jobDetail, sectors]);
 
   useEffect(() => {
