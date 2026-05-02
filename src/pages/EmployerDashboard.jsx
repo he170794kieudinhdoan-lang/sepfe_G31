@@ -2668,7 +2668,7 @@ export const EmployerDashboard = () => {
           <AppLoadingScene
             title="Đang tải dữ liệu doanh nghiệp"
             subtitle="Hệ thống đang chuẩn bị dashboard tuyển dụng"
-            className="mx-auto max-w-5xl"
+            className="mx-auto"
           />
         </div>
       </DashboardLayout>
