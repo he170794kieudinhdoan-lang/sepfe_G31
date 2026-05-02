@@ -181,7 +181,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
   const [loadingDistrict, setLoadingDistrict] = useState(false);
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] = useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
-    'Số dư point không đủ để đăng tin.',
+    'Số dư điểm không đủ để đăng tin.',
   );
 
   const { data: walletRes } = useMyWallet();
@@ -235,7 +235,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
       }
       setCurrentStep(Number(restored?.currentStep || 0));
     }
-    toast('Nạp point thành công. Bạn có thể tiếp tục thao tác đăng tin.', 'success');
+    toast('Nạp điểm thành công. Bạn có thể tiếp tục đăng tin.', 'success');
 
     params.delete('walletTopupSuccess');
     params.delete('resumeKey');
@@ -483,15 +483,15 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                   </h2>
                   <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-slate-700">
                     <p>
-                      Số dư ví hiện tại:{' '}
-                      <strong>{(wallet?.balancePoint || 0).toLocaleString('vi-VN')} point</strong>
+                      Số dư ví:{' '}
+                      <strong>{(wallet?.balancePoint || 0).toLocaleString('vi-VN')} điểm</strong>
                     </p>
                     <p className="mt-1">
-                      Chi phí đăng tin tiêu chuẩn:{' '}
+                      Chi phí đăng tin:{' '}
                       <strong>
-                        {Number(walletPricing?.JOB_POST_POINT_COST || 0).toLocaleString('vi-VN')} point
+                        {Number(walletPricing?.JOB_POST_POINT_COST || 0).toLocaleString('vi-VN')} điểm
                       </strong>
-                      {' '} (job đầu tiên được miễn phí theo chính sách hệ thống).
+                      {' '} (tin đầu tiên được miễn phí theo chính sách hệ thống).
                     </p>
                   </div>
 
@@ -910,7 +910,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
                     </>
                   ) : (
                     <>
-                      <CheckCircle size={18} /> Đăng tin bằng point
+                      <CheckCircle size={18} /> Đăng tin bằng điểm
                     </>
                   )}
                 </Button>
@@ -929,4 +929,3 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
     </>
   );
 };
-
