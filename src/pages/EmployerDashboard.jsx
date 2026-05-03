@@ -279,7 +279,9 @@ const JobApplicantsModal = ({
     jobId || undefined,
   );
   const { data: jobDetail } = useJobDetail(jobId || undefined);
-  const [searchText, setSearchText] = useState(initialInviteState?.searchText || '');
+  const [searchText, setSearchText] = useState(
+    initialInviteState?.searchText || '',
+  );
   const [statusFilter, setStatusFilter] = useState(
     initialInviteState?.statusFilter || '',
   );
@@ -1660,8 +1662,7 @@ const MatchedWorkerListItem = ({
   );
 };
 
-const MatchedWorkerDetailPane = ({ item, jobDetail, onContact }) => {
-  const [isContacting, setIsContacting] = useState(false);
+const MatchedWorkerDetailPane = ({ item, jobDetail }) => {
   const score = Math.round((item.scores?.finalScore || 0) * 100);
   const scoreColor =
     score >= 80
@@ -1669,12 +1670,6 @@ const MatchedWorkerDetailPane = ({ item, jobDetail, onContact }) => {
       : score >= 50
         ? 'text-amber-600'
         : 'text-rose-600';
-
-  const handleContact = async () => {
-    setIsContacting(true);
-    await onContact(item.worker?.userId);
-    setIsContacting(false);
-  };
 
   return (
     <div className="flex flex-col h-full overflow-y-auto custom-scrollbar">
@@ -1808,22 +1803,6 @@ const MatchedWorkerDetailPane = ({ item, jobDetail, onContact }) => {
           </div>
         )}
       </div>
-
-      {/* Footer */}
-      <div className="p-5 border-t border-slate-100 bg-slate-50/50 mt-auto">
-        <Button
-          className="w-full rounded-xl font-bold gap-2 shadow-sm"
-          onClick={handleContact}
-          disabled={isContacting}
-        >
-          {isContacting ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <MessageCircle size={14} />
-          )}
-          Liên hệ ngay
-        </Button>
-      </div>
     </div>
   );
 };
@@ -1832,23 +1811,22 @@ const MatchedWorkersPanel = ({
   jobId,
   jobTitle,
   onBack,
-  onContact,
   aiInviteUnitCost = 0,
 }) => {
+  const { toast } = useToast();
   const { data: matchedWorkersRes, isLoading } = useMatchedWorkers(jobId);
   const { data: jobDetailRes } = useJobDetail(jobId);
   const jobDetail = jobDetailRes?.data || jobDetailRes;
   const workers = matchedWorkersRes || [];
   const [selectedWorker, setSelectedWorker] = useState(null);
-
-  // Selection state for bulk contact
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [customIntro, setCustomIntro] = useState('');
 
-  const { mutateAsync: createConversation } = useGetOrCreateConversation();
-  const { mutateAsync: sendMessage } = useSendMessage();
+  // Modal state
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
+  const [inviteMessage, setInviteMessage] = useState('');
+  const [inviteSlots, setInviteSlots] = useState([]);
+  const [selectedSlotId, setSelectedSlotId] = useState(null);
+  const [isSending, setIsSending] = useState(false);
 
   // Auto-select first worker when data loads
   useEffect(() => {
@@ -1857,14 +1835,15 @@ const MatchedWorkersPanel = ({
     }
   }, [workers, selectedWorker]);
 
-  // Pre-fill default message when modal opens
+  // Pre-fill message when modal opens
   useEffect(() => {
-    if (isBulkModalOpen && !customIntro) {
+    if (inviteModalOpen && !inviteMessage) {
       const companyName = jobDetail?.company?.name || 'chúng tôi';
-      const intro = `Chào bạn, tôi là nhà tuyển dụng từ **${companyName}**. Tôi thấy hồ sơ của bạn rất phù hợp với vị trí này, mời bạn xem qua và ứng tuyển nhé!`;
-      setCustomIntro(intro);
+      setInviteMessage(
+        `Chào bạn, tôi là nhà tuyển dụng từ **${companyName}**. Tôi thấy hồ sơ của bạn rất phù hợp với vị trí **${jobDetail?.title || jobTitle}**. Hãy chọn ca phỏng vấn phù hợp với bạn nhé!`,
+      );
     }
-  }, [isBulkModalOpen, jobDetail, customIntro]);
+  }, [inviteModalOpen, inviteMessage, jobDetail, jobTitle]);
 
   const toggleSelect = (id) => {
     const newSelected = new Set(selectedIds);
@@ -1884,36 +1863,123 @@ const MatchedWorkersPanel = ({
     }
   };
 
-  const handleBulkSend = async () => {
-    setIsSending(true);
-    let successCount = 0;
+  const hasSlotsOverlap = (slots, candidate, ignoreId = null) => {
+    const cStart = new Date(candidate.startAt).getTime();
+    const cEnd = new Date(candidate.endAt).getTime();
+    return slots.some((s) => {
+      if (s.id === ignoreId) return false;
+      return cStart < new Date(s.endAt).getTime() && new Date(s.startAt).getTime() < cEnd;
+    });
+  };
 
-    const jobUrl = `${window.location.origin}/job/${jobId}`;
-    const jobInfoSuffix = jobDetail
-      ? `\n\n---\n💼 **Công việc:** [${jobDetail.title}](${jobUrl})\n📍 **Lĩnh vực:** ${jobDetail.occupation?.name || 'Chưa cập nhật'}`
-      : `\n\n---\n🔗 **Link ứng tuyển:** [Nhấn vào đây để xem chi tiết](${jobUrl})`;
+  const handleCalendarSelect = (selectionInfo) => {
+    const startAt = selectionInfo.start?.toISOString();
+    const endAt = selectionInfo.end?.toISOString();
+    if (!startAt || !endAt) return;
+    if (new Date(startAt).getTime() < Date.now()) {
+      toast('Không thể tạo ca phỏng vấn ở thời điểm đã qua.', 'error');
+      return;
+    }
+    const id = `slot-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const newSlot = { id, startAt, endAt, capacity: Math.max(1, selectedIds.size), location: '', note: '' };
+    if (hasSlotsOverlap(inviteSlots, newSlot)) {
+      toast('Ca mới bị trùng với ca đã có.', 'error');
+      return;
+    }
+    setInviteSlots((prev) => [...prev, newSlot]);
+    setSelectedSlotId(id);
+  };
 
-    const effectiveMessage = (customIntro || '') + jobInfoSuffix;
+  const handleSlotDropOrResize = (changeInfo) => {
+    const { event } = changeInfo;
+    if (!event.start || !event.end) return;
+    const updatedSlot = { id: event.id, startAt: event.start.toISOString(), endAt: event.end.toISOString() };
+    if (new Date(updatedSlot.startAt).getTime() < Date.now()) {
+      changeInfo.revert();
+      toast('Không thể đặt ca ở thời điểm đã qua.', 'error');
+      return;
+    }
+    if (hasSlotsOverlap(inviteSlots, { ...updatedSlot, capacity: 1 }, event.id)) {
+      changeInfo.revert();
+      toast('Ca bị trùng với ca khác.', 'error');
+      return;
+    }
+    setInviteSlots((prev) =>
+      prev.map((s) => (s.id === event.id ? { ...s, startAt: updatedSlot.startAt, endAt: updatedSlot.endAt } : s)),
+    );
+  };
 
-    try {
-      for (const userId of selectedIds) {
-        const conv = await createConversation({ participantId: userId });
-        if (conv?.id) {
-          await sendMessage({ id: conv.id, content: effectiveMessage });
-          successCount++;
-        }
+  const selectedSlot = inviteSlots.find((s) => s.id === selectedSlotId) || inviteSlots[0] || null;
+
+  const handleSendInvite = async () => {
+    if (!inviteMessage.trim()) {
+      toast('Vui lòng nhập nội dung lời mời.', 'error');
+      return;
+    }
+    if (!inviteSlots.length) {
+      toast('Vui lòng tạo ít nhất 1 ca phỏng vấn.', 'error');
+      return;
+    }
+    const workerIds = Array.from(selectedIds).map(Number).filter((id) => !Number.isNaN(id));
+    if (!workerIds.length) {
+      toast('Vui lòng chọn ít nhất 1 ứng viên.', 'error');
+      return;
+    }
+    const normalizedSlots = [];
+    for (const slot of inviteSlots) {
+      const startAt = new Date(slot.startAt);
+      const endAt = new Date(slot.endAt);
+      if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
+        toast('Thời gian ca phỏng vấn không hợp lệ.', 'error');
+        return;
       }
-      setIsBulkModalOpen(false);
+      if (endAt <= startAt) {
+        toast('Giờ kết thúc phải sau giờ bắt đầu.', 'error');
+        return;
+      }
+      normalizedSlots.push({
+        startAt: startAt.toISOString(),
+        endAt: endAt.toISOString(),
+        capacity: Number(slot.capacity) || 1,
+        location: slot.location?.trim() || undefined,
+        note: slot.note?.trim() || undefined,
+      });
+    }
+    setIsSending(true);
+    try {
+      const campaign = await createCampaign({
+        title: `Mời phỏng vấn AI - ${jobDetail?.title || jobTitle}`,
+        description: `Chiến dịch mời phỏng vấn ứng viên AI cho vị trí #${jobId}`,
+        message: inviteMessage.trim(),
+        jobId: Number(jobId),
+        workerIds,
+        slots: normalizedSlots,
+      });
+      if (!campaign?.id) throw new Error('Không nhận được mã chiến dịch.');
+      await sendCampaign(campaign.id);
+      toast(`Đã gửi lời mời phỏng vấn cho ${workerIds.length} ứng viên.`, 'success');
+      setInviteModalOpen(false);
       setSelectedIds(new Set());
-      setCustomIntro('');
+      setInviteMessage('');
+      setInviteSlots([]);
+      setSelectedSlotId(null);
     } catch (error) {
-      console.error('Bulk send error:', error);
+      const msg = extractApiErrorMessage(error, 'Gửi lời mời thất bại.');
+      toast(msg, 'error');
     } finally {
       setIsSending(false);
     }
   };
 
+  const calendarEvents = inviteSlots.map((slot) => ({
+    id: slot.id,
+    title: `Ca (${slot.capacity})`,
+    start: slot.startAt,
+    end: slot.endAt,
+  }));
+
   return (
+
     <div className="flex flex-col h-[600px] animate-in fade-in slide-in-from-right-4 duration-300">
       {/* Panel Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-primary-muted/20 shrink-0">
@@ -1942,9 +2008,9 @@ const MatchedWorkersPanel = ({
           <Button
             size="sm"
             className="rounded-xl h-9 gap-2 shadow-md animate-in zoom-in duration-200"
-            onClick={() => setIsBulkModalOpen(true)}
+            onClick={() => setInviteModalOpen(true)}
           >
-            <Send size={14} /> Gửi lời mời ({selectedIds.size})
+            <Send size={14} /> Mời phỏng vấn ({selectedIds.size})
           </Button>
         )}
       </div>
@@ -2003,7 +2069,6 @@ const MatchedWorkersPanel = ({
               <MatchedWorkerDetailPane
                 item={selectedWorker}
                 jobDetail={jobDetail}
-                onContact={onContact}
               />
             ) : (
               <div className="flex h-full items-center justify-center">
@@ -2020,81 +2085,135 @@ const MatchedWorkersPanel = ({
           </div>
         </div>
       )}
-
-      {/* Bulk Interview Confirmation Modal */}
+      {/* Interview Invitation Modal */}
       <Modal
-        open={isBulkModalOpen}
-        onClose={() => !isSending && setIsBulkModalOpen(false)}
-        title="Gửi lời mời hàng loạt"
-        maxWidth="sm"
-        variant="custom"
+        open={inviteModalOpen}
+        onClose={() => !isSending && (setInviteModalOpen(false), setInviteSlots([]), setInviteMessage(''), setSelectedSlotId(null))}
+        title="Tạo lịch và gửi lời mời phỏng vấn"
+        contentClassName="max-w-5xl min-h-[80vh]"
+        bodyClassName="space-y-4"
+        onConfirm={handleSendInvite}
+        confirmLabel={isSending ? 'Đang gửi...' : 'Tạo lịch và gửi lời mời'}
+        cancelLabel="Hủy"
+        confirmDisabled={isSending || !inviteMessage.trim() || !inviteSlots.length}
       >
-        <div className="space-y-4 pt-2">
-          <div className="bg-primary/5 p-4 rounded-2xl border border-primary/10">
-            <div className="flex items-center gap-2 text-primary font-semibold mb-2">
-              <Info size={16} />
-              <span className="text-sm">Thông tin gửi tin nhắn</span>
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+          {/* Left: Calendar */}
+          <div className="space-y-3">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">
+                Lịch phỏng vấn — kéo để tạo ca ({inviteSlots.length} ca)
+              </p>
+              <FullCalendar
+                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                initialView="timeGridWeek"
+                locale={viLocale}
+                selectable
+                editable
+                height={420}
+                events={calendarEvents}
+                select={handleCalendarSelect}
+                eventDrop={handleSlotDropOrResize}
+                eventResize={handleSlotDropOrResize}
+                eventClick={(info) => setSelectedSlotId(info.event.id)}
+                headerToolbar={{ left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' }}
+              />
             </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Bạn đang chuẩn bị gửi lời mời làm việc tới{' '}
-              <strong>{selectedIds.size} ứng viên</strong> đã chọn. Hệ thống sẽ
-              tự động tạo cuộc hội thoại và gửi tin nhắn mời ứng tuyển kèm link
-              công việc.
-            </p>
-            <p className="text-xs text-slate-700 mt-2">
-              Chi phí dự kiến:{' '}
-              <strong>
-                {(aiInviteUnitCost * selectedIds.size).toLocaleString('vi-VN')} điểm
-              </strong>{' '}
-              ({aiInviteUnitCost.toLocaleString('vi-VN')} điểm / ứng viên)
-            </p>
+
+            {/* Nội dung lời mời */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2">
+              <div className="flex justify-between items-center">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nội dung lời mời</p>
+                <span className="text-[10px] text-slate-400">{inviteMessage.length} ký tự</span>
+              </div>
+              <Textarea
+                value={inviteMessage}
+                onChange={(e) => setInviteMessage(e.target.value)}
+                rows={4}
+                placeholder="Nhập nội dung lời mời phỏng vấn..."
+                className="rounded-xl border-slate-200 resize-none"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-tight">
-                Lời nhắn tùy chỉnh (Không bắt buộc)
-              </label>
-              <span className="text-[10px] text-slate-400">
-                {customIntro.length} ký tự
-              </span>
-            </div>
-            <Textarea
-              placeholder="Nhập nội dung lời mời ứng tuyển..."
-              className="rounded-xl resize-none h-32 focus:ring-primary/20"
-              value={customIntro}
-              onChange={(e) => setCustomIntro(e.target.value)}
-            />
-            <p className="text-[10px] text-slate-400 italic">
-              * Hệ thống sẽ tự động thêm thông tin chi tiết công việc vào sau
-              lời nhắn của bạn.
-            </p>
-          </div>
+          {/* Right: Slot details + Worker list */}
+          <div className="space-y-3">
+            {/* Thông tin ca được chọn */}
+            {selectedSlot ? (
+              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                <p className="text-xs font-bold text-primary uppercase tracking-wide">Ca đang chỉnh sửa</p>
+                <div className="text-xs text-slate-600 space-y-1">
+                  <p>🕐 {new Date(selectedSlot.startAt).toLocaleString('vi-VN')} → {new Date(selectedSlot.endAt).toLocaleString('vi-VN')}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-medium block mb-1">Sức chứa</label>
+                    <input
+                      type="number"
+                      min={1}
+                      value={selectedSlot.capacity}
+                      onChange={(e) => setInviteSlots((prev) => prev.map((s) => s.id === selectedSlot.id ? { ...s, capacity: Number(e.target.value) || 1 } : s))}
+                      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] text-slate-500 font-medium block mb-1">Địa điểm</label>
+                    <input
+                      type="text"
+                      value={selectedSlot.location || ''}
+                      onChange={(e) => setInviteSlots((prev) => prev.map((s) => s.id === selectedSlot.id ? { ...s, location: e.target.value } : s))}
+                      placeholder="VD: Tầng 3, Phòng A"
+                      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-[10px] text-slate-500 font-medium block mb-1">Ghi chú</label>
+                  <input
+                    type="text"
+                    value={selectedSlot.note || ''}
+                    onChange={(e) => setInviteSlots((prev) => prev.map((s) => s.id === selectedSlot.id ? { ...s, note: e.target.value } : s))}
+                    placeholder="VD: Mang theo CCCD"
+                    className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => { setInviteSlots((prev) => prev.filter((s) => s.id !== selectedSlot.id)); setSelectedSlotId(null); }}
+                  className="text-xs text-rose-500 hover:text-rose-600 font-medium"
+                >
+                  Xóa ca này
+                </button>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-slate-400 text-sm">
+                Kéo trên lịch để tạo ca phỏng vấn
+              </div>
+            )}
 
-          <div className="flex gap-3 pt-2">
-            <Button
-              variant="outline"
-              className="flex-1 rounded-xl h-11 font-semibold"
-              onClick={() => setIsBulkModalOpen(false)}
-              disabled={isSending}
-            >
-              Hủy bỏ
-            </Button>
-            <Button
-              className="flex-1 rounded-xl h-11 font-bold gap-2"
-              onClick={handleBulkSend}
-              disabled={isSending}
-            >
-              {isSending ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" /> Đang gửi...
-                </>
-              ) : (
-                <>
-                  <Send size={16} /> Gửi ngay
-                </>
-              )}
-            </Button>
+            {/* Danh sách ứng viên được mời */}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">
+                Ứng viên được mời ({selectedIds.size})
+              </p>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {workers.filter((w) => selectedIds.has(w.worker?.userId)).map((w) => (
+                  <div key={w.worker?.userId} className="flex items-center gap-2 text-xs text-slate-700">
+                    <img
+                      src={w.worker?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(w.worker?.fullName || 'U')}&background=ede9fe&color=6d28d9&size=32`}
+                      alt={w.worker?.fullName}
+                      className="w-6 h-6 rounded-full object-cover shrink-0"
+                    />
+                    <span className="truncate font-medium">{w.worker?.fullName}</span>
+                    <span className="ml-auto shrink-0 text-emerald-600 font-bold">{Math.round((w.scores?.finalScore || 0) * 100)}%</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-xs text-slate-500 mt-3">
+                Chi phí: <strong>{(aiInviteUnitCost * selectedIds.size).toLocaleString('vi-VN')} điểm</strong>
+                {' '}({aiInviteUnitCost.toLocaleString('vi-VN')} điểm/ứng viên)
+              </p>
+            </div>
           </div>
         </div>
       </Modal>
@@ -2192,7 +2311,9 @@ export const EmployerDashboard = () => {
   const { data: walletPricingRes } = useWalletPricing();
   const walletPricing = walletPricingRes?.data || walletPricingRes || {};
   const boostPackages = boostPackagesRes?.items || boostPackagesRes?.data || [];
-  const activeBoostPackages = boostPackages.filter((item) => item?.isActive !== false);
+  const activeBoostPackages = boostPackages.filter(
+    (item) => item?.isActive !== false,
+  );
   const aiInviteUnitCost = walletPricing?.AI_INVITE_POINT_COST_PER_WORKER || 0;
   const configuredBoostDays = Math.max(
     1,
@@ -2215,11 +2336,15 @@ export const EmployerDashboard = () => {
     [configuredBoostDays, configuredBoostPointCost],
   );
   const boostPackageOptions =
-    activeBoostPackages.length > 0 ? activeBoostPackages : [fallbackBoostPackage];
+    activeBoostPackages.length > 0
+      ? activeBoostPackages
+      : [fallbackBoostPackage];
   const selectedBoostPackage =
     boostPackageOptions.find(
       (item) => String(item.id) === String(selectedBoostPackageId),
-    ) || boostPackageOptions[0] || null;
+    ) ||
+    boostPackageOptions[0] ||
+    null;
 
   useEffect(() => {
     if (!boostPackageOptions.length) {
@@ -2230,7 +2355,8 @@ export const EmployerDashboard = () => {
     );
     if (!hasSelection) {
       const defaultPackage =
-        boostPackageOptions.find((item) => item.isDefault) || boostPackageOptions[0];
+        boostPackageOptions.find((item) => item.isDefault) ||
+        boostPackageOptions[0];
       setSelectedBoostPackageId(defaultPackage?.id ?? null);
     }
   }, [boostPackageOptions, selectedBoostPackageId]);
@@ -2456,7 +2582,9 @@ export const EmployerDashboard = () => {
             Number(item?.durationDays || 0) ===
             Number(restored.selectedBoostPackageDays || 0),
         );
-        setSelectedBoostPackageId(matchedByDays?.id ?? boostPackageOptions[0]?.id ?? null);
+        setSelectedBoostPackageId(
+          matchedByDays?.id ?? boostPackageOptions[0]?.id ?? null,
+        );
       }
       setBoostModalOpen(Boolean(restored?.selectedBoostJob));
     }
@@ -2468,7 +2596,10 @@ export const EmployerDashboard = () => {
       setRestoredInviteState(restored?.inviteState || null);
     }
 
-    toast('Nạp điểm thành công. Bạn có thể tiếp tục thao tác trước đó.', 'success');
+    toast(
+      'Nạp điểm thành công. Bạn có thể tiếp tục thao tác trước đó.',
+      'success',
+    );
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -2524,7 +2655,9 @@ export const EmployerDashboard = () => {
       const checkoutRes = await createBoostCheckoutMutation.mutateAsync({
         jobId: selectedBoostJob.id,
         payload: {
-          packageDays: Number(selectedBoostPackage?.durationDays || configuredBoostDays),
+          packageDays: Number(
+            selectedBoostPackage?.durationDays || configuredBoostDays,
+          ),
         },
       });
       const checkout = checkoutRes?.data || checkoutRes;
@@ -2558,7 +2691,9 @@ export const EmployerDashboard = () => {
         type: 'boost-checkout',
         selectedBoostJob,
         selectedBoostPackageId,
-        selectedBoostPackageDays: Number(selectedBoostPackage?.durationDays || configuredBoostDays),
+        selectedBoostPackageDays: Number(
+          selectedBoostPackage?.durationDays || configuredBoostDays,
+        ),
       },
     });
   };
@@ -2845,8 +2980,9 @@ export const EmployerDashboard = () => {
                       Hồ sơ cập nhật đang chờ duyệt lại
                     </p>
                     <p className="text-sm text-orange-700 mt-0.5">
-                      Bạn đã gửi cập nhật thông tin doanh nghiệp. Trong thời gian
-                      chờ quản lý duyệt, bạn tạm thời chưa thể đăng hoặc chỉnh sửa tin tuyển dụng.
+                      Bạn đã gửi cập nhật thông tin doanh nghiệp. Trong thời
+                      gian chờ quản lý duyệt, bạn tạm thời chưa thể đăng hoặc
+                      chỉnh sửa tin tuyển dụng.
                     </p>
                   </div>
                 </div>
@@ -3083,19 +3219,6 @@ export const EmployerDashboard = () => {
                     onBack={() => {
                       setMatchedJobId(null);
                       setMatchedJobTitle('');
-                    }}
-                    onContact={async (userId) => {
-                      try {
-                        const jobUrl = `${window.location.origin}/job/${matchedJobId}`;
-                        const msg = `Chào bạn, tôi thấy hồ sơ của bạn rất phù hợp với vị trí **${matchedJobTitle}**. Mời bạn xem qua và ứng tuyển nhé!\n\n---\n💼 **Công việc:** [${matchedJobTitle}](${jobUrl})`;
-                        const conv = await createConversation({
-                          participantId: userId,
-                        });
-                        if (conv?.id) {
-                          await sendMessage({ id: conv.id, content: msg });
-                          navigate(`/chat/${conv.id}`);
-                        }
-                      } catch {}
                     }}
                   />
                 ) : (
@@ -3394,8 +3517,8 @@ export const EmployerDashboard = () => {
                                                       createPostingCheckoutMutation.isPending
                                                     }
                                                   >
-                                                    <Wallet size={14} /> Tiếp tục
-                                                    thanh toán
+                                                    <Wallet size={14} /> Tiếp
+                                                    tục thanh toán
                                                   </Button>
                                                 )}
 
@@ -3795,7 +3918,8 @@ export const EmployerDashboard = () => {
                             {durationDays} ngày
                           </p>
                           <p className="text-xs text-slate-500 mt-0.5">
-                            Khoảng {pointPerDay.toLocaleString('vi-VN')} điểm/ngày
+                            Khoảng {pointPerDay.toLocaleString('vi-VN')}{' '}
+                            điểm/ngày
                           </p>
                         </div>
                       </div>
@@ -3819,18 +3943,25 @@ export const EmployerDashboard = () => {
           <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-sm text-slate-700 font-semibold">Xác nhận gói đã chọn</p>
+                <p className="text-sm text-slate-700 font-semibold">
+                  Xác nhận gói đã chọn
+                </p>
                 <p className="text-sm text-slate-600 mt-1">
                   Thời gian nổi bật:{' '}
-                  <strong>{Number(selectedBoostPackage?.durationDays || configuredBoostDays)} ngày</strong>
+                  <strong>
+                    {Number(
+                      selectedBoostPackage?.durationDays || configuredBoostDays,
+                    )}{' '}
+                    ngày
+                  </strong>
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-xs text-slate-500">Chi phí</p>
                 <p className="text-lg font-extrabold text-slate-900">
-                  {Number(selectedBoostPackage?.price || configuredBoostPointCost).toLocaleString(
-                    'vi-VN',
-                  )}{' '}
+                  {Number(
+                    selectedBoostPackage?.price || configuredBoostPointCost,
+                  ).toLocaleString('vi-VN')}{' '}
                   điểm
                 </p>
               </div>
@@ -3838,8 +3969,8 @@ export const EmployerDashboard = () => {
           </div>
 
           <p className="text-xs text-slate-500">
-            Sau khi xác nhận, hệ thống sẽ trừ điểm trong ví và bật nổi bật
-            ngay lập tức.
+            Sau khi xác nhận, hệ thống sẽ trừ điểm trong ví và bật nổi bật ngay
+            lập tức.
           </p>
         </div>
       </Modal>
@@ -4330,9 +4461,7 @@ export const EmployerDashboard = () => {
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-slate-200">
-                  <p className="text-slate-500 text-xs mb-1">
-                    Tự giới thiệu
-                  </p>
+                  <p className="text-slate-500 text-xs mb-1">Tự giới thiệu</p>
                   <p className="font-medium whitespace-pre-wrap text-slate-700">
                     {applicantDetail.user?.workerProfile?.bio ? (
                       applicantDetail.user.workerProfile.bio
@@ -4431,4 +4560,3 @@ export const EmployerDashboard = () => {
     </DashboardLayout>
   );
 };
-

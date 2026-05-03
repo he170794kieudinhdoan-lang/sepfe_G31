@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useState, useRef } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Clock, Sparkles, Heart, Wallet } from 'lucide-react';
+import { Popover, PopoverContent, PopoverAnchor } from '@/components/ui/popover';
 
 const getScoreColor = (percentage) => {
   if (percentage >= 80)
@@ -84,6 +86,23 @@ export const JobCard = ({
   const saveJobMutation = useSaveJob();
   const unsaveJobMutation = useUnsaveJob();
 
+  const [openAiMatch, setOpenAiMatch] = useState(false);
+  const aiTimeoutRef = useRef(null);
+
+  const handleAiEnter = () => {
+    if (aiTimeoutRef.current) clearTimeout(aiTimeoutRef.current);
+    aiTimeoutRef.current = setTimeout(() => {
+      setOpenAiMatch(true);
+    }, 300);
+  };
+
+  const handleAiLeave = () => {
+    if (aiTimeoutRef.current) clearTimeout(aiTimeoutRef.current);
+    aiTimeoutRef.current = setTimeout(() => {
+      setOpenAiMatch(false);
+    }, 200);
+  };
+
   const wishlist = data?.items || data || [];
   const isSaved =
     Array.isArray(wishlist) &&
@@ -120,9 +139,10 @@ export const JobCard = ({
   if (!job) return null;
   const boostExpiredAt = job.boostExpiredAt ? new Date(job.boostExpiredAt) : null;
   const isBoosted =
-    !!boostExpiredAt &&
-    !Number.isNaN(boostExpiredAt.getTime()) &&
-    boostExpiredAt > new Date();
+    job.isBoosted ||
+    (!!boostExpiredAt &&
+      !Number.isNaN(boostExpiredAt.getTime()) &&
+      boostExpiredAt > new Date());
 
   const chipCls = cn(
     CHIP,
@@ -322,20 +342,35 @@ export const JobCard = ({
                   </Badge>
                 )}
                 {matchPercentage && (
-                  <div className="relative group/ai z-20">
-                    <Badge
-                      variant="secondary"
-                      className={cn(
-                        'font-extrabold tracking-wide cursor-help shadow-sm',
-                        compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5',
-                      )}
-                    >
-                      {matchPercentage}% phù hợp
-                    </Badge>
+                  <Popover open={openAiMatch}>
+                    <PopoverAnchor asChild>
+                      <div 
+                        className="relative z-20"
+                        onMouseEnter={handleAiEnter}
+                        onMouseLeave={handleAiLeave}
+                      >
+                        <Badge
+                          variant="secondary"
+                          className={cn(
+                            'font-extrabold tracking-wide cursor-help shadow-sm',
+                            compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5',
+                          )}
+                        >
+                          {matchPercentage}% phù hợp
+                        </Badge>
+                      </div>
+                    </PopoverAnchor>
 
-                    {/* AI Match Hover Popup */}
                     {matchScores && (
-                      <div className="absolute z-50 right-0 bottom-[calc(100%+8px)] w-[340px] opacity-0 invisible group-hover/ai:opacity-100 group-hover/ai:visible transition-all duration-300 bg-white border border-primary/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] rounded-[20px] p-5 translate-y-2 group-hover/ai:translate-y-0 after:content-[''] after:absolute after:-bottom-2 after:right-8 after:border-8 after:border-transparent after:border-t-white">
+                      <PopoverContent
+                        side="top"
+                        align="end"
+                        sideOffset={8}
+                        collisionPadding={10}
+                        onMouseEnter={handleAiEnter}
+                        onMouseLeave={handleAiLeave}
+                        className="w-[340px] z-[9999] bg-white border border-primary/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] rounded-[20px] p-5"
+                      >
                         <div className="flex items-center gap-2 mb-4">
                           <Sparkles className="w-4 h-4 text-primary" />
                           <span className="text-[12px] font-extrabold text-primary uppercase tracking-[0.05em]">
@@ -372,9 +407,9 @@ export const JobCard = ({
                             score={matchScores.ageScore}
                           />
                         </div>
-                      </div>
+                      </PopoverContent>
                     )}
-                  </div>
+                  </Popover>
                 )}
               </div>
             )}
