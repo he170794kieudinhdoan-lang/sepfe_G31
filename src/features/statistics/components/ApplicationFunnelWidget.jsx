@@ -13,6 +13,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { useApplicationFunnel, useJobStatus } from '../api/useStatistics';
 import {
+  AreaChart,
+  Area,
   LineChart,
   Line,
   XAxis,
@@ -84,6 +86,47 @@ const FUNNEL_ITEMS = [
     text: 'text-slate-600',
   },
 ];
+
+const CustomTooltip = ({ active, payload, label }) => {
+  if (active && payload && payload.length) {
+    // Lấy toàn bộ data point từ payload của chart hiện tại
+    const data = payload[0].payload;
+    const views = data.views || 0;
+    const apps = data.applications || 0;
+    const rate = views > 0 ? ((apps / views) * 100).toFixed(1) : 0;
+
+    return (
+      <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-xl min-w-[180px]">
+        <p className="text-sm font-bold text-slate-800 mb-2 border-b pb-1">{label}</p>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-blue-500" />
+              <span className="text-xs text-slate-600">Lượt xem:</span>
+            </div>
+            <span className="text-xs font-bold text-slate-800 tabular-nums">
+              {views.toLocaleString('vi-VN')}
+            </span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs text-slate-600">Ứng tuyển:</span>
+            </div>
+            <span className="text-xs font-bold text-slate-800 tabular-nums">
+              {apps.toLocaleString('vi-VN')}
+            </span>
+          </div>
+          <div className="pt-2 mt-1 border-t border-slate-100 flex items-center justify-between gap-4">
+            <span className="text-xs font-medium text-slate-500 italic">Hiệu quả (CVR):</span>
+            <span className="text-xs font-bold text-primary">{rate}%</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 // ─── JOB FUNNEL ROW ──────────────────────────────────────────────────────────
 const JobFunnelRow = ({ job }) => {
@@ -157,30 +200,6 @@ const JobFunnelRow = ({ job }) => {
       </td>
     </tr>
   );
-};
-
-// ─── CUSTOM TOOLTIP ───────────────────────────────────────────────────────────
-const CustomTooltip = ({ active, payload, label }) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="bg-white border border-slate-200 p-3 rounded-xl shadow-lg">
-        <p className="text-sm font-semibold text-slate-800 mb-2">{label}</p>
-        {payload.map((entry, index) => (
-          <div key={index} className="flex items-center gap-2 text-sm mt-1">
-            <div
-              className="w-2.5 h-2.5 rounded-full"
-              style={{ backgroundColor: entry.color }}
-            />
-            <span className="text-slate-600">{entry.name}:</span>
-            <span className="font-bold tabular-nums text-slate-900">
-              {entry.value}
-            </span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return null;
 };
 
 // ─── MAIN WIDGET ──────────────────────────────────────────────────────────────
@@ -275,73 +294,77 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
         </h3>
 
         {isLoading ? (
-          <div className="flex items-center justify-center min-h-[320px]">
+          <div className="flex items-center justify-center min-h-[400px]">
             <Loader2 className="w-8 h-8 animate-spin text-primary" />
           </div>
         ) : formattedTimeline.length === 0 ? (
-          <div className="flex flex-col items-center justify-center min-h-[320px] text-slate-400">
+          <div className="flex flex-col items-center justify-center min-h-[400px] text-slate-400">
             <BarChart3 className="w-12 h-12 mb-3 opacity-20" />
             <p className="text-sm font-medium">Chưa có dữ liệu thống kê</p>
           </div>
         ) : (
-          <div className="w-full h-[320px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart
-                data={formattedTimeline}
-                margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="#f1f5f9"
-                />
-                <XAxis
-                  dataKey="displayDate"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                  dy={10}
-                />
-                <YAxis
-                  yAxisId="left"
-                  orientation="left"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                />
-                <YAxis
-                  yAxisId="right"
-                  orientation="right"
-                  axisLine={false}
-                  tickLine={false}
-                  tick={{ fill: '#64748b', fontSize: 12 }}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{ paddingTop: '20px' }}
-                  iconType="circle"
-                />
-                <Line
-                  yAxisId="left"
-                  type="monotone"
-                  dataKey="views"
-                  name="Lượt xem"
-                  stroke="#3b82f6"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                  activeDot={{ r: 6 }}
-                />
-                <Line
-                  yAxisId="right"
-                  type="monotone"
-                  dataKey="applications"
-                  name="Ứng tuyển"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+          <div className="w-full space-y-8">
+            {/* Chart 1: Lượt xem */}
+            <div className="h-[200px]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Lượt xem</span>
+              </div>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={formattedTimeline}
+                  syncId="funnelSync"
+                  margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="displayDate" hide />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="views"
+                    stroke="#3b82f6"
+                    strokeWidth={2}
+                    fill="#3b82f6"
+                    fillOpacity={0.05}
+                    isAnimationActive={false}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Chart 2: Lượt ứng tuyển */}
+            <div className="h-[160px]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Lượt ứng tuyển</span>
+              </div>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={formattedTimeline}
+                  syncId="funnelSync"
+                  margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis
+                    dataKey="displayDate"
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#64748b', fontSize: 11 }}
+                    dy={10}
+                  />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line
+                    type="monotone"
+                    dataKey="applications"
+                    stroke="#10b981"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 6 }}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         )}
       </Card>

@@ -345,7 +345,7 @@ export const UserProfilePage = () => {
                 src={
                   previewAvatar ||
                   profile?.avatar ||
-                  'https://github.com/shadcn.png'
+                  `https://ui-avatars.com/api/?name=${encodeURIComponent(profile?.fullName || 'User')}&background=e0e7ff&color=4338ca`
                 }
                 alt={profile?.fullName || ''}
                 className="object-cover"

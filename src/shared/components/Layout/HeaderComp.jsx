@@ -317,15 +317,11 @@ export const Header = () => {
                   className="flex items-center gap-2 rounded-full shadow-sm bg-gray-50 px-3 py-2 hover:bg-gray-100 cursor-pointer transition"
                 >
                   <div className="h-8 w-8 rounded-full bg-primary-muted flex items-center justify-center">
-                    {user?.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user?.fullName || 'User'}
-                        className="h-full w-full rounded-full object-cover"
-                      />
-                    ) : (
-                      <User className="h-4 w-4 text-primary" />
-                    )}
+                    <img
+                      src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'User')}&background=e0e7ff&color=4338ca`}
+                      alt={user?.fullName || 'User'}
+                      className="h-full w-full rounded-full object-cover"
+                    />
                   </div>
                   <span className="text-sm font-medium max-w-25 truncate">
                     {user?.fullName || 'User'}

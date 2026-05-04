@@ -25,9 +25,6 @@ export const WorkerWelcome = () => {
             <h1 className="text-3xl md:text-4xl font-bold text-foreground">
               Chào mừng bạn đến với WorkLink
             </h1>
-            <p className="text-xl text-primary font-semibold">
-              {user?.fullName || 'Bạn'}
-            </p>
           </div>
 
           {/* Message */}

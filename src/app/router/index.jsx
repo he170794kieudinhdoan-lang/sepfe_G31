@@ -228,6 +228,14 @@ export const router = createBrowserRouter([
       </RequireRoles>,
     ),
   },
+  {
+    path: '/employer/chat',
+    element: withSuspense(
+      <RequireRoles roles={['EMPLOYER']}>
+        <EmployerDashboard />
+      </RequireRoles>,
+    ),
+  },
   { path: '/auth/login', element: withSuspense(<Login />) },
   { path: '/auth/register', element: withSuspense(<RegisterChoose />) },
   { path: '/auth/register/worker', element: withSuspense(<RegisterWorker />) },

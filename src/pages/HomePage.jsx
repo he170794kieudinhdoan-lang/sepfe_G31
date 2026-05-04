@@ -51,7 +51,6 @@ const POPULAR_KEYWORDS = [
   'phụ kho - bốc xếp',
 ];
 
-
 function JobCardSkeleton() {
   return (
     <Card className="rounded-xl border border-slate-100 bg-background p-4">
@@ -198,11 +197,7 @@ function JobCardHoverPreview({
                   >
                     <Wallet className="h-2.5 w-2.5 shrink-0 text-slate-500" />
                     <span className="truncate">
-                      {formatSalary(
-                        job.salaryMin,
-                        job.salaryMax,
-                        'vndCompact',
-                      )}
+                      {formatSalary(job.salaryMin, job.salaryMax, 'vndCompact')}
                     </span>
                   </span>
                   <span className={POPOVER_CHIP}>SL: {job.quantity || 1}</span>
@@ -298,7 +293,8 @@ function SearchBarPopover({
   const { data: wardss } = useGetWards(wards);
   const nav = useNavigate();
   const handleSearch = (overrideKeyword) => {
-    const finalKeyword = typeof overrideKeyword === 'string' ? overrideKeyword : keyword;
+    const finalKeyword =
+      typeof overrideKeyword === 'string' ? overrideKeyword : keyword;
     const trimmedKeyword = finalKeyword.trim();
     if (trimmedKeyword === '' && !province && !wardsName) {
       return;
@@ -816,21 +812,13 @@ export function HomePage() {
             >
               <div className="mb-5 flex min-w-0 gap-4">
                 <div
-                  className="w-1.5 shrink-0 self-stretch rounded-full bg-[#FACC15] md:min-h-[3.25rem]"
+                  className="w-1.5 shrink-0 self-stretch rounded-full bg-[#FACC15] md:min-h-[2.25rem]"
                   aria-hidden
                 />
                 <div className="min-w-0">
                   <h2 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[1.65rem] md:leading-tight">
-                    Việc làm{' '}
-                    <span className="rounded-md bg-[#FEF08A] px-1.5 py-0.5 font-extrabold text-slate-900">
-                      nổi bật
-                    </span>
+                    Việc làm nổi bật
                   </h2>
-                  <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-600">
-                    Khám phá các việc làm{' '}
-                    <span className="font-semibold text-slate-800">nổi bật</span>{' '}
-                    trên hệ thống.
-                  </p>
                 </div>
               </div>
 
@@ -908,10 +896,14 @@ export function HomePage() {
                 Gửi ticket hỗ trợ ngay trên trang chủ
               </h2>
               <p className="max-w-xl text-sm leading-relaxed text-slate-600">
-                Nếu bạn gặp lỗi đăng nhập, vấn đề hồ sơ, ứng tuyển hoặc cần manager hỗ trợ xử lý, hãy gửi câu hỏi ở đây. Ticket sẽ được chuyển vào hàng chờ của bộ phận hỗ trợ.
+                Nếu bạn gặp lỗi đăng nhập, vấn đề hồ sơ, ứng tuyển hoặc cần
+                manager hỗ trợ xử lý, hãy gửi câu hỏi ở đây. Ticket sẽ được
+                chuyển vào hàng chờ của bộ phận hỗ trợ.
               </p>
               <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-sm font-semibold text-slate-900">Khi nào nên gửi ticket?</p>
+                <p className="text-sm font-semibold text-slate-900">
+                  Khi nào nên gửi ticket?
+                </p>
                 <ul className="mt-3 space-y-2 text-sm text-slate-600">
                   <li>• Không nhận được email xác thực hoặc quên mật khẩu.</li>
                   <li>• Hồ sơ, ứng tuyển hoặc tin tuyển dụng bị lỗi.</li>
