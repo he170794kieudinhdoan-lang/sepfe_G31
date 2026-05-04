@@ -129,6 +129,7 @@ const EMPLOYER_MENU = [
     key: 'chat',
     label: 'Tin nhắn',
     icon: MessageCircle,
+    path: '/employer/chat',
   },
   { key: 'home', label: 'Trang chủ', icon: Home, path: '/', externalNav: true },
 ];
@@ -1868,7 +1869,10 @@ const MatchedWorkersPanel = ({
     const cEnd = new Date(candidate.endAt).getTime();
     return slots.some((s) => {
       if (s.id === ignoreId) return false;
-      return cStart < new Date(s.endAt).getTime() && new Date(s.startAt).getTime() < cEnd;
+      return (
+        cStart < new Date(s.endAt).getTime() &&
+        new Date(s.startAt).getTime() < cEnd
+      );
     });
   };
 
@@ -1881,7 +1885,14 @@ const MatchedWorkersPanel = ({
       return;
     }
     const id = `slot-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const newSlot = { id, startAt, endAt, capacity: Math.max(1, selectedIds.size), location: '', note: '' };
+    const newSlot = {
+      id,
+      startAt,
+      endAt,
+      capacity: Math.max(1, selectedIds.size),
+      location: '',
+      note: '',
+    };
     if (hasSlotsOverlap(inviteSlots, newSlot)) {
       toast('Ca mới bị trùng với ca đã có.', 'error');
       return;
@@ -1893,23 +1904,34 @@ const MatchedWorkersPanel = ({
   const handleSlotDropOrResize = (changeInfo) => {
     const { event } = changeInfo;
     if (!event.start || !event.end) return;
-    const updatedSlot = { id: event.id, startAt: event.start.toISOString(), endAt: event.end.toISOString() };
+    const updatedSlot = {
+      id: event.id,
+      startAt: event.start.toISOString(),
+      endAt: event.end.toISOString(),
+    };
     if (new Date(updatedSlot.startAt).getTime() < Date.now()) {
       changeInfo.revert();
       toast('Không thể đặt ca ở thời điểm đã qua.', 'error');
       return;
     }
-    if (hasSlotsOverlap(inviteSlots, { ...updatedSlot, capacity: 1 }, event.id)) {
+    if (
+      hasSlotsOverlap(inviteSlots, { ...updatedSlot, capacity: 1 }, event.id)
+    ) {
       changeInfo.revert();
       toast('Ca bị trùng với ca khác.', 'error');
       return;
     }
     setInviteSlots((prev) =>
-      prev.map((s) => (s.id === event.id ? { ...s, startAt: updatedSlot.startAt, endAt: updatedSlot.endAt } : s)),
+      prev.map((s) =>
+        s.id === event.id
+          ? { ...s, startAt: updatedSlot.startAt, endAt: updatedSlot.endAt }
+          : s,
+      ),
     );
   };
 
-  const selectedSlot = inviteSlots.find((s) => s.id === selectedSlotId) || inviteSlots[0] || null;
+  const selectedSlot =
+    inviteSlots.find((s) => s.id === selectedSlotId) || inviteSlots[0] || null;
 
   const handleSendInvite = async () => {
     if (!inviteMessage.trim()) {
@@ -1920,7 +1942,9 @@ const MatchedWorkersPanel = ({
       toast('Vui lòng tạo ít nhất 1 ca phỏng vấn.', 'error');
       return;
     }
-    const workerIds = Array.from(selectedIds).map(Number).filter((id) => !Number.isNaN(id));
+    const workerIds = Array.from(selectedIds)
+      .map(Number)
+      .filter((id) => !Number.isNaN(id));
     if (!workerIds.length) {
       toast('Vui lòng chọn ít nhất 1 ứng viên.', 'error');
       return;
@@ -1957,7 +1981,10 @@ const MatchedWorkersPanel = ({
       });
       if (!campaign?.id) throw new Error('Không nhận được mã chiến dịch.');
       await sendCampaign(campaign.id);
-      toast(`Đã gửi lời mời phỏng vấn cho ${workerIds.length} ứng viên.`, 'success');
+      toast(
+        `Đã gửi lời mời phỏng vấn cho ${workerIds.length} ứng viên.`,
+        'success',
+      );
       setInviteModalOpen(false);
       setSelectedIds(new Set());
       setInviteMessage('');
@@ -1979,7 +2006,6 @@ const MatchedWorkersPanel = ({
   }));
 
   return (
-
     <div className="flex flex-col h-[600px] animate-in fade-in slide-in-from-right-4 duration-300">
       {/* Panel Header */}
       <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-primary-muted/20 shrink-0">
@@ -2088,14 +2114,22 @@ const MatchedWorkersPanel = ({
       {/* Interview Invitation Modal */}
       <Modal
         open={inviteModalOpen}
-        onClose={() => !isSending && (setInviteModalOpen(false), setInviteSlots([]), setInviteMessage(''), setSelectedSlotId(null))}
+        onClose={() =>
+          !isSending &&
+          (setInviteModalOpen(false),
+          setInviteSlots([]),
+          setInviteMessage(''),
+          setSelectedSlotId(null))
+        }
         title="Tạo lịch và gửi lời mời phỏng vấn"
         contentClassName="max-w-5xl min-h-[80vh]"
         bodyClassName="space-y-4"
         onConfirm={handleSendInvite}
         confirmLabel={isSending ? 'Đang gửi...' : 'Tạo lịch và gửi lời mời'}
         cancelLabel="Hủy"
-        confirmDisabled={isSending || !inviteMessage.trim() || !inviteSlots.length}
+        confirmDisabled={
+          isSending || !inviteMessage.trim() || !inviteSlots.length
+        }
       >
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
           {/* Left: Calendar */}
@@ -2116,15 +2150,23 @@ const MatchedWorkersPanel = ({
                 eventDrop={handleSlotDropOrResize}
                 eventResize={handleSlotDropOrResize}
                 eventClick={(info) => setSelectedSlotId(info.event.id)}
-                headerToolbar={{ left: 'prev,next today', center: 'title', right: 'timeGridWeek,timeGridDay' }}
+                headerToolbar={{
+                  left: 'prev,next today',
+                  center: 'title',
+                  right: 'timeGridWeek,timeGridDay',
+                }}
               />
             </div>
 
             {/* Nội dung lời mời */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2">
               <div className="flex justify-between items-center">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Nội dung lời mời</p>
-                <span className="text-[10px] text-slate-400">{inviteMessage.length} ký tự</span>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Nội dung lời mời
+                </p>
+                <span className="text-[10px] text-slate-400">
+                  {inviteMessage.length} ký tự
+                </span>
               </div>
               <Textarea
                 value={inviteMessage}
@@ -2141,45 +2183,85 @@ const MatchedWorkersPanel = ({
             {/* Thông tin ca được chọn */}
             {selectedSlot ? (
               <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-                <p className="text-xs font-bold text-primary uppercase tracking-wide">Ca đang chỉnh sửa</p>
+                <p className="text-xs font-bold text-primary uppercase tracking-wide">
+                  Ca đang chỉnh sửa
+                </p>
                 <div className="text-xs text-slate-600 space-y-1">
-                  <p>🕐 {new Date(selectedSlot.startAt).toLocaleString('vi-VN')} → {new Date(selectedSlot.endAt).toLocaleString('vi-VN')}</p>
+                  <p>
+                    🕐 {new Date(selectedSlot.startAt).toLocaleString('vi-VN')}{' '}
+                    → {new Date(selectedSlot.endAt).toLocaleString('vi-VN')}
+                  </p>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-[10px] text-slate-500 font-medium block mb-1">Sức chứa</label>
+                    <label className="text-[10px] text-slate-500 font-medium block mb-1">
+                      Sức chứa
+                    </label>
                     <input
                       type="number"
                       min={1}
                       value={selectedSlot.capacity}
-                      onChange={(e) => setInviteSlots((prev) => prev.map((s) => s.id === selectedSlot.id ? { ...s, capacity: Number(e.target.value) || 1 } : s))}
+                      onChange={(e) =>
+                        setInviteSlots((prev) =>
+                          prev.map((s) =>
+                            s.id === selectedSlot.id
+                              ? { ...s, capacity: Number(e.target.value) || 1 }
+                              : s,
+                          ),
+                        )
+                      }
                       className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] text-slate-500 font-medium block mb-1">Địa điểm</label>
+                    <label className="text-[10px] text-slate-500 font-medium block mb-1">
+                      Địa điểm
+                    </label>
                     <input
                       type="text"
                       value={selectedSlot.location || ''}
-                      onChange={(e) => setInviteSlots((prev) => prev.map((s) => s.id === selectedSlot.id ? { ...s, location: e.target.value } : s))}
+                      onChange={(e) =>
+                        setInviteSlots((prev) =>
+                          prev.map((s) =>
+                            s.id === selectedSlot.id
+                              ? { ...s, location: e.target.value }
+                              : s,
+                          ),
+                        )
+                      }
                       placeholder="VD: Tầng 3, Phòng A"
                       className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] text-slate-500 font-medium block mb-1">Ghi chú</label>
+                  <label className="text-[10px] text-slate-500 font-medium block mb-1">
+                    Ghi chú
+                  </label>
                   <input
                     type="text"
                     value={selectedSlot.note || ''}
-                    onChange={(e) => setInviteSlots((prev) => prev.map((s) => s.id === selectedSlot.id ? { ...s, note: e.target.value } : s))}
+                    onChange={(e) =>
+                      setInviteSlots((prev) =>
+                        prev.map((s) =>
+                          s.id === selectedSlot.id
+                            ? { ...s, note: e.target.value }
+                            : s,
+                        ),
+                      )
+                    }
                     placeholder="VD: Mang theo CCCD"
                     className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
                   />
                 </div>
                 <button
                   type="button"
-                  onClick={() => { setInviteSlots((prev) => prev.filter((s) => s.id !== selectedSlot.id)); setSelectedSlotId(null); }}
+                  onClick={() => {
+                    setInviteSlots((prev) =>
+                      prev.filter((s) => s.id !== selectedSlot.id),
+                    );
+                    setSelectedSlotId(null);
+                  }}
                   className="text-xs text-rose-500 hover:text-rose-600 font-medium"
                 >
                   Xóa ca này
@@ -2197,21 +2279,39 @@ const MatchedWorkersPanel = ({
                 Ứng viên được mời ({selectedIds.size})
               </p>
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {workers.filter((w) => selectedIds.has(w.worker?.userId)).map((w) => (
-                  <div key={w.worker?.userId} className="flex items-center gap-2 text-xs text-slate-700">
-                    <img
-                      src={w.worker?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(w.worker?.fullName || 'U')}&background=ede9fe&color=6d28d9&size=32`}
-                      alt={w.worker?.fullName}
-                      className="w-6 h-6 rounded-full object-cover shrink-0"
-                    />
-                    <span className="truncate font-medium">{w.worker?.fullName}</span>
-                    <span className="ml-auto shrink-0 text-emerald-600 font-bold">{Math.round((w.scores?.finalScore || 0) * 100)}%</span>
-                  </div>
-                ))}
+                {workers
+                  .filter((w) => selectedIds.has(w.worker?.userId))
+                  .map((w) => (
+                    <div
+                      key={w.worker?.userId}
+                      className="flex items-center gap-2 text-xs text-slate-700"
+                    >
+                      <img
+                        src={
+                          w.worker?.avatar ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(w.worker?.fullName || 'U')}&background=ede9fe&color=6d28d9&size=32`
+                        }
+                        alt={w.worker?.fullName}
+                        className="w-6 h-6 rounded-full object-cover shrink-0"
+                      />
+                      <span className="truncate font-medium">
+                        {w.worker?.fullName}
+                      </span>
+                      <span className="ml-auto shrink-0 text-emerald-600 font-bold">
+                        {Math.round((w.scores?.finalScore || 0) * 100)}%
+                      </span>
+                    </div>
+                  ))}
               </div>
               <p className="text-xs text-slate-500 mt-3">
-                Chi phí: <strong>{(aiInviteUnitCost * selectedIds.size).toLocaleString('vi-VN')} điểm</strong>
-                {' '}({aiInviteUnitCost.toLocaleString('vi-VN')} điểm/ứng viên)
+                Chi phí:{' '}
+                <strong>
+                  {(aiInviteUnitCost * selectedIds.size).toLocaleString(
+                    'vi-VN',
+                  )}{' '}
+                  điểm
+                </strong>{' '}
+                ({aiInviteUnitCost.toLocaleString('vi-VN')} điểm/ứng viên)
               </p>
             </div>
           </div>
@@ -3606,7 +3706,7 @@ export const EmployerDashboard = () => {
           )}
 
           {/* APPLICANTS TAB */}
-          {active === 'applicants' && (
+          {/* {active === 'applicants' && (
             <div className="space-y-6 animate-in fade-in py-2 overflow-y-auto pb-6">
               <Card className="p-0 rounded-xl border border-slate-200 shadow-sm bg-white overflow-hidden">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 border-b border-slate-100 bg-primary-muted/30">
@@ -3797,7 +3897,7 @@ export const EmployerDashboard = () => {
                 </div>
               </Card>
             </div>
-          )}
+          )} */}
 
           {/* STATS TAB */}
           {active === 'chat' && (
@@ -3821,7 +3921,7 @@ export const EmployerDashboard = () => {
 
               <div className="space-y-4">
                 <ApplicationFunnelWidget jobs={allJobs} />
-                <EmployerPaymentsWidget />
+                {/* <EmployerPaymentsWidget /> */}
               </div>
             </div>
           )}

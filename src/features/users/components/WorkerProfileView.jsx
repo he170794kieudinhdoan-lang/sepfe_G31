@@ -271,20 +271,30 @@ export const WorkerProfileView = () => {
 
       <div className="p-8">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8">
+        <div className="flex items-center gap-3 mb-6">
           <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-primary-muted shadow-md">
             <User size={20} className="text-primary" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-800">Hồ sơ lao động</h2>
             <p className="text-sm text-gray-400 mt-0.5">
-              Cập nhật thông tin AI sẽ giúp gợi ý công việc phù hợp với bạn hơn!
+              Cập nhật thông tin đầy đủ giúp AI gợi ý việc làm phù hợp với bạn
+              và đề xuất hồ sơ của bạn với Nhà tuyển dụng!
             </p>
           </div>
         </div>
 
+        <div className="mb-8 p-4 bg-amber-50/80 border border-amber-200 rounded-xl shadow-sm">
+          <p className="text-sm text-amber-800 leading-relaxed">
+            <span className="font-semibold">👋 Lưu ý nhỏ cho bạn:</span> Để đảm
+            bảo chất lượng kết nối, các tài khoản không hoạt động quá 30 ngày sẽ
+            tạm thời không được hiển thị cho Nhà tuyển dụng. Đừng quên ghé thăm
+            nền tảng thường xuyên để luôn sẵn sàng đón nhận những cơ hội công
+            việc tốt nhất!
+          </p>
+        </div>
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
-          {/* ── Section 1: Nghề nghiệp ── */}
           <section>
             <SectionHeading icon={Briefcase} title="Nghề nghiệp" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">

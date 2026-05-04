@@ -31,7 +31,10 @@ const highlightFragments = (text, rawQuery) => {
         nodes.push(text.slice(last, m.index));
       }
       nodes.push(
-        <mark key={`h-${last}-${nodes.length}-${m.index}`} className="rounded px-0.5">
+        <mark
+          key={`h-${last}-${nodes.length}-${m.index}`}
+          className="rounded px-0.5"
+        >
           {m[0]}
         </mark>,
       );
@@ -83,17 +86,20 @@ const renderMessagePieces = (content, highlightQuery) => {
   });
 };
 
-const ChatAvatar = ({ src, alt }) => (
+export const ChatAvatar = ({ src, alt }) => (
   <Avatar className="h-full w-full rounded-full border-white shadow-md group-hover:opacity-90 transition-all duration-200">
     <AvatarImage
-      src={src || 'https://github.com/shadcn.png'}
+      src={
+        src ||
+        `https://ui-avatars.com/api/?name=${encodeURIComponent(alt || 'User')}&background=e0e7ff&color=4338ca`
+      }
       alt={alt || ''}
       className="object-cover rounded-full"
     />
   </Avatar>
 );
 
-const ConverSationList = ({
+export const ConversationList = ({
   items,
   selectedId,
   onSelect,
@@ -101,9 +107,9 @@ const ConverSationList = ({
   onListSearchChange,
 }) => (
   <aside className="w-full lg:w-80 border-r bg-white shrink-0 flex flex-col max-h-[calc(100vh-8rem)] rounded-l-xl">
-    <div className="p-4 border-b space-y-3">
-      <h2 className="font-semibold">Tin nhắn</h2>
-      <div className="relative">
+    <div className="p-4 border-b flex items-center gap-4">
+      <h2 className="font-semibold m-0 whitespace-nowrap">Tin nhắn</h2>
+      <div className="relative flex-1">
         <Search
           className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
           aria-hidden
@@ -147,21 +153,28 @@ const ConverSationList = ({
             />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-1">
               <span className="font-medium truncate">
                 {c.partner?.company?.name || c.partner.fullName}
               </span>
               {c.unreadCount > 0 && (
-                <span className="text-xs bg-primary text-primary-foreground rounded-full px-2">
+                <span className="text-xs bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 shrink-0 leading-none">
                   {c.unreadCount}
                 </span>
               )}
             </div>
-            <p
-              className={`text-sm truncate ${c.unreadCount > 0 ? 'font-bold' : 'text-muted-foreground '}`}
-            >
-              {c?.lastMessage?.content}
-            </p>
+            <div className="flex items-center justify-between gap-1 mt-0.5">
+              <p
+                className={`text-sm truncate flex-1 ${c.unreadCount > 0 ? 'font-semibold text-foreground' : 'text-muted-foreground'}`}
+              >
+                {c?.lastMessage?.content}
+              </p>
+              {c.lastMessage?.createdAt && (
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {formatMessageTime(c.lastMessage.createdAt)}
+                </span>
+              )}
+            </div>
           </div>
         </button>
       ))}
@@ -169,7 +182,12 @@ const ConverSationList = ({
   </aside>
 );
 
-const MessageThread = ({ messages, isTyping, avatar, highlightQuery }) => {
+export const MessageThread = ({
+  messages,
+  isTyping,
+  avatar,
+  highlightQuery,
+}) => {
   const { user } = useAuth();
   const containerRef = useRef(null);
 
@@ -244,7 +262,7 @@ const MessageThread = ({ messages, isTyping, avatar, highlightQuery }) => {
   );
 };
 
-const MessageInput = ({ value, onChange, onSend }) => (
+export const MessageInput = ({ value, onChange, onSend }) => (
   <div className="p-4 border-t flex gap-2">
     <Input
       placeholder="Nhập tin nhắn..."
@@ -345,7 +363,7 @@ export const ChatPage = () => {
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 min-h-[600px] w-full bg-white rounded-xl shadow-sm border">
-      <ConverSationList
+      <ConversationList
         items={filteredConversations}
         selectedId={selected}
         onSelect={handleSelect}
@@ -356,43 +374,39 @@ export const ChatPage = () => {
         {selected ? (
           <>
             <div className="p-4 border-b space-y-3">
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                  <ChatAvatar src={avatar} alt={avatar || ''} />
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                    <ChatAvatar src={avatar} alt={avatar || ''} />
+                  </div>
+                  <span className="font-semibold truncate min-w-0">
+                    {chatPartner?.company?.name || chatPartner?.fullName}
+                  </span>
                 </div>
-                <span className="font-semibold truncate min-w-0">
-                  {chatPartner?.company?.name || chatPartner?.fullName}
-                </span>
+                <div className="relative w-72 shrink-0">
+                  <Search
+                    className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+                    aria-hidden
+                  />
+                  <Input
+                    value={threadSearchInput}
+                    onChange={(e) => setThreadSearchInput(e.target.value)}
+                    placeholder="Tìm trong cuộc trò chuyện..."
+                    className="pl-9 pr-10 rounded-xl h-10 w-full"
+                    aria-label="Tìm trong cuộc trò chuyện"
+                  />
+                  {threadSearchInput.trim() !== '' && (
+                    <button
+                      type="button"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted text-muted-foreground"
+                      onClick={() => setThreadSearchInput('')}
+                      aria-label="Xóa tìm trong cuộc trò chuyện"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="relative">
-                <Search
-                  className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
-                  aria-hidden
-                />
-                <Input
-                  value={threadSearchInput}
-                  onChange={(e) => setThreadSearchInput(e.target.value)}
-                  placeholder="Tìm trong cuộc trò chuyện..."
-                  className="pl-9 pr-10 rounded-xl h-10"
-                  aria-label="Tìm trong cuộc trò chuyện"
-                />
-                {threadSearchInput.trim() !== '' && (
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-md hover:bg-muted text-muted-foreground"
-                    onClick={() => setThreadSearchInput('')}
-                    aria-label="Xóa tìm trong cuộc trò chuyện"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-              {activeThreadSearch ? (
-                <p className="text-xs text-muted-foreground leading-snug">
-                  Đang hiển thị tin nhắn khớp “{activeThreadSearch}” (tối đa{' '}
-                  {messageQueryParams.limit} kết quả). Xóa ô tìm để xem lại toàn bộ cuộc trò chuyện.
-                </p>
-              ) : null}
             </div>
             <MessageThread
               messages={messages}
@@ -404,15 +418,15 @@ export const ChatPage = () => {
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
             <div className="mb-5 flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <MessagesSquare className="h-10 w-10" strokeWidth={1.5} aria-hidden />
+              <MessagesSquare
+                className="h-10 w-10"
+                strokeWidth={1.5}
+                aria-hidden
+              />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
               Chọn cuộc hội thoại
             </h3>
-            <p className="text-sm text-muted-foreground max-w-[320px] leading-relaxed">
-              Tin nhắn sẽ hiển thị tại đây. Nhấn vào một đoạn hội thoại ở cột bên trái
-              (nếu có) để xem nội dung và trả lời.
-            </p>
           </div>
         )}
       </main>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Bell, ChevronDown, Search, User, MessageCircle } from 'lucide-react';
+import { Bell, ChevronDown, Search, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
@@ -98,30 +98,7 @@ export const DashboardLayout = ({
                     Số dư: {(wallet?.balancePoint || 0).toLocaleString('vi-VN')} điểm
                   </div>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full relative"
-                  asChild
-                >
-                  {/* <Link to="/chat">
-                    <MessageCircle className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                      <span className="absolute top-0 right-0 h-4 w-4 bg-red-500 text-white  text-[10px] font-bold flex items-center justify-center rounded-full border-2 border-white ring-1 ring-primary/20">
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </span>
-                    )}
-                  </Link> */}
 
-                  <Link to="/chat">
-                    <MessageCircle className="h-5 w-5" />
-                    {unreadCount > 0 && (
-                      <span className="absolute -right-1 -top-1 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[10px] leading-5 font-semibold text-center ring-2 ring-white">
-                        {unreadCount > 99 ? '99+' : unreadCount}
-                      </span>
-                    )}
-                  </Link>
-                </Button>
 
                 {topbarBell || (
                   <Button
@@ -138,15 +115,11 @@ export const DashboardLayout = ({
                     className="flex items-center gap-2 rounded-full border bg-white shadow-sm px-3 py-1.5 hover:bg-gray-50 transition"
                   >
                     <div className="h-7 w-7 rounded-full bg-primary-muted flex items-center justify-center shrink-0">
-                      {user?.avatar ? (
-                        <img
-                          src={user.avatar}
-                          alt="Avatar"
-                          className="h-full w-full rounded-full object-cover"
-                        />
-                      ) : (
-                        <User className="h-4 w-4 text-primary" />
-                      )}
+                      <img
+                        src={user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.fullName || 'User')}&background=e0e7ff&color=4338ca`}
+                        alt={user?.fullName || 'Avatar'}
+                        className="h-full w-full rounded-full object-cover"
+                      />
                     </div>
                     <span className="text-sm font-semibold max-w-[120px] truncate">
                       {user?.fullName || 'User'}
