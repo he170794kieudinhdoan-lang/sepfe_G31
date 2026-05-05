@@ -267,10 +267,192 @@ const MatchScoreItem = ({ label, score }) => {
   );
 };
 
-const JobApplicantsModal = ({
+const ApplicantDetailPane = ({
+  applicantDetail,
+  applicantStatus,
+  setApplicantStatus,
+  onSaveStatus,
+}) => {
+  if (!applicantDetail) return null;
+
+  const isFinalized = ['SUITABLE', 'UNSUITABLE'].includes(
+    applicantDetail.status,
+  );
+
+  return (
+    <div className="flex flex-col h-full overflow-y-auto custom-scrollbar bg-white">
+      <div className="p-5 border-b border-slate-100 flex items-start gap-4">
+        <img
+          src={
+            applicantDetail.user?.avatar ||
+            `https://ui-avatars.com/api/?name=${encodeURIComponent(applicantDetail.user?.fullName || 'User')}&background=e0e7ff&color=4338ca`
+          }
+          className="w-16 h-16 rounded-2xl shadow-sm object-cover shrink-0"
+          alt="avatar"
+        />
+        <div className="flex-1 min-w-0">
+          <h2 className="text-xl font-bold text-slate-800 truncate">
+            {applicantDetail.user?.fullName}
+          </h2>
+          <div className="text-sm text-slate-500 mt-1 flex items-center gap-2">
+            <Phone size={14} className="text-primary" />
+            <span className="font-medium text-slate-700">
+              {applicantDetail.user?.phone || 'Chưa cập nhật SĐT'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5 space-y-4 flex-1">
+        <div>
+          <p className="text-sm font-medium text-slate-500">Vị trí ứng tuyển</p>
+          <p className="font-semibold text-slate-800 mt-1">
+            {applicantDetail.job?.title}
+          </p>
+        </div>
+
+        <div className="bg-slate-50 p-4 rounded-xl text-sm text-slate-700 border border-slate-100">
+          <h4 className="font-semibold mb-3">Thông tin hồ sơ cá nhân</h4>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-slate-500 text-xs">Giới tính</p>
+              <p className="font-medium mt-1">
+                {applicantDetail.user?.workerProfile?.gender === 'MALE'
+                  ? 'Nam'
+                  : applicantDetail.user?.workerProfile?.gender === 'FEMALE'
+                    ? 'Nữ'
+                    : 'Chưa cập nhật'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs">Năm sinh</p>
+              <p className="font-medium mt-1">
+                {applicantDetail.user?.workerProfile?.birthYear || 'Chưa cập nhật'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs">Ca làm mong muốn</p>
+              <p className="font-medium mt-1">
+                {{
+                  MORNING: 'Ca sáng',
+                  AFTERNOON: 'Ca chiều',
+                  EVENING: 'Ca tối',
+                  FULL_DAY: 'Cả ngày',
+                  FLEXIBLE: 'Linh hoạt',
+                }[applicantDetail.user?.workerProfile?.shift] ||
+                  applicantDetail.user?.workerProfile?.shift ||
+                  'Chưa cập nhật'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs">Khu vực</p>
+              <p className="font-medium mt-1">
+                {applicantDetail.user?.workerProfile?.province || 'Chưa cập nhật'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs">Công việc đã từng làm</p>
+              <p className="font-medium mt-1">
+                {applicantDetail.user?.workerProfile?.occupation?.name || 'Chưa cập nhật'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs">Năm kinh nghiệm</p>
+              <p className="font-medium mt-1">
+                {applicantDetail.user?.workerProfile?.experienceYear
+                  ? `${applicantDetail.user?.workerProfile?.experienceYear} năm`
+                  : 'Chưa có'}
+              </p>
+            </div>
+            <div>
+              <p className="text-slate-500 text-xs">Mức lương mong muốn</p>
+              <p className="font-medium mt-1">
+                {applicantDetail.user?.workerProfile?.expectedSalary
+                  ? new Intl.NumberFormat('vi-VN', {
+                      style: 'currency',
+                      currency: 'VND',
+                      notation: 'compact',
+                    }).format(applicantDetail.user.workerProfile.expectedSalary)
+                  : 'Thỏa thuận'}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 pt-4 border-t border-slate-200">
+            <p className="text-slate-500 text-xs mb-1">Tự giới thiệu</p>
+            <p className="font-medium whitespace-pre-wrap text-slate-700">
+              {applicantDetail.user?.workerProfile?.bio ? (
+                applicantDetail.user.workerProfile.bio
+              ) : (
+                <span className="italic text-slate-400">Chưa cập nhật</span>
+              )}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5 border-t border-slate-100 bg-slate-50">
+        {isFinalized ? (
+          <div className="space-y-3">
+            <p className="text-sm font-semibold text-slate-800">
+              Kết quả đánh giá ứng viên
+            </p>
+            <div className="inline-flex">
+              <ApplicantStatusBadge status={applicantDetail.status} />
+            </div>
+            <p className="text-xs text-slate-500 italic">
+              Ứng viên đã được chốt kết quả, không thể cập nhật lại trạng thái.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+              <p className="text-sm font-semibold text-slate-800">
+                Cập nhật trạng thái ứng viên
+              </p>
+              <Button
+                size="sm"
+                className="rounded-xl px-6 font-semibold shadow-sm"
+                onClick={onSaveStatus}
+              >
+                Lưu lại
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                {
+                  value: 'SUITABLE',
+                  label: 'Phù hợp',
+                  activeClass: 'border-green-500 bg-green-50 text-green-700 ring-1 ring-green-500',
+                },
+                {
+                  value: 'UNSUITABLE',
+                  label: 'Không phù hợp',
+                  activeClass: 'border-red-500 bg-red-50 text-red-700 ring-1 ring-red-500',
+                },
+              ].map((status) => (
+                <button
+                  key={status.value}
+                  onClick={() => setApplicantStatus(status.value)}
+                  className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
+                    applicantStatus === status.value
+                      ? status.activeClass
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  {status.label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const JobApplicantsPanel = ({
   jobId,
   onClose,
-  onOpenDetail,
   onOpenCampaignDetail,
   initialInviteState,
 }) => {
@@ -280,6 +462,9 @@ const JobApplicantsModal = ({
     jobId || undefined,
   );
   const { data: jobDetail } = useJobDetail(jobId || undefined);
+  const { mutate: updateApplicantStatus } = useUpdateApplicationStatus();
+  const [selectedApplicant, setSelectedApplicant] = useState(null);
+  const [applicantStatus, setApplicantStatus] = useState('');
   const [searchText, setSearchText] = useState(
     initialInviteState?.searchText || '',
   );
@@ -352,6 +537,44 @@ const JobApplicantsModal = ({
   );
 
   const { toast } = useToast();
+
+  const handleSelectApplicant = (a) => {
+    setSelectedApplicant(a);
+    setApplicantStatus(a.status);
+    if (a.status === 'APPLIED') {
+      updateApplicantStatus(
+        { applicationId: a.id, status: 'VIEWED' },
+        {
+          onSuccess: () => {
+            setSelectedApplicant((prev) =>
+              prev?.id === a.id ? { ...prev, status: 'VIEWED' } : prev,
+            );
+            setApplicantStatus('VIEWED');
+          },
+        },
+      );
+    }
+  };
+
+  const handleSaveStatus = () => {
+    if (!selectedApplicant || !applicantStatus) return;
+    updateApplicantStatus(
+      { applicationId: selectedApplicant.id, status: applicantStatus },
+      {
+        onSuccess: () => {
+          toast('Cập nhật trạng thái thành công', 'success');
+          setSelectedApplicant((prev) => ({ ...prev, status: applicantStatus }));
+        },
+      },
+    );
+  };
+
+  useEffect(() => {
+    if (filteredApplicants.length > 0 && !selectedApplicant) {
+      setSelectedApplicant(filteredApplicants[0]);
+      setApplicantStatus(filteredApplicants[0].status);
+    }
+  }, [filteredApplicants, selectedApplicant]);
 
   const isApplicantInvitable = (applicant) => applicant?.status === 'SUITABLE';
 
@@ -1124,212 +1347,228 @@ const JobApplicantsModal = ({
     toast('Đã tải xuống file Danh_sach_ung_vien.csv', 'success');
   };
 
+  if (!jobId) return null;
+
   return (
-    <Modal
-      open={!!jobId}
-      onClose={onClose}
-      title="Danh sách ứng viên của công việc"
-      variant="custom"
-    >
-      <div className="p-6">
-        <div className="flex flex-col sm:flex-row gap-4 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <Input
-              placeholder="Tìm theo tên..."
-              value={searchText}
-              onChange={(e) => {
-                setSearchText(e.target.value);
-                setPage(1);
-              }}
-              className="pl-9 rounded-xl border-slate-200 bg-slate-50 focus:bg-white"
-            />
+    <div className="flex flex-col h-[600px] animate-in fade-in slide-in-from-right-4 duration-300">
+      {/* Panel Header */}
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-slate-100 bg-primary-muted/20 shrink-0">
+        <button
+          type="button"
+          onClick={onClose}
+          className="h-9 w-9 flex items-center justify-center rounded-xl bg-white border border-slate-200 hover:border-primary/30 hover:text-primary transition-all text-slate-600 shadow-sm"
+        >
+          <ChevronLeft size={18} />
+        </button>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-primary" />
+            <h3 className="font-bold text-slate-900 text-lg leading-tight truncate">
+              Danh sách ứng viên của công việc
+            </h3>
           </div>
-          <select
-            className="rounded-xl border border-slate-200 px-4 py-2 text-sm bg-slate-50 outline-none"
-            value={statusFilter}
-            onChange={(e) => {
-              setStatusFilter(e.target.value);
-              setPage(1);
-            }}
-          >
-            <option value="">Tất cả trạng thái</option>
-            <option value="APPLIED">Chờ xử lý</option>
-            <option value="SUITABLE">Phù hợp</option>
-            <option value="UNSUITABLE">Không phù hợp</option>
-          </select>
-          <Button
-            variant="outline"
-            className="rounded-xl gap-2 bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
-            onClick={handleExport}
-            disabled={filteredApplicants.length === 0}
-          >
-            <Download size={16} /> Xuất file CSV
-          </Button>
+          <p className="text-xs text-slate-500 truncate mt-0.5 ml-6">
+            Dành cho: <span className="font-semibold">{jobDetail?.title || 'Công việc'}</span>
+          </p>
         </div>
+      </div>
 
-        <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-          <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 font-medium">
-            Tổng ứng viên của job: {applicantsList.length}
-          </span>
-          {statusFilter || searchText ? (
-            <span className="rounded-full border border-primary/20 bg-primary/5 px-2.5 py-1 font-medium text-primary">
-              Kết quả theo bộ lọc: {filteredApplicants.length}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <div className="flex items-center gap-3">
-            <Checkbox
-              checked={isAllSelected}
-              onCheckedChange={toggleAllApplicants}
-              className="w-5 h-5 rounded-md"
-            />
-            <span className="text-sm font-medium text-slate-700">
-              Chọn tất cả ứng viên Phù hợp ({availableApplicantUserIds.length})
-            </span>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="rounded-xl gap-2"
-              onClick={() => {
-                const campaignId = inviteConstraints?.latestCampaignId;
-                if (campaignId) {
-                  onOpenCampaignDetail?.(campaignId);
-                }
-              }}
-              disabled={!inviteConstraints?.latestCampaignId}
-            >
-              <Users size={14} /> Xem DS theo ca
-            </Button>
-            <Button
-              size="sm"
-              className="rounded-xl gap-2"
-              onClick={() => setBulkInviteOpen(true)}
-              disabled={
-                availableApplicantUserIds.length === 0 ||
-                loadingInviteConstraints
-              }
-            >
-              <Send size={14} /> Mời phỏng vấn
-            </Button>
-          </div>
-        </div>
-        <p className="mb-3 text-xs text-slate-500 italic">
-          Chỉ ứng viên có trạng thái Phù hợp và chưa được mời cho job này mới có
-          thể được chọn.
-        </p>
-
-        {isLoading ? (
-          <div className="py-4">
-            <AppLoadingScene
-              compact
-              title="Đang tải danh sách ứng viên"
-              subtitle="Vui lòng chờ một chút..."
-            />
-          </div>
-        ) : paginatedApplicants.length === 0 ? (
-          <EmptyState
-            title="Không tìm thấy ứng viên nào"
-            description="Bạn vui lòng thử đổi bộ lọc khác."
-          />
-        ) : (
-          <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
-            {paginatedApplicants.map((a) => (
-              <Card
-                key={a.id}
-                className="p-4 rounded-2xl shadow-sm border border-slate-100 transition-all hover:border-primary hover:shadow-md"
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left: Candidate List */}
+        <div className="w-[40%] shrink-0 border-r border-slate-100 flex flex-col overflow-hidden bg-slate-50/30">
+          <div className="p-3.5 border-b border-slate-100 px-5 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Input
+                  placeholder="Tìm theo tên..."
+                  value={searchText}
+                  onChange={(e) => {
+                    setSearchText(e.target.value);
+                    setPage(1);
+                  }}
+                  className="pl-9 h-9 text-sm rounded-xl border-slate-200 bg-white focus:bg-white"
+                />
+              </div>
+              <select
+                className="rounded-xl border border-slate-200 h-9 px-3 text-sm bg-white outline-none"
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
               >
-                <div className="flex items-start gap-3">
-                  <div className="pt-1">
-                    <Checkbox
-                      checked={selectedApplicantIds.has(getApplicantUserId(a))}
-                      onCheckedChange={() =>
-                        toggleApplicantSelection(getApplicantUserId(a))
-                      }
-                      disabled={!isApplicantSelectable(a)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-5 h-5 rounded-md"
-                    />
-                  </div>
-                  <div className="flex-1 flex justify-between items-start gap-4">
-                    <button
-                      type="button"
-                      onClick={() => onOpenDetail(a)}
-                      className="flex items-center gap-4 text-left min-w-0 group"
-                    >
+                <option value="">Tất cả TT</option>
+                <option value="APPLIED">Chờ xử lý</option>
+                <option value="VIEWED">Đã xem</option>
+                <option value="SUITABLE">Phù hợp</option>
+                <option value="UNSUITABLE">Không phù hợp</option>
+              </select>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-xl gap-2 bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
+                onClick={handleExport}
+                disabled={filteredApplicants.length === 0}
+              >
+                <Download size={14} />
+              </Button>
+            </div>
+            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={isAllSelected}
+                  onCheckedChange={toggleAllApplicants}
+                  className="w-4 h-4 rounded border-slate-300"
+                />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                  {selectedApplicantIds.size > 0
+                    ? `Đã chọn ${selectedApplicantIds.size}`
+                    : `Danh sách (${filteredApplicants.length})`}
+                </span>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs rounded-xl gap-1.5"
+                  onClick={() => {
+                    const campaignId = inviteConstraints?.latestCampaignId;
+                    if (campaignId) {
+                      onOpenCampaignDetail?.(campaignId);
+                    }
+                  }}
+                  disabled={!inviteConstraints?.latestCampaignId}
+                >
+                  <Users size={12} /> Ca phỏng vấn
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs rounded-xl gap-1.5"
+                  onClick={() => setBulkInviteOpen(true)}
+                  disabled={
+                    availableApplicantUserIds.length === 0 ||
+                    loadingInviteConstraints
+                  }
+                >
+                  <Send size={12} /> Mời phỏng vấn
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2.5">
+            {isLoading ? (
+              <div className="py-10 flex justify-center">
+                <AppLoadingScene compact title="Đang tải danh sách..." />
+              </div>
+            ) : paginatedApplicants.length === 0 ? (
+              <div className="text-center text-slate-500 py-10 text-sm">
+                Không tìm thấy ứng viên phù hợp
+              </div>
+            ) : (
+              paginatedApplicants.map((a) => {
+                const isSelected = selectedApplicant?.id === a.id;
+                const isChecked = selectedApplicantIds.has(getApplicantUserId(a));
+                return (
+                  <div
+                    key={a.id}
+                    className={`group w-full flex items-start gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-primary/5 border-primary/25 shadow-sm'
+                        : 'bg-white border-slate-100 hover:border-primary/20 hover:bg-slate-50'
+                    }`}
+                    onClick={() => handleSelectApplicant(a)}
+                  >
+                    <div className="pt-1">
+                      <Checkbox
+                        checked={isChecked}
+                        onCheckedChange={() => toggleApplicantSelection(getApplicantUserId(a))}
+                        disabled={!isApplicantSelectable(a)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-4 h-4 rounded border-slate-300"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0 flex items-start gap-3">
                       <img
                         src={
                           a.user?.avatar ||
                           `https://ui-avatars.com/api/?name=${encodeURIComponent(a.user?.fullName || 'User')}&background=e0e7ff&color=4338ca`
                         }
                         alt="avatar"
-                        className="w-12 h-12 rounded-full shadow-sm object-cover border border-slate-100 transition-transform group-hover:scale-[1.03]"
+                        className="w-10 h-10 rounded-full object-cover border border-slate-100 shrink-0"
                       />
-                      <div className="overflow-hidden">
-                        <h4 className="font-semibold text-slate-800 truncate group-hover:text-primary transition-colors">
-                          {a.user?.fullName}
-                        </h4>
-                        <p className="text-sm text-slate-500 flex items-center gap-1 mt-0.5 truncate">
-                          <Briefcase size={12} /> {a.job?.title}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-800 text-sm truncate">
+                          {a.user?.fullName || 'Ứng viên'}
                         </p>
-                        <p className="mt-1 text-[11px] font-medium text-slate-400 group-hover:text-primary transition-colors">
-                          Bấm để xem hồ sơ ứng viên
-                        </p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                           <ApplicantStatusBadge status={a.status} />
+                           {isApplicantAlreadyInvited(a) && (
+                             <span className="text-[10px] font-medium text-amber-700">Đã mời</span>
+                           )}
+                        </div>
                       </div>
-                    </button>
-                    <div className="text-right shrink-0">
-                      <ApplicantStatusBadge status={a.status} />
-                      {isApplicantAlreadyInvited(a) && (
-                        <p className="mt-1 text-[11px] font-medium text-amber-700">
-                          Đã mời trước đó
-                        </p>
-                      )}
-                      <p className="text-xs text-slate-400 mt-2 flex items-center justify-end gap-1">
-                        <Clock size={12} />{' '}
-                        {new Date(
-                          a.updatedAt || a.createdAt || new Date(),
-                        ).toLocaleDateString('vi-VN')}
-                      </p>
                     </div>
                   </div>
-                </div>
-              </Card>
-            ))}
+                );
+              })
+            )}
           </div>
-        )}
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-slate-500">
-              Trang {page} / {totalPages}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="rounded-lg"
-              >
-                <ChevronLeft size={16} />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className="rounded-lg"
-              >
-                <ChevronRight size={16} />
-              </Button>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-white shrink-0">
+              <span className="text-xs text-slate-500">
+                Trang {page} / {totalPages}
+              </span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-7 p-0 rounded-md"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft size={14} />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-7 p-0 rounded-md"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  <ChevronRight size={14} />
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Right pane: Candidate Detail */}
+        <div className="flex-1 overflow-hidden relative bg-white border-l border-slate-100">
+          {selectedApplicant ? (
+            <ApplicantDetailPane
+              applicantDetail={selectedApplicant}
+              applicantStatus={applicantStatus}
+              setApplicantStatus={setApplicantStatus}
+              onSaveStatus={handleSaveStatus}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center space-y-3 opacity-40">
+                <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto">
+                  <Users className="text-slate-400" />
+                </div>
+                <p className="text-slate-500 font-medium">
+                  Chọn ứng viên để xem chi tiết
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
 
       <Modal
         open={bulkInviteOpen}
@@ -1593,7 +1832,7 @@ const JobApplicantsModal = ({
         onGoTopup={handleGoToTopupFromInvite}
         message={insufficientPointMessage}
       />
-    </Modal>
+    </div>
   );
 };
 
@@ -3321,6 +3560,16 @@ export const EmployerDashboard = () => {
                       setMatchedJobTitle('');
                     }}
                   />
+                ) : applicantsModalJobId ? (
+                  <JobApplicantsPanel
+                    jobId={applicantsModalJobId}
+                    onClose={() => {
+                      setApplicantsModalJobId(null);
+                      setRestoredInviteState(null);
+                    }}
+                    initialInviteState={restoredInviteState}
+                    onOpenCampaignDetail={openCampaignDetail}
+                  />
                 ) : (
                   <>
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-5 py-4 border-b border-slate-100 bg-primary-muted/30">
@@ -4108,21 +4357,7 @@ export const EmployerDashboard = () => {
         </div>
       </Modal> */}
 
-      <JobApplicantsModal
-        jobId={applicantsModalJobId}
-        onClose={() => {
-          setApplicantsModalJobId(null);
-          setRestoredInviteState(null);
-        }}
-        initialInviteState={restoredInviteState}
-        onOpenDetail={(a) => {
-          setApplicantsModalJobId(null);
-          setRestoredInviteState(null);
-          setApplicantDetail(a);
-          setApplicantStatus(getEditableApplicantStatus(a.status));
-        }}
-        onOpenCampaignDetail={openCampaignDetail}
-      />
+
 
       <Modal
         open={campaignDetailOpen}
