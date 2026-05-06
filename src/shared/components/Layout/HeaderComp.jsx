@@ -38,8 +38,8 @@ import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
 import { isWorkerRole } from '@/shared/utils/userRole';
 
 const TASKBAR_LINKS = [
-  { to: '/search', label: 'Việc làm' },
-  { to: '/companies', label: 'Công ty' },
+  { to: '/search', label: 'Tin tuyển dụng' },
+  { to: '/companies', label: 'Nhà tuyển dụng' },
   // { to: '/terms', label: 'Điều khoản' },
 ];
 
@@ -158,7 +158,7 @@ export const Header = () => {
               >
                 <Link to="/support">
                   <HelpCircle className="mr-2 h-4 w-4" />
-                  Đặt câu hỏi
+                  Trợ giúp
                 </Link>
               </Button>
             )}
@@ -167,7 +167,7 @@ export const Header = () => {
                 className="hidden sm:flex rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 font-semibold transition-all shadow-sm border border-primary/20 hover:shadow-md"
                 asChild
               >
-                <Link to="/employer">Quản lý tuyển dụng</Link>
+                <Link to="/employer">Trang tuyển dụng</Link>
               </Button>
             )}
             {isAuthenticated && user?.roleType === 'MANAGER' && (
@@ -175,7 +175,7 @@ export const Header = () => {
                 className="hidden sm:flex rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 font-semibold transition-all shadow-sm border border-primary/20 hover:shadow-md"
                 asChild
               >
-                <Link to="/manager">Quản lý hệ thống</Link>
+                <Link to="/manager">Vận hành hệ thống</Link>
               </Button>
             )}
             {isAuthenticated && user?.roleType === 'ADMIN' && (
@@ -183,7 +183,7 @@ export const Header = () => {
                 className="hidden sm:flex rounded-full bg-primary/10 text-primary hover:bg-primary hover:text-white px-5 font-semibold transition-all shadow-sm border border-primary/20 hover:shadow-md"
                 asChild
               >
-                <Link to="/admin">Quản trị hệ thống</Link>
+                <Link to="/admin">Trang quản trị</Link>
               </Button>
             )}
             <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
@@ -207,7 +207,7 @@ export const Header = () => {
               >
                 <div className="px-4 py-3 border-b bg-linear-to-r from-white to-gray-50">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-semibold">Thông báo</h3>
+                    <h3 className="text-sm font-semibold">Tin mới</h3>
                     <span className="text-xs text-muted-foreground">
                       {unreadCount > 0
                         ? `${unreadCount} chưa đọc`
@@ -215,7 +215,7 @@ export const Header = () => {
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    Cập nhật mới nhất cho tài khoản của bạn
+                    Cập nhật từ hệ thống cho bạn
                   </p>
                 </div>
 
@@ -271,7 +271,7 @@ export const Header = () => {
 
                 <div className="px-3 py-2 border-t bg-gray-50 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-muted-foreground">
-                    Nhấn thông báo để mở trang · Chi tiết để xem nội dung
+                    Bấm thông báo để xem nội dung chi tiết
                   </span>
                   <Button
                     variant="ghost"
@@ -365,7 +365,7 @@ export const Header = () => {
                         className="block px-4 py-2 text-sm hover:bg-gray-50"
                         onClick={() => setAvatarOpen(false)}
                       >
-                        Hồ sơ của tôi
+                        Hồ sơ cá nhân
                       </Link>
                       {isWorkerRole(user) && (
                         <>
@@ -374,7 +374,7 @@ export const Header = () => {
                             className="block px-4 py-2 text-sm hover:bg-gray-50"
                             onClick={() => setAvatarOpen(false)}
                           >
-                            Việc làm đã lưu
+                            Tin tuyển dụng đã lưu
                           </Link>
                           <Link
                             to="/profile?tab=invitations"
@@ -392,7 +392,7 @@ export const Header = () => {
                           className="block px-4 py-2 text-sm hover:bg-gray-50"
                           onClick={() => setAvatarOpen(false)}
                         >
-                          Quản trị hệ thống
+                          Trang quản trị
                         </Link>
                       )}
                       {user?.roleType === 'MANAGER' && (
@@ -401,7 +401,7 @@ export const Header = () => {
                           className="block px-4 py-2 text-sm hover:bg-gray-50"
                           onClick={() => setAvatarOpen(false)}
                         >
-                          Quản lý hệ thống
+                          Vận hành hệ thống
                         </Link>
                       )}
 

@@ -89,7 +89,7 @@ export const DashboardLayout = ({
               <div>
                 <h1 className="text-2xl font-bold">{title}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {subtitle ?? 'Theo dõi hoạt động tài khoản và thao tác nhanh'}
+                  {subtitle ?? 'Giám sát hoạt động và xử lý nghiệp vụ nhanh.'}
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export const DashboardLayout = ({
                             className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"
                             onClick={() => setAvatarOpen(false)}
                           >
-                            Về trang người tìm việc (Trang chủ)
+                            Quay lại Trang chủ
                           </Link>
                           {user?.roleType === 'EMPLOYER' && (
                             <Link
@@ -167,7 +167,7 @@ export const DashboardLayout = ({
                               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"
                               onClick={() => setAvatarOpen(false)}
                             >
-                              Trang Nhà Tuyển Dụng
+                              Trang tuyển dụng
                             </Link>
                           )}
                           {user?.roleType === 'MANAGER' && (
@@ -176,7 +176,7 @@ export const DashboardLayout = ({
                               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"
                               onClick={() => setAvatarOpen(false)}
                             >
-                              Trang Quản lý hệ thống
+                              Vận hành hệ thống
                             </Link>
                           )}
                           {user?.roleType === 'ADMIN' && (
@@ -185,7 +185,7 @@ export const DashboardLayout = ({
                               className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary transition"
                               onClick={() => setAvatarOpen(false)}
                             >
-                              Trang Quản Trị Viên
+                              Trang quản trị
                             </Link>
                           )}
                           {/* Profile or other link if needed */}

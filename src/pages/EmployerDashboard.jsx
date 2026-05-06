@@ -60,7 +60,6 @@ import {
   useEmployerApplications,
   useUpdateApplicationStatus,
   useDeleteJob,
-  useBoostPackages,
   useCreateBoostCheckout,
   useCreatePostingCheckout,
   useMatchedWorkers,
@@ -121,7 +120,7 @@ const EMPLOYER_MENU = [
   },
   {
     key: 'wallet',
-    label: 'Ví điểm',
+    label: 'Ví point',
     icon: Wallet,
     path: '/employer/wallet',
   },
@@ -190,7 +189,7 @@ const StatusBadge = ({ status }) => {
     REJECTED: {
       color: 'bg-gray-100 text-gray-800 border-gray-200',
       label: 'Bị từ chối',
-      title: 'Tin bị từ chối do phát hiện tin rác hoặc vi phạm',
+      title: 'Tin bị hệ thống từ chối do phát hiện Spam hoặc vi phạm',
     },
     WARNING: {
       color: 'bg-orange-100 text-orange-800 border-orange-200',
@@ -369,10 +368,10 @@ const ApplicantDetailPane = ({
               <p className="font-medium mt-1">
                 {applicantDetail.user?.workerProfile?.expectedSalary
                   ? new Intl.NumberFormat('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND',
-                      notation: 'compact',
-                    }).format(applicantDetail.user.workerProfile.expectedSalary)
+                    style: 'currency',
+                    currency: 'VND',
+                    notation: 'compact',
+                  }).format(applicantDetail.user.workerProfile.expectedSalary)
                   : 'Thỏa thuận'}
               </p>
             </div>
@@ -433,11 +432,10 @@ const ApplicantDetailPane = ({
                 <button
                   key={status.value}
                   onClick={() => setApplicantStatus(status.value)}
-                  className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
-                    applicantStatus === status.value
-                      ? status.activeClass
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
+                  className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
+                    ? status.activeClass
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
                 >
                   {status.label}
                 </button>
@@ -498,7 +496,7 @@ const JobApplicantsPanel = ({
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
     useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
-    'Số dư điểm không đủ để gửi lời mời.',
+    'Số dư point không đủ để gửi lời mời.',
   );
 
   useEffect(() => {
@@ -1137,7 +1135,7 @@ const JobApplicantsPanel = ({
         toast(
           filteredOutCount > 0
             ? 'Tất cả ứng viên được chọn đã được mời phỏng vấn rồi.'
-            : 'Không tìm thấy ứng viên hợp lệ để gửi lời mời.',
+            : 'Không tìm thấy worker hợp lệ để gửi lời mời.',
           'error',
         );
         return;
@@ -1275,7 +1273,7 @@ const JobApplicantsPanel = ({
       'Năm kinh nghiệm',
       'Lương mong muốn',
       'Ca làm',
-      'Tự giới thiệu',
+      'Giới thiệu bản thân (Bio)',
     ];
 
     const statusMap = {
@@ -1473,11 +1471,10 @@ const JobApplicantsPanel = ({
                 return (
                   <div
                     key={a.id}
-                    className={`group w-full flex items-start gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
-                      isSelected
-                        ? 'bg-primary/5 border-primary/25 shadow-sm'
-                        : 'bg-white border-slate-100 hover:border-primary/20 hover:bg-slate-50'
-                    }`}
+                    className={`group w-full flex items-start gap-2 p-2 rounded-xl border transition-all cursor-pointer ${isSelected
+                      ? 'bg-primary/5 border-primary/25 shadow-sm'
+                      : 'bg-white border-slate-100 hover:border-primary/20 hover:bg-slate-50'
+                      }`}
                     onClick={() => handleSelectApplicant(a)}
                   >
                     <div className="pt-1">
@@ -1502,72 +1499,84 @@ const JobApplicantsPanel = ({
                         <p className="font-semibold text-slate-800 text-sm truncate">
                           {a.user?.fullName || 'Ứng viên'}
                         </p>
-                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                           <ApplicantStatusBadge status={a.status} />
-                           {isApplicantAlreadyInvited(a) && (
-                             <span className="text-[10px] font-medium text-amber-700">Đã mời</span>
-                           )}
-                        </div>
+                        <p className="mt-1 text-[11px] font-medium text-slate-400 group-hover:text-primary transition-colors">
+                          Bấm vào worker để xem hồ sơ
+                        </p>
                       </div>
+                    </button>
+                    <div className="text-right shrink-0">
+                      <ApplicantStatusBadge status={a.status} />
+                      {isApplicantAlreadyInvited(a) && (
+                        <p className="mt-1 text-[11px] font-medium text-amber-700">
+                          Đã mời trước đó
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-400 mt-2 flex items-center justify-end gap-1">
+                        <Clock size={12} />{' '}
+                        {new Date(
+                          a.updatedAt || a.createdAt || new Date(),
+                        ).toLocaleDateString('vi-VN')}
+                      </p>
                     </div>
                   </div>
-                );
-              })
-            )}
-          </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-white shrink-0">
-              <span className="text-xs text-slate-500">
-                Trang {page} / {totalPages}
-              </span>
-              <div className="flex gap-1">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 w-7 p-0 rounded-md"
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  disabled={page === 1}
-                >
-                  <ChevronLeft size={14} />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 w-7 p-0 rounded-md"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
-                  <ChevronRight size={14} />
-                </Button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Right pane: Candidate Detail */}
-        <div className="flex-1 overflow-hidden relative bg-white border-l border-slate-100">
-          {selectedApplicant ? (
-            <ApplicantDetailPane
-              applicantDetail={selectedApplicant}
-              applicantStatus={applicantStatus}
-              setApplicantStatus={setApplicantStatus}
-              onSaveStatus={handleSaveStatus}
-            />
-          ) : (
-            <div className="flex h-full items-center justify-center">
-              <div className="text-center space-y-3 opacity-40">
-                <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto">
-                  <Users className="text-slate-400" />
                 </div>
-                <p className="text-slate-500 font-medium">
-                  Chọn ứng viên để xem chi tiết
-                </p>
-              </div>
-            </div>
-          )}
+        </Card>
+            ))}
+      </div>
+        )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-white shrink-0">
+          <span className="text-xs text-slate-500">
+            Trang {page} / {totalPages}
+          </span>
+          <div className="flex gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0 rounded-md"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              <ChevronLeft size={14} />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0 rounded-md"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              <ChevronRight size={14} />
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+
+        {/* Right pane: Candidate Detail */ }
+  <div className="flex-1 overflow-hidden relative bg-white border-l border-slate-100">
+    {selectedApplicant ? (
+      <ApplicantDetailPane
+        applicantDetail={selectedApplicant}
+        applicantStatus={applicantStatus}
+        setApplicantStatus={setApplicantStatus}
+        onSaveStatus={handleSaveStatus}
+      />
+    ) : (
+      <div className="flex h-full items-center justify-center">
+        <div className="text-center space-y-3 opacity-40">
+          <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto">
+            <Users className="text-slate-400" />
+          </div>
+          <p className="text-slate-500 font-medium">
+            Chọn ứng viên để xem chi tiết
+          </p>
         </div>
       </div>
+    )}
+  </div>
+      </div >
 
 
       <Modal
@@ -1832,7 +1841,7 @@ const JobApplicantsPanel = ({
         onGoTopup={handleGoToTopupFromInvite}
         message={insufficientPointMessage}
       />
-    </div>
+    </div >
   );
 };
 
@@ -1855,11 +1864,10 @@ const MatchedWorkerListItem = ({
 
   return (
     <div
-      className={`group w-full flex items-center gap-2 p-1.5 rounded-xl border transition-all ${
-        isActive
-          ? 'bg-primary/5 border-primary/25 shadow-sm'
-          : 'bg-white border-slate-100 hover:border-primary/20 hover:bg-slate-50'
-      }`}
+      className={`group w-full flex items-center gap-2 p-1.5 rounded-xl border transition-all ${isActive
+        ? 'bg-primary/5 border-primary/25 shadow-sm'
+        : 'bg-white border-slate-100 hover:border-primary/20 hover:bg-slate-50'
+        }`}
     >
       <div className="pl-1.5 pr-0.5">
         <Checkbox
@@ -2356,9 +2364,9 @@ const MatchedWorkersPanel = ({
         onClose={() =>
           !isSending &&
           (setInviteModalOpen(false),
-          setInviteSlots([]),
-          setInviteMessage(''),
-          setSelectedSlotId(null))
+            setInviteSlots([]),
+            setInviteMessage(''),
+            setSelectedSlotId(null))
         }
         title="Tạo lịch và gửi lời mời phỏng vấn"
         contentClassName="max-w-5xl min-h-[80vh]"
@@ -2572,11 +2580,11 @@ export const EmployerDashboard = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [boostModalOpen, setBoostModalOpen] = useState(false);
   const [selectedBoostJob, setSelectedBoostJob] = useState(null);
-  const [selectedBoostPackageId, setSelectedBoostPackageId] = useState(null);
+  const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
     useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
-    'Số dư điểm không đủ để thanh toán tính năng.',
+    'Số dư point không đủ để thanh toán tính năng.',
   );
   const [restoredInviteState, setRestoredInviteState] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
@@ -2646,7 +2654,6 @@ export const EmployerDashboard = () => {
   );
   const createBoostCheckoutMutation = useCreateBoostCheckout();
   const createPostingCheckoutMutation = useCreatePostingCheckout();
-  const { data: boostPackagesRes } = useBoostPackages();
   const { data: walletPricingRes } = useWalletPricing();
   const walletPricing = walletPricingRes?.data || walletPricingRes || {};
   const boostPackages = boostPackagesRes?.items || boostPackagesRes?.data || [];
@@ -2683,7 +2690,7 @@ export const EmployerDashboard = () => {
         boostPackageOptions[0];
       setSelectedBoostPackageId(defaultPackage?.id ?? null);
     }
-  }, [boostPackageOptions, selectedBoostPackageId]);
+  }, [configuredBoostDays, selectedBoostPackageDays]);
 
   const applicantsList = applicationsResult?.data || [];
   const filteredApplicants = applicantsList.filter((a) => {
@@ -2934,7 +2941,6 @@ export const EmployerDashboard = () => {
       { replace: true },
     );
   }, [
-    boostPackageOptions,
     resumeKeyFromUrl,
     setSearchParams,
     toast,
@@ -2971,7 +2977,7 @@ export const EmployerDashboard = () => {
 
   const handleBoostCheckout = async () => {
     if (!selectedBoostJob?.id) {
-      toast('Không xác định được tin cần đẩy', 'error');
+      toast('Không xác định được job cần boost', 'error');
       return;
     }
 
@@ -2990,13 +2996,13 @@ export const EmployerDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
       queryClient.invalidateQueries({ queryKey: ['boosted-jobs'] });
       toast(
-        `Đẩy tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} điểm.`,
+        `Boost thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} point.`,
         'success',
       );
     } catch (error) {
       const normalizedMessage = extractApiErrorMessage(
         error,
-        'Thanh toán đẩy tin thất bại',
+        'Thanh toán boost thất bại',
       );
       if (isInsufficientPointError(error)) {
         setInsufficientPointMessage(normalizedMessage);
@@ -3031,7 +3037,7 @@ export const EmployerDashboard = () => {
       const checkout = checkoutRes?.data || checkoutRes;
       queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
       toast(
-        `Thanh toán đăng tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} điểm.`,
+        `Thanh toán đăng tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} point.`,
         'success',
       );
     } catch (error) {
@@ -3090,7 +3096,7 @@ export const EmployerDashboard = () => {
 
   const handleOpenApplicantProfileFromInvitation = (invitation) => {
     if (!invitation?.worker) {
-      toast('Không lấy được hồ sơ ứng viên.', 'error');
+      toast('Không lấy được hồ sơ worker.', 'error');
       return;
     }
 
@@ -3116,7 +3122,7 @@ export const EmployerDashboard = () => {
   if (loadingCompany) {
     return (
       <DashboardLayout
-        title="Bảng điều khiển nhà tuyển dụng"
+        title="Trung tâm quản lý"
         subtitle={DASHBOARD_SUBTITLE}
         menu={EMPLOYER_MENU}
         activeKey={active}
@@ -3135,7 +3141,7 @@ export const EmployerDashboard = () => {
 
   return (
     <DashboardLayout
-      title="Bảng điều khiển nhà tuyển dụng"
+      title="Trung tâm quản lý"
       subtitle={DASHBOARD_SUBTITLE}
       menu={EMPLOYER_MENU}
       activeKey={active}
@@ -3316,68 +3322,68 @@ export const EmployerDashboard = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 {loadingOverview
                   ? Array.from({ length: 4 }).map((_, idx) => (
+                    <Card
+                      key={idx}
+                      className="p-5 rounded-xl border border-slate-200 shadow-sm bg-white animate-pulse"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="w-11 h-11 rounded-lg bg-slate-100" />
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <div className="h-8 w-16 bg-slate-100 rounded-lg" />
+                        <div className="h-4 w-24 bg-slate-100 rounded" />
+                      </div>
+                    </Card>
+                  ))
+                  : buildKpiItems(overview).map((item, idx) => {
+                    const isPositive = item.change > 0;
+                    const isNegative = item.change < 0;
+                    const trendColor = isPositive
+                      ? 'text-emerald-600'
+                      : isNegative
+                        ? 'text-rose-600'
+                        : 'text-slate-500';
+
+                    return (
                       <Card
                         key={idx}
-                        className="p-5 rounded-xl border border-slate-200 shadow-sm bg-white animate-pulse"
+                        className="p-5 rounded-2xl border border-slate-200/60 shadow-sm bg-white flex flex-col justify-between hover:border-primary/25 transition-all hover:shadow-md group"
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="w-11 h-11 rounded-lg bg-slate-100" />
-                        </div>
-                        <div className="mt-4 space-y-2">
-                          <div className="h-8 w-16 bg-slate-100 rounded-lg" />
-                          <div className="h-4 w-24 bg-slate-100 rounded" />
-                        </div>
-                      </Card>
-                    ))
-                  : buildKpiItems(overview).map((item, idx) => {
-                      const isPositive = item.change > 0;
-                      const isNegative = item.change < 0;
-                      const trendColor = isPositive
-                        ? 'text-emerald-600'
-                        : isNegative
-                          ? 'text-rose-600'
-                          : 'text-slate-500';
+                        <div>
+                          <p className="text-[13px] font-medium text-slate-500 mb-2">
+                            {item.label}
+                          </p>
+                          <div className="text-3xl font-bold tabular-nums text-slate-900 tracking-tight flex  gap-4 ">
+                            {item.isPercentage
+                              ? `${(item.value || 0).toLocaleString('vi-VN')}%`
+                              : (item.value || 0).toLocaleString('vi-VN')}
 
-                      return (
-                        <Card
-                          key={idx}
-                          className="p-5 rounded-2xl border border-slate-200/60 shadow-sm bg-white flex flex-col justify-between hover:border-primary/25 transition-all hover:shadow-md group"
-                        >
-                          <div>
-                            <p className="text-[13px] font-medium text-slate-500 mb-2">
-                              {item.label}
-                            </p>
-                            <div className="text-3xl font-bold tabular-nums text-slate-900 tracking-tight flex  gap-4 ">
-                              {item.isPercentage
-                                ? `${(item.value || 0).toLocaleString('vi-VN')}%`
-                                : (item.value || 0).toLocaleString('vi-VN')}
-
-                              <div
-                                className={`mt-4 flex items-center gap-1.5 text-[13px] font-bold ${trendColor}`}
-                              >
-                                {isPositive ? (
-                                  <span className="flex items-center gap-0.5">
-                                    ▲{' '}
-                                    {item.isCountTrend
-                                      ? `${item.change} tin mới tuần này`
-                                      : `${Math.abs(item.change)}% so với tháng trước`}
-                                  </span>
-                                ) : isNegative ? (
-                                  <span className="flex items-center gap-0.5">
-                                    ▼ {Math.abs(item.change)}% so với tháng
-                                    trước
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-400">
-                                    Không có thay đổi
-                                  </span>
-                                )}
-                              </div>
+                            <div
+                              className={`mt-4 flex items-center gap-1.5 text-[13px] font-bold ${trendColor}`}
+                            >
+                              {isPositive ? (
+                                <span className="flex items-center gap-0.5">
+                                  ▲{' '}
+                                  {item.isCountTrend
+                                    ? `${item.change} tin mới tuần này`
+                                    : `${Math.abs(item.change)}% so với tháng trước`}
+                                </span>
+                              ) : isNegative ? (
+                                <span className="flex items-center gap-0.5">
+                                  ▼ {Math.abs(item.change)}% so với tháng
+                                  trước
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">
+                                  Không có thay đổi
+                                </span>
+                              )}
                             </div>
                           </div>
-                        </Card>
-                      );
-                    })}
+                        </div>
+                      </Card>
+                    );
+                  })}
               </div>
 
               {/* Quick Actions & Recent Applicants Preview */}
@@ -3630,10 +3636,10 @@ export const EmployerDashboard = () => {
                                 </td>
                               </tr>
                             ) : jobs.filter((j) =>
-                                j.title
-                                  .toLowerCase()
-                                  .includes(jobSearchText.toLowerCase()),
-                              ).length === 0 ? (
+                              j.title
+                                .toLowerCase()
+                                .includes(jobSearchText.toLowerCase()),
+                            ).length === 0 ? (
                               <tr>
                                 <td
                                   colSpan="6"
@@ -3732,8 +3738,8 @@ export const EmployerDashboard = () => {
                                             Đang nổi bật đến{' '}
                                             {job.boostExpiredAt
                                               ? new Date(
-                                                  job.boostExpiredAt,
-                                                ).toLocaleDateString('vi-VN')
+                                                job.boostExpiredAt,
+                                              ).toLocaleDateString('vi-VN')
                                               : 'không thời hạn'}
                                           </Badge>
                                         ) : (
@@ -3742,14 +3748,8 @@ export const EmployerDashboard = () => {
                                             size="sm"
                                             className="h-7 text-xs text-primary bg-primary/10 hover:bg-primary/20 rounded-lg"
                                             onClick={() => {
-                                              const defaultPackage =
-                                                boostPackageOptions.find(
-                                                  (item) => item.isDefault,
-                                                ) || boostPackageOptions[0];
                                               setSelectedBoostJob(job);
-                                              setSelectedBoostPackageId(
-                                                defaultPackage?.id ?? null,
-                                              );
+                                              setSelectedBoostPackageDays(configuredBoostDays);
                                               setBoostModalOpen(true);
                                             }}
                                             disabled={
@@ -4194,8 +4194,8 @@ export const EmployerDashboard = () => {
         title="Đăng tin nổi bật"
         description={
           selectedBoostJob
-            ? `Xác nhận đẩy tin bằng điểm: ${selectedBoostJob.title}`
-            : 'Xác nhận đẩy tin bằng điểm'
+            ? `Xác nhận boost tin bằng point: ${selectedBoostJob.title}`
+            : 'Xác nhận boost tin tuyển dụng bằng point'
         }
         onClose={() => {
           setBoostModalOpen(false);
@@ -4205,12 +4205,10 @@ export const EmployerDashboard = () => {
         confirmLabel={
           createBoostCheckoutMutation.isPending
             ? 'Đang xử lý...'
-            : 'Đẩy tin bằng điểm'
+            : 'Boost bằng point'
         }
         cancelLabel="Hủy"
         confirmDisabled={createBoostCheckoutMutation.isPending}
-        contentClassName="max-w-4xl"
-        bodyClassName="space-y-4 overflow-x-hidden p-5 sm:p-6"
       >
         <div className="mt-1 space-y-4">
           <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-white p-4">
@@ -4242,21 +4240,19 @@ export const EmployerDashboard = () => {
                     <button
                       key={`${pkg.id}-${pkg.durationDays}`}
                       type="button"
-                      className={`group w-full rounded-2xl border p-4 text-left transition-all ${
-                        isSelected
+                      className={`group w-full rounded-2xl border p-4 text-left transition-all ${isSelected
                           ? 'border-primary bg-primary/10 shadow-sm ring-2 ring-primary/20'
                           : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
-                      }`}
+                        }`}
                       onClick={() => setSelectedBoostPackageId(pkg.id)}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex min-w-0 items-center gap-3">
                           <div
-                            className={`h-10 w-10 rounded-xl border flex items-center justify-center text-sm font-extrabold ${
-                              isSelected
+                            className={`h-10 w-10 rounded-xl border flex items-center justify-center text-sm font-extrabold ${isSelected
                                 ? 'border-primary/30 bg-primary/15 text-primary'
                                 : 'border-slate-200 bg-slate-50 text-slate-700'
-                            }`}
+                              }`}
                           >
                             {durationDays}N
                           </div>
@@ -4270,11 +4266,10 @@ export const EmployerDashboard = () => {
                           </div>
                         </div>
                         <div
-                          className={`mt-0.5 h-5 w-5 rounded-full border-2 transition-all ${
-                            isSelected
+                          className={`mt-0.5 h-5 w-5 rounded-full border-2 transition-all ${isSelected
                               ? 'border-primary bg-primary'
                               : 'border-slate-300 bg-white group-hover:border-primary/40'
-                          }`}
+                            }`}
                         >
                           {isSelected ? (
                             <CheckCircle2 className="h-4 w-4 text-white" />
@@ -4365,7 +4360,7 @@ export const EmployerDashboard = () => {
         open={campaignDetailOpen}
         onClose={closeCampaignDetail}
         title={campaignDetailData?.title || 'Chi tiết chiến dịch phỏng vấn'}
-        description="Theo dõi ứng viên đã chọn ca nào và địa điểm phỏng vấn."
+        description="Theo dõi worker đã chọn ca nào và địa điểm phỏng vấn của từng ca."
         variant="custom"
         contentClassName="max-w-5xl"
         bodyClassName="space-y-4"
@@ -4583,11 +4578,10 @@ export const EmployerDashboard = () => {
                       key={tab.key}
                       type="button"
                       onClick={() => setSlotApplicantsTab(tab.key)}
-                      className={`rounded-xl border px-3 py-2 text-left transition-all ${
-                        isActive
-                          ? activeClass
-                          : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
-                      }`}
+                      className={`rounded-xl border px-3 py-2 text-left transition-all ${isActive
+                        ? activeClass
+                        : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
+                        }`}
                     >
                       <p className="text-[11px] font-semibold uppercase tracking-wide">
                         {tab.label}
@@ -4602,10 +4596,10 @@ export const EmployerDashboard = () => {
                 {activeSlotApplicantList.length === 0 ? (
                   <p className="text-sm text-slate-600">
                     {slotApplicantsTab === 'ACCEPTED'
-                      ? 'Chưa có ứng viên nào chọn ca này.'
+                      ? 'Chưa có worker nào chọn ca này.'
                       : slotApplicantsTab === 'PENDING'
-                        ? 'Không có ứng viên nào đang chờ phản hồi.'
-                        : 'Chưa có ứng viên nào từ chối.'}
+                        ? 'Không có worker nào đang chờ phản hồi.'
+                        : 'Chưa có worker nào từ chối.'}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -4621,7 +4615,7 @@ export const EmployerDashboard = () => {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="font-semibold text-slate-900">
                             {invitation.worker?.fullName ||
-                              `Ứng viên #${invitation.workerId}`}
+                              `Worker #${invitation.workerId}`}
                           </p>
                           <Badge
                             variant="outline"
@@ -4643,10 +4637,10 @@ export const EmployerDashboard = () => {
                         <p className="mt-1 text-xs text-slate-500">
                           {slotApplicantsTab === 'REJECTED'
                             ? invitation.responseMessage ||
-                              'Không có lý do từ chối'
+                            'Không có lý do từ chối'
                             : invitation.worker?.phone ||
-                              invitation.worker?.email ||
-                              'Chưa có thông tin liên hệ'}
+                            invitation.worker?.email ||
+                            'Chưa có thông tin liên hệ'}
                         </p>
                         <p className="mt-1 text-[11px] font-medium text-primary">
                           Bấm để xem profile đầy đủ
@@ -4732,7 +4726,7 @@ export const EmployerDashboard = () => {
                       {applicantDetail.user?.workerProfile?.gender === 'MALE'
                         ? 'Nam'
                         : applicantDetail.user?.workerProfile?.gender ===
-                            'FEMALE'
+                          'FEMALE'
                           ? 'Nữ'
                           : 'Chưa cập nhật'}
                     </p>
@@ -4789,16 +4783,18 @@ export const EmployerDashboard = () => {
                     <p className="font-medium mt-1">
                       {applicantDetail.user?.workerProfile?.expectedSalary
                         ? formatSalary(
-                            applicantDetail.user.workerProfile.expectedSalary,
-                            null,
-                            'vndCompact',
-                          )
+                          applicantDetail.user.workerProfile.expectedSalary,
+                          null,
+                          'vndCompact',
+                        )
                         : 'Thỏa thuận'}
                     </p>
                   </div>
                 </div>
                 <div className="mt-4 pt-4 border-t border-slate-200">
-                  <p className="text-slate-500 text-xs mb-1">Tự giới thiệu</p>
+                  <p className="text-slate-500 text-xs mb-1">
+                    Giới thiệu bản thân (Bio)
+                  </p>
                   <p className="font-medium whitespace-pre-wrap text-slate-700">
                     {applicantDetail.user?.workerProfile?.bio ? (
                       applicantDetail.user.workerProfile.bio
@@ -4877,11 +4873,10 @@ export const EmployerDashboard = () => {
                         <button
                           key={status.value}
                           onClick={() => setApplicantStatus(status.value)}
-                          className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
-                            applicantStatus === status.value
-                              ? status.activeClass
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                          }`}
+                          className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
+                            ? status.activeClass
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                            }`}
                         >
                           {status.label}
                         </button>

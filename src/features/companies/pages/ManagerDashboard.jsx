@@ -42,38 +42,38 @@ import { SupportTicketBoard } from '@/features/support/components/SupportTicketB
 
 // 1. Management Menu and Status Colors configuration
 const MANAGEMENT_MENU = [
-  { key: 'companies', label: 'Hồ sơ doanh nghiệp mới' },
-  { key: 'company_updates', label: 'Hồ sơ cập nhật' },
-  { key: 'job_reports', label: 'Báo cáo việc làm' },
-  { key: 'review_reports', label: 'Báo cáo đánh giá' },
-  { key: 'support', label: 'Hỗ trợ khách hàng' },
+  { key: 'companies', label: 'Doanh nghiệp đăng kí' },
+  { key: 'company_updates', label: 'Yêu cầu đổi thông tin' },
+  { key: 'job_reports', label: 'Báo cáo tin tuyển dụng' },
+  { key: 'review_reports', label: 'Báo cáo nhận xét' },
+  { key: 'support', label: 'Xử lý yêu cầu trợ giúp' },
 ];
 
 const STATUS_COLORS = {
   APPROVED: {
-    label: 'Đã duyệt',
+    label: 'Hợp lệ',
     color: 'bg-green-50 text-green-700 border-green-100',
   },
   PENDING: {
-    label: 'Đang chờ',
+    label: 'Chờ xử lý',
     color: 'bg-blue-50 text-blue-700 border-blue-100',
   },
   REJECTED: {
-    label: 'Đã từ chối',
+    label: 'Từ chối',
     color: 'bg-red-50 text-red-700 border-red-100',
   },
   UPDATING: {
-    label: 'Chờ duyệt cập nhật',
+    label: 'Chờ duyệt hồ sơ mới',
     color: 'bg-orange-50 text-orange-700 border-orange-100',
   },
 };
 
 const REPORT_REASON_LABELS = {
-  FRAUD: 'Lừa đảo',
-  INAPPROPRIATE_CONTENT: 'Nội dung không phù hợp',
-  SCAM: 'Lừa đảo/Đa cấp',
-  DUPLICATE: 'Tin tuyển dụng trùng lặp',
-  MISLEADING_INFO: 'Thông tin không đúng sự thật',
+  FRAUD: 'Thông tin sai lệch',
+  INAPPROPRIATE_CONTENT: 'Nội dung vi phạm',
+  SCAM: 'Dấu hiệu trục lợi',
+  DUPLICATE: 'Tin đăng trùng lặp',
+  MISLEADING_INFO: 'Dữ liệu không khớp',
   OTHER: 'Khác',
 };
 
@@ -409,7 +409,7 @@ export const ManagerDashboard = () => {
       return (
         <div className="flex flex-col items-center justify-center min-h-100 text-slate-600">
           <div className="h-10 w-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-          <p>Đang lấy thông tin chi tiết...</p>
+          <p>Đang tải dữ liệu...</p>
         </div>
       );
 
@@ -446,7 +446,7 @@ export const ManagerDashboard = () => {
           onClick={() => setViewingCompanyId(null)}
           className="text-slate-600 hover:bg-primary-muted hover:text-primary-muted-foreground"
         >
-          ← Quay lại danh sách
+          ← Trở về
         </Button>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -541,12 +541,12 @@ export const ManagerDashboard = () => {
               {isUpdatingProfile && (
                 <div className="mt-8">
                   <h4 className="font-semibold text-slate-900 mb-3">
-                    So sánh thông tin trước / sau cập nhật
+                    So sánh thay đổi hồ sơ
                   </h4>
                   <div className="grid lg:grid-cols-2 gap-4">
                     <Card className="p-4 border border-slate-200 bg-slate-50">
                       <p className="text-sm font-semibold text-slate-700 mb-3">
-                        Bản đang hiển thị
+                        Thông tin hiện tại
                       </p>
                       <div className="space-y-3 text-sm text-slate-700">
                         {comparisonFields.map((field) => {
@@ -564,7 +564,7 @@ export const ManagerDashboard = () => {
                     </Card>
                     <Card className="p-4 border border-orange-200 bg-orange-50/50">
                       <p className="text-sm font-semibold text-orange-700 mb-3">
-                        Bản đề xuất cập nhật
+                        Nội dung thay đổi
                       </p>
                       <div className="space-y-3 text-sm text-slate-800">
                         {comparisonFields.map((field) => {
@@ -1151,7 +1151,7 @@ export const ManagerDashboard = () => {
               ? 'Danh sách hồ sơ doanh nghiệp mới'
               : currentTab === 'company_updates'
                 ? 'Danh sách hồ sơ cập nhật doanh nghiệp'
-              : MANAGEMENT_MENU.find((m) => m.key === currentTab)?.label}
+                : MANAGEMENT_MENU.find((m) => m.key === currentTab)?.label}
           </h2>
           {currentTab === 'job_reports'
             ? renderJobReports()
@@ -1159,9 +1159,9 @@ export const ManagerDashboard = () => {
               ? renderReviewReports()
               : currentTab === 'company_updates'
                 ? viewingCompanyId ? renderDetails() : renderCompanyUpdates()
-              : currentTab === 'support'
-                ? <SupportTicketBoard />
-                : viewingCompanyId ? renderDetails() : renderCompanyList()}
+                : currentTab === 'support'
+                  ? <SupportTicketBoard />
+                  : viewingCompanyId ? renderDetails() : renderCompanyList()}
         </div>
       </div>
 
@@ -1212,8 +1212,8 @@ export const ManagerDashboard = () => {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                   <Building2 className="h-3 w-3" /> Công việc
                 </p>
-                <Link 
-                  to={`/job/${viewingReport.job?.id}`} 
+                <Link
+                  to={`/job/${viewingReport.job?.id}`}
                   target="_blank"
                   className="text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1"
                 >

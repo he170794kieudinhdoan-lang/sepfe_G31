@@ -153,19 +153,19 @@ export const JobCard = ({
     <Card
       className={cn(
         'group relative z-0 border hover:shadow-xl transition-all hover:z-20',
-        compact ? 'p-4 rounded-xl duration-200' : 'p-4 rounded-2xl duration-300',
+        compact ? 'p-3 rounded-xl duration-200 flex flex-col justify-between' : 'p-4 rounded-2xl duration-300 flex flex-col justify-between',
         isBoosted
           ? 'border-yellow-300 bg-linear-to-br from-yellow-50/90 via-white to-yellow-50/70 shadow-md ring-1 ring-yellow-200/80'
           : 'border-slate-100 bg-white shadow-sm',
       )}
     >
-      <div className={cn('flex', compact ? 'gap-3' : 'gap-4')}>
+      <div className={cn('flex', compact ? 'gap-2.5' : 'gap-4')}>
         {/* Logo Section */}
         <div
           className={cn(
             'relative shrink-0 overflow-hidden border border-slate-100 bg-white shadow-sm',
             compact
-              ? 'h-14 w-14 rounded-lg p-1'
+              ? 'h-10 w-10 rounded-lg p-0.5'
               : 'h-16 w-16 rounded-xl p-1',
           )}
         >
@@ -187,12 +187,12 @@ export const JobCard = ({
               <h3
                 className={cn(
                   'font-bold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors relative z-20',
-                  compact ? 'text-sm leading-snug' : 'text-sm',
+                  compact ? 'text-[13px] leading-snug' : 'text-sm',
                 )}
               >
                 <Link to={`/job/${job.id}`}>{job.title}</Link>
               </h3>
-              <p className="mt-0.5 line-clamp-1 text-xs font-medium text-slate-500">
+              <p className="mt-0.5 line-clamp-1 text-[11px] font-medium text-slate-500">
                 {job.companyName || job.company?.name || 'Công ty ẩn'}
               </p>
             </div>
@@ -251,7 +251,7 @@ export const JobCard = ({
           <div
             className={cn(
               'flex gap-2 items-end justify-between',
-              compact ? 'mt-2' : 'mt-2.5',
+              compact ? 'mt-1.5' : 'mt-2.5',
             )}
           >
             <div
@@ -276,7 +276,7 @@ export const JobCard = ({
                     className="h-2.5 w-2.5 shrink-0 text-slate-500"
                   />
                   <span className="truncate">
-                    {formatSalary(job.salaryMin, job.salaryMax, 'vndCompact')}
+                    {formatSalary(job.salaryMin, job.salaryMax, compact ? 'compact' : 'vndCompact')}
                   </span>
                 </span>
                 {job.workingShift && (

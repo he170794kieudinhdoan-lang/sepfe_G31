@@ -30,7 +30,7 @@ export const SupportTicketForm = () => {
     event.preventDefault();
 
     if (!form.customerName.trim() || !form.contact.trim() || !form.subject.trim()) {
-      toast('Vui lòng nhập tên, liên hệ và nội dung câu hỏi.', 'error');
+      toast('Vui lòng điền đủ tên, liên hệ và chủ đề.', 'error');
       return;
     }
 
@@ -42,15 +42,14 @@ export const SupportTicketForm = () => {
         description: form.description.trim(),
       });
 
-      toast('Câu hỏi của bạn đã được gửi. Manager sẽ xử lý sớm nhất có thể.');
+      toast('Yêu cầu đã được gửi. Đội ngũ hỗ trợ sẽ xử lý sớm nhất.');
       setForm((current) => ({
         ...current,
         subject: '',
         description: '',
       }));
     } catch (error) {
-      const message =
-        error.response?.data?.message || 'Không thể gửi câu hỏi hỗ trợ.';
+        error.response?.data?.message || 'Gửi yêu cầu thất bại.';
       toast(message, 'error');
     }
   };
@@ -59,13 +58,13 @@ export const SupportTicketForm = () => {
     <Card className="border-0 bg-white/95 p-6 shadow-sm">
       <div className="space-y-2">
         <p className="text-sm font-semibold uppercase tracking-[0.25em] text-primary">
-          Đặt câu hỏi
+          Trợ giúp
         </p>
         <h2 className="text-2xl font-bold text-foreground">
-          Gửi yêu cầu hỗ trợ cho manager
+          Gửi yêu cầu tới Đội ngũ hỗ trợ
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Gửi mô tả ngắn gọn về vấn đề bạn đang gặp. Ticket sẽ vào hàng chờ để bộ phận quản lý xử lý.
+          Mô tả vấn đề bạn gặp phải. Yêu cầu sẽ được xử lý theo thứ tự ưu tiên.
         </p>
       </div>
 
@@ -98,7 +97,7 @@ export const SupportTicketForm = () => {
           <Input
             value={form.subject}
             onChange={(event) => setForm({ ...form, subject: event.target.value })}
-            placeholder="Ví dụ: Không đăng nhập được tài khoản"
+            placeholder="Chủ đề cần hỗ trợ"
           />
         </div>
 
@@ -109,7 +108,7 @@ export const SupportTicketForm = () => {
             onChange={(event) =>
               setForm({ ...form, description: event.target.value })
             }
-            placeholder="Mô tả tình huống, thời gian xảy ra, ảnh hưởng bạn đang gặp..."
+            placeholder="Mô tả cụ thể vấn đề hoặc lỗi gặp phải..."
             className="min-h-32"
           />
         </div>
@@ -119,7 +118,7 @@ export const SupportTicketForm = () => {
           className="w-full rounded-full bg-primary px-6 font-semibold text-primary-foreground"
           disabled={createSupportTicketMutation.isPending}
         >
-          {createSupportTicketMutation.isPending ? 'Đang gửi...' : 'Gửi câu hỏi hỗ trợ'}
+          {createSupportTicketMutation.isPending ? 'Đang gửi...' : 'Gửi yêu cầu'}
         </Button>
       </form>
     </Card>

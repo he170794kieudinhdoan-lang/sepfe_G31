@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin, X, Check } from 'lucide-react';
+import { Search, MapPin, X, Check, TrendingUp, Zap, Building2, Users, ChevronLeft, ChevronRight, Briefcase, Heart, Clock, Wallet, ArrowRight, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -32,16 +32,23 @@ import {
 } from '@/features/jobs/api/useWishlist';
 import Typewriter from 'typewriter-effect';
 import { Container } from '@/shared/components/Container';
-import { Heart, Clock, Wallet } from 'lucide-react';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { SHIFTS } from '@/shared/constants/enums';
 import { formatSalary } from '@/shared/utils/salaryUtils';
 import { isWorkerRole } from '@/shared/utils/userRole';
 import { cn } from '@/lib/utils';
 import { SupportTicketForm } from '@/features/support/components/SupportTicketForm';
+import useEmblaCarousel from 'embla-carousel-react';
+
 
 const POPOVER_CHIP =
   'inline-flex max-w-full items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700';
+
+const PROMO_SLIDES = [
+  { image: '/banner_1.png' },
+  { image: '/banner_2.png' },
+];
+
 const POPULAR_KEYWORDS = [
   'công nhân sản xuất',
   'công nhân may mặc',
@@ -308,260 +315,157 @@ function SearchBarPopover({
     nav(`/search?${params.toString()}`);
   };
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <div className="flex-1 max-w-5xl flex items-center gap-3 rounded-2xl bg-white shadow-[0_15px_40px_-10px_rgba(0,0,0,0.1)] px-4 py-2 relative mx-auto border border-slate-100 ring-4 ring-primary/5 group hover:border-primary-hover/20 transition-all duration-300">
-        <Search className="h-4 w-4 text-slate-400 shrink-0" />
+    <div className="flex-1 w-full max-w-5xl flex items-center gap-2.5 rounded-[1.5rem] bg-white/90 backdrop-blur-xl shadow-[0_15px_40px_-10px_rgba(0,0,0,0.1)] px-3 py-2 relative mx-auto border border-white ring-4 ring-primary/10 group hover:ring-primary/20 hover:bg-white transition-all duration-500">
+      <Search className="h-5 w-5 text-slate-400 shrink-0 ml-1.5" />
 
-        <div className="flex items-center gap-1.5">
-          {province && (
-            <Badge
-              variant="secondary"
-              className="h-7 pl-2 pr-1 rounded-lg bg-white/40 text-slate-700 font-medium hover:bg-white/60 border-0 flex items-center gap-1"
-            >
-              {normalizeLocationName(province)}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setProvince('');
-                  setWards('');
-                  setWardsName('');
-                }}
-                className="p-0.5 hover:bg-slate-200 rounded-md transition-colors"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-          {wardsName && (
-            <Badge
-              variant="secondary"
-              className="h-7 pl-2 pr-1 rounded-lg bg-white/40 text-slate-700 font-medium hover:bg-white/60 border-0 flex items-center gap-1"
-            >
-              {normalizeLocationName(wardsName)}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setWardsName('');
-                }}
-                className="p-0.5 hover:bg-slate-200 rounded-md transition-colors"
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          )}
-        </div>
-
-        <PopoverTrigger asChild>
-          <div className="flex-1 min-w-0 ">
-            <Input
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleSearch();
-                }
+      <div className="flex items-center gap-1.5">
+        {province && (
+          <Badge
+            variant="secondary"
+            className="h-7 pl-2 pr-1 rounded-lg bg-white/40 text-slate-700 font-medium hover:bg-white/60 border-0 flex items-center gap-1"
+          >
+            {normalizeLocationName(province)}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setProvince('');
+                setWards('');
+                setWardsName('');
               }}
-              // onFocus={() => setOpen(true)}
-              // onClick={() => setOpen(true)}
-              placeholder="Tìm theo tên việc/công ty/khu vực"
-              className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-12 flex-1 min-w-0"
-            />
-          </div>
-        </PopoverTrigger>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              title="Chọn địa điểm"
-              size="sm"
-              className="rounded-lg shrink-0 border"
+              className="p-0.5 hover:bg-slate-200 rounded-md transition-colors"
             >
-              <MapPin className="text-primary" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[520px] p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl">
-            <div className="flex h-[400px]">
-              {/* Tỉnh / Thành phố */}
-              <div className="w-[55%] border-r border-slate-100 flex flex-col bg-white">
-                <div className="px-4 py-3 border-b border-slate-50">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Tỉnh / Thành phố
-                  </h4>
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+        {wardsName && (
+          <Badge
+            variant="secondary"
+            className="h-7 pl-2 pr-1 rounded-lg bg-white/40 text-slate-700 font-medium hover:bg-white/60 border-0 flex items-center gap-1"
+          >
+            {normalizeLocationName(wardsName)}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setWardsName('');
+              }}
+              className="p-0.5 hover:bg-slate-200 rounded-md transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0 ">
+        <Input
+          value={keyword}
+          onChange={(e) => setKeyword(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleSearch();
+            }
+          }}
+          placeholder="Tìm tin tuyển dụng, công ty, khu vực..."
+          className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-12 text-base flex-1 min-w-0 font-medium placeholder:text-slate-400"
+        />
+      </div>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            title="Chọn địa điểm"
+            size="lg"
+            className="rounded-xl shrink-0 border h-12 w-12 p-0 bg-slate-50 hover:bg-slate-100 transition-colors"
+          >
+            <MapPin className="h-6 w-6 text-primary" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[520px] p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl">
+          <div className="flex h-[400px]">
+            {/* Tỉnh / Thành phố */}
+            <div className="w-[55%] border-r border-slate-100 flex flex-col bg-white">
+              <div className="px-4 py-3 border-b border-slate-50">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Tỉnh / Thành phố
+                </h4>
+              </div>
+              <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
+                <div className="space-y-0.5">
+                  {provincess?.provinces?.map((k) => (
+                    <button
+                      key={k.code}
+                      className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-all flex items-center justify-between group
+                          ${province === k.name ? 'bg-primary-muted text-primary font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setWards(k.code);
+                        setProvince(k.name);
+                      }}
+                    >
+                      <span className="truncate">{k.name}</span>
+                      {province === k.name && (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  ))}
                 </div>
-                <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
+              </div>
+            </div>
+
+            {/* Phường / Xã */}
+            <div className="w-[45%] flex flex-col bg-slate-50/30">
+              <div className="px-4 py-3 border-b border-slate-100">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Phường / Xã
+                </h4>
+              </div>
+              <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
+                {province ? (
                   <div className="space-y-0.5">
-                    {provincess?.provinces?.map((k) => (
+                    {wardss?.communes?.map((k) => (
                       <button
                         key={k.code}
-                        className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-all flex items-center justify-between group
-                          ${province === k.name ? 'bg-primary-muted text-primary font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
+                        className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-all flex items-center justify-between
+                            ${wardsName === k.name ? 'bg-primary-muted text-primary font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
                         onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => {
-                          setWards(k.code);
-                          setProvince(k.name);
-                        }}
+                        onClick={() => setWardsName(k.name)}
                       >
                         <span className="truncate">{k.name}</span>
-                        {province === k.name && (
+                        {wardsName === k.name && (
                           <Check className="h-3.5 w-3.5" />
                         )}
                       </button>
                     ))}
                   </div>
-                </div>
-              </div>
-
-              {/* Phường / Xã */}
-              <div className="w-[45%] flex flex-col bg-slate-50/30">
-                <div className="px-4 py-3 border-b border-slate-100">
-                  <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    Phường / Xã
-                  </h4>
-                </div>
-                <div className="flex-1 overflow-y-auto px-2 py-2 custom-scrollbar">
-                  {province ? (
-                    <div className="space-y-0.5">
-                      {wardss?.communes?.map((k) => (
-                        <button
-                          key={k.code}
-                          className={`w-full text-left rounded-lg px-3 py-2 text-sm transition-all flex items-center justify-between
-                            ${wardsName === k.name ? 'bg-primary-muted text-primary font-semibold' : 'hover:bg-slate-50 text-slate-600'}`}
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => setWardsName(k.name)}
-                        >
-                          <span className="truncate">{k.name}</span>
-                          {wardsName === k.name && (
-                            <Check className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                      ))}
+                ) : (
+                  <div className="h-full flex flex-col items-center justify-center p-6 text-center">
+                    <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                      <MapPin className="h-5 w-5 text-slate-300" />
                     </div>
-                  ) : (
-                    <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-                      <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-                        <MapPin className="h-5 w-5 text-slate-300" />
-                      </div>
-                      <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
-                        Chọn Tỉnh/Thành phố
-                        <br />
-                        để xem khu vực chi tiết
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
+                      Chọn Tỉnh/Thành phố
+                      <br />
+                      để xem khu vực chi tiết
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
-          </PopoverContent>
-        </Popover>
-        <Button
-          size="sm"
-          className="rounded-lg shrink-0 border"
-          onClick={() => {
-            setOpen(false);
-            handleSearch();
-          }}
-        >
-          <Search
-            className="text-white h-4 w-4"
-            title="tìm kiếm theo từ khoá"
-          />
-        </Button>
-      </div>
-
-      <PopoverContent
-        align="start"
-        side="bottom"
-        sideOffset={10}
-        className="w-[980px] max-h-[650px] p-0 rounded-2xl shadow-xl border bg-white"
-        onOpenAutoFocus={(e) => e.preventDefault()}
-        onCloseAutoFocus={(e) => e.preventDefault()}
+          </div>
+        </PopoverContent>
+      </Popover>
+      <Button
+        size="lg"
+        className="rounded-[1rem] shrink-0 border h-12 px-6 text-sm font-bold shadow-lg shadow-primary/20 transition-transform active:scale-95 bg-primary text-primary-foreground hover:bg-primary/90"
+        onClick={() => {
+          setOpen(false);
+          handleSearch();
+        }}
       >
-        <div className="px-5 py-4">
-          <div className="flex items-center gap-4">
-            {/* <div className="text-sm font-semibold">Tìm kiếm theo:</div> */}
-
-            <RadioGroup
-              value={searchMode}
-              onValueChange={setSearchMode}
-              className="flex gap-6"
-            >
-              {/* <div className="flex items-center gap-2">
-                <RadioGroupItem value="job" id="sm-job" />
-                <Label htmlFor="sm-job">Tên việc làm</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="company" id="sm-company" />
-                <Label htmlFor="sm-company">Tên công ty</Label>
-              </div> */}
-              {/* 
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="both" id="sm-both" />
-                <Label htmlFor="sm-both">Cả hai</Label>
-              </div> */}
-            </RadioGroup>
-          </div>
-        </div>
-
-        <Separator />
-
-        <div className="grid grid-cols-[1fr_auto_1fr]">
-          {/* LEFT */}
-          <div className="p-5">
-            <div className="font-semibold mb-3">Từ khóa phổ biến</div>
-
-            <ScrollArea className="h-auto pr-3">
-              <div className="space-y-1">
-                {POPULAR_KEYWORDS.map((k) => (
-                  <button
-                    key={k}
-                    className="w-full text-left rounded-xl px-3 py-2 hover:bg-muted text-sm  cursor-pointer"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => {
-                      setKeyword(k);
-                      setOpen(false);
-                      handleSearch(k);
-                    }}
-                  >
-                    {k}
-                  </button>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-
-          <Separator orientation="vertical" />
-
-          {/* RIGHT */}
-          <div className="p-5">
-            <div className="font-semibold mb-3">
-              Việc làm có thể bạn quan tâm
-            </div>
-
-            <ScrollArea className="h-[340px] pr-3">
-              <div className="space-y-2">
-                {jobs?.slice(0, 6).map((job) => (
-                  <Link
-                    key={job.id}
-                    to={`/job/${job.id}`}
-                    className="block rounded-2xl p-3 hover:bg-muted"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => setOpen(false)}
-                  >
-                    <div className="font-medium line-clamp-1">{job.title}</div>
-                    <div className="text-sm text-muted-foreground line-clamp-1">
-                      {job.company?.name || job.companyName || job.company} •{' '}
-                      {job.salaryMax
-                        ? `${job.salaryMax.toLocaleString()} VND`
-                        : 'Thỏa thuận'}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </ScrollArea>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
+        Tìm tin
+      </Button>
+    </div>
   );
 }
 
@@ -573,9 +477,38 @@ export function HomePage() {
   const [province, setProvince] = useState('');
   const [searchMode, setSearchMode] = useState('both');
   const [wardsName, setWardsName] = useState('');
-  /** Mỗi thẻ job preview cần key riêng — cùng jobId ở hai section sẽ không mở trùng 2 popover */
   const [activePreviewKey, setActivePreviewKey] = useState(null);
   const timeoutRef = useRef(null);
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start' });
+
+  // Autoplay for Embla
+  useEffect(() => {
+    if (!emblaApi) return;
+    const autoplay = setInterval(() => {
+      if (emblaApi.canScrollNext()) {
+        emblaApi.scrollNext();
+      } else {
+        emblaApi.scrollTo(0);
+      }
+    }, 4000);
+    return () => clearInterval(autoplay);
+  }, [emblaApi]);
+
+  const [boostedEmblaRef, boostedEmblaApi] = useEmblaCarousel({ loop: true, align: 'start' });
+
+  // Autoplay for Boosted Embla
+  useEffect(() => {
+    if (!boostedEmblaApi) return;
+    const autoplay = setInterval(() => {
+      if (boostedEmblaApi.canScrollNext()) {
+        boostedEmblaApi.scrollNext();
+      } else {
+        boostedEmblaApi.scrollTo(0);
+      }
+    }, 3000);
+    return () => clearInterval(autoplay);
+  }, [boostedEmblaApi]);
 
   const handlePreviewMouseEnter = (key) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -604,315 +537,302 @@ export function HomePage() {
     return Array.isArray(boostedJobs?.items) ? boostedJobs.items : [];
   }, [boostedJobs?.items]);
 
-  const spotlightJob = newestJobs?.items?.[0];
-
   return (
-    <div className="bg-background min-h-full">
-      {/* PROFESSIONAL YELLOW-THEMED HERO SECTION */}
-      <section className="relative overflow-hidden bg-card pt-10 pb-20">
-        {/* Subtle Decorative Background Elements */}
-        <Container>
-          <div className="absolute top-0 right-0 w-1/3 h-full bg-primary-muted/20 -skew-x-12 translate-x-1/4 pointer-events-none" />
-          <div className="absolute top-20 right-40 w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+    <div className="bg-background min-h-full font-sans">
+      {/* 1. CREATIVE HERO SECTION */}
+      <style>{`
+        /* Bỏ border radius và cố định chiều cao cho tất cả các thẻ Job trên HomePage */
+        .homepage-job-sections [class*="rounded-xl"],
+        .homepage-job-sections [class*="rounded-2xl"] {
+          border-radius: 0 !important;
+        }
+        
+        .homepage-job-sections .group.relative {
+          min-height: 120px !important;
+          height: 100% !important;
+        }
 
-          <div className="relative z-20 mb-12">
-            <SearchBarPopover
-              keyword={keyword}
-              setKeyword={setKeyword}
-              open={openSuggest}
-              setOpen={setOpenSuggest}
-              searchMode={searchMode}
-              setSearchMode={setSearchMode}
-              jobs={newestJobs?.items}
-              province={province}
-              setProvince={setProvince}
-              setWards={setWards}
-              wards={wards}
-              wardsName={wardsName}
-              setWardsName={setWardsName}
-            />
-          </div>
+        /* Khôi phục border-radius cho các button/badge bị ảnh hưởng */
+        .homepage-job-sections button[class*="rounded-"],
+        .homepage-job-sections .badge,
+        .homepage-job-sections a[class*="rounded-full"],
+        .homepage-job-sections .rounded-full {
+          border-radius: 9999px !important;
+        }
+      `}</style>
+      <section className="relative flex flex-col items-center justify-center overflow-hidden bg-slate-50 pt-24 pb-16">
+        {/* Dynamic Background Elements */}
+        <div className="absolute top-0 w-full h-full overflow-hidden pointer-events-none">
+          <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[60%] bg-primary/10 blur-[120px] rounded-full mix-blend-multiply" />
+          <div className="absolute top-[20%] -right-[10%] w-[40%] h-[50%] bg-amber-400/10 blur-[100px] rounded-full mix-blend-multiply" />
+          <div className="absolute bottom-0 left-0 right-0 h-[40%] bg-gradient-to-t from-slate-50 to-transparent" />
+          {/* Pattern overlay */}
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxjaXJjbGUgY3g9IjMiIGN5PSIzIiByPSIxIiBmaWxsPSIjZjFmNWY5Ij48L2NpcmNsZT4KPC9zdmc+')] opacity-60" />
+        </div>
 
-          <div className="grid lg:grid-cols-2 gap-12 items-center relative z-10">
-            {/* Left Content */}
-            <div className="space-y-6">
-              <Badge className="bg-primary-muted text-primary border-primary/10 w-fit rounded-lg px-3 py-1 font-semibold uppercase tracking-wider text-[11px]">
-                Worklink - Nền tảng kết nối việc làm
-              </Badge>
+        <Container className="relative z-10">
+          <div className="grid lg:grid-cols-[1.3fr_0.7fr] gap-12 lg:gap-10 items-center">
+            {/* Left Column: Text & Search */}
+            <div className="flex flex-col items-center lg:items-start text-center lg:text-left pt-10">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-widest">
+                  Worklink - Kết nối tin tuyển dụng
+                </span>
+              </div>
 
-              <h1 className="text-3xl lg:text-5xl font-extrabold leading-[1.2] text-slate-900">
-                Tìm việc <span className="text-primary">dễ dàng</span>, <br />
-                thông tin <span className="text-primary">rõ ràng</span>, <br />
+              <h1 className="text-4xl md:text-5xl lg:text-[52px] font-black text-slate-900 leading-[1.15] tracking-tight mb-6 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+                Tìm tin <span className="text-primary relative inline-block">dễ dàng<svg className="absolute -bottom-1 left-0 w-full h-2 text-primary/30" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,10 Q50,20 100,10" stroke="currentColor" strokeWidth="4" fill="transparent" /></svg></span>, <br />
+                thông tin <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-primary">rõ ràng</span>, <br />
                 cơ hội tốt hơn cùng <br />
-                <span className="text-primary inline-block relative">
+                <span className="text-primary inline-block mt-2">
                   <Typewriter
                     onInit={(typewriter) => {
-                      typewriter.typeString('WorkLink').pauseFor(2000).start();
+                      typewriter.typeString('Tương Lai').pauseFor(3000).deleteAll().start();
                     }}
-                    options={{
-                      cursor: '',
-                      loop: false,
-                      autoStart: true,
-                    }}
+                    options={{ loop: true, autoStart: true }}
                   />
-                  <div className="absolute -bottom-1 left-0 w-full h-1.5 bg-primary/20 rounded-full" />
                 </span>
               </h1>
 
-              <div className="flex items-center gap-4 text-slate-600 font-medium text-lg">
-                <span className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  Lương
-                </span>
-                <span className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  Ca làm
-                </span>
-                <span className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  Phụ cấp
-                </span>
-                <span className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  Địa điểm
-                </span>
-              </div>
+              <p className="text-base text-slate-500 max-w-xl mb-8 font-medium leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
+                Hệ thống kết nối tin tuyển dụng trực tiếp tới các doanh nghiệp hàng đầu.
+              </p>
 
-              <div className="pt-4 flex items-center gap-4">
-                <Button
-                  size="lg"
-                  className="rounded-2xl px-8 h-14 text-base font-bold shadow-lg shadow-primary/20 active:scale-95 transition-all"
-                  asChild
-                >
-                  <Link
-                    to="/search"
-                    className="inline-flex items-center justify-center gap-2"
-                  >
-                    Xem việc làm ngay
-                  </Link>
-                </Button>
-                <div className="flex -space-x-2">
-                  {[
-                    'https://media-public.canva.com/zntb4/MAF-Oczntb4/1/s.png',
-                    'https://media-public.canva.com/dvcio/MAF-Oddvcio/1/s.png',
-                    'https://media-public.canva.com/XgjrY/MAF-OIXgjrY/1/s.png',
-                    'https://media-public.canva.com/NnpPI/MAF-OWNnpPI/1/s.png',
-                  ].map((i) => (
-                    <div
-                      key={i}
-                      className="w-12 h-12 rounded-full border-2 border-white bg-slate-100 overflow-hidden shadow-sm"
-                    >
-                      <img
-                        src={i}
-                        alt="User"
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  ))}
-                  <div className="w-12 h-12 rounded-full border-2 border-white bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shadow-sm">
-                    99+
-                  </div>
-                </div>
+              {/* Search Box */}
+              <div className="w-full max-w-2xl animate-in fade-in zoom-in-95 duration-1000 delay-300">
+                <SearchBarPopover
+                  keyword={keyword}
+                  setKeyword={setKeyword}
+                  open={openSuggest}
+                  setOpen={setOpenSuggest}
+                  searchMode={searchMode}
+                  setSearchMode={setSearchMode}
+                  jobs={newestJobs?.items}
+                  province={province}
+                  setProvince={setProvince}
+                  setWards={setWards}
+                  wards={wards}
+                  wardsName={wardsName}
+                  setWardsName={setWardsName}
+                />
               </div>
             </div>
 
-            {/* Right Visual Area */}
-            <div className="relative pt-10">
-              {/* Main Image Frame */}
-              <div className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-2xl border-8 border-white bg-white aspect-4/3">
-                <img
-                  src="/hero_industrial.png"
-                  alt="Tìm việc làm khu công nghiệp - WorkLink"
-                  className="w-full h-full object-cover"
-                />
-              </div>
+            {/* Right Column: Carousel Banners */}
+            <div className="relative w-full h-full min-h-[400px] flex flex-col justify-center animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
+              {/* Decorative background behind carousel */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/5 rounded-full blur-[80px] -z-10 pointer-events-none" />
 
-              {/* Decorative Floating Cards (Non-data specific) */}
-              <div className="absolute top-0 -right-4 z-20 bg-white p-4 rounded-2xl shadow-xl border border-primary-muted  hidden md:block">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center text-primary-foreground">
-                    <Check className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-bold text-slate-400 uppercase">
-                      Tin cậy
-                    </div>
-                    <div className="text-sm font-bold text-slate-900">
-                      Thông tin xác thực
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute -bottom-6 -left-6 z-20 hidden md:block max-w-[220px]">
-                {isLoading ? (
-                  <div className="bg-white p-5 rounded-4xl shadow-xl border border-primary-muted space-y-3">
-                    <div className="h-2.5 w-24 bg-slate-100 rounded animate-pulse" />
-                    <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full w-1/2 bg-slate-200 rounded-full animate-pulse" />
-                    </div>
-                    <div className="h-4 w-full bg-slate-100 rounded animate-pulse" />
-                    <div className="h-5 w-20 bg-slate-100 rounded animate-pulse" />
-                  </div>
-                ) : spotlightJob ? (
-                  <Link
-                    to={`/job/${spotlightJob.id}`}
-                    className="group block bg-white p-5 rounded-4xl shadow-xl border border-primary-muted transition-all hover:shadow-2xl hover:border-primary/25 hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                    aria-label={`Xem chi tiết: ${spotlightJob.title}`}
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="text-[10px] font-black text-primary uppercase">
-                          Việc làm mới ⚡
+              <div className="relative group w-full">
+                <div className="overflow-hidden rounded-[2.5rem] cursor-grab active:cursor-grabbing shadow-2xl shadow-primary/10 border-[6px] border-white bg-white" ref={emblaRef}>
+                  <div className="flex">
+                    {PROMO_SLIDES.map((slide, i) => (
+                      <div key={i} className="flex-[0_0_100%] min-w-0 relative">
+                        <div className="relative aspect-[4/3] md:aspect-[4/5] lg:aspect-[3/4] overflow-hidden rounded-[2rem]">
+                          <img src={slide.image} alt={`Banner ${i}`} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent pointer-events-none" />
+                          <div className="absolute bottom-0 left-0 p-8 w-full">
+                            <Badge className="bg-primary text-primary-foreground mb-3 border-0 px-3 py-1 text-xs">Tin tức mới</Badge>
+                            <h3 className="text-2xl font-bold text-white drop-shadow-md leading-tight">Xem tin tuyển dụng mới nhất</h3>
+                          </div>
                         </div>
                       </div>
-                      <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full w-2/3 bg-primary rounded-full transition-all group-hover:w-4/5" />
-                      </div>
-                      <div className="text-xs font-bold text-slate-800 leading-tight line-clamp-3">
-                        {spotlightJob.title}
-                      </div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <Badge
-                          variant="secondary"
-                          className="bg-primary-muted text-primary text-[9px] border-0"
-                        >
-                          {formatSalary(
-                            spotlightJob.salaryMin,
-                            spotlightJob.salaryMax,
-                            'compact',
-                          )}
-                        </Badge>
-                      </div>
-                    </div>
-                  </Link>
-                ) : (
-                  <div className="bg-white p-5 rounded-4xl shadow-xl border border-primary-muted text-[11px] text-slate-500 text-center leading-snug">
-                    Đang cập nhật việc làm mới
+                    ))}
                   </div>
-                )}
+                </div>
+                {/* Navigation buttons for Embla */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute -left-5 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white shadow-xl border-slate-100 hidden md:flex text-slate-700 hover:text-primary z-10 transition-transform active:scale-95"
+                  onClick={() => emblaApi?.scrollPrev()}
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="absolute -right-5 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white shadow-xl border-slate-100 hidden md:flex text-slate-700 hover:text-primary z-10 transition-transform active:scale-95"
+                  onClick={() => emblaApi?.scrollNext()}
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </Button>
               </div>
-
-              {/* Background Blob */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/10 rounded-full blur-[100px] -z-10" />
             </div>
           </div>
         </Container>
       </section>
 
+      {/* 3. BOOSTED JOBS SECTION */}
       {(isBoostedLoading || displayedBoostedJobs.length > 0) && (
-        <section className="relative border-y border-[#FEF08A]/90 bg-gradient-to-b from-[#FFFBF0] via-[#FFFCED] to-background py-7 md:py-8">
-          <div className="container mx-auto max-w-7xl px-6">
-            <div
-              className={cn(
-                'rounded-2xl border border-[#FDE047]/70 bg-gradient-to-br from-white to-[#FFFDF0]',
-                'shadow-sm shadow-slate-900/6 ring-1 ring-[#FEF9C3]/90',
-                'p-5 md:p-6',
-              )}
-            >
-              <div className="mb-5 flex min-w-0 gap-4">
-                <div
-                  className="w-1.5 shrink-0 self-stretch rounded-full bg-[#FACC15] md:min-h-[2.25rem]"
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <h2 className="text-2xl font-bold tracking-tight text-slate-900 md:text-[1.65rem] md:leading-tight">
-                    Việc làm nổi bật
-                  </h2>
+        <section className="relative py-12 bg-amber-50/40 border-y border-amber-200/50 overflow-hidden homepage-job-sections">
+          {/* Decorative Background Orbs & Pattern */}
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-amber-300/20 blur-[120px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3" />
+          <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-yellow-400/20 blur-[120px] rounded-full pointer-events-none -translate-x-1/3 translate-y-1/3" />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPjxyZWN0IHdpZHRoPSI4IiBoZWlnaHQ9IjgiIGZpbGw9Im5vbmUiPjwvcmVjdD48Y2lyY2xlIGN4PSI0IiBjeT0iNCIgcj0iMSIgZmlsbD0iI2FtYmVyIiBvcGFjaXR5PSIwLjA1Ij48L2NpcmNsZT48L3N2Zz4=')] opacity-50 mix-blend-multiply pointer-events-none" />
+
+          <Container className="max-w-7xl relative z-10">
+            <div className="flex flex-col items-center text-center mb-8 relative">
+              {/* Optional glow behind title */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-white/60 blur-[40px] -z-10 rounded-full" />
+
+              <div className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-gradient-to-r from-amber-200 to-yellow-300 mb-6 border border-amber-300/80 shadow-md transform -rotate-1 hover:rotate-0 transition-transform cursor-default">
+                <Star className="h-4 w-4 text-amber-800 fill-amber-700 mr-2 animate-bounce-slow" />
+                <span className="text-amber-950 font-black tracking-widest uppercase text-xs drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">Tin tiêu điểm</span>
+              </div>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900">
+                Tin tuyển dụng <span className="text-transparent bg-clip-text bg-gradient-to-br from-amber-500 to-orange-500 filter drop-shadow-sm">nổi bật</span>
+              </h2>
+              <p className="text-slate-700 mt-5 font-semibold max-w-2xl text-lg leading-relaxed">
+                Các vị trí được tuyển chọn từ những đối tác uy tín trên hệ thống.
+              </p>
+            </div>
+
+            <div className="relative group px-1">
+              <div className="overflow-hidden cursor-grab active:cursor-grabbing p-4 -m-4" ref={boostedEmblaRef}>
+                <div className="flex -ml-4 items-stretch">
+                  {isBoostedLoading
+                    ? Array.from({ length: limit }).map((_, i) => (
+                      <div key={`skel-${i}`} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333333%] min-w-0 pl-4 flex flex-col">
+                        <JobCardSkeleton />
+                      </div>
+                    ))
+                    : displayedBoostedJobs.map((job) => (
+                      <div key={`boosted-${job.id}`} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333333%] min-w-0 pl-4 transition-transform duration-300 hover:-translate-y-1 flex flex-col [&>div]:h-full [&>div>div]:h-full">
+                        <JobCardHoverPreview
+                          job={job}
+                          activePreviewKey={activePreviewKey}
+                          previewKey={`boosted-${job.id}`}
+                          handleMouseEnter={handlePreviewMouseEnter}
+                          handleMouseLeave={handlePreviewMouseLeave}
+                        />
+                      </div>
+                    ))}
                 </div>
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {isBoostedLoading
-                  ? Array.from({ length: limit }).map((_, i) => (
-                      <JobCardSkeleton key={i} />
-                    ))
-                  : displayedBoostedJobs.map((job) => (
-                      <JobCardHoverPreview
-                        key={`boosted-${job.id}`}
-                        job={job}
-                        activePreviewKey={activePreviewKey}
-                        previewKey={`boosted-${job.id}`}
-                        handleMouseEnter={handlePreviewMouseEnter}
-                        handleMouseLeave={handlePreviewMouseLeave}
-                      />
-                    ))}
-              </div>
+              {/* Navigation buttons for Boosted Embla */}
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute -left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow-md border-slate-200 hidden md:flex text-slate-600 hover:text-primary z-10 transition-transform active:scale-95"
+                onClick={() => boostedEmblaApi?.scrollPrev()}
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+              <Button
+                variant="outline"
+                size="icon"
+                className="absolute -right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow-md border-slate-200 hidden md:flex text-slate-600 hover:text-primary z-10 transition-transform active:scale-95"
+                onClick={() => boostedEmblaApi?.scrollNext()}
+              >
+                <ChevronRight className="h-5 w-5" />
+              </Button>
             </div>
-          </div>
+          </Container>
         </section>
       )}
 
-      <MatchedJobs />
+      {/* 4. MATCHED JOBS & NEWEST JOBS */}
+      <div className="homepage-job-sections">
+        <MatchedJobs />
+      </div>
 
-      {/* FEATURED */}
-      <section
-        id="jobs"
-        className="container mx-auto px-6 py-8 space-y-4 max-w-7xl"
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-bold tracking-tight">
-            Những công việc mới nhất
-          </h2>
-        </div>
+      <section id="jobs" className="py-12 bg-white relative overflow-hidden homepage-job-sections">
+        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-slate-50 to-transparent pointer-events-none" />
+        <Container className="max-w-7xl relative z-10">
+          <div className="flex flex-col md:flex-row items-end justify-between mb-8 gap-4">
+            <div>
+              <h2 className="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
+                <TrendingUp className="h-8 w-8 text-emerald-500" />
+                Tin mới đăng
+              </h2>
+              <p className="text-slate-500 mt-2 font-medium">Dữ liệu tin tuyển dụng được cập nhật liên tục.</p>
+            </div>
+          </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {isLoading
-            ? Array.from({ length: limit }).map((_, i) => (
-                <JobCardSkeleton key={i} />
-              ))
-            : newestJobs?.items?.map((job) => (
-                <JobCardHoverPreview
-                  key={`newest-${job.id}`}
-                  job={job}
-                  activePreviewKey={activePreviewKey}
-                  previewKey={`newest-${job.id}`}
-                  handleMouseEnter={handlePreviewMouseEnter}
-                  handleMouseLeave={handlePreviewMouseLeave}
-                />
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {isLoading
+              ? Array.from({ length: limit }).map((_, i) => <JobCardSkeleton key={i} />)
+              : newestJobs?.items?.map((job) => (
+                <div key={`newest-${job.id}`} className="transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl rounded-2xl">
+                  <JobCardHoverPreview
+                    job={job}
+                    activePreviewKey={activePreviewKey}
+                    previewKey={`newest-${job.id}`}
+                    handleMouseEnter={handlePreviewMouseEnter}
+                    handleMouseLeave={handlePreviewMouseLeave}
+                  />
+                </div>
               ))}
-        </div>
-        <div className="mt-6 text-center pt-4">
-          <Button
-            variant="outline"
-            className="rounded-full px-8 bg-white hover:bg-primary/5 border-primary/30 text-primary font-semibold transition-all hover:scale-105 shadow-sm"
-            asChild
-          >
-            <Link to="/search">
-              Xem tất cả <span className="ml-2 font-bold">&rarr;</span>
-            </Link>
-          </Button>
-        </div>
+          </div>
+
+          <div className="mt-14 text-center">
+            <Button
+              size="lg"
+              className="rounded-full px-10 h-14 bg-amber-200 hover:bg-amber-300 text-amber-950 font-black transition-all shadow-xl shadow-amber-200/30 hover:shadow-amber-300/50 hover:-translate-y-1 group border border-amber-300"
+              asChild
+            >
+              <Link to="/search" className="flex items-center gap-2">
+                Xem toàn bộ tin đăng <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
+              </Link>
+            </Button>
+          </div>
+        </Container>
       </section>
 
-      <section className="border-t border-slate-100 bg-gradient-to-b from-white to-slate-50 py-10">
-        <Container className="max-w-7xl">
-          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-            <div className="space-y-4">
-              <p className="text-sm font-semibold uppercase tracking-[0.28em] text-primary">
-                Hỗ trợ nhanh
-              </p>
-              <h2 className="text-3xl font-black tracking-tight text-slate-900">
-                Gửi ticket hỗ trợ ngay trên trang chủ
+      {/* 5. SUPPORT TICKET SECTION */}
+      <section className="bg-amber-50 py-20 relative overflow-hidden text-slate-900 border-t border-amber-100">
+        {/* Abstract shapes for light section */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-amber-300/30 rounded-full blur-[120px] opacity-60 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-yellow-400/20 rounded-full blur-[100px] opacity-60 pointer-events-none" />
+        {/* Grid pattern */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+CjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0ibm9uZSI+PC9yZWN0Pgo8Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMSIgZmlsbD0iI2FtYmVyIiBvcGFjaXR5PSIwLjEiPjwvY2lyY2xlPgo8L3N2Zz4=')] opacity-60 mix-blend-multiply" />
+
+        <Container className="max-w-7xl relative z-10">
+          <div className="grid gap-12 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
+            <div className="space-y-8">
+              <Badge className="bg-amber-200 text-amber-900 border-amber-300 px-4 py-1.5 uppercase tracking-widest text-xs font-bold rounded-full shadow-sm">
+                Hỗ trợ vận hành 24/7
+              </Badge>
+              <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-[1.1] text-slate-900">
+                Gặp vướng mắc? <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-500">Liên hệ ngay</span>
               </h2>
               <p className="max-w-xl text-sm leading-relaxed text-slate-600">
                 Nếu bạn gặp lỗi đăng nhập, vấn đề hồ sơ, ứng tuyển hoặc cần
                 manager hỗ trợ xử lý, hãy gửi câu hỏi ở đây. Ticket sẽ được
                 chuyển vào hàng chờ của bộ phận hỗ trợ.
               </p>
-              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-sm font-semibold text-slate-900">
-                  Khi nào nên gửi ticket?
-                </p>
-                <ul className="mt-3 space-y-2 text-sm text-slate-600">
-                  <li>• Không nhận được email xác thực hoặc quên mật khẩu.</li>
-                  <li>• Hồ sơ, ứng tuyển hoặc tin tuyển dụng bị lỗi.</li>
-                  <li>• Cần hỗ trợ thao tác nhanh từ manager.</li>
-                </ul>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-4">
+                <div className="bg-white/60 border border-amber-200/60 rounded-[1.5rem] p-6 backdrop-blur-md hover:bg-white/90 transition-colors shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-4 border border-amber-200/50">
+                    <Clock className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <h4 className="font-bold text-slate-900 mb-2 text-lg">Xử lý ngay</h4>
+                  <p className="text-sm text-slate-600 font-medium">Xử lý việc gấp trong 2 giờ làm việc.</p>
+                </div>
+                <div className="bg-white/60 border border-amber-200/60 rounded-[1.5rem] p-6 backdrop-blur-md hover:bg-white/90 transition-colors shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-4 border border-amber-200/50">
+                    <Heart className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <h4 className="font-bold text-slate-900 mb-2 text-lg">Chăm sóc riêng</h4>
+                  <p className="text-sm text-slate-600 font-medium">Tư vấn nghiệp vụ riêng cho nhà tuyển dụng.</p>
+                </div>
               </div>
             </div>
 
-            <SupportTicketForm />
+            <div className="bg-amber-200/40 p-2 rounded-[2.5rem] backdrop-blur-xl border border-amber-300/60 shadow-2xl">
+              <div className="bg-white rounded-[2rem] p-6 md:p-8 text-slate-900 shadow-inner">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-black text-slate-900">Mở yêu cầu mới</h3>
+                  <p className="text-sm text-slate-500 font-semibold mt-1">Mô tả nội dung cần xử lý.</p>
+                </div>
+                <SupportTicketForm />
+              </div>
+            </div>
           </div>
         </Container>
       </section>

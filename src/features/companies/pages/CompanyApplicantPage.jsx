@@ -30,26 +30,26 @@ import {
 // ========================
 const APPLICANT_STATUS = {
   APPLIED: {
-    label: 'Đã nộp đơn ứng tuyển',
+    label: 'Đã nộp đơn',
     className: 'bg-blue-100 text-blue-700 border-0',
   },
   REVIEWING: {
-    label: 'Đang xem xét',
+    label: 'Đang thẩm định',
     className: 'bg-amber-100 text-amber-700 border-0',
   },
   ACCEPTED: {
-    label: 'Đã chấp nhận',
+    label: 'Đạt yêu cầu',
     className: 'bg-emerald-100 text-emerald-700 border-0',
   },
   REJECTED: {
-    label: 'Đã từ chối',
+    label: 'Không đạt',
     className: 'bg-red-100 text-red-700 border-0',
   },
 };
 
 const MENU = [
-  { key: 'list', label: 'Danh sách ứng viên' },
-  { key: 'stats', label: 'Thống kê' },
+  { key: 'list', label: 'Hồ sơ ứng viên' },
+  { key: 'stats', label: 'Thống kê lượt nộp' },
 ];
 
 // ========================
@@ -197,7 +197,7 @@ const ApplicantDetail = ({ applicant, job, onBack, onChangeStatus }) => {
   return (
     <div className="space-y-6">
       <Button variant="outline" className="rounded-xl" onClick={onBack}>
-        <ArrowLeft className="h-4 w-4 mr-1" /> Quay lại danh sách
+        <ArrowLeft className="h-4 w-4 mr-1" /> Trở về
       </Button>
 
       {/* Worker Info */}
@@ -256,8 +256,7 @@ const ApplicantDetail = ({ applicant, job, onBack, onChangeStatus }) => {
       {/* Form Answers */}
       <Card className="p-5 rounded-2xl shadow-sm border-0 bg-white">
         <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
-          <FileText className="h-4 w-4 text-blue-500" /> Câu trả lời form ứng
-          tuyển
+          <FileText className="h-4 w-4 text-blue-500" /> Thông tin tờ khai
         </h3>
         {applicant.answers && applicant.answers.length > 0 ? (
           <div className="divide-y">
@@ -277,17 +276,17 @@ const ApplicantDetail = ({ applicant, job, onBack, onChangeStatus }) => {
 
       {/* Change Status */}
       <Card className="p-5 rounded-2xl shadow-sm border-0 bg-white">
-        <h3 className="font-semibold mb-3 text-sm">Đổi trạng thái</h3>
+        <h3 className="font-semibold mb-3 text-sm">Cập nhật kết quả</h3>
         <div className="flex items-center gap-3">
           <select
             className="rounded-xl border px-4 py-2 text-sm bg-white"
             value={newStatus}
             onChange={(e) => setNewStatus(e.target.value)}
           >
-            <option value="APPLIED">Đã nộp đơn ứng tuyển</option>
-            <option value="REVIEWING">Đang xem xét</option>
-            <option value="ACCEPTED">Đã chấp nhận</option>
-            <option value="REJECTED">Đã từ chối</option>
+            <option value="APPLIED">Đã nộp đơn</option>
+            <option value="REVIEWING">Đang thẩm định</option>
+            <option value="ACCEPTED">Đạt yêu cầu</option>
+            <option value="REJECTED">Không đạt</option>
           </select>
           <Button
             className="rounded-xl"
@@ -420,7 +419,7 @@ export const CompanyApplicantPage = () => {
 
   return (
     <DashboardLayout
-      title="Quản lý ứng viên"
+      title="Danh sách ứng tuyển"
       menu={MENU}
       activeKey={active}
       onSelect={setActive}
@@ -444,7 +443,7 @@ export const CompanyApplicantPage = () => {
                       <ArrowLeft className="h-4 w-4 mr-1" /> Manager
                     </Button>
                   </Link>
-                  <h2 className="text-xl font-semibold">Danh sách ứng viên</h2>
+                  <h2 className="text-xl font-semibold">Hồ sơ ứng viên</h2>
                 </div>
                 <Button
                   variant="outline"
@@ -476,7 +475,7 @@ export const CompanyApplicantPage = () => {
                     className: 'bg-emerald-50',
                   },
                   {
-                    label: 'Đã từ chối',
+                    label: 'Không đạt',
                     value: stats.rejected,
                     className: 'bg-red-50',
                   },
@@ -539,10 +538,10 @@ export const CompanyApplicantPage = () => {
                     onChange={(e) => setStatusFilter(e.target.value)}
                   >
                     <option value="">Tất cả trạng thái</option>
-                    <option value="APPLIED">Đã nộp đơn ứng tuyển</option>
-                    <option value="REVIEWING">Đang xem xét</option>
-                    <option value="ACCEPTED">Đã chấp nhận</option>
-                    <option value="REJECTED">Đã từ chối</option>
+                    <option value="APPLIED">Đã nộp đơn</option>
+                    <option value="REVIEWING">Đang thẩm định</option>
+                    <option value="ACCEPTED">Đạt yêu cầu</option>
+                    <option value="REJECTED">Không đạt</option>
                   </select>
 
                   <Input
@@ -671,13 +670,13 @@ export const CompanyApplicantPage = () => {
                 color: 'text-amber-600 bg-amber-50',
               },
               {
-                label: 'Đã chấp nhận',
+                label: 'Đạt yêu cầu',
                 value: stats.accepted,
                 icon: CheckCircle,
                 color: 'text-emerald-600 bg-emerald-50',
               },
               {
-                label: 'Đã từ chối',
+                label: 'Không đạt',
                 value: stats.rejected,
                 icon: XCircle,
                 color: 'text-red-600 bg-red-50',
@@ -706,12 +705,12 @@ export const CompanyApplicantPage = () => {
 
           <Card className="p-6 rounded-xl shadow-sm border-0">
             <h3 className="text-lg font-semibold mb-4">
-              Thống kê theo công ty
+              Thống kê theo đơn vị
             </h3>
             <table className="w-full text-sm">
               <thead className="text-left text-muted-foreground border-b">
                 <tr>
-                  <th className="py-2">Công ty</th>
+                  <th className="py-2">Đơn vị</th>
                   <th>Tổng ứng viên</th>
                   <th>Applied</th>
                   <th>Reviewing</th>
