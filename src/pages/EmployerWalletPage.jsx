@@ -114,22 +114,9 @@ export const EmployerWalletPage = () => {
     0,
     Number(walletPricing?.BOOST_JOB_POINT_COST || 50000),
   );
-  const fallbackBoostPackage = useMemo(
-    () => ({
-      id: 0,
-      name: `Gói đẩy tin ${configuredBoostDays} ngày`,
-      description: 'Gói mặc định theo cấu hình hệ thống',
-      durationDays: configuredBoostDays,
-      price: configuredBoostPointCost,
-      isDefault: true,
-      isActive: true,
-    }),
-    [configuredBoostDays, configuredBoostPointCost],
-  );
-  const boostPackageOptions =
-    activeBoostPackages.length > 0 ? activeBoostPackages : [fallbackBoostPackage];
+  const boostPackageOptions = activeBoostPackages;
   const referenceBoostPackage =
-    boostPackageOptions.find((item) => item.isDefault) || boostPackageOptions[0] || fallbackBoostPackage;
+    boostPackageOptions.find((item) => item.isDefault) || boostPackageOptions[0];
   const minBoostPrice = useMemo(() => {
     try {
       const prices = (boostPackageOptions || []).map((p) => Number(p?.price || configuredBoostPointCost));
