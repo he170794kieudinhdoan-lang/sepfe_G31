@@ -2662,22 +2662,7 @@ export const EmployerDashboard = () => {
     0,
     Number(walletPricing?.BOOST_JOB_POINT_COST || 50000),
   );
-  const fallbackBoostPackage = useMemo(
-    () => ({
-      id: 0,
-      name: `Gói đẩy tin ${configuredBoostDays} ngày`,
-      description: 'Gói mặc định theo cấu hình hệ thống',
-      durationDays: configuredBoostDays,
-      price: configuredBoostPointCost,
-      isDefault: true,
-      isActive: true,
-    }),
-    [configuredBoostDays, configuredBoostPointCost],
-  );
-  const boostPackageOptions =
-    activeBoostPackages.length > 0
-      ? activeBoostPackages
-      : [fallbackBoostPackage];
+  const boostPackageOptions = activeBoostPackages;
   const selectedBoostPackage =
     boostPackageOptions.find(
       (item) => String(item.id) === String(selectedBoostPackageId),
@@ -4227,100 +4212,117 @@ export const EmployerDashboard = () => {
         contentClassName="max-w-4xl"
         bodyClassName="space-y-4 overflow-x-hidden p-5 sm:p-6"
       >
-        <div className="space-y-4 mt-2">
-          <div className="space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-              Chọn thời hạn đẩy tin
+        <div className="mt-1 space-y-4">
+          <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-white p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/80">
+              Tin đang chọn
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {boostPackageOptions.map((pkg) => {
-                const isSelected =
-                  String(pkg.id) === String(selectedBoostPackage?.id);
-                const durationDays = Number(pkg.durationDays || 0);
-                const price = Number(pkg.price || 0);
-                const pointPerDay =
-                  durationDays > 0 ? Math.round(price / durationDays) : price;
-                return (
-                  <button
-                    key={`${pkg.id}-${pkg.durationDays}`}
-                    type="button"
-                    className={`w-full rounded-2xl border p-4 text-left transition-all ${
-                      isSelected
-                        ? 'border-primary bg-primary/10 ring-2 ring-primary/20'
-                        : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
-                    }`}
-                    onClick={() => setSelectedBoostPackageId(pkg.id)}
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex min-w-0 items-center gap-3">
+            <p className="mt-1 text-sm font-semibold text-slate-900 line-clamp-2">
+              {selectedBoostJob?.title || 'Tin tuyển dụng'}
+            </p>
+            <p className="mt-2 text-xs text-slate-600">
+              Chọn gói phù hợp để đẩy tin lên vị trí ưu tiên và tăng khả năng tiếp cận ứng viên.
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_290px]">
+            <div className="space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                Chọn thời hạn đẩy tin
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {boostPackageOptions.map((pkg) => {
+                  const isSelected =
+                    String(pkg.id) === String(selectedBoostPackage?.id);
+                  const durationDays = Number(pkg.durationDays || 0);
+                  const price = Number(pkg.price || 0);
+                  const pointPerDay =
+                    durationDays > 0 ? Math.round(price / durationDays) : price;
+                  return (
+                    <button
+                      key={`${pkg.id}-${pkg.durationDays}`}
+                      type="button"
+                      className={`group w-full rounded-2xl border p-4 text-left transition-all ${
+                        isSelected
+                          ? 'border-primary bg-primary/10 shadow-sm ring-2 ring-primary/20'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                      }`}
+                      onClick={() => setSelectedBoostPackageId(pkg.id)}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div
+                            className={`h-10 w-10 rounded-xl border flex items-center justify-center text-sm font-extrabold ${
+                              isSelected
+                                ? 'border-primary/30 bg-primary/15 text-primary'
+                                : 'border-slate-200 bg-slate-50 text-slate-700'
+                            }`}
+                          >
+                            {durationDays}N
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-900">
+                              {durationDays} ngày
+                            </p>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              ~ {pointPerDay.toLocaleString('vi-VN')} điểm/ngày
+                            </p>
+                          </div>
+                        </div>
                         <div
-                          className={`h-10 w-10 rounded-xl border flex items-center justify-center text-sm font-extrabold ${
+                          className={`mt-0.5 h-5 w-5 rounded-full border-2 transition-all ${
                             isSelected
-                              ? 'border-primary/30 bg-primary/15 text-primary'
-                              : 'border-slate-200 bg-slate-50 text-slate-700'
+                              ? 'border-primary bg-primary'
+                              : 'border-slate-300 bg-white group-hover:border-primary/40'
                           }`}
                         >
-                          {durationDays}N
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-900">
-                            {durationDays} ngày
-                          </p>
-                          <p className="text-xs text-slate-500 mt-0.5">
-                            Khoảng {pointPerDay.toLocaleString('vi-VN')}{' '}
-                            điểm/ngày
-                          </p>
+                          {isSelected ? (
+                            <CheckCircle2 className="h-4 w-4 text-white" />
+                          ) : null}
                         </div>
                       </div>
-                      <div className="text-left sm:text-right sm:shrink-0">
+
+                      <div className="mt-3 border-t border-slate-200/80 pt-3">
+                        <p className="text-[11px] text-slate-500">Chi phí gói</p>
                         <p className="text-base font-extrabold text-slate-900">
                           {price.toLocaleString('vi-VN')} điểm
                         </p>
-                        {pkg.isDefault ? (
-                          <span className="inline-block mt-1 rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                            Mặc định
-                          </span>
-                        ) : null}
                       </div>
-                    </div>
-                  </button>
-                );
-              })}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm text-slate-700 font-semibold">
-                  Xác nhận gói đã chọn
-                </p>
-                <p className="text-sm text-slate-600 mt-1">
-                  Thời gian nổi bật:{' '}
-                  <strong>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-0 h-fit">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Tóm tắt thanh toán
+              </p>
+              <div className="mt-3 space-y-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-[11px] text-slate-500">Thời gian nổi bật</p>
+                  <p className="mt-1 text-lg font-extrabold text-slate-900">
                     {Number(
                       selectedBoostPackage?.durationDays || configuredBoostDays,
                     )}{' '}
                     ngày
-                  </strong>
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500">Chi phí</p>
-                <p className="text-lg font-extrabold text-slate-900">
-                  {Number(
-                    selectedBoostPackage?.price || configuredBoostPointCost,
-                  ).toLocaleString('vi-VN')}{' '}
-                  điểm
-                </p>
+                  </p>
+                </div>
+                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
+                  <p className="text-[11px] text-slate-500">Tổng điểm cần trả</p>
+                  <p className="mt-1 text-2xl font-black text-primary">
+                    {Number(
+                      selectedBoostPackage?.price || configuredBoostPointCost,
+                    ).toLocaleString('vi-VN')}
+                  </p>
+                  <p className="text-xs font-medium text-primary/80">điểm</p>
+                </div>
+                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
+                  Sau khi xác nhận, hệ thống trừ điểm ngay và bật nổi bật cho tin.
+                </div>
               </div>
             </div>
           </div>
-
-          <p className="text-xs text-slate-500">
-            Sau khi xác nhận, hệ thống sẽ trừ điểm trong ví và bật nổi bật ngay
-            lập tức.
-          </p>
         </div>
       </Modal>
 
