@@ -161,8 +161,8 @@ export const reportJobApi = async ({ jobId, reason, description }) => {
   return res;
 };
 
-export const getAllJobReportsApi = async ({ status, page = 1, limit = 10 }) => {
-  const res = await apiClient.get('/job/report/all', { params: { status, page, limit } });
+export const getAllJobReportsApi = async ({ status, page = 1, limit = 10, companyName, reporterName, fromDate, toDate }) => {
+  const res = await apiClient.get('/job/report/all', { params: { status, page, limit, companyName, reporterName, fromDate, toDate } });
   return res;
 };
 

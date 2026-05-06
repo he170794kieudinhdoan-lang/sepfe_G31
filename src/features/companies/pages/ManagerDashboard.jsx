@@ -69,12 +69,12 @@ const STATUS_COLORS = {
 };
 
 const REPORT_REASON_LABELS = {
-  FRAUD: 'Thông tin sai lệch',
-  INAPPROPRIATE_CONTENT: 'Nội dung vi phạm',
-  SCAM: 'Dấu hiệu trục lợi',
-  DUPLICATE: 'Tin đăng trùng lặp',
-  MISLEADING_INFO: 'Dữ liệu không khớp',
-  OTHER: 'Khác',
+  FRAUD: 'Lừa đảo, chiếm đoạt tài sản',
+  INAPPROPRIATE_CONTENT: 'Nội dung phản cảm, không phù hợp',
+  SCAM: 'Có dấu hiệu đa cấp, trục lợi',
+  DUPLICATE: 'Tin tuyển dụng bị trùng lặp',
+  MISLEADING_INFO: 'Thông tin công việc sai lệch, gây hiểu lầm',
+  OTHER: 'Lý do khác',
 };
 
 const REPORT_STATUS_LABELS = {
@@ -135,16 +135,26 @@ export const ManagerDashboard = () => {
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const [reportStatus, setReportStatus] = useState('PENDING');
+  const [reportStatus, setReportStatus] = useState('ALL');
   const [viewingReportId, setViewingReportId] = useState(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isApproveReportModalOpen, setIsApproveReportModalOpen] = useState(false);
 
+  const [reportCompanyName, setReportCompanyName] = useState('');
+  const [reportReporterName, setReportReporterName] = useState('');
+  const [reportFromDate, setReportFromDate] = useState('');
+  const [reportToDate, setReportToDate] = useState('');
+
   // Review reports (UC 2.14.6 / 2.14.7)
-  const [reviewReportStatus, setReviewReportStatus] = useState('PENDING');
+  const [reviewReportStatus, setReviewReportStatus] = useState('ALL');
   const [viewingReviewReportId, setViewingReviewReportId] = useState(null);
   const [isReviewReportModalOpen, setIsReviewReportModalOpen] = useState(false);
   const [isApproveReviewReportModalOpen, setIsApproveReviewReportModalOpen] = useState(false);
+
+  const [reviewReportCompanyName, setReviewReportCompanyName] = useState('');
+  const [reviewReportReporterName, setReviewReportReporterName] = useState('');
+  const [reviewReportFromDate, setReviewReportFromDate] = useState('');
+  const [reviewReportToDate, setReviewReportToDate] = useState('');
 
   // --- DATA FETCHING FROM API ---
   const { data: allCompanies = [], isLoading: isLoadingAll } = useGetCompanies();
@@ -154,12 +164,12 @@ export const ManagerDashboard = () => {
   const { data: companyUpdateRequest } = useGetCompanyUpdateRequest(viewingCompanyId);
   const reviewCompanyMutation = useReviewCompany();
 
-  const { data: listReportsData = [], isLoading: loadingReports } = useGetAllJobReports(reportStatus, 1, 50);
+  const { data: listReportsData = [], isLoading: loadingReports } = useGetAllJobReports(reportStatus, 1, 50, reportCompanyName, reportReporterName, reportFromDate, reportToDate);
   const updateReportMutation = useUpdateJobReportStatus();
   const updateJobStatusMutation = useUpdateJobStatus();
 
   const { data: listReviewReportsData, isLoading: loadingReviewReports } =
-    useGetReviewReports(reviewReportStatus, 1, 50);
+    useGetReviewReports(reviewReportStatus === 'ALL' ? undefined : reviewReportStatus, 1, 50);
   const updateReviewReportMutation = useUpdateReviewReportStatus();
   const hideReviewMutation = useHideCompanyReview();
 
@@ -649,16 +659,43 @@ export const ManagerDashboard = () => {
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-          <select
-            className="border p-2 rounded-lg text-sm bg-slate-50"
-            value={reportStatus}
-            onChange={e => setReportStatus(e.target.value)}
-          >
-            <option value="PENDING">Chờ xử lý</option>
-            <option value="RESOLVED">Đã giải quyết</option>
-            <option value="REJECTED">Đã từ chối</option>
-          </select>
-          <p className="text-sm text-slate-500 px-2 font-medium">
+          <div className="flex flex-wrap gap-3 flex-1">
+            <select
+              className="border p-2 rounded-lg text-sm bg-slate-50 w-full sm:w-auto"
+              value={reportStatus}
+              onChange={e => setReportStatus(e.target.value)}
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="PENDING">Chờ xử lý</option>
+              <option value="RESOLVED">Đã giải quyết</option>
+              <option value="REJECTED">Đã từ chối</option>
+            </select>
+            <Input
+              placeholder="Tên công ty"
+              className="w-full sm:w-48 text-sm"
+              value={reportCompanyName}
+              onChange={(e) => setReportCompanyName(e.target.value)}
+            />
+            <Input
+              placeholder="Tên người báo cáo"
+              className="w-full sm:w-48 text-sm"
+              value={reportReporterName}
+              onChange={(e) => setReportReporterName(e.target.value)}
+            />
+            <Input
+              type="date"
+              className="w-full sm:w-40 text-sm"
+              value={reportFromDate}
+              onChange={(e) => setReportFromDate(e.target.value)}
+            />
+            <Input
+              type="date"
+              className="w-full sm:w-40 text-sm"
+              value={reportToDate}
+              onChange={(e) => setReportToDate(e.target.value)}
+            />
+          </div>
+          <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
             Hiển thị <span className="text-blue-600 font-bold">{listReportsData?.data?.length || 0}</span> báo cáo
           </p>
         </div>
@@ -688,7 +725,10 @@ export const ManagerDashboard = () => {
                 ) : (
                   listReportsData.data.map(r => (
                     <tr key={r.id} className="hover:bg-slate-50/50">
-                      <td className="px-6 py-4 text-sm font-semibold">{r.job?.title || '—'}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-semibold text-slate-800">{r.job?.title || '—'}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">{r.job?.company?.name || '—'}</div>
+                      </td>
                       <td className="px-6 py-4 text-sm"><ReporterCell user={r.reporter} /></td>
                       <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{formatManagerDateTime(r.createdAt)}</td>
                       <td className="px-6 py-4 text-sm text-red-600 font-medium">{REPORT_REASON_LABELS[r.reason] || r.reason}</td>
@@ -721,20 +761,64 @@ export const ManagerDashboard = () => {
   // VIEW 3: REVIEW REPORTS LIST (UC 2.14.6 / 2.14.7)
   // ==========================================================
   const renderReviewReports = () => {
-    const list = listReviewReportsData?.data || [];
+    let list = listReviewReportsData?.data || [];
+
+    // Client-side filtering
+    if (reviewReportCompanyName) {
+      list = list.filter(r => r.review?.company?.name?.toLowerCase().includes(reviewReportCompanyName.toLowerCase()));
+    }
+    if (reviewReportReporterName) {
+      list = list.filter(r => r.reporter?.fullName?.toLowerCase().includes(reviewReportReporterName.toLowerCase()));
+    }
+    if (reviewReportFromDate) {
+      const from = new Date(`${reviewReportFromDate}T00:00:00`);
+      list = list.filter(r => new Date(r.createdAt) >= from);
+    }
+    if (reviewReportToDate) {
+      const to = new Date(`${reviewReportToDate}T23:59:59`);
+      list = list.filter(r => new Date(r.createdAt) <= to);
+    }
+
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-          <select
-            className="border p-2 rounded-lg text-sm bg-slate-50"
-            value={reviewReportStatus}
-            onChange={e => setReviewReportStatus(e.target.value)}
-          >
-            <option value="PENDING">Chờ xử lý</option>
-            <option value="RESOLVED">Đã giải quyết</option>
-            <option value="REJECTED">Đã từ chối</option>
-          </select>
-          <p className="text-sm text-slate-500 px-2 font-medium">
+          <div className="flex flex-wrap gap-3 flex-1">
+            <select
+              className="border p-2 rounded-lg text-sm bg-slate-50 w-full sm:w-auto"
+              value={reviewReportStatus}
+              onChange={e => setReviewReportStatus(e.target.value)}
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="PENDING">Chờ xử lý</option>
+              <option value="RESOLVED">Đã giải quyết</option>
+              <option value="REJECTED">Đã từ chối</option>
+            </select>
+            <Input
+              placeholder="Tên công ty"
+              className="w-full sm:w-48 text-sm"
+              value={reviewReportCompanyName}
+              onChange={(e) => setReviewReportCompanyName(e.target.value)}
+            />
+            <Input
+              placeholder="Tên người báo cáo"
+              className="w-full sm:w-48 text-sm"
+              value={reviewReportReporterName}
+              onChange={(e) => setReviewReportReporterName(e.target.value)}
+            />
+            <Input
+              type="date"
+              className="w-full sm:w-40 text-sm"
+              value={reviewReportFromDate}
+              onChange={(e) => setReviewReportFromDate(e.target.value)}
+            />
+            <Input
+              type="date"
+              className="w-full sm:w-40 text-sm"
+              value={reviewReportToDate}
+              onChange={(e) => setReviewReportToDate(e.target.value)}
+            />
+          </div>
+          <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
             Hiển thị <span className="text-blue-600 font-bold">{list.length}</span> báo cáo
           </p>
         </div>

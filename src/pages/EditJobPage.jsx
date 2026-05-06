@@ -65,7 +65,7 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import { apiClient } from '@/shared/api/apiClient';
 import { useProvinces } from '@/shared/hooks/useProvinces';
 import { X, PenTool, MapPin, CheckCircle } from 'lucide-react';
-export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
+export const EditJobPage = ({ jobIdProp, onBack, onSuccess, isModal }) => {
   const { jobId: paramsId } = useParams();
   const jobId = jobIdProp || paramsId;
   const navigate = useNavigate();
@@ -317,8 +317,8 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
-      <div className="max-w-5xl mx-auto bg-white rounded-2xl w-full max-h-[none] sm:max-h-[90vh] overflow-y-auto relative p-8 shadow-xl border border-slate-100">
+    <div className={isModal ? "w-full bg-transparent" : "min-h-screen bg-slate-50 py-8 px-4"}>
+      <div className={isModal ? "w-full bg-transparent p-0 border-0 shadow-none" : "max-w-5xl mx-auto bg-white rounded-2xl w-full max-h-[none] sm:max-h-[90vh] overflow-y-auto relative p-8 shadow-xl border border-slate-100"}>
         <Button
           variant="ghost"
           size="icon"
@@ -383,7 +383,7 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess }) => {
             {errorMessage}
           </div>
         )}
-        <Card className="p-8 rounded-xl shadow-sm min-h-[450px]">
+        <Card className={`p-8 rounded-xl min-h-[450px] ${isModal ? 'bg-white border border-slate-100 shadow-sm' : 'shadow-sm bg-white'}`}>
           {/* STEP 1 */}
           {currentStep === 0 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">

@@ -64,6 +64,7 @@ import {
   useCreatePostingCheckout,
   useMatchedWorkers,
   useJobDetail,
+  useBoostPackages,
 } from '@/features/jobs/api/useJobs';
 import {
   useGetOrCreateConversation,
@@ -98,6 +99,8 @@ import {
   isInsufficientPointError,
 } from '@/shared/utils/walletPointFlow';
 import { DashboardChatPanel } from '@/features/chat/components/DashboardChatPanel';
+import { CreateJobPage } from '@/pages/CreateJobPage';
+import { EditJobPage } from '@/pages/EditJobPage';
 
 const EMPLOYER_MENU = [
   {
@@ -1440,17 +1443,19 @@ const JobApplicantsPanel = ({
                 >
                   <Users size={12} /> Ca phỏng vấn
                 </Button>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs rounded-xl gap-1.5"
-                  onClick={() => setBulkInviteOpen(true)}
-                  disabled={
-                    availableApplicantUserIds.length === 0 ||
-                    loadingInviteConstraints
-                  }
-                >
-                  <Send size={12} /> Mời phỏng vấn
-                </Button>
+                {selectedApplicantIds.size > 0 && (
+                  <Button
+                    size="sm"
+                    className="h-8 text-xs rounded-xl gap-1.5"
+                    onClick={() => setBulkInviteOpen(true)}
+                    disabled={
+                      availableApplicantUserIds.length === 0 ||
+                      loadingInviteConstraints
+                    }
+                  >
+                    <Send size={12} /> Mời phỏng vấn ({selectedApplicantIds.size})
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -1503,7 +1508,7 @@ const JobApplicantsPanel = ({
                           Bấm vào worker để xem hồ sơ
                         </p>
                       </div>
-                    </button>
+                    </div>
                     <div className="text-right shrink-0">
                       <ApplicantStatusBadge status={a.status} />
                       {isApplicantAlreadyInvited(a) && (
@@ -1519,63 +1524,62 @@ const JobApplicantsPanel = ({
                       </p>
                     </div>
                   </div>
+                );
+              })
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-white shrink-0">
+              <span className="text-xs text-slate-500">
+                Trang {page} / {totalPages}
+              </span>
+              <div className="flex gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-7 p-0 rounded-md"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                >
+                  <ChevronLeft size={14} />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-7 p-0 rounded-md"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                >
+                  <ChevronRight size={14} />
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Right pane: Candidate Detail */}
+        <div className="flex-1 overflow-hidden relative bg-white border-l border-slate-100">
+          {selectedApplicant ? (
+            <ApplicantDetailPane
+              applicantDetail={selectedApplicant}
+              applicantStatus={applicantStatus}
+              setApplicantStatus={setApplicantStatus}
+              onSaveStatus={handleSaveStatus}
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <div className="text-center space-y-3 opacity-40">
+                <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto">
+                  <Users className="text-slate-400" />
                 </div>
-        </Card>
-            ))}
-      </div>
-        )}
-
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between p-3 border-t border-slate-100 bg-white shrink-0">
-          <span className="text-xs text-slate-500">
-            Trang {page} / {totalPages}
-          </span>
-          <div className="flex gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 w-7 p-0 rounded-md"
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              <ChevronLeft size={14} />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 w-7 p-0 rounded-md"
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-            >
-              <ChevronRight size={14} />
-            </Button>
-          </div>
+                <p className="text-slate-500 font-medium">
+                  Chọn ứng viên để xem chi tiết
+                </p>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-
-        {/* Right pane: Candidate Detail */ }
-  <div className="flex-1 overflow-hidden relative bg-white border-l border-slate-100">
-    {selectedApplicant ? (
-      <ApplicantDetailPane
-        applicantDetail={selectedApplicant}
-        applicantStatus={applicantStatus}
-        setApplicantStatus={setApplicantStatus}
-        onSaveStatus={handleSaveStatus}
-      />
-    ) : (
-      <div className="flex h-full items-center justify-center">
-        <div className="text-center space-y-3 opacity-40">
-          <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto">
-            <Users className="text-slate-400" />
-          </div>
-          <p className="text-slate-500 font-medium">
-            Chọn ứng viên để xem chi tiết
-          </p>
-        </div>
-      </div>
-    )}
-  </div>
       </div >
 
 
@@ -1810,11 +1814,10 @@ const JobApplicantsPanel = ({
                       key={slot.id}
                       type="button"
                       onClick={() => setSelectedInviteSlotId(slot.id)}
-                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
-                        active
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                      }`}
+                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${active
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                        }`}
                     >
                       <p className="text-xs font-semibold">Ca #{index + 1}</p>
                       <p className="mt-1 text-xs">
@@ -2267,14 +2270,14 @@ const MatchedWorkersPanel = ({
           <div className="flex items-center gap-2">
             <Sparkles className="h-4 w-4 text-primary" />
             <h3 className="font-bold text-slate-900 text-lg leading-tight truncate">
-              Đề xuất ứng viên AI
+              Đề xuất ứng viên phù hợp
             </h3>
           </div>
           <p className="text-xs text-slate-500 truncate mt-0.5 ml-6">
             Dành cho: <span className="font-semibold">{jobTitle}</span>
           </p>
           <p className="text-[11px] text-primary truncate mt-0.5 ml-6 font-medium">
-            AI gợi ý {workers.length} ứng viên
+            Hệ thống gợi ý {workers.length} ứng viên cho bạn
           </p>
         </div>
         {selectedIds.size > 0 && (
@@ -2581,6 +2584,7 @@ export const EmployerDashboard = () => {
   const [boostModalOpen, setBoostModalOpen] = useState(false);
   const [selectedBoostJob, setSelectedBoostJob] = useState(null);
   const [selectedBoostPackageDays, setSelectedBoostPackageDays] = useState(7);
+  const [selectedBoostPackageId, setSelectedBoostPackageId] = useState(null);
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
     useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
@@ -2611,6 +2615,8 @@ export const EmployerDashboard = () => {
 
   // Real API integration
   const [jobPage, setJobPage] = useState(1);
+  const [isCreateJobOpen, setIsCreateJobOpen] = useState(false);
+  const [editingJobId, setEditingJobId] = useState(null);
   const { data: company, isLoading: loadingCompany } = useGetMyCompany();
   const { data: overview, isLoading: loadingOverview } = useEmployerOverview();
   const { data: searchResult, isLoading: loadingJobs } = useJobsForEmployer({
@@ -2655,6 +2661,7 @@ export const EmployerDashboard = () => {
   const createBoostCheckoutMutation = useCreateBoostCheckout();
   const createPostingCheckoutMutation = useCreatePostingCheckout();
   const { data: walletPricingRes } = useWalletPricing();
+  const { data: boostPackagesRes } = useBoostPackages();
   const walletPricing = walletPricingRes?.data || walletPricingRes || {};
   const boostPackages = boostPackagesRes?.items || boostPackagesRes?.data || [];
   const activeBoostPackages = boostPackages.filter(
@@ -3257,7 +3264,7 @@ export const EmployerDashboard = () => {
                   </Button>
                   {isApproved && (
                     <Button
-                      onClick={() => navigate('/employer/jobs/create')}
+                      onClick={() => setIsCreateJobOpen(true)}
                       className="w-full sm:w-auto h-11 px-5 rounded-xl gap-2 font-semibold shadow-sm"
                     >
                       <Plus size={16} /> Đăng tin mới
@@ -3594,7 +3601,7 @@ export const EmployerDashboard = () => {
                         {isApproved && (
                           <Button
                             className="rounded-lg gap-2 shadow-sm w-full sm:w-auto font-semibold px-5"
-                            onClick={() => navigate('/employer/jobs/create')}
+                            onClick={() => setIsCreateJobOpen(true)}
                           >
                             <Plus size={18} /> Tạo tin mới
                           </Button>
@@ -3865,9 +3872,7 @@ export const EmployerDashboard = () => {
                                                       setJobOptionsPopoverOpenId(
                                                         null,
                                                       );
-                                                      navigate(
-                                                        `/employer/jobs/${job.id}/edit`,
-                                                      );
+                                                      setEditingJobId(job.id);
                                                     }}
                                                   >
                                                     <Edit size={14} /> Chỉnh sửa
@@ -4241,8 +4246,8 @@ export const EmployerDashboard = () => {
                       key={`${pkg.id}-${pkg.durationDays}`}
                       type="button"
                       className={`group w-full rounded-2xl border p-4 text-left transition-all ${isSelected
-                          ? 'border-primary bg-primary/10 shadow-sm ring-2 ring-primary/20'
-                          : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+                        ? 'border-primary bg-primary/10 shadow-sm ring-2 ring-primary/20'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
                         }`}
                       onClick={() => setSelectedBoostPackageId(pkg.id)}
                     >
@@ -4250,8 +4255,8 @@ export const EmployerDashboard = () => {
                         <div className="flex min-w-0 items-center gap-3">
                           <div
                             className={`h-10 w-10 rounded-xl border flex items-center justify-center text-sm font-extrabold ${isSelected
-                                ? 'border-primary/30 bg-primary/15 text-primary'
-                                : 'border-slate-200 bg-slate-50 text-slate-700'
+                              ? 'border-primary/30 bg-primary/15 text-primary'
+                              : 'border-slate-200 bg-slate-50 text-slate-700'
                               }`}
                           >
                             {durationDays}N
@@ -4267,8 +4272,8 @@ export const EmployerDashboard = () => {
                         </div>
                         <div
                           className={`mt-0.5 h-5 w-5 rounded-full border-2 transition-all ${isSelected
-                              ? 'border-primary bg-primary'
-                              : 'border-slate-300 bg-white group-hover:border-primary/40'
+                            ? 'border-primary bg-primary'
+                            : 'border-slate-300 bg-white group-hover:border-primary/40'
                             }`}
                         >
                           {isSelected ? (
@@ -4889,6 +4894,38 @@ export const EmployerDashboard = () => {
           </div>
         )}
       </Modal>
+
+      {/* Custom Solid Modals */}
+      {isCreateJobOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl p-6 relative">
+            <CreateJobPage
+              isModal={true}
+              onBack={() => setIsCreateJobOpen(false)}
+              onSuccess={() => {
+                setIsCreateJobOpen(false);
+                queryClient.invalidateQueries({ queryKey: ['employer-jobs'] });
+              }}
+            />
+          </div>
+        </div>
+      )}
+
+      {editingJobId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white shadow-2xl p-8 relative">
+            <EditJobPage
+              isModal={true}
+              jobIdProp={editingJobId}
+              onBack={() => setEditingJobId(null)}
+              onSuccess={() => {
+                setEditingJobId(null);
+                queryClient.invalidateQueries({ queryKey: ['employer-jobs'] });
+              }}
+            />
+          </div>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

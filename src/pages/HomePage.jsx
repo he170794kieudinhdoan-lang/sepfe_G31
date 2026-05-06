@@ -525,17 +525,37 @@ export function HomePage() {
   };
 
   const { data: newestJobs, isLoading } = useSearchJobs({
-    limit,
+    limit: 12,
     page: 1,
     sortBy: 'newest',
   });
   const { data: boostedJobs, isLoading: isBoostedLoading } = useBoostedJobs({
     page: 1,
-    limit,
+    limit: 12,
   });
   const displayedBoostedJobs = useMemo(() => {
     return Array.isArray(boostedJobs?.items) ? boostedJobs.items : [];
   }, [boostedJobs?.items]);
+
+  const chunkedBoostedJobs = useMemo(() => {
+    const featured = [...displayedBoostedJobs];
+    const newest = Array.isArray(newestJobs?.items) ? newestJobs.items : [];
+    const existingIds = new Set(featured.map((job) => job.id));
+
+    for (const job of newest) {
+      if (featured.length >= 12) break;
+      if (!existingIds.has(job.id)) {
+        featured.push(job);
+        existingIds.add(job.id);
+      }
+    }
+
+    const chunks = [];
+    for (let i = 0; i < featured.length; i += 6) {
+      chunks.push(featured.slice(i, i + 6));
+    }
+    return chunks;
+  }, [displayedBoostedJobs, newestJobs?.items]);
 
   return (
     <div className="bg-background min-h-full font-sans">
@@ -693,42 +713,59 @@ export function HomePage() {
               <div className="overflow-hidden cursor-grab active:cursor-grabbing p-4 -m-4" ref={boostedEmblaRef}>
                 <div className="flex -ml-4 items-stretch">
                   {isBoostedLoading
-                    ? Array.from({ length: limit }).map((_, i) => (
-                      <div key={`skel-${i}`} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333333%] min-w-0 pl-4 flex flex-col">
-                        <JobCardSkeleton />
-                      </div>
-                    ))
-                    : displayedBoostedJobs.map((job) => (
-                      <div key={`boosted-${job.id}`} className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333333%] min-w-0 pl-4 transition-transform duration-300 hover:-translate-y-1 flex flex-col [&>div]:h-full [&>div>div]:h-full">
-                        <JobCardHoverPreview
-                          job={job}
-                          activePreviewKey={activePreviewKey}
-                          previewKey={`boosted-${job.id}`}
-                          handleMouseEnter={handlePreviewMouseEnter}
-                          handleMouseLeave={handlePreviewMouseLeave}
-                        />
-                      </div>
-                    ))}
+                    ? Array.from({ length: 1 }).map((_, slideIdx) => (
+                        <div key={`skel-slide-${slideIdx}`} className="flex-[0_0_100%] min-w-0 pl-4">
+                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                              <JobCardSkeleton key={`boosted-skel-${i}`} />
+                            ))}
+                          </div>
+                        </div>
+                      ))
+                    : chunkedBoostedJobs.map((chunk, slideIdx) => (
+                        <div key={`slide-${slideIdx}`} className="flex-[0_0_100%] min-w-0 pl-4">
+                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                            {chunk.map((job) => (
+                              <div
+                                key={`boosted-${job.id}`}
+                                className="transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl rounded-2xl"
+                              >
+                                <JobCardHoverPreview
+                                  job={job}
+                                  activePreviewKey={activePreviewKey}
+                                  previewKey={`boosted-${job.id}`}
+                                  handleMouseEnter={handlePreviewMouseEnter}
+                                  handleMouseLeave={handlePreviewMouseLeave}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
                 </div>
               </div>
 
               {/* Navigation buttons for Boosted Embla */}
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute -left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow-md border-slate-200 hidden md:flex text-slate-600 hover:text-primary z-10 transition-transform active:scale-95"
-                onClick={() => boostedEmblaApi?.scrollPrev()}
-              >
-                <ChevronLeft className="h-5 w-5" />
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                className="absolute -right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow-md border-slate-200 hidden md:flex text-slate-600 hover:text-primary z-10 transition-transform active:scale-95"
-                onClick={() => boostedEmblaApi?.scrollNext()}
-              >
-                <ChevronRight className="h-5 w-5" />
-              </Button>
+              {chunkedBoostedJobs.length > 1 && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute -left-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow-md border-slate-200 hidden md:flex text-slate-600 hover:text-primary z-10 transition-transform active:scale-95"
+                    onClick={() => boostedEmblaApi?.scrollPrev()}
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute -right-2 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full bg-white shadow-md border-slate-200 hidden md:flex text-slate-600 hover:text-primary z-10 transition-transform active:scale-95"
+                    onClick={() => boostedEmblaApi?.scrollNext()}
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </Button>
+                </>
+              )}
             </div>
           </Container>
         </section>
@@ -755,7 +792,7 @@ export function HomePage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {isLoading
               ? Array.from({ length: limit }).map((_, i) => <JobCardSkeleton key={i} />)
-              : newestJobs?.items?.map((job) => (
+              : newestJobs?.items?.slice(0, 6).map((job) => (
                 <div key={`newest-${job.id}`} className="transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl rounded-2xl">
                   <JobCardHoverPreview
                     job={job}
