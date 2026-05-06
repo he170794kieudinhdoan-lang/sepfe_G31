@@ -13,10 +13,10 @@ import {
 } from '../api/useSupport';
 
 const SUPPORT_STATUS_OPTIONS = [
-  { value: 'NEW', label: 'Mới' },
+  { value: 'NEW', label: 'Chưa xử lý' },
   { value: 'IN_PROGRESS', label: 'Đang xử lý' },
-  { value: 'WAITING_CUSTOMER', label: 'Chờ khách hàng phản hồi' },
-  { value: 'RESOLVED', label: 'Đã giải quyết' },
+  { value: 'WAITING_CUSTOMER', label: 'Đang chờ phản hồi' },
+  { value: 'RESOLVED', label: 'Đã hoàn tất' },
 ];
 
 const SUPPORT_PRIORITY_OPTIONS = [
@@ -119,11 +119,10 @@ export const SupportTicketBoard = () => {
         status: draft.status,
         internalNote: draft.internalNote,
       });
-      toast('Đã cập nhật ticket hỗ trợ.');
+      toast('Đã cập nhật yêu cầu hỗ trợ.');
       setSelectedTicket(null);
     } catch (error) {
-      const message =
-        error.response?.data?.message || 'Không thể cập nhật ticket hỗ trợ.';
+        error.response?.data?.message || 'Không thể cập nhật yêu cầu.';
       toast(message, 'error');
     }
   };
@@ -132,11 +131,11 @@ export const SupportTicketBoard = () => {
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Tổng ticket</p>
+          <p className="text-sm text-muted-foreground">Tổng yêu cầu</p>
           <p className="mt-1 text-2xl font-bold">{summary.total}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Mới</p>
+          <p className="text-sm text-muted-foreground">Chưa xử lý</p>
           <p className="mt-1 text-2xl font-bold text-amber-600">{summary.NEW}</p>
         </Card>
         <Card className="p-4">
@@ -144,7 +143,7 @@ export const SupportTicketBoard = () => {
           <p className="mt-1 text-2xl font-bold text-blue-600">{summary.IN_PROGRESS}</p>
         </Card>
         <Card className="p-4">
-          <p className="text-sm text-muted-foreground">Đã giải quyết</p>
+          <p className="text-sm text-muted-foreground">Đã hoàn tất</p>
           <p className="mt-1 text-2xl font-bold text-emerald-600">{summary.RESOLVED}</p>
         </Card>
       </div>
@@ -221,19 +220,19 @@ export const SupportTicketBoard = () => {
       <Card className="p-4">
         {isLoading || isFetching ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
-            Đang tải ticket hỗ trợ...
+            Đang tải dữ liệu yêu cầu...
           </div>
         ) : tickets.length === 0 ? (
           <EmptyState
             title="Không có yêu cầu hỗ trợ"
-            description="Không tìm thấy ticket nào phù hợp với bộ lọc hiện tại."
+            description="Không tìm thấy yêu cầu nào phù hợp với bộ lọc."
           />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-muted-foreground">
                 <tr className="border-b">
-                  <th className="py-2 font-medium">Mã ticket</th>
+                  <th className="py-2 font-medium">Mã số</th>
                   <th className="font-medium">Khách hàng</th>
                   <th className="font-medium">Chủ đề</th>
                   <th className="font-medium">Kênh</th>
@@ -288,8 +287,8 @@ export const SupportTicketBoard = () => {
 
       <Modal
         open={!!selectedTicket}
-        title={`Xử lý ticket ${selectedTicket?.ticketCode || ''}`}
-        description="Cập nhật trạng thái và ghi chú nội bộ cho ticket hỗ trợ."
+        title={`Xử lý yêu cầu ${selectedTicket?.ticketCode || ''}`}
+        description="Cập nhật trạng thái và ghi chú nghiệp vụ cho yêu cầu."
         onClose={() => setSelectedTicket(null)}
         onConfirm={handleSave}
         confirmLabel={updateSupportTicketMutation.isPending ? 'Đang lưu...' : 'Lưu cập nhật'}
@@ -310,7 +309,7 @@ export const SupportTicketBoard = () => {
 
           {selectedTicket?.description ? (
             <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-              <p className="text-xs font-semibold uppercase text-slate-500">Mô tả</p>
+              <p className="text-xs font-semibold uppercase text-slate-500">Chi tiết yêu cầu</p>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
                 {selectedTicket.description}
               </p>
@@ -335,10 +334,10 @@ export const SupportTicketBoard = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-slate-700">Ghi chú nội bộ</label>
+            <label className="text-sm font-medium text-slate-700">Ghi chú nghiệp vụ</label>
             <Textarea
               className="min-h-28 rounded-xl"
-              placeholder="Thêm ghi chú tiếp nhận, hướng xử lý, kết quả..."
+              placeholder="Ghi chú quy trình xử lý, kết quả..."
               value={draft.internalNote}
               onChange={(event) =>
                 setDraft({ ...draft, internalNote: event.target.value })

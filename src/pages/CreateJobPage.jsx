@@ -28,6 +28,7 @@ import {
   goToWalletTopup,
   isInsufficientPointError,
 } from '@/shared/utils/walletPointFlow';
+import { formatVND } from '@/shared/utils/formatCurrency';
 import {
   Briefcase,
   MapPin,
@@ -160,7 +161,7 @@ const schema = z
     }
   });
 
-export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
+export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => {
   const PROVINCES_API = import.meta.env.VITE_PROVINCES_API_URL;
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -410,8 +411,8 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
 
   return (
     <>
-      <div className="min-h-screen bg-slate-50 py-8 px-4">
-        <div className="max-w-5xl mx-auto bg-white rounded-2xl w-full max-h-[none] sm:max-h-[90vh] overflow-y-auto relative p-6 shadow-xl border border-slate-100">
+      <div className={isModal ? "w-full bg-transparent" : "min-h-screen bg-slate-50 py-8 px-4"}>
+        <div className={isModal ? "w-full bg-transparent p-0 border-0 shadow-none" : "max-w-5xl mx-auto bg-white rounded-2xl w-full max-h-[none] sm:max-h-[90vh] overflow-y-auto relative p-6 shadow-xl border border-slate-100"}>
           <Button
             variant="ghost"
             size="icon"
@@ -472,7 +473,7 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp }) => {
             })}
           </div>
 
-          <Card className="rounded-2xl shadow-xl border-0 overflow-hidden bg-white">
+          <Card className={`rounded-2xl border-0 overflow-hidden ${isModal ? 'bg-white border border-slate-100 shadow-sm' : 'bg-white shadow-xl'}`}>
             <div className="h-2 bg-primary w-full" />
             <div className="p-8 sm:p-10">
               {/* STEP 1: THÔNG TIN CHUNG */}

@@ -42,39 +42,39 @@ import { SupportTicketBoard } from '@/features/support/components/SupportTicketB
 
 // 1. Management Menu and Status Colors configuration
 const MANAGEMENT_MENU = [
-  { key: 'companies', label: 'Hồ sơ doanh nghiệp mới' },
-  { key: 'company_updates', label: 'Hồ sơ cập nhật' },
-  { key: 'job_reports', label: 'Báo cáo việc làm' },
-  { key: 'review_reports', label: 'Báo cáo đánh giá' },
-  { key: 'support', label: 'Hỗ trợ khách hàng' },
+  { key: 'companies', label: 'Doanh nghiệp đăng kí' },
+  { key: 'company_updates', label: 'Yêu cầu đổi thông tin' },
+  { key: 'job_reports', label: 'Báo cáo tin tuyển dụng' },
+  { key: 'review_reports', label: 'Báo cáo nhận xét' },
+  { key: 'support', label: 'Xử lý yêu cầu trợ giúp' },
 ];
 
 const STATUS_COLORS = {
   APPROVED: {
-    label: 'Đã duyệt',
+    label: 'Hợp lệ',
     color: 'bg-green-50 text-green-700 border-green-100',
   },
   PENDING: {
-    label: 'Đang chờ',
+    label: 'Chờ xử lý',
     color: 'bg-blue-50 text-blue-700 border-blue-100',
   },
   REJECTED: {
-    label: 'Đã từ chối',
+    label: 'Từ chối',
     color: 'bg-red-50 text-red-700 border-red-100',
   },
   UPDATING: {
-    label: 'Chờ duyệt cập nhật',
+    label: 'Chờ duyệt hồ sơ mới',
     color: 'bg-orange-50 text-orange-700 border-orange-100',
   },
 };
 
 const REPORT_REASON_LABELS = {
-  FRAUD: 'Lừa đảo',
-  INAPPROPRIATE_CONTENT: 'Nội dung không phù hợp',
-  SCAM: 'Lừa đảo/Đa cấp',
-  DUPLICATE: 'Tin tuyển dụng trùng lặp',
-  MISLEADING_INFO: 'Thông tin không đúng sự thật',
-  OTHER: 'Khác',
+  FRAUD: 'Lừa đảo, chiếm đoạt tài sản',
+  INAPPROPRIATE_CONTENT: 'Nội dung phản cảm, không phù hợp',
+  SCAM: 'Có dấu hiệu đa cấp, trục lợi',
+  DUPLICATE: 'Tin tuyển dụng bị trùng lặp',
+  MISLEADING_INFO: 'Thông tin công việc sai lệch, gây hiểu lầm',
+  OTHER: 'Lý do khác',
 };
 
 const REPORT_STATUS_LABELS = {
@@ -135,16 +135,26 @@ export const ManagerDashboard = () => {
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
 
-  const [reportStatus, setReportStatus] = useState('PENDING');
+  const [reportStatus, setReportStatus] = useState('ALL');
   const [viewingReportId, setViewingReportId] = useState(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isApproveReportModalOpen, setIsApproveReportModalOpen] = useState(false);
 
+  const [reportCompanyName, setReportCompanyName] = useState('');
+  const [reportReporterName, setReportReporterName] = useState('');
+  const [reportFromDate, setReportFromDate] = useState('');
+  const [reportToDate, setReportToDate] = useState('');
+
   // Review reports (UC 2.14.6 / 2.14.7)
-  const [reviewReportStatus, setReviewReportStatus] = useState('PENDING');
+  const [reviewReportStatus, setReviewReportStatus] = useState('ALL');
   const [viewingReviewReportId, setViewingReviewReportId] = useState(null);
   const [isReviewReportModalOpen, setIsReviewReportModalOpen] = useState(false);
   const [isApproveReviewReportModalOpen, setIsApproveReviewReportModalOpen] = useState(false);
+
+  const [reviewReportCompanyName, setReviewReportCompanyName] = useState('');
+  const [reviewReportReporterName, setReviewReportReporterName] = useState('');
+  const [reviewReportFromDate, setReviewReportFromDate] = useState('');
+  const [reviewReportToDate, setReviewReportToDate] = useState('');
 
   // --- DATA FETCHING FROM API ---
   const { data: allCompanies = [], isLoading: isLoadingAll } = useGetCompanies();
@@ -154,12 +164,12 @@ export const ManagerDashboard = () => {
   const { data: companyUpdateRequest } = useGetCompanyUpdateRequest(viewingCompanyId);
   const reviewCompanyMutation = useReviewCompany();
 
-  const { data: listReportsData = [], isLoading: loadingReports } = useGetAllJobReports(reportStatus, 1, 50);
+  const { data: listReportsData = [], isLoading: loadingReports } = useGetAllJobReports(reportStatus, 1, 50, reportCompanyName, reportReporterName, reportFromDate, reportToDate);
   const updateReportMutation = useUpdateJobReportStatus();
   const updateJobStatusMutation = useUpdateJobStatus();
 
   const { data: listReviewReportsData, isLoading: loadingReviewReports } =
-    useGetReviewReports(reviewReportStatus, 1, 50);
+    useGetReviewReports(reviewReportStatus === 'ALL' ? undefined : reviewReportStatus, 1, 50);
   const updateReviewReportMutation = useUpdateReviewReportStatus();
   const hideReviewMutation = useHideCompanyReview();
 
@@ -409,7 +419,7 @@ export const ManagerDashboard = () => {
       return (
         <div className="flex flex-col items-center justify-center min-h-100 text-slate-600">
           <div className="h-10 w-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-          <p>Đang lấy thông tin chi tiết...</p>
+          <p>Đang tải dữ liệu...</p>
         </div>
       );
 
@@ -446,7 +456,7 @@ export const ManagerDashboard = () => {
           onClick={() => setViewingCompanyId(null)}
           className="text-slate-600 hover:bg-primary-muted hover:text-primary-muted-foreground"
         >
-          ← Quay lại danh sách
+          ← Trở về
         </Button>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -541,12 +551,12 @@ export const ManagerDashboard = () => {
               {isUpdatingProfile && (
                 <div className="mt-8">
                   <h4 className="font-semibold text-slate-900 mb-3">
-                    So sánh thông tin trước / sau cập nhật
+                    So sánh thay đổi hồ sơ
                   </h4>
                   <div className="grid lg:grid-cols-2 gap-4">
                     <Card className="p-4 border border-slate-200 bg-slate-50">
                       <p className="text-sm font-semibold text-slate-700 mb-3">
-                        Bản đang hiển thị
+                        Thông tin hiện tại
                       </p>
                       <div className="space-y-3 text-sm text-slate-700">
                         {comparisonFields.map((field) => {
@@ -564,7 +574,7 @@ export const ManagerDashboard = () => {
                     </Card>
                     <Card className="p-4 border border-orange-200 bg-orange-50/50">
                       <p className="text-sm font-semibold text-orange-700 mb-3">
-                        Bản đề xuất cập nhật
+                        Nội dung thay đổi
                       </p>
                       <div className="space-y-3 text-sm text-slate-800">
                         {comparisonFields.map((field) => {
@@ -649,16 +659,43 @@ export const ManagerDashboard = () => {
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-          <select
-            className="border p-2 rounded-lg text-sm bg-slate-50"
-            value={reportStatus}
-            onChange={e => setReportStatus(e.target.value)}
-          >
-            <option value="PENDING">Chờ xử lý</option>
-            <option value="RESOLVED">Đã giải quyết</option>
-            <option value="REJECTED">Đã từ chối</option>
-          </select>
-          <p className="text-sm text-slate-500 px-2 font-medium">
+          <div className="flex flex-wrap gap-3 flex-1">
+            <select
+              className="border p-2 rounded-lg text-sm bg-slate-50 w-full sm:w-auto"
+              value={reportStatus}
+              onChange={e => setReportStatus(e.target.value)}
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="PENDING">Chờ xử lý</option>
+              <option value="RESOLVED">Đã giải quyết</option>
+              <option value="REJECTED">Đã từ chối</option>
+            </select>
+            <Input
+              placeholder="Tên công ty"
+              className="w-full sm:w-48 text-sm"
+              value={reportCompanyName}
+              onChange={(e) => setReportCompanyName(e.target.value)}
+            />
+            <Input
+              placeholder="Tên người báo cáo"
+              className="w-full sm:w-48 text-sm"
+              value={reportReporterName}
+              onChange={(e) => setReportReporterName(e.target.value)}
+            />
+            <Input
+              type="date"
+              className="w-full sm:w-40 text-sm"
+              value={reportFromDate}
+              onChange={(e) => setReportFromDate(e.target.value)}
+            />
+            <Input
+              type="date"
+              className="w-full sm:w-40 text-sm"
+              value={reportToDate}
+              onChange={(e) => setReportToDate(e.target.value)}
+            />
+          </div>
+          <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
             Hiển thị <span className="text-blue-600 font-bold">{listReportsData?.data?.length || 0}</span> báo cáo
           </p>
         </div>
@@ -688,7 +725,10 @@ export const ManagerDashboard = () => {
                 ) : (
                   listReportsData.data.map(r => (
                     <tr key={r.id} className="hover:bg-slate-50/50">
-                      <td className="px-6 py-4 text-sm font-semibold">{r.job?.title || '—'}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-semibold text-slate-800">{r.job?.title || '—'}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">{r.job?.company?.name || '—'}</div>
+                      </td>
                       <td className="px-6 py-4 text-sm"><ReporterCell user={r.reporter} /></td>
                       <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{formatManagerDateTime(r.createdAt)}</td>
                       <td className="px-6 py-4 text-sm text-red-600 font-medium">{REPORT_REASON_LABELS[r.reason] || r.reason}</td>
@@ -721,20 +761,64 @@ export const ManagerDashboard = () => {
   // VIEW 3: REVIEW REPORTS LIST (UC 2.14.6 / 2.14.7)
   // ==========================================================
   const renderReviewReports = () => {
-    const list = listReviewReportsData?.data || [];
+    let list = listReviewReportsData?.data || [];
+
+    // Client-side filtering
+    if (reviewReportCompanyName) {
+      list = list.filter(r => r.review?.company?.name?.toLowerCase().includes(reviewReportCompanyName.toLowerCase()));
+    }
+    if (reviewReportReporterName) {
+      list = list.filter(r => r.reporter?.fullName?.toLowerCase().includes(reviewReportReporterName.toLowerCase()));
+    }
+    if (reviewReportFromDate) {
+      const from = new Date(`${reviewReportFromDate}T00:00:00`);
+      list = list.filter(r => new Date(r.createdAt) >= from);
+    }
+    if (reviewReportToDate) {
+      const to = new Date(`${reviewReportToDate}T23:59:59`);
+      list = list.filter(r => new Date(r.createdAt) <= to);
+    }
+
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-          <select
-            className="border p-2 rounded-lg text-sm bg-slate-50"
-            value={reviewReportStatus}
-            onChange={e => setReviewReportStatus(e.target.value)}
-          >
-            <option value="PENDING">Chờ xử lý</option>
-            <option value="RESOLVED">Đã giải quyết</option>
-            <option value="REJECTED">Đã từ chối</option>
-          </select>
-          <p className="text-sm text-slate-500 px-2 font-medium">
+          <div className="flex flex-wrap gap-3 flex-1">
+            <select
+              className="border p-2 rounded-lg text-sm bg-slate-50 w-full sm:w-auto"
+              value={reviewReportStatus}
+              onChange={e => setReviewReportStatus(e.target.value)}
+            >
+              <option value="ALL">Tất cả trạng thái</option>
+              <option value="PENDING">Chờ xử lý</option>
+              <option value="RESOLVED">Đã giải quyết</option>
+              <option value="REJECTED">Đã từ chối</option>
+            </select>
+            <Input
+              placeholder="Tên công ty"
+              className="w-full sm:w-48 text-sm"
+              value={reviewReportCompanyName}
+              onChange={(e) => setReviewReportCompanyName(e.target.value)}
+            />
+            <Input
+              placeholder="Tên người báo cáo"
+              className="w-full sm:w-48 text-sm"
+              value={reviewReportReporterName}
+              onChange={(e) => setReviewReportReporterName(e.target.value)}
+            />
+            <Input
+              type="date"
+              className="w-full sm:w-40 text-sm"
+              value={reviewReportFromDate}
+              onChange={(e) => setReviewReportFromDate(e.target.value)}
+            />
+            <Input
+              type="date"
+              className="w-full sm:w-40 text-sm"
+              value={reviewReportToDate}
+              onChange={(e) => setReviewReportToDate(e.target.value)}
+            />
+          </div>
+          <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
             Hiển thị <span className="text-blue-600 font-bold">{list.length}</span> báo cáo
           </p>
         </div>
@@ -1151,7 +1235,7 @@ export const ManagerDashboard = () => {
               ? 'Danh sách hồ sơ doanh nghiệp mới'
               : currentTab === 'company_updates'
                 ? 'Danh sách hồ sơ cập nhật doanh nghiệp'
-              : MANAGEMENT_MENU.find((m) => m.key === currentTab)?.label}
+                : MANAGEMENT_MENU.find((m) => m.key === currentTab)?.label}
           </h2>
           {currentTab === 'job_reports'
             ? renderJobReports()
@@ -1159,9 +1243,9 @@ export const ManagerDashboard = () => {
               ? renderReviewReports()
               : currentTab === 'company_updates'
                 ? viewingCompanyId ? renderDetails() : renderCompanyUpdates()
-              : currentTab === 'support'
-                ? <SupportTicketBoard />
-                : viewingCompanyId ? renderDetails() : renderCompanyList()}
+                : currentTab === 'support'
+                  ? <SupportTicketBoard />
+                  : viewingCompanyId ? renderDetails() : renderCompanyList()}
         </div>
       </div>
 
@@ -1212,8 +1296,8 @@ export const ManagerDashboard = () => {
                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
                   <Building2 className="h-3 w-3" /> Công việc
                 </p>
-                <Link 
-                  to={`/job/${viewingReport.job?.id}`} 
+                <Link
+                  to={`/job/${viewingReport.job?.id}`}
                   target="_blank"
                   className="text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1"
                 >

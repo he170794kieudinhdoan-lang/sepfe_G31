@@ -325,10 +325,10 @@ export const useUpdateAiConfigs = () => {
   });
 };
 
-export const useGetAllJobReports = (status, page = 1, limit = 10) => {
+export const useGetAllJobReports = (status, page = 1, limit = 10, companyName, reporterName, fromDate, toDate) => {
   return useQuery({
-    queryKey: ['job-reports', status, page, limit],
-    queryFn: () => getAllJobReportsApi({ status, page, limit }),
+    queryKey: ['job-reports', status, page, limit, companyName, reporterName, fromDate, toDate],
+    queryFn: () => getAllJobReportsApi({ status, page, limit, companyName, reporterName, fromDate, toDate }),
     staleTime: 0,
     placeholderData: keepPreviousData,
   });
