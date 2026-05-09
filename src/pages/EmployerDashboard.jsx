@@ -7,6 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Progress } from '@/components/ui/progress';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { AppLoadingScene } from '@/shared/components/AppLoadingScene';
 import { Modal } from '@/shared/components/Modal';
@@ -114,6 +122,12 @@ const EMPLOYER_MENU = [
     label: 'Tin tuyển dụng',
     icon: Briefcase,
     path: '/employer/jobs',
+  },
+  {
+    key: 'interviews',
+    label: 'Lịch phỏng vấn',
+    icon: CalendarCheck,
+    path: '/employer/interviews',
   },
   {
     key: 'stats',
@@ -272,8 +286,7 @@ const MatchScoreItem = ({ label, score }) => {
 const ApplicantDetailPane = ({
   applicantDetail,
   applicantStatus,
-  setApplicantStatus,
-  onSaveStatus,
+  onRequestStatusChange,
 }) => {
   if (!applicantDetail) return null;
 
@@ -407,17 +420,13 @@ const ApplicantDetailPane = ({
           </div>
         ) : (
           <>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <div className="mb-4">
               <p className="text-sm font-semibold text-slate-800">
                 Cập nhật trạng thái ứng viên
               </p>
-              <Button
-                size="sm"
-                className="rounded-xl px-6 font-semibold shadow-sm"
-                onClick={onSaveStatus}
-              >
-                Lưu lại
-              </Button>
+              <p className="mt-1 text-xs text-slate-500">
+                Chọn trạng thái và xác nhận để lưu.
+              </p>
             </div>
             <div className="grid grid-cols-2 gap-2">
               {[
@@ -434,7 +443,7 @@ const ApplicantDetailPane = ({
               ].map((status) => (
                 <button
                   key={status.value}
-                  onClick={() => setApplicantStatus(status.value)}
+                  onClick={() => onRequestStatusChange(status.value)}
                   className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
                     ? status.activeClass
                     : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
@@ -480,17 +489,11 @@ const JobApplicantsPanel = ({
     Boolean(initialInviteState?.bulkInviteOpen),
   );
   const [bulkInviteSending, setBulkInviteSending] = useState(false);
-  const [bulkInviteMessage, setBulkInviteMessage] = useState(
-    initialInviteState?.bulkInviteMessage || '',
-  );
   const [bulkInviteSlots, setBulkInviteSlots] = useState(
     initialInviteState?.bulkInviteSlots || [],
   );
   const [selectedInviteSlotId, setSelectedInviteSlotId] = useState(
     initialInviteState?.selectedInviteSlotId || null,
-  );
-  const [inviteAllSuitable, setInviteAllSuitable] = useState(
-    Boolean(initialInviteState?.inviteAllSuitable),
   );
   const [inviteConstraints, setInviteConstraints] = useState(null);
   const [latestCampaignSlots, setLatestCampaignSlots] = useState([]);
@@ -501,6 +504,8 @@ const JobApplicantsPanel = ({
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
     'Số dư point không đủ để gửi lời mời.',
   );
+  const [confirmStatusOpen, setConfirmStatusOpen] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState('');
 
   useEffect(() => {
     if (!initialInviteState) return;
@@ -511,17 +516,15 @@ const JobApplicantsPanel = ({
       new Set(initialInviteState.selectedApplicantIds || []),
     );
     setBulkInviteOpen(Boolean(initialInviteState.bulkInviteOpen));
-    setBulkInviteMessage(initialInviteState.bulkInviteMessage || '');
     setBulkInviteSlots(initialInviteState.bulkInviteSlots || []);
     setSelectedInviteSlotId(initialInviteState.selectedInviteSlotId || null);
-    setInviteAllSuitable(Boolean(initialInviteState.inviteAllSuitable));
   }, [initialInviteState]);
   const limit = 5;
 
   const applicantsList = applicationsResult?.data || [];
 
   const filteredApplicants = applicantsList.filter((a) => {
-    if (a.status === 'CANCELLED') return false;
+    if (!['APPLIED', 'VIEWED'].includes(a.status)) return false;
     if (statusFilter && a.status !== statusFilter) return false;
     if (
       searchText &&
@@ -557,17 +560,31 @@ const JobApplicantsPanel = ({
     }
   };
 
-  const handleSaveStatus = () => {
-    if (!selectedApplicant || !applicantStatus) return;
+  const handleSaveStatus = (nextStatus) => {
+    if (!selectedApplicant || !nextStatus) return;
     updateApplicantStatus(
-      { applicationId: selectedApplicant.id, status: applicantStatus },
+      { applicationId: selectedApplicant.id, status: nextStatus },
       {
         onSuccess: () => {
           toast('Cập nhật trạng thái thành công', 'success');
-          setSelectedApplicant((prev) => ({ ...prev, status: applicantStatus }));
+          setApplicantStatus(nextStatus);
+          setSelectedApplicant((prev) => ({ ...prev, status: nextStatus }));
         },
       },
     );
+  };
+
+  const handleRequestStatusChange = (nextStatus) => {
+    if (!selectedApplicant) return;
+    setPendingStatus(nextStatus);
+    setConfirmStatusOpen(true);
+  };
+
+  const handleConfirmStatusChange = () => {
+    if (!pendingStatus) return;
+    handleSaveStatus(pendingStatus);
+    setConfirmStatusOpen(false);
+    setPendingStatus('');
   };
 
   useEffect(() => {
@@ -577,7 +594,8 @@ const JobApplicantsPanel = ({
     }
   }, [filteredApplicants, selectedApplicant]);
 
-  const isApplicantInvitable = (applicant) => applicant?.status === 'SUITABLE';
+  const isApplicantInvitable = (applicant) =>
+    ['APPLIED', 'VIEWED'].includes(applicant?.status);
 
   const getApplicantUserId = (applicant) => {
     const rawId =
@@ -613,10 +631,6 @@ const JobApplicantsPanel = ({
   ).length;
 
   const selectedCount = selectedApplicantIds.size;
-  const canSelectAll = availableApplicantUserIds.length > 0;
-  const isAllSelected =
-    canSelectAll &&
-    availableApplicantUserIds.every((id) => selectedApplicantIds.has(id));
 
   const getSlotById = (slotId) =>
     bulkInviteSlots.find((slot) => slot.id === slotId);
@@ -731,16 +745,7 @@ const JobApplicantsPanel = ({
   useEffect(() => {
     setBulkInviteSlots([]);
     setSelectedInviteSlotId(null);
-    setInviteAllSuitable(false);
   }, [jobId]);
-
-  useEffect(() => {
-    if (!jobDetail?.title) return;
-    setBulkInviteMessage((prev) => {
-      if (prev.trim()) return prev;
-      return `Chào bạn, bạn đã phù hợp với vị trí ${jobDetail.title}. Vui lòng chọn 1 ca phỏng vấn phù hợp trong các ca bên dưới để xác nhận lịch.`;
-    });
-  }, [jobDetail?.title]);
 
   useEffect(() => {
     if (!bulkInviteOpen) return;
@@ -934,34 +939,11 @@ const JobApplicantsPanel = ({
     });
   };
 
-  const toggleAllApplicants = () => {
-    if (!canSelectAll) return;
-
-    setSelectedApplicantIds((previous) => {
-      if (isAllSelected) {
-        const next = new Set(previous);
-        availableApplicantUserIds.forEach((id) => next.delete(id));
-        return next;
-      }
-
-      const next = new Set(previous);
-      availableApplicantUserIds.forEach((id) => next.add(id));
-      return next;
-    });
-  };
-
   const handleSendBulkInterviewInvite = async () => {
-    const sourceApplicantIds = inviteAllSuitable
-      ? availableApplicantUserIds
-      : Array.from(selectedApplicantIds);
+    const sourceApplicantIds = Array.from(selectedApplicantIds);
 
     if (!sourceApplicantIds.length) {
-      toast(
-        inviteAllSuitable
-          ? 'Không có ứng viên Phù hợp để mời phỏng vấn.'
-          : 'Vui lòng chọn ít nhất 1 ứng viên hoặc bật mời tất cả.',
-        'error',
-      );
+      toast('Vui lòng chọn ít nhất 1 ứng viên để mời phỏng vấn.', 'error');
       return;
     }
 
@@ -970,7 +952,7 @@ const JobApplicantsPanel = ({
       (id) => invitedWorkerIdSet.has(String(id)),
     );
 
-    if (alreadySelectedInvitedIds.length > 0 && !inviteAllSuitable) {
+    if (alreadySelectedInvitedIds.length > 0) {
       toast(
         `${alreadySelectedInvitedIds.length} ứng viên đã được mời phỏng vấn cho vị trí này rồi. Vui lòng bỏ chọn họ.`,
         'warning',
@@ -981,12 +963,6 @@ const JobApplicantsPanel = ({
         alreadySelectedInvitedIds.forEach((id) => next.delete(id));
         return next;
       });
-      return;
-    }
-
-    const trimmedMessage = bulkInviteMessage.trim();
-    if (!trimmedMessage) {
-      toast('Vui lòng nhập nội dung lời mời phỏng vấn.', 'error');
       return;
     }
 
@@ -1001,7 +977,7 @@ const JobApplicantsPanel = ({
       );
 
       if (!selectedInvitableIds.length) {
-        toast('Vui lòng chọn ứng viên Phù hợp để mời phỏng vấn.', 'error');
+        toast('Vui lòng chọn ứng viên hợp lệ để mời phỏng vấn.', 'error');
         return;
       }
 
@@ -1145,9 +1121,6 @@ const JobApplicantsPanel = ({
       }
 
       const campaign = await createCampaign({
-        title: `Mời phỏng vấn - ${jobDetail?.title || 'Vị trí tuyển dụng'}`,
-        description: `Chiến dịch mời phỏng vấn cho công việc #${jobId}`,
-        message: trimmedMessage,
         jobId: Number(jobId),
         workerIds,
         slots: normalizedSlots,
@@ -1188,7 +1161,6 @@ const JobApplicantsPanel = ({
         setSelectedApplicantIds(new Set());
         setBulkInviteSlots([]);
         setSelectedInviteSlotId(null);
-        setInviteAllSuitable(false);
       } else {
         toast('Không gửi được lời mời nào. Vui lòng thử lại.', 'error');
       }
@@ -1221,10 +1193,8 @@ const JobApplicantsPanel = ({
           page,
           selectedApplicantIds: Array.from(selectedApplicantIds),
           bulkInviteOpen,
-          bulkInviteMessage,
           bulkInviteSlots,
           selectedInviteSlotId,
-          inviteAllSuitable,
         },
       },
     });
@@ -1402,8 +1372,6 @@ const JobApplicantsPanel = ({
                 <option value="">Tất cả TT</option>
                 <option value="APPLIED">Chờ xử lý</option>
                 <option value="VIEWED">Đã xem</option>
-                <option value="SUITABLE">Phù hợp</option>
-                <option value="UNSUITABLE">Không phù hợp</option>
               </select>
               <Button
                 variant="outline"
@@ -1416,18 +1384,9 @@ const JobApplicantsPanel = ({
               </Button>
             </div>
             <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={isAllSelected}
-                  onCheckedChange={toggleAllApplicants}
-                  className="w-4 h-4 rounded border-slate-300"
-                />
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
-                  {selectedApplicantIds.size > 0
-                    ? `Đã chọn ${selectedApplicantIds.size}`
-                    : `Danh sách (${filteredApplicants.length})`}
-                </span>
-              </div>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+                {`Danh sách (${filteredApplicants.length})`}
+              </span>
               <div className="flex gap-2 shrink-0">
                 <Button
                   size="sm"
@@ -1472,7 +1431,6 @@ const JobApplicantsPanel = ({
             ) : (
               paginatedApplicants.map((a) => {
                 const isSelected = selectedApplicant?.id === a.id;
-                const isChecked = selectedApplicantIds.has(getApplicantUserId(a));
                 return (
                   <div
                     key={a.id}
@@ -1482,15 +1440,6 @@ const JobApplicantsPanel = ({
                       }`}
                     onClick={() => handleSelectApplicant(a)}
                   >
-                    <div className="pt-1">
-                      <Checkbox
-                        checked={isChecked}
-                        onCheckedChange={() => toggleApplicantSelection(getApplicantUserId(a))}
-                        disabled={!isApplicantSelectable(a)}
-                        onClick={(e) => e.stopPropagation()}
-                        className="w-4 h-4 rounded border-slate-300"
-                      />
-                    </div>
                     <div className="flex-1 min-w-0 flex items-start gap-3">
                       <img
                         src={
@@ -1564,8 +1513,7 @@ const JobApplicantsPanel = ({
             <ApplicantDetailPane
               applicantDetail={selectedApplicant}
               applicantStatus={applicantStatus}
-              setApplicantStatus={setApplicantStatus}
-              onSaveStatus={handleSaveStatus}
+              onRequestStatusChange={handleRequestStatusChange}
             />
           ) : (
             <div className="flex h-full items-center justify-center">
@@ -1602,33 +1550,15 @@ const JobApplicantsPanel = ({
           bulkInviteSending ? 'Đang gửi...' : 'Tạo lịch và gửi lời mời'
         }
         cancelLabel="Hủy"
-        confirmDisabled={bulkInviteSending || !bulkInviteMessage.trim()}
+        confirmDisabled={bulkInviteSending}
       >
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
           <div className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-linear-to-br from-white via-slate-50 to-slate-100 p-4 sm:p-5">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Nội dung tin nhắn
-                </p>
-                <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
-                  {bulkInviteMessage.trim().length} ký tự
-                </span>
-              </div>
-              <Textarea
-                value={bulkInviteMessage}
-                onChange={(e) => setBulkInviteMessage(e.target.value)}
-                rows={4}
-                placeholder="Nhập nội dung mời phỏng vấn"
-                className="mt-2 rounded-xl border-slate-200 bg-white"
-              />
-            </div>
-
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-800">
-                    Lịch phỏng vấn
+                    Các ca phỏng vấn
                   </p>
                   <p className="text-xs text-slate-500">
                     Kéo chọn để tạo ca, kéo thả để đổi giờ, click ca để chỉnh
@@ -1689,9 +1619,7 @@ const JobApplicantsPanel = ({
                 <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
                   <p className="text-[11px] text-slate-500">Ứng viên</p>
                   <p className="text-base font-semibold text-slate-800">
-                    {inviteAllSuitable
-                      ? availableApplicantUserIds.length
-                      : selectedApplicantIds.size}
+                    {selectedApplicantIds.size}
                   </p>
                 </div>
                 <div className="rounded-xl border border-slate-200 bg-white px-3 py-2">
@@ -1844,6 +1772,36 @@ const JobApplicantsPanel = ({
         onGoTopup={handleGoToTopupFromInvite}
         message={insufficientPointMessage}
       />
+      <Dialog
+        open={confirmStatusOpen}
+        onOpenChange={(open) => {
+          setConfirmStatusOpen(open);
+          if (!open) setPendingStatus('');
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác nhận cập nhật trạng thái</DialogTitle>
+            <DialogDescription>
+              {pendingStatus === 'SUITABLE'
+                ? 'Bạn xác nhận đánh dấu ứng viên này là Phù hợp?'
+                : 'Bạn xác nhận đánh dấu ứng viên này là Không phù hợp?'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmStatusOpen(false);
+                setPendingStatus('');
+              }}
+            >
+              Hủy
+            </Button>
+            <Button onClick={handleConfirmStatusChange}>Xác nhận</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div >
   );
 };
@@ -2606,6 +2564,9 @@ export const EmployerDashboard = () => {
   // Applicant details
   const [applicantDetail, setApplicantDetail] = useState(null);
   const [applicantStatus, setApplicantStatus] = useState('');
+  const [confirmApplicantStatusOpen, setConfirmApplicantStatusOpen] =
+    useState(false);
+  const [pendingApplicantStatus, setPendingApplicantStatus] = useState('');
 
   // Filtering states
   const [jobSearchText, setJobSearchText] = useState('');
@@ -3061,7 +3022,7 @@ export const EmployerDashboard = () => {
     }
   };
 
-  const handleSaveApplicantStatus = () => {
+  const handleSaveApplicantStatus = (nextStatus) => {
     if (!applicantDetail) return;
 
     if (
@@ -3075,7 +3036,7 @@ export const EmployerDashboard = () => {
       return;
     }
 
-    if (!['SUITABLE', 'UNSUITABLE'].includes(applicantStatus)) {
+    if (!['SUITABLE', 'UNSUITABLE'].includes(nextStatus)) {
       toast(
         'Chỉ được cập nhật trạng thái Phù hợp hoặc Không phù hợp.',
         'error',
@@ -3084,10 +3045,11 @@ export const EmployerDashboard = () => {
     }
 
     updateApplicantStatus(
-      { applicationId: applicantDetail.id, status: applicantStatus },
+      { applicationId: applicantDetail.id, status: nextStatus },
       {
         onSuccess: () => {
           toast('Cập nhật trạng thái thành công', 'success');
+          setApplicantStatus(nextStatus);
           setApplicantDetail(null);
         },
         onError: (error) => {
@@ -3096,6 +3058,19 @@ export const EmployerDashboard = () => {
         },
       },
     );
+  };
+
+  const handleRequestApplicantStatusChange = (nextStatus) => {
+    if (!applicantDetail) return;
+    setPendingApplicantStatus(nextStatus);
+    setConfirmApplicantStatusOpen(true);
+  };
+
+  const handleConfirmApplicantStatusChange = () => {
+    if (!pendingApplicantStatus) return;
+    handleSaveApplicantStatus(pendingApplicantStatus);
+    setConfirmApplicantStatusOpen(false);
+    setPendingApplicantStatus('');
   };
 
   const getEditableApplicantStatus = (status) =>
@@ -3995,8 +3970,6 @@ export const EmployerDashboard = () => {
                         <option value="">Tất cả trạng thái</option>
                         <option value="APPLIED">Chờ xử lý</option>
                         <option value="VIEWED">Đã xem</option>
-                        <option value="SUITABLE">Phù hợp</option>
-                        <option value="UNSUITABLE">Không phù hợp</option>
                       </select>
                     </div>
                   </div>
@@ -4332,34 +4305,36 @@ export const EmployerDashboard = () => {
         onGoTopup={handleGoToTopupFromBoost}
         message={insufficientPointMessage}
       />
-
-      {/* <Modal
-        open={bulkInviteOpen}
-        title="Gửi lời mời phỏng vấn"
-        description={`Bạn đang chọn ${selectedApplicantIds.size} ứng viên. Nội dung dưới đây sẽ được gửi qua chat.`}
-        onClose={() => {
-          if (!bulkInviteSending) {
-            setBulkInviteOpen(false);
-          }
+      <Dialog
+        open={confirmApplicantStatusOpen}
+        onOpenChange={(open) => {
+          setConfirmApplicantStatusOpen(open);
+          if (!open) setPendingApplicantStatus('');
         }}
-        onConfirm={handleSendBulkInterviewInvite}
-        confirmLabel={bulkInviteSending ? 'Đang gửi...' : 'Gửi lời mời'}
-        cancelLabel="Hủy"
-        confirmDisabled={bulkInviteSending || !bulkInviteMessage.trim()}
       >
-        <div className="space-y-2 mt-4">
-          <p className="text-sm font-medium text-slate-700">Nội dung tin nhắn</p>
-          <Textarea
-            value={bulkInviteMessage}
-            onChange={(e) => setBulkInviteMessage(e.target.value)}
-            rows={6}
-            placeholder="Nhập nội dung mời phỏng vấn"
-            className="rounded-xl border-slate-200"
-          />
-        </div>
-      </Modal> */}
-
-
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xác nhận cập nhật trạng thái</DialogTitle>
+            <DialogDescription>
+              {pendingApplicantStatus === 'SUITABLE'
+                ? 'Bạn xác nhận đánh dấu ứng viên này là Phù hợp?'
+                : 'Bạn xác nhận đánh dấu ứng viên này là Không phù hợp?'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setConfirmApplicantStatusOpen(false);
+                setPendingApplicantStatus('');
+              }}
+            >
+              Hủy
+            </Button>
+            <Button onClick={handleConfirmApplicantStatusChange}>Xác nhận</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Modal
         open={campaignDetailOpen}
@@ -4849,16 +4824,13 @@ export const EmployerDashboard = () => {
 
                 return (
                   <>
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                    <div className="mb-4">
                       <p className="text-sm font-semibold text-slate-800">
                         Cập nhật trạng thái ứng viên
                       </p>
-                      <Button
-                        className="rounded-xl px-6 font-semibold shadow-sm"
-                        onClick={handleSaveApplicantStatus}
-                      >
-                        Lưu lại
-                      </Button>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Chọn trạng thái và xác nhận để lưu.
+                      </p>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       {[
@@ -4877,7 +4849,9 @@ export const EmployerDashboard = () => {
                       ].map((status) => (
                         <button
                           key={status.value}
-                          onClick={() => setApplicantStatus(status.value)}
+                          onClick={() =>
+                            handleRequestApplicantStatusChange(status.value)
+                          }
                           className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
                             ? status.activeClass
                             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
