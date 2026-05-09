@@ -26,6 +26,7 @@ import useEmblaCarousel from 'embla-carousel-react';
 import {
   BarChart3,
   Briefcase,
+  CalendarCheck,
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
@@ -42,6 +43,7 @@ import {
 const EMPLOYER_MENU = [
   { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, path: '/employer' },
   { key: 'jobs', label: 'Tin tuyển dụng', icon: Briefcase, path: '/employer/jobs' },
+  { key: 'interviews', label: 'Lịch phỏng vấn', icon: CalendarCheck, path: '/employer/interviews' },
   { key: 'stats', label: 'Thống kê', icon: BarChart3, path: '/employer/stats' },
   { key: 'wallet', label: 'Tài khoản điểm', icon: Wallet, path: '/employer/wallet' },
   { key: 'chat', label: 'Tin nhắn', icon: MessageCircle, path: '/chat', externalNav: true },

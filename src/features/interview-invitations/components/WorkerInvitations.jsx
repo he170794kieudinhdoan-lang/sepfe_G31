@@ -182,7 +182,7 @@ const WorkerInvitations = ({ embedded = false }) => {
                 className: 'bg-slate-100 text-slate-600 border-slate-200',
               }
 
-              const isExpired =
+              const isRescheduleExpired =
                 invitation.campaign.expiresAt &&
                 new Date(invitation.campaign.expiresAt) < new Date()
 
@@ -199,11 +199,13 @@ const WorkerInvitations = ({ embedded = false }) => {
 
               const canChooseOrChangeSlot =
                 (invitation.status === 'PENDING' || invitation.status === 'ACCEPTED') &&
-                !isExpired
+                !isRescheduleExpired
               const canPendingRespond =
-                invitation.status === 'PENDING' && !isExpired && selectableSlots.length > 0
+                invitation.status === 'PENDING' && !isRescheduleExpired && selectableSlots.length > 0
               const canReschedule =
-                invitation.status === 'ACCEPTED' && !isExpired && selectableSlots.length > 0
+                invitation.status === 'ACCEPTED' &&
+                !isRescheduleExpired &&
+                selectableSlots.length > 0
               const hasSelectedSlot = !!preselectedSlotId
 
               return (
@@ -252,7 +254,7 @@ const WorkerInvitations = ({ embedded = false }) => {
                       </span>
                       {invitation.campaign.expiresAt && (
                         <span className="rounded-full bg-white px-3 py-1.5 font-medium shadow-sm ring-1 ring-slate-200">
-                          Hạn: {formatDateTime(invitation.campaign.expiresAt)}
+                          Hạn đổi lịch: {formatDateTime(invitation.campaign.expiresAt)}
                         </span>
                       )}
                     </div>
@@ -357,7 +359,9 @@ const WorkerInvitations = ({ embedded = false }) => {
                       ) : (
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                           {invitation.status === 'ACCEPTED'
-                            ? 'Lịch đã lưu.'
+                            ? isRescheduleExpired
+                              ? 'Đã quá hạn đổi lịch. Lịch đã chốt.'
+                              : 'Lịch đã lưu.'
                             : invitation.status === 'REJECTED'
                               ? 'Đã từ chối.'
                               : 'Không chọn giờ ở đây.'}
