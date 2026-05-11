@@ -584,6 +584,11 @@ const JobApplicantsPanel = ({
           setApplicantStatus(nextStatus);
           setSelectedApplicant((prev) => ({ ...prev, status: nextStatus }));
         },
+        onError: (error) => {
+          const message =
+            error?.response?.data?.message || 'Cập nhật trạng thái thất bại';
+          toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+        },
       },
     );
   };
@@ -3097,14 +3102,6 @@ export const EmployerDashboard = () => {
   };
 
   const handleRequestApplicantStatusChange = (nextStatus) => {
-        // Check if marking as SUITABLE and job has no interview slots
-        if (nextStatus === 'SUITABLE' && latestCampaignSlots.length === 0) {
-          toast(
-            'Công việc này chưa có lịch phỏng vấn. Vui lòng tạo lịch phỏng vấn trước khi mời ứng viên.',
-            'warning',
-          );
-          return;
-        }
     if (!applicantDetail) return;
     setPendingApplicantStatus(nextStatus);
     setConfirmApplicantStatusOpen(true);
