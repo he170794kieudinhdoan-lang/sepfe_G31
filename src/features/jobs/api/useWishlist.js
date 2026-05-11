@@ -28,7 +28,7 @@ export const useWishlist = (params, options = {}) => {
   return useQuery({
     queryKey: ['wishlist', params],
     queryFn: () => getWishlistApi(params),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     ...options,
   });
 };

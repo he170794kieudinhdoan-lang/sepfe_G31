@@ -1,51 +1,33 @@
-import { useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createCampaign, sendCampaign, cancelCampaign } from '../api/interviewInvitationApi'
 
-export const useCampaignMutation = () => {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+export const useCreateCampaignMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createCampaign,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employer-interview-campaigns'] })
+    },
+  })
+}
 
-  const create = async (campaignData) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await createCampaign(campaignData)
-      return result
-    } catch (err) {
-      setError(err.message)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
+export const useSendCampaignMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: sendCampaign,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employer-interview-campaigns'] })
+      queryClient.invalidateQueries({ queryKey: ['my-wallet'] })
+    },
+  })
+}
 
-  const send = async (campaignId) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await sendCampaign(campaignId)
-      return result
-    } catch (err) {
-      setError(err.message)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const cancel = async (campaignId) => {
-    setLoading(true)
-    setError(null)
-    try {
-      const result = await cancelCampaign(campaignId)
-      return result
-    } catch (err) {
-      setError(err.message)
-      throw err
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return { create, send, cancel, loading, error }
+export const useCancelCampaignMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: cancelCampaign,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employer-interview-campaigns'] })
+    },
+  })
 }

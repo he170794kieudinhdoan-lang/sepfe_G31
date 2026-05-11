@@ -20,12 +20,11 @@ import {
   useJobsForEmployer,
 } from '@/features/jobs/api/useJobs';
 import {
-  cancelCampaign,
-  createCampaign,
   getCampaignDetail,
   getCampaigns,
   sendCampaign,
 } from '@/features/interview-invitations/api/interviewInvitationApi';
+import { useCancelCampaignMutation } from '@/features/interview-invitations/hooks';
 import {
   AlertCircle,
   BarChart3,
@@ -142,6 +141,7 @@ export const EmployerInterviewSchedulePage = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { mutateAsync: cancelCampaignMutation } = useCancelCampaignMutation();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -165,7 +165,7 @@ export const EmployerInterviewSchedulePage = () => {
   const { data: company, isLoading: loadingCompany } = useGetMyCompany();
   const { data: allJobsResult } = useJobsForEmployer(
     { allStatus: true, fetchAll: true },
-    { staleTime: 60 * 1000 },
+    { staleTime: 0 },
   );
 
   const {
@@ -635,7 +635,7 @@ export const EmployerInterviewSchedulePage = () => {
   const handleCancelCampaign = async (campaignId) => {
     setCancellingId(campaignId);
     try {
-      await cancelCampaign(campaignId);
+      await cancelCampaignMutation(campaignId);
       toast('Đã hủy lịch phỏng vấn.', 'success');
       await invalidateInterviewData();
     } catch (error) {

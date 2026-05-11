@@ -145,7 +145,7 @@ export const EmployerWalletPage = () => {
     },
   });
 
-  const { data: txRes } = useWalletTransactions({ page: txPage, limit: txLimit });
+  const { data: txRes, isLoading: txLoading } = useWalletTransactions({ page: txPage, limit: txLimit });
   const txPayload = txRes?.data || txRes;
   const transactions = txPayload?.items || [];
   const txMeta = txPayload?.meta;
@@ -382,8 +382,13 @@ export const EmployerWalletPage = () => {
                 </Badge>
               </div>
 
-              <div className="p-0">
-                {recentTransactions.length === 0 ? (
+              <div className="p-0 min-h-[300px] relative">
+                {txLoading ? (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white/50 z-10 backdrop-blur-[1px]">
+                    <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+                  </div>
+                ) : null}
+                {recentTransactions.length === 0 && !txLoading ? (
                   <div className="py-12 text-center">
                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
                       <History className="h-6 w-6 text-slate-400" />

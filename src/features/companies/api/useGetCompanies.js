@@ -109,8 +109,8 @@ export const useGetMyCompany = () => {
       }
     },
     retry: false, // không retry — 404 là trạng thái bình thường
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 };
 
@@ -122,7 +122,7 @@ export const useCreateCompany = () => {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-company']);
+      queryClient.invalidateQueries({ queryKey: ['my-company'] });
     },
   });
 };
@@ -135,7 +135,7 @@ export const useUpdateCompany = () => {
       return response;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries(['my-company']);
+      queryClient.invalidateQueries({ queryKey: ['my-company'] });
     },
   });
 };

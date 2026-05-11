@@ -62,7 +62,7 @@ export const useSearchJobs = (filters = {}, options = {}) => {
   return useQuery({
     queryKey: ['job-search', filters],
     queryFn: () => searchJobs(filters),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
     keepPreviousData: true,
     ...options,
@@ -73,7 +73,7 @@ export const useJobsForEmployer = (filters = {}, options = {}) => {
   return useQuery({
     queryKey: ['jobs-for-employer', filters],
     queryFn: () => getJobsForEmployer(filters),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
     keepPreviousData: true,
     ...options,
@@ -84,7 +84,7 @@ export const useBoostedJobs = (params = {}, options = {}) => {
   return useQuery({
     queryKey: ['boosted-jobs', params],
     queryFn: () => getBoostedJobsApi(params),
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
     keepPreviousData: true,
     ...options,
@@ -95,7 +95,7 @@ export const useBoostPackages = (options = {}) => {
   return useQuery({
     queryKey: ['boost-packages'],
     queryFn: getBoostPackagesApi,
-    staleTime: 60 * 1000,
+    staleTime: 0,
     retry: 1,
     ...options,
   });
@@ -115,6 +115,7 @@ const invalidateJobQueries = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
   queryClient.invalidateQueries({ queryKey: ['job-detail'] });
   queryClient.invalidateQueries({ queryKey: ['employer-jobs'] });
+  queryClient.invalidateQueries({ queryKey: ['my-wallet'] });
 };
 
 export const useCreateJob = () => {
@@ -200,7 +201,7 @@ export const useGetSectorsWithOccupations = () => {
   return useQuery({
     queryKey: ['sectors-with-occupations'],
     queryFn: getSectorsWithOccupations,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
   });
 };
@@ -210,7 +211,7 @@ export const useGetOccupationsBySector = (sectorId) => {
     queryKey: ['occupations-by-sector', sectorId],
     queryFn: () => getOccupationsBySector(sectorId),
     enabled: !!sectorId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
   });
 };
@@ -221,7 +222,7 @@ export const useGetProvinces = () => {
   return useQuery({
     queryKey: ['provinces'],
     queryFn: getProvinces,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
     keepPreviousData: true,
   });
@@ -232,7 +233,7 @@ export const useGetWards = (wardsId) => {
     queryKey: ['wards', wardsId],
     queryFn: () => getWards(wardsId),
     enabled: !!wardsId,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
     keepPreviousData: true,
   });
@@ -241,7 +242,7 @@ export const useJobApply = (jobId) => {
   return useQuery({
     queryKey: ['job-apply', jobId],
     queryFn: () => getJobApplyApi(jobId),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
     enabled: !!jobId,
   });
@@ -262,7 +263,7 @@ export const useMyApplications = (options = {}) => {
   return useQuery({
     queryKey: ['my-applications'],
     queryFn: getMyApplicationsApi,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
     ...options,
   });
@@ -283,7 +284,7 @@ export const useMatchedJobs = (options = {}) => {
   return useQuery({
     queryKey: ['matched-jobs'],
     queryFn: () => getMatchedJobsApi(),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     ...options,
   });
 };
@@ -292,7 +293,7 @@ export const useMatchedWorkers = (jobId, limit = 10, options = {}) => {
   return useQuery({
     queryKey: ['matched-workers', jobId, limit],
     queryFn: () => getMatchedWorkersApi(jobId, limit),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     enabled: !!jobId,
     ...options,
   });

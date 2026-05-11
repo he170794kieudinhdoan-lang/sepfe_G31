@@ -3,7 +3,7 @@ import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import timeGridPlugin from '@fullcalendar/timegrid'
 import interactionPlugin from '@fullcalendar/interaction'
-import { useCampaignMutation } from '../hooks/useCampaignMutation'
+import { useCreateCampaignMutation } from '../hooks/useCampaignMutation'
 import './CreateCampaignForm.css'
 
 const CreateCampaignForm = ({ onSuccess, onCancel }) => {
@@ -32,7 +32,7 @@ const CreateCampaignForm = ({ onSuccess, onCancel }) => {
   const [workerInput, setWorkerInput] = useState('')
   const [selectedSlotId, setSelectedSlotId] = useState(null)
   const [error, setError] = useState(null)
-  const { create, loading } = useCampaignMutation()
+  const { mutateAsync: createCampaign, isPending: loading } = useCreateCampaignMutation()
 
   const hasOverlap = (slots, candidate, ignoreSlotId = null) => {
     const candidateStart = new Date(candidate.startAt).getTime()
@@ -228,7 +228,7 @@ const CreateCampaignForm = ({ onSuccess, onCancel }) => {
         ...formData,
         slots: formData.slots.map(({ id, ...slot }) => slot),
       }
-      const result = await create(payload)
+      const result = await createCampaign(payload)
       onSuccess?.(result)
     } catch (err) {
       setError(err.message)

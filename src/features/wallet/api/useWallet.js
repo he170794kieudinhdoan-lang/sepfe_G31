@@ -27,7 +27,7 @@ export const useWalletPricing = (options = {}) => {
   return useQuery({
     queryKey: ['wallet-pricing'],
     queryFn: getWalletPricingApi,
-    staleTime: 60 * 1000,
+    staleTime: 0,
     ...options,
   });
 };

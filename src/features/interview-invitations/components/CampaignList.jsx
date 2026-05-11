@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getCampaigns, getCampaignDetail, sendCampaign } from '../api/interviewInvitationApi'
+import { getCampaigns, getCampaignDetail } from '../api/interviewInvitationApi'
+import { useSendCampaignMutation } from '../hooks'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import './CampaignList.css'
 
@@ -11,6 +12,7 @@ const CampaignList = () => {
   const [selectedStatus, setSelectedStatus] = useState(null)
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
+  const { mutateAsync: sendCampaign } = useSendCampaignMutation()
 
   useEffect(() => {
     if (!isAuthenticated) return

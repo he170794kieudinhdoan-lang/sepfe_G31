@@ -7,7 +7,7 @@ import { LogoOrbitLoader } from '@/shared/components/LogoOrbitLoader';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 2 * 60 * 1000,
+      staleTime: 0,
       gcTime: 10 * 60 * 1000,
       // Bật lại: khi staleTime > 0, nếu tắt focus refetch thì quay lại tab vẫn thấy cache cũ
       refetchOnWindowFocus: true,

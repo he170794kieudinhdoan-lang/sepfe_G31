@@ -21,6 +21,7 @@ import { Modal } from '@/shared/components/Modal';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
+import { queryClient } from '@/app/providers';
 import {
   Popover,
   PopoverTrigger,
@@ -1159,6 +1160,7 @@ const JobApplicantsPanel = ({
       }
 
       await sendCampaign(campaign.id);
+      queryClient.invalidateQueries({ queryKey: ['my-wallet'] });
 
       successCount = workerIds.length;
 
@@ -2230,6 +2232,7 @@ const MatchedWorkersPanel = ({
       });
       if (!campaign?.id) throw new Error('Không nhận được mã chiến dịch.');
       await sendCampaign(campaign.id);
+      queryClient.invalidateQueries({ queryKey: ['my-wallet'] });
       toast(
         `Đã gửi lời mời phỏng vấn cho ${workerIds.length} ứng viên.`,
         'success',

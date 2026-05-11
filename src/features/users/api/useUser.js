@@ -5,7 +5,7 @@ export const useGetUsers = (options = {}) => {
   return useQuery({
     queryKey: ['users', 'me'],
     queryFn: userApi.getUsers,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
     ...options,
   });
@@ -24,7 +24,7 @@ export const useGetOccupations = () => {
   return useQuery({
     queryKey: ['occupations'],
     queryFn: userApi.getOccupations,
-    staleTime: 10 * 60 * 1000,
+    staleTime: 0,
     retry: 1,
   });
 };
@@ -33,7 +33,7 @@ export const useGetWorkerProfile = (options = {}) => {
   return useQuery({
     queryKey: ['worker-profile'],
     queryFn: userApi.getWorkerProfile,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     retry: false,
     ...options,
   });

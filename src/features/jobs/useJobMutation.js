@@ -13,6 +13,7 @@ const invalidateJobQueries = (queryClient) => {
   queryClient.invalidateQueries({ queryKey: ['job-detail'] });
   queryClient.invalidateQueries({ queryKey: ['employer-jobs'] });
   queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
+  queryClient.invalidateQueries({ queryKey: ['my-wallet'] });
 };
 
 /**

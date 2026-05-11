@@ -12,7 +12,7 @@ export const useAdminStatistics = ({ year } = {}, options = {}) => {
   return useQuery({
     queryKey: ['admin-statistics', year],
     queryFn: () => getAdminStatisticsApi({ year }),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 0,
     ...options,
   });
 };
@@ -21,7 +21,7 @@ export const usePaymentPackages = (params = {}, options = {}) => {
   return useQuery({
     queryKey: ['admin-payment-packages', params],
     queryFn: () => getPaymentPackagesApi(params),
-    staleTime: 60 * 1000,
+    staleTime: 0,
     ...options,
   });
 };
@@ -52,7 +52,7 @@ export const usePointPricing = (options = {}) => {
   return useQuery({
     queryKey: ['admin-point-pricing'],
     queryFn: getPointPricingApi,
-    staleTime: 60 * 1000,
+    staleTime: 0,
     ...options,
   });
 };
