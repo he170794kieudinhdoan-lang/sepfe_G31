@@ -24,6 +24,7 @@ import {
   createCampaign,
   getCampaignDetail,
   getCampaigns,
+  sendCampaign,
 } from '@/features/interview-invitations/api/interviewInvitationApi';
 import {
   AlertCircle,
@@ -107,7 +108,7 @@ function normalizeApiMessage(error, fallback) {
 function getCampaignStatusMeta(status) {
   const map = {
     DRAFT: {
-      label: 'Nháp',
+      label: 'Đang chờ gửi',
       className: 'border-slate-300 text-slate-700 bg-slate-50',
     },
     SCHEDULED: {
@@ -562,11 +563,16 @@ export const EmployerInterviewSchedulePage = () => {
       toast('Vui lòng chọn tin tuyển dụng.', 'error');
       return;
     }
-    const selectedWorkerIds = selectableApplicants
-      .map((item) => item?.user?.id)
-      .filter(Boolean);
+    const suitableWorkerIds = Array.from(
+      new Set(
+        applicants
+          .filter((application) => application?.status === 'SUITABLE')
+          .map((application) => application?.user?.id)
+          .filter(Boolean),
+      ),
+    );
 
-    if (!selectedWorkerIds.length) {
+    if (!suitableWorkerIds.length) {
       toast('Không có ứng viên phù hợp để tạo lịch phỏng vấn cho job này.', 'error');
       return;
     }
@@ -607,12 +613,14 @@ export const EmployerInterviewSchedulePage = () => {
 
     setIsSubmitting(true);
     try {
-      await createCampaign({
+      const campaign = await createCampaign({
         jobId: Number(form.jobId),
-        workerIds: selectedWorkerIds,
         slots: normalizedSlots,
         expiresAt: form.expiresAt ? new Date(form.expiresAt).toISOString() : undefined,
       });
+      if (campaign?.id) {
+        await sendCampaign(campaign.id);
+      }
       toast('Đã tạo lịch phỏng vấn.', 'success');
       setIsCreateOpen(false);
       resetForm();

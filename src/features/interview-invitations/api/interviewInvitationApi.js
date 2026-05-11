@@ -1,7 +1,13 @@
 import { apiClient } from '@/shared/api/apiClient'
 
 export const createCampaign = async (campaignData) => {
-  return await apiClient.post('/interview-invitations/campaigns', campaignData)
+  const payload = { ...campaignData }
+
+  if (!Array.isArray(payload.workerIds) || payload.workerIds.length === 0) {
+    delete payload.workerIds
+  }
+
+  return await apiClient.post('/interview-invitations/campaigns', payload)
 }
 
 export const getCampaigns = async (page = 1, limit = 10, status = null) => {
