@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
@@ -138,6 +138,7 @@ function getCampaignStatusMeta(status) {
 
 export const EmployerInterviewSchedulePage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
@@ -151,6 +152,7 @@ export const EmployerInterviewSchedulePage = () => {
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedUpcomingJobKey, setSelectedUpcomingJobKey] = useState(null);
   const slotApplicantPanelRef = useRef(null);
+  const jobIdFromUrl = searchParams.get('jobId');
 
   const [form, setForm] = useState({
     jobId: '',
@@ -302,6 +304,18 @@ export const EmployerInterviewSchedulePage = () => {
     if (!selectedUpcomingJobKey) return upcomingJobs[0];
     return upcomingJobs.find((job) => job.key === selectedUpcomingJobKey) || upcomingJobs[0];
   }, [upcomingJobs, selectedUpcomingJobKey]);
+
+  useEffect(() => {
+    if (!jobIdFromUrl || !upcomingJobs.length) return;
+
+    const matchedJob = upcomingJobs.find(
+      (job) => String(job.jobId || '') === String(jobIdFromUrl),
+    );
+
+    if (matchedJob) {
+      setSelectedUpcomingJobKey(matchedJob.key);
+    }
+  }, [jobIdFromUrl, upcomingJobs]);
 
   useEffect(() => {
     if (!form.jobId) return;
