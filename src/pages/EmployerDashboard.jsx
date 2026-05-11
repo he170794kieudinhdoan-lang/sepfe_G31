@@ -287,6 +287,7 @@ const ApplicantDetailPane = ({
   applicantDetail,
   applicantStatus,
   onRequestStatusChange,
+  interviewScheduleMissing,
 }) => {
   if (!applicantDetail) return null;
 
@@ -319,6 +320,18 @@ const ApplicantDetailPane = ({
       </div>
 
       <div className="p-5 space-y-4 flex-1">
+        {interviewScheduleMissing && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex items-start gap-2">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <div>
+              <p className="font-semibold">Chưa có lịch phỏng vấn</p>
+              <p className="mt-1 text-amber-700">
+                Công việc này chưa có lịch phỏng vấn. Vui lòng tạo lịch phỏng vấn trước khi mời ứng viên.
+              </p>
+            </div>
+          </div>
+        )}
+
         <div>
           <p className="text-sm font-medium text-slate-500">Vị trí ứng tuyển</p>
           <p className="font-semibold text-slate-800 mt-1">
@@ -499,6 +512,7 @@ const JobApplicantsPanel = ({
   const [latestCampaignSlots, setLatestCampaignSlots] = useState([]);
   const [loadingInviteConstraints, setLoadingInviteConstraints] =
     useState(false);
+  const [inviteConstraintsLoaded, setInviteConstraintsLoaded] = useState(false);
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
     useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
@@ -621,6 +635,9 @@ const JobApplicantsPanel = ({
   const isApplicantSelectable = (applicant) =>
     isApplicantInvitable(applicant) && !isApplicantAlreadyInvited(applicant);
 
+  const interviewScheduleMissing =
+    inviteConstraintsLoaded && inviteConstraints?.hasExistingSchedule === false;
+
   const availableApplicantUserIds = filteredApplicants
     .filter(isApplicantSelectable)
     .map(getApplicantUserId)
@@ -697,6 +714,7 @@ const JobApplicantsPanel = ({
     if (!jobId) {
       setInviteConstraints(null);
       setLatestCampaignSlots([]);
+      setInviteConstraintsLoaded(false);
       return () => {
         cancelled = true;
       };
@@ -704,6 +722,7 @@ const JobApplicantsPanel = ({
 
     const fetchConstraints = async () => {
       setLoadingInviteConstraints(true);
+      setInviteConstraintsLoaded(false);
       try {
         const result = await getJobInviteConstraints(jobId);
         let fetchedLatestSlots = [];
@@ -722,11 +741,13 @@ const JobApplicantsPanel = ({
         if (!cancelled) {
           setInviteConstraints(result || null);
           setLatestCampaignSlots(fetchedLatestSlots);
+          setInviteConstraintsLoaded(true);
         }
       } catch (error) {
         if (!cancelled) {
           setInviteConstraints(null);
           setLatestCampaignSlots([]);
+          setInviteConstraintsLoaded(false);
         }
       } finally {
         if (!cancelled) {
@@ -1348,6 +1369,14 @@ const JobApplicantsPanel = ({
         {/* Left: Candidate List */}
         <div className="w-[40%] shrink-0 border-r border-slate-100 flex flex-col overflow-hidden bg-slate-50/30">
           <div className="p-3.5 border-b border-slate-100 px-5 space-y-3">
+            {interviewScheduleMissing && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex items-start gap-2">
+                <AlertCircle size={14} className="mt-0.5 shrink-0" />
+                <span>
+                  Công việc này chưa có lịch phỏng vấn. Vui lòng tạo lịch phỏng vấn trước khi mời ứng viên.
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -1393,12 +1422,18 @@ const JobApplicantsPanel = ({
                   variant="outline"
                   className="h-8 text-xs rounded-xl gap-1.5"
                   onClick={() => {
-                    const campaignId = inviteConstraints?.latestCampaignId;
-                    if (campaignId) {
-                      onOpenCampaignDetail?.(campaignId);
+                    if (!inviteConstraints?.hasExistingSchedule) {
+                      toast(
+                        'Công việc này chưa có lịch phỏng vấn. Vui lòng tạo lịch phỏng vấn trước.',
+                        'error',
+                      );
+                      return;
                     }
+
+                    navigate(
+                      `/employer/interviews?jobId=${encodeURIComponent(jobId)}`,
+                    );
                   }}
-                  disabled={!inviteConstraints?.latestCampaignId}
                 >
                   <Users size={12} /> Ca phỏng vấn
                 </Button>
@@ -1514,6 +1549,7 @@ const JobApplicantsPanel = ({
               applicantDetail={selectedApplicant}
               applicantStatus={applicantStatus}
               onRequestStatusChange={handleRequestStatusChange}
+              interviewScheduleMissing={interviewScheduleMissing}
             />
           ) : (
             <div className="flex h-full items-center justify-center">
@@ -3061,6 +3097,14 @@ export const EmployerDashboard = () => {
   };
 
   const handleRequestApplicantStatusChange = (nextStatus) => {
+        // Check if marking as SUITABLE and job has no interview slots
+        if (nextStatus === 'SUITABLE' && latestCampaignSlots.length === 0) {
+          toast(
+            'Công việc này chưa có lịch phỏng vấn. Vui lòng tạo lịch phỏng vấn trước khi mời ứng viên.',
+            'warning',
+          );
+          return;
+        }
     if (!applicantDetail) return;
     setPendingApplicantStatus(nextStatus);
     setConfirmApplicantStatusOpen(true);
