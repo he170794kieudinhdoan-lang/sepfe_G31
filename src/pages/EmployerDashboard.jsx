@@ -2917,6 +2917,11 @@ export const EmployerDashboard = () => {
     else if (path === '/employer/stats') setActive('stats');
     else if (path === '/employer/wallet') setActive('wallet');
     else if (path === '/employer/chat') setActive('chat');
+
+    // Reset các sub-view (danh sách ứng viên, đề xuất AI) khi chuyển tab/đường dẫn
+    setMatchedJobId(null);
+    setApplicantsModalJobId(null);
+    setRestoredInviteState(null);
   }, [location.pathname]);
 
   const campaignIdFromUrl = searchParams.get('campaignId');
@@ -3216,7 +3221,12 @@ export const EmployerDashboard = () => {
       subtitle={currentHeader.subtitle}
       menu={EMPLOYER_MENU}
       activeKey={active}
-      onSelect={setActive}
+      onSelect={(key) => {
+        setActive(key);
+        setMatchedJobId(null);
+        setApplicantsModalJobId(null);
+        setRestoredInviteState(null);
+      }}
       topbarBell={<NotificationBellPopover />}
     >
       {/* ===== NO COMPANY GATE ===== */}

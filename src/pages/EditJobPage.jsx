@@ -549,21 +549,11 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess, isModal }) => {
                     <div className="flex-1">
                       <Input
                         className={`h-11 bg-white hover:border-primary/50 transition-colors ${errors.salaryMin ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                        type="text"
-                        placeholder="Từ (Tối thiểu 1.000.000)"
-                        value={
-                          form.salaryMin
-                            ? new Intl.NumberFormat('en-US').format(
-                                form.salaryMin,
-                              )
-                            : ''
-                        }
+                        type="number"
+                        placeholder="Từ (Tối thiểu 0)"
+                        value={form.salaryMin}
                         onChange={(e) => {
-                          const rawValue = e.target.value.replace(
-                            /[^0-9]/g,
-                            '',
-                          );
-                          setForm({ ...form, salaryMin: rawValue });
+                          setForm({ ...form, salaryMin: e.target.value });
                           setErrors({ ...errors, salaryMin: undefined });
                         }}
                       />
@@ -573,21 +563,11 @@ export const EditJobPage = ({ jobIdProp, onBack, onSuccess, isModal }) => {
                     <div className="flex-1">
                       <Input
                         className={`h-11 bg-white hover:border-primary/50 transition-colors ${errors.salaryMax ? 'border-red-500 focus-visible:ring-red-500' : ''}`}
-                        type="text"
+                        type="number"
                         placeholder="Đến"
-                        value={
-                          form.salaryMax
-                            ? new Intl.NumberFormat('en-US').format(
-                                form.salaryMax,
-                              )
-                            : ''
-                        }
+                        value={form.salaryMax}
                         onChange={(e) => {
-                          const rawValue = e.target.value.replace(
-                            /[^0-9]/g,
-                            '',
-                          );
-                          setForm({ ...form, salaryMax: rawValue });
+                          setForm({ ...form, salaryMax: e.target.value });
                           setErrors({ ...errors, salaryMax: undefined });
                         }}
                       />

@@ -20,6 +20,7 @@ import {
   useJobsForEmployer,
 } from '@/features/jobs/api/useJobs';
 import {
+  createCampaign,
   getCampaignDetail,
   getCampaigns,
   sendCampaign,
@@ -577,7 +578,7 @@ export const EmployerInterviewSchedulePage = () => {
       ),
     );
 
-    if (!selectedWorkerIds.length) {
+    if (!suitableWorkerIds.length) {
       toast(
         'Không có ứng viên phù hợp để tạo lịch phỏng vấn cho job này.',
         'error',
@@ -627,6 +628,7 @@ export const EmployerInterviewSchedulePage = () => {
       const campaign = await createCampaign({
         jobId: Number(form.jobId),
         slots: normalizedSlots,
+        workerIds: suitableWorkerIds,
         expiresAt: form.expiresAt
           ? new Date(form.expiresAt).toISOString()
           : undefined,
