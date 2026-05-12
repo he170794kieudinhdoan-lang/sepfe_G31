@@ -5,16 +5,16 @@ import {
   updateTermsCondition,
 } from '@/features/terms/api/termsApi';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
 import {
-  BarChart3,
-  Briefcase,
-  Check,
-  Clock3,
   CreditCard,
   Plus,
   Sparkles,
   Zap,
+  LayoutDashboard,
+  Users,
+  Layers,
+  FileText,
+  Briefcase,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -89,7 +89,7 @@ export const AdminDashboard = () => {
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
   const sectorRowsPerPage = 10;
-  const occupationRowsPerPage =10;
+  const occupationRowsPerPage = 10;
 
   // Users state
   const initialUserFilters = {
@@ -160,7 +160,9 @@ export const AdminDashboard = () => {
     year: selectedYear,
   });
 
-  const { data: paymentPackagesRes } = usePaymentPackages({ includeInactive: true });
+  const { data: paymentPackagesRes } = usePaymentPackages({
+    includeInactive: true,
+  });
   const { data: pointPricingRes } = usePointPricing();
   const createPaymentPackageMutation = useCreatePaymentPackage();
   const updatePaymentPackageMutation = useUpdatePaymentPackage();
@@ -187,16 +189,23 @@ export const AdminDashboard = () => {
     price: '50,000',
     isActive: true,
   });
-  const [editingBoostPackageId, setEditingBoostPackageId] = useState(null);
-  const [editingBoostPackageForm, setEditingBoostPackageForm] = useState({
+  const [boostModalOpen, setBoostModalOpen] = useState(false);
+  const [boostModalData, setBoostModalData] = useState({
+    id: null,
     durationDays: '7',
     price: '50,000',
     isActive: true,
   });
 
   const kpi = [
-    { label: 'Tổng số người dùng trên hệ thống', value: statsData?.users?.total || 0 },
-    { label: 'Tổng số doanh nghiệp trên hệ thống', value: statsData?.companies?.total || 0 },
+    {
+      label: 'Tổng số người dùng trên hệ thống',
+      value: statsData?.users?.total || 0,
+    },
+    {
+      label: 'Tổng số doanh nghiệp trên hệ thống',
+      value: statsData?.companies?.total || 0,
+    },
     {
       label: 'Tổng doanh thu toàn thời gian(VNĐ)',
       value: new Intl.NumberFormat('vi-VN').format(
@@ -327,17 +336,157 @@ export const AdminDashboard = () => {
     return sum + Number(val);
   }, 0);
 
+  const renderOverviewLoading = () => (
+    <div className="space-y-6">
+      <div className="grid md:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <Card key={i} className="p-5">
+            <Skeleton className="h-4 w-1/2 mb-2" />
+            <Skeleton className="h-8 w-3/4" />
+          </Card>
+        ))}
+      </div>
+      <Card className="p-6">
+        <div className="flex justify-between mb-6">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-8 w-24" />
+        </div>
+        <div className="grid lg:grid-cols-2 gap-8">
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <Skeleton className="h-64 w-full rounded-xl" />
+        </div>
+      </Card>
+    </div>
+  );
+
+  const renderUsersLoading = () => (
+    <div className="space-y-6">
+      <Card className="p-4 flex flex-wrap gap-3 items-center">
+        <Skeleton className="h-10 w-24 rounded-full" />
+        <Skeleton className="h-10 w-24 rounded-full" />
+        <Skeleton className="h-10 flex-1 min-w-[200px]" />
+        <Skeleton className="h-10 w-20" />
+      </Card>
+      <Card className="p-0 overflow-hidden">
+        <div className="p-4 border-b space-y-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-14 w-full rounded-md" />
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+
+  const renderPaymentLoading = () => (
+    <div className="space-y-8">
+      <Card className="p-6 space-y-6">
+        <Skeleton className="h-6 w-48" />
+        <div className="grid md:grid-cols-2 gap-6">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+        <div className="flex justify-end">
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </Card>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-8 w-32" />
+        </div>
+        <div className="grid lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-48 w-full rounded-xl" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderTableLoading = () => (
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <Card className="p-4 space-y-4">
+        <Skeleton className="h-10 w-full" />
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} className="h-12 w-full" />
+        ))}
+      </Card>
+    </div>
+  );
+
+  const renderAiConfigsLoading = () => (
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <Skeleton className="h-10 w-32" />
+      </div>
+      <Card className="p-6">
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="space-y-3">
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-4 w-8" />
+              </div>
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+
   const isLoading = false;
 
   const menu = [
-    { key: 'overview', label: 'Tổng quan' },
-    { key: 'payment_packages', label: 'Thiết lập thanh toán' },
-    { key: 'users', label: 'Quản lý người dùng' },
-    { key: 'sectors', label: 'Quản lý ngành nghề' },
-    { key: 'occupations', label: 'Quản lý nghề nghiệp' },
-    { key: 'terms', label: 'Điều khoản sử dụng' },
-    { key: 'ai_configs', label: 'Thiết lập trọng số AI' },
+    { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
+    {
+      key: 'payment_packages',
+      label: 'Thiết lập thanh toán',
+      icon: CreditCard,
+    },
+    { key: 'users', label: 'Quản lý người dùng', icon: Users },
+    { key: 'sectors', label: 'Quản lý ngành nghề', icon: Layers },
+    { key: 'occupations', label: 'Quản lý nghề nghiệp', icon: Briefcase },
+    { key: 'terms', label: 'Điều khoản sử dụng', icon: FileText },
+    { key: 'ai_configs', label: 'Thiết lập trọng số AI', icon: Sparkles },
   ];
+
+  const headers = useMemo(
+    () => ({
+      overview: {
+        title: 'Trang quản trị hệ thống',
+        subtitle: 'Giám sát hoạt động và xử lý nghiệp vụ nhanh.',
+      },
+      payment_packages: {
+        title: 'Quản lý Điểm & Gói Dịch vụ',
+        subtitle: 'Cấu hình mức giá, gói đẩy tin và chi phí AI gợi ý ứng viên.',
+      },
+      users: {
+        title: 'Quản lý Người dùng',
+        subtitle: 'Danh sách và kiểm soát trạng thái hoạt động của tài khoản.',
+      },
+      sectors: {
+        title: 'Quản lý Ngành nghề',
+        subtitle: 'Thiết lập các nhóm ngành nghề chính trong hệ thống.',
+      },
+      occupations: {
+        title: 'Quản lý Nghề nghiệp',
+        subtitle: 'Chi tiết các công việc cụ thể theo từng ngành nghề.',
+      },
+      terms: {
+        title: 'Điều khoản & Chính sách',
+        subtitle: 'Cập nhật nội dung pháp lý và quy định của nền tảng.',
+      },
+      ai_configs: {
+        title: 'Cấu hình Trọng số AI',
+        subtitle: 'Điều chỉnh thuật toán gợi ý và chấm điểm ứng viên.',
+      },
+    }),
+    [],
+  );
 
   const fetchSectors = async () => {
     try {
@@ -411,7 +560,9 @@ export const AdminDashboard = () => {
       const sector = sectors.find(
         (s) => String(s.id) === String(occ.sectorId ?? occ.sector?.id),
       );
-      return String(sector?.name || '').toLowerCase().includes(q);
+      return String(sector?.name || '')
+        .toLowerCase()
+        .includes(q);
     });
   }, [occupations, occupationSearchDebounced, sectors]);
 
@@ -682,67 +833,32 @@ export const AdminDashboard = () => {
     }
   };
 
-  const resetBoostPackageForm = () => {
-    setBoostPackageForm({
-      durationDays: '7',
-      price: '50,000',
-      isActive: true,
-    });
-  };
-
-  const handleCreateBoostPackage = async () => {
-    const durationDays = Number(
-      String(boostPackageForm.durationDays || '').replace(/\D/g, ''),
-    );
-    const price = parseCommaNumber(boostPackageForm.price);
-    if (!Number.isFinite(durationDays) || durationDays < 1) {
-      toast('Số ngày của gói phải từ 1 ngày trở lên', 'error');
-      return;
-    }
-    if (!Number.isFinite(price) || price < 1000) {
-      toast('Giá gói đẩy tin phải từ 1.000 điểm trở lên', 'error');
-      return;
-    }
-    if (!boostPackageForm.isActive && activeBoostPackages.length === 0) {
-      toast('Hệ thống cần tối thiểu 1 gói boost đang mở', 'error');
-      return;
-    }
-
-    try {
-      await createPaymentPackageMutation.mutateAsync({
-        orderType: 'BOOST_JOB',
-        name: `Gói đẩy tin ${durationDays} ngày`,
-        durationDays,
-        price,
-        isActive: Boolean(boostPackageForm.isActive),
+  const handleOpenBoostModal = (pkg = null) => {
+    if (pkg) {
+      setBoostModalData({
+        id: pkg.id,
+        durationDays: String(Number(pkg.durationDays || 7)),
+        price: toCurrencyInput(pkg.price || 50000),
+        isActive: Boolean(pkg.isActive),
       });
-      toast('Tạo gói đẩy tin thành công', 'success');
-      resetBoostPackageForm();
-    } catch (error) {
-      const message =
-        error?.response?.data?.message ||
-        error?.message ||
-        'Không thể tạo gói đẩy tin';
-      toast(Array.isArray(message) ? message.join(', ') : message, 'error');
+    } else {
+      setBoostModalData({
+        id: null,
+        durationDays: '7',
+        price: '50,000',
+        isActive: true,
+      });
     }
+    setBoostModalOpen(true);
   };
 
-  const handleStartEditBoostPackage = (pkg) => {
-    setEditingBoostPackageId(pkg.id);
-    setEditingBoostPackageForm({
-      durationDays: String(Number(pkg.durationDays || 7)),
-      price: toCurrencyInput(pkg.price || 50000),
-      isActive: Boolean(pkg.isActive),
-    });
-  };
-
-  const handleSaveEditBoostPackage = async () => {
-    if (!editingBoostPackageId) return;
-
+  const handleConfirmBoostPackage = async () => {
     const durationDays = Number(
-      String(editingBoostPackageForm.durationDays || '').replace(/\D/g, ''),
+      String(boostModalData.durationDays || '').replace(/\D/g, ''),
     );
-    const price = parseCommaNumber(editingBoostPackageForm.price);
+    const price = parseCommaNumber(boostModalData.price);
+    const isEditing = !!boostModalData.id;
+
     if (!Number.isFinite(durationDays) || durationDays < 1) {
       toast('Số ngày của gói phải từ 1 ngày trở lên', 'error');
       return;
@@ -752,42 +868,68 @@ export const AdminDashboard = () => {
       return;
     }
 
-    const targetPackage = boostPackages.find((pkg) => pkg.id === editingBoostPackageId);
-    const activeBoostCount = activeBoostPackages.length;
-    if (
-      targetPackage?.isActive &&
-      !editingBoostPackageForm.isActive &&
-      activeBoostCount <= 1
-    ) {
-      toast('Hệ thống cần tối thiểu 1 gói boost đang mở', 'error');
-      return;
+    if (isEditing) {
+      const targetPackage = boostPackages.find(
+        (pkg) => pkg.id === boostModalData.id,
+      );
+      const activeBoostCount = activeBoostPackages.length;
+      if (
+        targetPackage?.isActive &&
+        !boostModalData.isActive &&
+        activeBoostCount <= 1
+      ) {
+        toast('Hệ thống cần tối thiểu 1 gói boost đang mở', 'error');
+        return;
+      }
+    } else {
+      if (!boostModalData.isActive && activeBoostPackages.length === 0) {
+        toast('Hệ thống cần tối thiểu 1 gói boost đang mở', 'error');
+        return;
+      }
     }
 
     try {
-      await updatePaymentPackageMutation.mutateAsync({
-        id: editingBoostPackageId,
-        payload: {
+      if (isEditing) {
+        await updatePaymentPackageMutation.mutateAsync({
+          id: boostModalData.id,
+          payload: {
+            orderType: 'BOOST_JOB',
+            name: `Gói đẩy tin ${durationDays} ngày`,
+            durationDays,
+            price,
+            isActive: Boolean(boostModalData.isActive),
+          },
+        });
+        toast('Cập nhật gói đẩy tin thành công', 'success');
+      } else {
+        await createPaymentPackageMutation.mutateAsync({
           orderType: 'BOOST_JOB',
           name: `Gói đẩy tin ${durationDays} ngày`,
           durationDays,
           price,
-          isActive: Boolean(editingBoostPackageForm.isActive),
-        },
-      });
-      toast('Cập nhật gói đẩy tin thành công', 'success');
-      setEditingBoostPackageId(null);
+          isActive: Boolean(boostModalData.isActive),
+        });
+        toast('Tạo gói đẩy tin thành công', 'success');
+      }
+      setBoostModalOpen(false);
     } catch (error) {
       const message =
         error?.response?.data?.message ||
         error?.message ||
-        'Không thể cập nhật gói đẩy tin';
+        'Không thể lưu gói đẩy tin';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     }
   };
 
-  const handleQuickToggleBoostPackage = async (pkg, payload, successMessage) => {
+  const handleQuickToggleBoostPackage = async (
+    pkg,
+    payload,
+    successMessage,
+  ) => {
     const nextIsActive =
-      typeof payload?.isActive === 'boolean' ? payload.isActive : Boolean(pkg?.isActive);
+      typeof payload?.isActive === 'boolean'
+        ? payload.isActive
+        : Boolean(pkg?.isActive);
     if (pkg?.isActive && !nextIsActive && activeBoostPackages.length <= 1) {
       toast('Hệ thống cần tối thiểu 1 gói boost đang mở', 'error');
       return;
@@ -810,13 +952,14 @@ export const AdminDashboard = () => {
 
   return (
     <DashboardLayout
-      title="Trang quản trị hệ thống"
+      title={headers[active]?.title || 'Quản trị hệ thống'}
+      subtitle={headers[active]?.subtitle}
       menu={menu}
       activeKey={active}
       onSelect={setActive}
       topbarBell={<NotificationBellPopover />}
     >
-      {active === 'overview' && (
+      {active === 'overview' && (loadingStats ? renderOverviewLoading() : (
         <div className="space-y-6">
           <div className="grid md:grid-cols-3 gap-4">
             {kpi.map((item) => (
@@ -829,7 +972,9 @@ export const AdminDashboard = () => {
           <div className="grid lg:grid-cols-1 gap-6">
             <Card className="p-6 lg:col-span-1">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                <h3 className="text-lg font-semibold">Phân tích tăng trưởng theo tháng</h3>
+                <h3 className="text-lg font-semibold">
+                  Phân tích tăng trưởng theo tháng
+                </h3>
                 <div className="flex items-center gap-2 text-sm font-medium">
                   Năm:
                   <input
@@ -954,16 +1099,13 @@ export const AdminDashboard = () => {
             </div>
           </div>
         </div>
-      )}
+      ))}
 
-      {active === 'payment_packages' && (
-        <div className="space-y-6">
-          {/* Header */}
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">Quản lý Điểm & Gói Dịch vụ</h2>
-            <p className="text-slate-600 mt-2">Cấu hình mức giá, gói đẩy tin và chi phí AI gợi ý ứng viên</p>
-          </div>
-
+      {active === 'payment_packages' &&
+        (loadingStats || !paymentPackagesRes ? (
+          renderPaymentLoading()
+        ) : (
+          <div className="space-y-6">
           {/* Section 1: Pricing Configuration */}
           <div className="grid gap-4">
             <div className="flex items-center gap-3">
@@ -971,8 +1113,9 @@ export const AdminDashboard = () => {
                 <CreditCard className="h-5 w-5 text-amber-700" />
               </div>
               <div>
-                <h3 className="font-semibold text-slate-900">Cấu hình Giá Dịch vụ</h3>
-                <p className="text-xs text-slate-500">Thiết lập mức điểm cho các thao tác của nhà tuyển dụng</p>
+                <h3 className="font-semibold text-slate-900">
+                  Cấu hình giá dịch vụ
+                </h3>
               </div>
             </div>
 
@@ -980,8 +1123,12 @@ export const AdminDashboard = () => {
               <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">Đăng tin tuyển dụng</p>
-                    <p className="text-xs text-slate-500 mt-1">Số điểm trừ cho mỗi lần đăng tin.</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      Đăng tin tuyển dụng
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Số điểm cho mỗi lần đăng tin.
+                    </p>
                   </div>
                   <div className="rounded-lg bg-white p-2 shadow-sm">
                     <Briefcase className="h-4 w-4 text-amber-600" />
@@ -1007,8 +1154,12 @@ export const AdminDashboard = () => {
               <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 space-y-3">
                 <div className="flex items-start justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">AI Gợi ý Ứng viên</p>
-                    <p className="text-xs text-slate-500 mt-1">Số điểm trừ cho mỗi ứng viên được mời.</p>
+                    <p className="text-sm font-semibold text-slate-900">
+                      AI Gợi ý Ứng viên
+                    </p>
+                    <p className="text-xs text-slate-500 mt-1">
+                      Số điểm cho mỗi ứng viên được mời.
+                    </p>
                   </div>
                   <div className="rounded-lg bg-white p-2 shadow-sm">
                     <Sparkles className="h-4 w-4 text-purple-600" />
@@ -1023,7 +1174,9 @@ export const AdminDashboard = () => {
                     onChange={(e) =>
                       setPointPricingForm((prev) => ({
                         ...prev,
-                        AI_INVITE_POINT_COST_PER_WORKER: formatCommaNumber(e.target.value),
+                        AI_INVITE_POINT_COST_PER_WORKER: formatCommaNumber(
+                          e.target.value,
+                        ),
                       }))
                     }
                     className="font-semibold text-slate-900"
@@ -1039,7 +1192,7 @@ export const AdminDashboard = () => {
                 className="gap-2"
               >
                 <CreditCard className="h-4 w-4" />
-                {updatePointPricingMutation.isPending ? 'Đang lưu...' : 'Lưu Tính giá'}
+                {updatePointPricingMutation.isPending ? 'Đang lưu...' : 'Lưu '}
               </Button>
             </div>
           </div>
@@ -1049,90 +1202,25 @@ export const AdminDashboard = () => {
 
           {/* Section 3: Boost Packages */}
           <div className="grid gap-4">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
                   <Zap className="h-5 w-5 text-emerald-700" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-slate-900">Gói Đẩy tin Tuyển dụng</h3>
-                  <p className="text-xs text-slate-500">Tạo gói theo số ngày để nhà tuyển dụng dễ chọn.</p>
+                  <h3 className="font-semibold text-slate-900">
+                    Gói đẩy tin tuyển dụng
+                  </h3>
                 </div>
               </div>
-              <Badge className="bg-emerald-100 text-emerald-700 border-0 font-semibold">
-                {boostPackages.length} gói
-              </Badge>
-            </div>
-
-            {/* Create New Package Form */}
-            <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/30 to-white p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <Plus className="h-4 w-4 text-emerald-600" />
-                <p className="text-sm font-semibold text-slate-900">Tạo Gói Mới</p>
-              </div>
-
-              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Số ngày</label>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="VD: 7"
-                    value={boostPackageForm.durationDays}
-                    onChange={(e) =>
-                      setBoostPackageForm((prev) => ({
-                        ...prev,
-                        durationDays: String(e.target.value || '').replace(/\D/g, ''),
-                      }))
-                    }
-                    className="font-semibold"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Giá điểm</label>
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="VD: 50,000"
-                    value={boostPackageForm.price}
-                    onChange={(e) =>
-                      setBoostPackageForm((prev) => ({
-                        ...prev,
-                        price: formatCommaNumber(e.target.value),
-                      }))
-                    }
-                    className="font-semibold"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <label className="text-xs font-semibold text-slate-700">Trạng thái</label>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant={boostPackageForm.isActive ? 'default' : 'outline'}
-                    onClick={() =>
-                      setBoostPackageForm((prev) => ({
-                        ...prev,
-                        isActive: !prev.isActive,
-                      }))
-                    }
-                    className="justify-center"
-                  >
-                    {boostPackageForm.isActive ? '✓ Áp dụng' : 'Tạm ngưng'}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  onClick={handleCreateBoostPackage}
-                  disabled={createPaymentPackageMutation.isPending}
-                  className="gap-2 bg-emerald-600 hover:bg-emerald-700"
-                >
-                  <Plus className="h-4 w-4" />
-                  {createPaymentPackageMutation.isPending ? 'Đang tạo...' : 'Tạo gói mới'}
-                </Button>
-              </div>
+              <Button
+                size="sm"
+                className="rounded-xl gap-2 shadow-sm"
+                onClick={() => handleOpenBoostModal()}
+              >
+                <Plus className="h-4 w-4" />
+                Thêm gói mới
+              </Button>
             </div>
 
             {/* Packages List */}
@@ -1143,139 +1231,97 @@ export const AdminDashboard = () => {
                     <Zap className="h-6 w-6 text-slate-400" />
                   </div>
                 </div>
-                <p className="font-semibold text-slate-600">Chưa có gói đẩy tin</p>
-                <p className="text-sm text-slate-500 mt-1">Hãy tạo gói mới để bắt đầu sử dụng dịch vụ này.</p>
+                <p className="font-semibold text-slate-600">Chưa có gói</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  Hãy tạo gói mới để bắt đầu sử dụng dịch vụ này.
+                </p>
               </div>
             ) : (
               <div className="grid lg:grid-cols-2 2xl:grid-cols-3 gap-4">
                 {boostPackages.map((pkg) => {
-                  const isEditing = editingBoostPackageId === pkg.id;
-                  const isOnlyActivePackage = pkg.isActive && activeBoostPackages.length <= 1;
-                  const pointPerDay = Number(pkg.durationDays || 0) > 0 ? Math.round(Number(pkg.price || 0) / Number(pkg.durationDays || 1)) : 0;
+                  const isOnlyActivePackage =
+                    pkg.isActive && activeBoostPackages.length <= 1;
+                  const pointPerDay =
+                    Number(pkg.durationDays || 0) > 0
+                      ? Math.round(
+                          Number(pkg.price || 0) /
+                            Number(pkg.durationDays || 1),
+                        )
+                      : 0;
                   return (
                     <div
                       key={pkg.id}
-                      className="rounded-xl border border-slate-200 bg-white hover:border-slate-300 hover:shadow-md transition-all p-5 space-y-4"
+                      className="rounded-xl border border-slate-200 bg-white hover:border-amber-200 hover:shadow-md transition-all p-5 space-y-4"
                     >
-                      {isEditing ? (
-                        <>
-                          <div className="space-y-3">
-                            <div>
-                              <label className="text-xs font-semibold text-slate-700 block mb-1.5">Số ngày</label>
-                              <Input
-                                type="text"
-                                inputMode="numeric"
-                                value={editingBoostPackageForm.durationDays}
-                                onChange={(e) =>
-                                  setEditingBoostPackageForm((prev) => ({
-                                    ...prev,
-                                    durationDays: String(e.target.value || '').replace(/\D/g, ''),
-                                  }))
-                                }
-                              />
-                            </div>
-                            <div>
-                              <label className="text-xs font-semibold text-slate-700 block mb-1.5">Giá điểm</label>
-                              <Input
-                                type="text"
-                                inputMode="numeric"
-                                value={editingBoostPackageForm.price}
-                                onChange={(e) =>
-                                  setEditingBoostPackageForm((prev) => ({
-                                    ...prev,
-                                    price: formatCommaNumber(e.target.value),
-                                  }))
-                                }
-                              />
-                            </div>
-                          </div>
-                          <div className="flex gap-2 justify-end pt-2 border-t border-slate-100">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => setEditingBoostPackageId(null)}
-                            >
-                              Hủy
-                            </Button>
-                            <Button
-                              size="sm"
-                              onClick={handleSaveEditBoostPackage}
-                              disabled={updatePaymentPackageMutation.isPending}
-                              className="bg-blue-600 hover:bg-blue-700"
-                            >
-                              {updatePaymentPackageMutation.isPending ? 'Đang lưu...' : 'Lưu'}
-                            </Button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="space-y-2">
-                            <div className="flex items-start justify-between gap-2">
-                              <div>
-                                <div className="flex items-baseline gap-2">
-                                  <span className="text-2xl font-bold text-slate-900">{Number(pkg.durationDays || 0)}</span>
-                                  <span className="text-sm text-slate-500">ngày</span>
-                                </div>
-                                <p className="text-xs text-slate-500 mt-2">
-                                  ~{pointPerDay.toLocaleString('vi-VN')} điểm/ngày
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className="text-2xl font-bold text-emerald-600">
-                                  {Number(pkg.price || 0).toLocaleString('vi-VN')}
-                                </p>
-                                <p className="text-xs text-slate-500 mt-1">điểm</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="flex gap-1.5 justify-end pt-2 border-t border-slate-100">
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl font-bold text-slate-900">
+                              {pkg.durationDays} Ngày
+                            </span>
                             <Badge
-                              className={cn(
-                                'text-xs px-2 py-1',
+                              variant={pkg.isActive ? 'default' : 'secondary'}
+                              className={
                                 pkg.isActive
-                                  ? 'bg-emerald-100 text-emerald-700 border-0'
-                                  : 'bg-slate-100 text-slate-600 border-0',
-                              )}
+                                  ? 'bg-emerald-500/10 text-emerald-600 border-0 hover:bg-emerald-500/10'
+                                  : 'bg-slate-100 text-slate-500 border-0 hover:bg-slate-100'
+                              }
                             >
-                              {pkg.isActive ? '✓ Áp dụng' : 'Tạm ngưng'}
+                              {pkg.isActive ? 'Đang hoạt động' : 'Tạm ngưng'}
                             </Badge>
                           </div>
-
-                          <div className="flex gap-2 justify-end pt-2 border-t border-slate-100">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStartEditBoostPackage(pkg)}
-                              className="flex-1"
-                            >
-                              Chỉnh sửa
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() =>
-                                handleQuickToggleBoostPackage(
-                                  pkg,
-                                  { isActive: !pkg.isActive },
-                                  pkg.isActive ? 'Đã tạm ngưng gói' : 'Đã mở lại gói',
-                                )
-                              }
-                              disabled={
-                                updatePaymentPackageMutation.isPending || isOnlyActivePackage
-                              }
-                              title={
-                                isOnlyActivePackage
-                                  ? 'Cần giữ tối thiểu 1 gói boost đang mở'
-                                  : undefined
-                              }
-                              className="flex-1"
-                            >
-                              {pkg.isActive ? 'Tạm dừng' : 'Mở lại'}
-                            </Button>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-lg font-bold text-amber-600">
+                              {Number(pkg.price || 0).toLocaleString('vi-VN')}
+                            </span>
+                            <span className="text-xs text-slate-500 font-medium">
+                              điểm
+                            </span>
                           </div>
-                        </>
-                      )}
+                          <p className="text-[11px] text-slate-400 font-medium">
+                            ~{pointPerDay.toLocaleString('vi-VN')} điểm/ngày
+                          </p>
+                        </div>
+                        <div className="h-10 w-10 flex items-center justify-center rounded-full bg-amber-50">
+                          <Zap className="h-5 w-5 text-amber-600" />
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 pt-2 border-t border-slate-100">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOpenBoostModal(pkg)}
+                          className="flex-1 rounded-lg"
+                        >
+                          Chỉnh sửa
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() =>
+                            handleQuickToggleBoostPackage(
+                              pkg,
+                              { isActive: !pkg.isActive },
+                              pkg.isActive
+                                ? 'Đã tạm ngưng gói'
+                                : 'Đã mở lại gói',
+                            )
+                          }
+                          disabled={
+                            updatePaymentPackageMutation.isPending ||
+                            isOnlyActivePackage
+                          }
+                          title={
+                            isOnlyActivePackage
+                              ? 'Cần giữ tối thiểu 1 gói boost đang mở'
+                              : undefined
+                          }
+                          className="flex-1 rounded-lg"
+                        >
+                          {pkg.isActive ? 'Tạm dừng' : 'Mở lại'}
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1283,9 +1329,9 @@ export const AdminDashboard = () => {
             )}
           </div>
         </div>
-      )}
+      ))}
 
-      {active === 'users' && (
+      {active === 'users' && (isLoadingUsers ? renderUsersLoading() : (
         <div className="space-y-6">
           <Card className="p-4 flex flex-wrap gap-3 items-center">
             <select
@@ -1361,9 +1407,7 @@ export const AdminDashboard = () => {
             </Button>
           </Card>
 
-          {isLoadingUsers ? (
-            <Skeleton className="h-100 w-full rounded-2xl" />
-          ) : usersList.length === 0 ? (
+          {usersList.length === 0 ? (
             <EmptyState
               title={MSG.MSG_USER_LIST_EMPTY || 'Danh sách trống'}
               description="Danh sách người dùng đang trống hoặc không có kết quả phù hợp."
@@ -1403,10 +1447,12 @@ export const AdminDashboard = () => {
                             className={
                               user.status === 'ACTIVE'
                                 ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20'
-                                : ''
+                                : 'bg-rose-500/10 text-rose-600 hover:bg-rose-500/20'
                             }
                           >
-                            {user.status === 'ACTIVE' ? 'Đang hoạt động' : 'Đã vô hiệu'}
+                            {user.status === 'ACTIVE'
+                              ? 'Đang hoạt động'
+                              : 'Đã vô hiệu hóa'}
                           </Badge>
                         </td>
                         <td className="text-slate-600">
@@ -1431,7 +1477,9 @@ export const AdminDashboard = () => {
                               setConfirmOpen(true);
                             }}
                           >
-                            {user.status === 'ACTIVE' ? 'Vô hiệu hóa' : 'Kích hoạt lại'}
+                            {user.status === 'ACTIVE'
+                              ? 'Vô hiệu hóa'
+                              : 'Kích hoạt lại'}
                           </Button>
                         </td>
                       </tr>
@@ -1451,12 +1499,11 @@ export const AdminDashboard = () => {
             </Card>
           )}
         </div>
-      )}
+      ))}
 
-      {active === 'sectors' && (
+      {active === 'sectors' && (loadingSectors ? renderTableLoading() : (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">Quản lý ngành nghề</h2>
+          <div className="flex items-center justify-end">
             <Button
               className="rounded-xl"
               onClick={() => {
@@ -1478,13 +1525,7 @@ export const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {loadingSectors ? (
-                  <tr>
-                    <td colSpan="3" className="text-center py-6">
-                      <Skeleton className="h-6 w-full" />
-                    </td>
-                  </tr>
-                ) : sectorsTableRows.length === 0 ? (
+                {sectorsTableRows.length === 0 ? (
                   <tr>
                     <td
                       colSpan="3"
@@ -1533,12 +1574,11 @@ export const AdminDashboard = () => {
             />
           </Card>
         </div>
-      )}
+      ))}
 
-      {active === 'occupations' && (
+      {active === 'occupations' && (loadingOccupations ? renderTableLoading() : (
         <div className="space-y-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-            <h2 className="text-xl font-semibold">Quản lý nghề nghiệp</h2>
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <Input
                 type="search"
@@ -1582,13 +1622,7 @@ export const AdminDashboard = () => {
                 </tr>
               </thead>
               <tbody>
-                {loadingOccupations ? (
-                  <tr>
-                    <td colSpan="3" className="text-center py-6">
-                      <Skeleton className="h-6 w-full" />
-                    </td>
-                  </tr>
-                ) : filteredOccupations.length === 0 ? (
+                {filteredOccupations.length === 0 ? (
                   <tr>
                     <td
                       colSpan="3"
@@ -1649,12 +1683,11 @@ export const AdminDashboard = () => {
             />
           </Card>
         </div>
-      )}
+      ))}
 
-      {active === 'ai_configs' && (
+      {active === 'ai_configs' && (loadingConfigs ? renderAiConfigsLoading() : (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div></div>
+          <div className="flex items-center justify-end">
             <Button
               className="rounded-xl px-6"
               onClick={() => {
@@ -1674,10 +1707,7 @@ export const AdminDashboard = () => {
             </Button>
           </div>
 
-          {loadingConfigs ? (
-            <Skeleton className="h-100 w-full rounded-2xl" />
-          ) : (
-            <Card className="p-8 shadow-sm rounded-2xl">
+          <Card className="p-8 shadow-sm rounded-2xl">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
                 {Object.keys(aiConfigs).map((key) => (
                   <div
@@ -1699,7 +1729,8 @@ export const AdminDashboard = () => {
                       </span>
                     </div>
                     <Input
-                      type="number"
+                      type="text"
+                      inputMode="numeric"
                       className="w-full"
                       min="0"
                       max="100"
@@ -1735,22 +1766,13 @@ export const AdminDashboard = () => {
                 </p>
               )}
             </Card>
-          )}
         </div>
-      )}
+      ))}
 
-      {active === 'terms' && (
+      {active === 'terms' && (isTermsLoading ? renderTableLoading() : (
         <div className="space-y-6">
           <Card className="p-6 rounded-xl shadow-sm">
-            <h3 className="text-lg font-semibold mb-4">
-              Điều khoản & điều kiện
-            </h3>
-            {isTermsLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-96 w-full" />
-              </div>
-            ) : termsEditMode ? (
+            {termsEditMode ? (
               <div className="space-y-4">
                 <Input
                   className="text-lg font-medium p-4 h-14 rounded-xl"
@@ -1810,7 +1832,7 @@ export const AdminDashboard = () => {
             )}
           </Card>
         </div>
-      )}
+      ))}
 
       <Modal
         open={confirmOpen}
@@ -1928,7 +1950,88 @@ export const AdminDashboard = () => {
         confirmLabel="Xóa"
         tone="danger"
       />
+      <Modal
+        open={boostModalOpen}
+        title={
+          boostModalData.id ? 'Cập nhật gói đẩy tin' : 'Thêm gói đẩy tin mới'
+        }
+        description="Thiết lập thời gian và giá điểm cho gói đẩy tin tuyển dụng."
+        onClose={() => setBoostModalOpen(false)}
+        onConfirm={handleConfirmBoostPackage}
+        confirmLabel={
+          createPaymentPackageMutation.isPending ||
+          updatePaymentPackageMutation.isPending
+            ? 'Đang lưu...'
+            : 'Xác nhận'
+        }
+        confirmDisabled={
+          createPaymentPackageMutation.isPending ||
+          updatePaymentPackageMutation.isPending
+        }
+      >
+        <div className="space-y-4 py-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-700">
+                Số ngày có hiệu lực
+              </label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="VD: 7"
+                value={boostModalData.durationDays}
+                onChange={(e) =>
+                  setBoostModalData((prev) => ({
+                    ...prev,
+                    durationDays: String(e.target.value || '').replace(
+                      /\D/g,
+                      '',
+                    ),
+                  }))
+                }
+                className="rounded-xl font-medium"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-semibold text-slate-700">
+                Giá (Điểm)
+              </label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                placeholder="VD: 50,000"
+                value={boostModalData.price}
+                onChange={(e) =>
+                  setBoostModalData((prev) => ({
+                    ...prev,
+                    price: formatCommaNumber(e.target.value),
+                  }))
+                }
+                className="rounded-xl font-medium"
+              />
+            </div>
+          </div>
 
+          <div className="space-y-1.5">
+            <label className="text-sm font-semibold text-slate-700">
+              Trạng thái áp dụng
+            </label>
+            <select
+              className="w-full rounded-xl border border-slate-200 px-4 py-2 text-sm bg-white focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              value={boostModalData.isActive ? 'true' : 'false'}
+              onChange={(e) =>
+                setBoostModalData((prev) => ({
+                  ...prev,
+                  isActive: e.target.value === 'true',
+                }))
+              }
+            >
+              <option value="true">Hoạt động </option>
+              <option value="false">Tạm ngưng</option>
+            </select>
+          </div>
+        </div>
+      </Modal>
     </DashboardLayout>
   );
 };

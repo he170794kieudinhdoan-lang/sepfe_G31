@@ -39,16 +39,7 @@ import {
   MessageCircle,
   Wallet,
 } from 'lucide-react';
-
-const EMPLOYER_MENU = [
-  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard, path: '/employer' },
-  { key: 'jobs', label: 'Tin tuyển dụng', icon: Briefcase, path: '/employer/jobs' },
-  { key: 'interviews', label: 'Lịch phỏng vấn', icon: CalendarCheck, path: '/employer/interviews' },
-  { key: 'stats', label: 'Thống kê', icon: BarChart3, path: '/employer/stats' },
-  { key: 'wallet', label: 'Tài khoản điểm', icon: Wallet, path: '/employer/wallet' },
-  { key: 'chat', label: 'Tin nhắn', icon: MessageCircle, path: '/chat', externalNav: true },
-  { key: 'home', label: 'Trang chủ', icon: Home, path: '/', externalNav: true },
-];
+import { EMPLOYER_MENU } from '@/pages/EmployerDashboard';
 
 const QUICK_TOPUP_AMOUNTS = [100000, 200000, 500000, 1000000];
 const TOPUP_MIN_AMOUNT = 10000;
@@ -62,15 +53,21 @@ const formatTransactionType = (type) => {
   if (!type) return 'Giao dịch';
   const t = String(type).toUpperCase();
   const map = {
-    'TOPUP': 'Nạp điểm ví',
-    'POST_JOB': 'Phí đăng tin',
-    'BOOST_JOB': 'Phí đẩy tin',
-    'AI_INVITE': 'Mời ứng viên AI',
-    'INVITE_AI': 'Mời ứng viên AI',
-    'JOB_POST': 'Phí đăng tin',
-    'JOB_BOOST': 'Phí đẩy tin',
+    TOPUP: 'Nạp điểm ví',
+    POST_JOB: 'Phí đăng tin',
+    BOOST_JOB: 'Phí đẩy tin',
+    AI_INVITE: 'Mời ứng viên AI',
+    INVITE_AI: 'Mời ứng viên AI',
+    JOB_POST: 'Phí đăng tin',
+    JOB_BOOST: 'Phí đẩy tin',
   };
-  return map[t] || t.replace(/_/g, ' ').toLowerCase().replace(/(^|\s)\S/g, m => m.toUpperCase());
+  return (
+    map[t] ||
+    t
+      .replace(/_/g, ' ')
+      .toLowerCase()
+      .replace(/(^|\s)\S/g, (m) => m.toUpperCase())
+  );
 };
 
 const formatDateTime = (value) => {
@@ -108,20 +105,30 @@ export const EmployerWalletPage = () => {
   const { data: boostPackagesRes } = useBoostPackages();
   const { data: walletPricingRes } = useWalletPricing();
   const walletPricing = walletPricingRes?.data || walletPricingRes || {};
-  const invitePointCost = Number(walletPricing?.AI_INVITE_POINT_COST_PER_WORKER || 1000);
+  const invitePointCost = Number(
+    walletPricing?.AI_INVITE_POINT_COST_PER_WORKER || 1000,
+  );
   const boostPackages = boostPackagesRes?.items || boostPackagesRes?.data || [];
-  const activeBoostPackages = boostPackages.filter((item) => item?.isActive !== false);
-  const configuredBoostDays = Math.max(1, Number(walletPricing?.BOOST_JOB_DURATION_DAYS || 7));
+  const activeBoostPackages = boostPackages.filter(
+    (item) => item?.isActive !== false,
+  );
+  const configuredBoostDays = Math.max(
+    1,
+    Number(walletPricing?.BOOST_JOB_DURATION_DAYS || 7),
+  );
   const configuredBoostPointCost = Math.max(
     0,
     Number(walletPricing?.BOOST_JOB_POINT_COST || 50000),
   );
   const boostPackageOptions = activeBoostPackages;
   const referenceBoostPackage =
-    boostPackageOptions.find((item) => item.isDefault) || boostPackageOptions[0];
+    boostPackageOptions.find((item) => item.isDefault) ||
+    boostPackageOptions[0];
   const minBoostPrice = useMemo(() => {
     try {
-      const prices = (boostPackageOptions || []).map((p) => Number(p?.price || configuredBoostPointCost));
+      const prices = (boostPackageOptions || []).map((p) =>
+        Number(p?.price || configuredBoostPointCost),
+      );
       if (!prices.length) return Number(configuredBoostPointCost || 0);
       return Math.max(0, Math.min(...prices));
     } catch (e) {
@@ -137,7 +144,10 @@ export const EmployerWalletPage = () => {
   });
 
   // Subscribe to payment order realtime updates (disables polling when connected)
-  const { realtimeStatus: orderRealtimeStatus, isRealtimeSubscribed: isOrderRealtimeSubscribed } = usePaymentOrderRealtime({
+  const {
+    realtimeStatus: orderRealtimeStatus,
+    isRealtimeSubscribed: isOrderRealtimeSubscribed,
+  } = usePaymentOrderRealtime({
     orderId,
     enabled: !!orderId && !!checkoutData,
     onEvent: () => {
@@ -145,11 +155,17 @@ export const EmployerWalletPage = () => {
     },
   });
 
-  const { data: txRes, isLoading: txLoading } = useWalletTransactions({ page: txPage, limit: txLimit });
+  const { data: txRes, isLoading: txLoading } = useWalletTransactions({
+    page: txPage,
+    limit: txLimit,
+  });
   const txPayload = txRes?.data || txRes;
   const transactions = txPayload?.items || [];
   const txMeta = txPayload?.meta;
-  const totalPages = Math.max(Number(txMeta?.totalPages || txMeta?.totalPage || 1), 1);
+  const totalPages = Math.max(
+    Number(txMeta?.totalPages || txMeta?.totalPage || 1),
+    1,
+  );
   const topupMutation = useTopupCheckout();
   const userId = user?.userId || user?.id || user?._id;
 
@@ -171,9 +187,14 @@ export const EmployerWalletPage = () => {
       if (resumeKey) {
         nextParams.set('resumeKey', resumeKey);
       }
-      navigate(nextParams.toString() ? `${returnPath}?${nextParams.toString()}` : returnPath, {
-        replace: true,
-      });
+      navigate(
+        nextParams.toString()
+          ? `${returnPath}?${nextParams.toString()}`
+          : returnPath,
+        {
+          replace: true,
+        },
+      );
     }
   };
 
@@ -184,13 +205,17 @@ export const EmployerWalletPage = () => {
       const notification = payload?.new || payload?.old;
       if (!notification) return;
 
-      const title = typeof notification.title === 'string' ? notification.title : '';
-      const link = typeof notification.link === 'string' ? notification.link : '';
-      const message = typeof notification.message === 'string' ? notification.message : '';
+      const title =
+        typeof notification.title === 'string' ? notification.title : '';
+      const link =
+        typeof notification.link === 'string' ? notification.link : '';
+      const message =
+        typeof notification.message === 'string' ? notification.message : '';
       const isTopupSuccess =
         title.toLowerCase().includes('nạp point thành công') ||
         link.includes('walletTopupSuccess=1') ||
-        message.toLowerCase().includes('đã cộng') && message.toLowerCase().includes('point');
+        (message.toLowerCase().includes('đã cộng') &&
+          message.toLowerCase().includes('point'));
 
       if (isTopupSuccess) {
         handleCheckoutSuccess();
@@ -202,7 +227,8 @@ export const EmployerWalletPage = () => {
   const { data: orderStatusRes } = useTopupOrderStatus(orderId, {
     enabled: !!orderId && !!checkoutData,
     refetchInterval: (query) => {
-      const currentStatus = query?.state?.data?.data?.status || query?.state?.data?.status;
+      const currentStatus =
+        query?.state?.data?.data?.status || query?.state?.data?.status;
       if (currentStatus && currentStatus !== 'PENDING') return false;
 
       // Realtime-first: only fallback to a light interval while socket is not subscribed.
@@ -214,7 +240,8 @@ export const EmployerWalletPage = () => {
   const orderStatus = orderStatusRes?.data || orderStatusRes;
 
   const amountNumber = useMemo(() => parseNumber(topupAmount), [topupAmount]);
-  const isBelowBoostThreshold = amountNumber > 0 && amountNumber < Number(minBoostPrice || 0);
+  const isBelowBoostThreshold =
+    amountNumber > 0 && amountNumber < Number(minBoostPrice || 0);
   const isTopupAmountValid =
     Number.isInteger(amountNumber) &&
     amountNumber >= TOPUP_MIN_AMOUNT &&
@@ -247,7 +274,8 @@ export const EmployerWalletPage = () => {
       handledOrderIdRef.current = null;
       toast('Đã tạo QR nạp point thành công', 'success');
     } catch (error) {
-      const message = error?.response?.data?.message || 'Không thể tạo QR nạp điểm';
+      const message =
+        error?.response?.data?.message || 'Không thể tạo QR nạp điểm';
       toast(Array.isArray(message) ? message.join(', ') : message, 'error');
     }
   };
@@ -270,7 +298,10 @@ export const EmployerWalletPage = () => {
       orderStatus.status === PaymentStatus.CANCELLED
     ) {
       handledOrderIdRef.current = orderId;
-      toast(`Thanh toán ${orderStatus.status === PaymentStatus.FAILED ? 'thất bại' : 'bị hủy'}. Vui lòng thử lại.`, 'error');
+      toast(
+        `Thanh toán ${orderStatus.status === PaymentStatus.FAILED ? 'thất bại' : 'bị hủy'}. Vui lòng thử lại.`,
+        'error',
+      );
       closeCheckoutModal();
     }
   }, [orderId, orderStatus, navigate, searchParams, refetchWallet, toast]);
@@ -305,8 +336,8 @@ export const EmployerWalletPage = () => {
 
   return (
     <DashboardLayout
-      title="Tài khoản điểm"
-      subtitle="Nạp điểm • Theo dõi biến động"
+      title="Ví điểm"
+      subtitle="Nạp điểm, theo dõi số dư và lịch sử giao dịch."
       menu={EMPLOYER_MENU}
       activeKey="wallet"
       topbarBell={<NotificationBellPopover />}
@@ -322,13 +353,20 @@ export const EmployerWalletPage = () => {
                 <div className="h-full overflow-hidden" ref={emblaRef}>
                   <div className="flex h-full">
                     {PROMO_SLIDES.map((slide) => (
-                      <div key={slide.id} className="relative min-w-0 shrink-0 grow-0 basis-full">
-                        <img src={slide.image} alt="Banner" className="h-full w-full object-cover" />
+                      <div
+                        key={slide.id}
+                        className="relative min-w-0 shrink-0 grow-0 basis-full"
+                      >
+                        <img
+                          src={slide.image}
+                          alt="Banner"
+                          className="h-full w-full object-cover"
+                        />
                       </div>
                     ))}
                   </div>
                 </div>
-                
+
                 {/* Nút điều hướng */}
                 <Button
                   type="button"
@@ -357,7 +395,9 @@ export const EmployerWalletPage = () => {
                       onClick={() => emblaApi?.scrollTo(idx)}
                       className={cn(
                         'h-2 rounded-full transition-all duration-300',
-                        idx === selectedSlide ? 'w-8 bg-amber-400' : 'w-2 bg-white/50 hover:bg-white/90',
+                        idx === selectedSlide
+                          ? 'w-8 bg-amber-400'
+                          : 'w-2 bg-white/50 hover:bg-white/90',
                       )}
                       aria-label={`Xem slide ${idx + 1}`}
                     />
@@ -371,13 +411,17 @@ export const EmployerWalletPage = () => {
               <div className="flex flex-col gap-4 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
-                    <History className="h-5 w-5 text-slate-500" /> Lịch sử giao dịch
+                    <History className="h-5 w-5 text-slate-500" /> Lịch sử giao
+                    dịch
                   </h3>
                   <p className="mt-1 text-sm text-slate-500">
                     Chi tiết biến động số dư tài khoản.
                   </p>
                 </div>
-                <Badge variant="secondary" className="bg-slate-100 px-3 py-1.5 text-slate-700">
+                <Badge
+                  variant="secondary"
+                  className="bg-slate-100 px-3 py-1.5 text-slate-700"
+                >
                   {formatNumber(txMeta?.total || transactions.length)} giao dịch
                 </Badge>
               </div>
@@ -393,8 +437,12 @@ export const EmployerWalletPage = () => {
                     <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
                       <History className="h-6 w-6 text-slate-400" />
                     </div>
-                    <p className="text-base font-semibold text-slate-900">Chưa phát sinh giao dịch</p>
-                    <p className="mt-1 text-sm text-slate-500">Vui lòng nạp điểm để bắt đầu sử dụng.</p>
+                    <p className="text-base font-semibold text-slate-900">
+                      Chưa phát sinh giao dịch
+                    </p>
+                    <p className="mt-1 text-sm text-slate-500">
+                      Vui lòng nạp điểm để bắt đầu sử dụng.
+                    </p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-100">
@@ -403,22 +451,38 @@ export const EmployerWalletPage = () => {
                       const positive = delta >= 0;
 
                       return (
-                        <div key={tx.id} className="flex items-center justify-between px-4 py-2.5 transition-colors hover:bg-slate-50">
+                        <div
+                          key={tx.id}
+                          className="flex items-center justify-between px-4 py-2.5 transition-colors hover:bg-slate-50"
+                        >
                           <div className="flex items-center gap-3">
                             <div
                               className={cn(
                                 'flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
-                                positive ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600',
+                                positive
+                                  ? 'bg-emerald-100 text-emerald-600'
+                                  : 'bg-amber-100 text-amber-600',
                               )}
                             >
-                              {positive ? <CreditCard className="h-4 w-4" /> : <Briefcase className="h-4 w-4" />}
+                              {positive ? (
+                                <CreditCard className="h-4 w-4" />
+                              ) : (
+                                <Briefcase className="h-4 w-4" />
+                              )}
                             </div>
                             <div>
-                              <p className="text-[13px] font-bold text-slate-800 leading-tight">{formatTransactionType(tx.type)}</p>
+                              <p className="text-[13px] font-bold text-slate-800 leading-tight">
+                                {formatTransactionType(tx.type)}
+                              </p>
                               <div className="mt-0.5 flex items-center gap-2 text-[11px] text-slate-400">
                                 <span>{formatDateTime(tx.createdAt)}</span>
                                 <span className="h-0.5 w-0.5 rounded-full bg-slate-300" />
-                                <span>Số dư mới: <strong className="text-slate-600">{formatNumber(tx.balanceAfter)}</strong></span>
+                                <span>
+                                  Số dư mới:{' '}
+                                  <strong className="text-slate-600">
+                                    {formatNumber(tx.balanceAfter)}
+                                  </strong>
+                                </span>
                               </div>
                             </div>
                           </div>
@@ -426,12 +490,17 @@ export const EmployerWalletPage = () => {
                             <p
                               className={cn(
                                 'text-sm font-bold',
-                                positive ? 'text-emerald-600' : 'text-slate-800',
+                                positive
+                                  ? 'text-emerald-600'
+                                  : 'text-slate-800',
                               )}
                             >
-                              {positive ? '+' : ''}{formatNumber(delta)}
+                              {positive ? '+' : ''}
+                              {formatNumber(delta)}
                             </p>
-                            <p className="text-[9px] font-bold uppercase tracking-tighter text-slate-400">điểm</p>
+                            <p className="text-[9px] font-bold uppercase tracking-tighter text-slate-400">
+                              điểm
+                            </p>
                           </div>
                         </div>
                       );
@@ -443,7 +512,11 @@ export const EmployerWalletPage = () => {
               {(totalPages > 1 || recentTransactions.length > 0) && (
                 <div className="flex items-center justify-between rounded-b-xl border-t border-slate-100 bg-slate-50/50 px-6 py-4">
                   <p className="text-sm text-slate-500">
-                    Trang <span className="font-semibold text-slate-900">{txPage}</span> / {totalPages}
+                    Trang{' '}
+                    <span className="font-semibold text-slate-900">
+                      {txPage}
+                    </span>{' '}
+                    / {totalPages}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
@@ -460,7 +533,9 @@ export const EmployerWalletPage = () => {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setTxPage((prev) => Math.min(prev + 1, totalPages))}
+                      onClick={() =>
+                        setTxPage((prev) => Math.min(prev + 1, totalPages))
+                      }
                       disabled={txPage >= totalPages}
                       className="bg-white hover:bg-slate-100"
                     >
@@ -482,21 +557,34 @@ export const EmployerWalletPage = () => {
                     <Wallet className="h-6 w-6 text-amber-900" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-amber-900/70 uppercase tracking-wider">Số dư hiện tại</p>
+                    <p className="text-xs font-bold text-amber-900/70 uppercase tracking-wider">
+                      Số dư hiện tại
+                    </p>
                     <p className="mt-1 text-2xl font-black tracking-tight text-amber-950">
-                      {formatNumber(wallet?.balancePoint || 0)} <span className="text-sm font-semibold text-amber-900">điểm</span>
+                      {formatNumber(wallet?.balancePoint || 0)}{' '}
+                      <span className="text-sm font-semibold text-amber-900">
+                        điểm
+                      </span>
                     </p>
                   </div>
                 </div>
               </div>
-              
+
               <div className="flex flex-col justify-center rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-600">Đã nạp</p>
-                <p className="mt-1 text-lg font-bold text-slate-800">{formatNumber(wallet?.totalTopupPoint || 0)}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-600">
+                  Đã nạp
+                </p>
+                <p className="mt-1 text-lg font-bold text-slate-800">
+                  {formatNumber(wallet?.totalTopupPoint || 0)}
+                </p>
               </div>
               <div className="flex flex-col justify-center rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-                <p className="text-[11px] font-bold uppercase tracking-wide text-amber-600">Đã sử dụng</p>
-                <p className="mt-1 text-lg font-bold text-slate-800">{formatNumber(wallet?.totalSpentPoint || 0)}</p>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-amber-600">
+                  Đã sử dụng
+                </p>
+                <p className="mt-1 text-lg font-bold text-slate-800">
+                  {formatNumber(wallet?.totalSpentPoint || 0)}
+                </p>
               </div>
             </div>
 
@@ -504,14 +592,19 @@ export const EmployerWalletPage = () => {
             <Card className="flex flex-col rounded-xl border border-slate-200 bg-white shadow-md">
               <div className="border-b border-slate-100 p-5">
                 <h3 className="flex items-center gap-2 text-lg font-bold text-slate-900">
-                  <CreditCard className="h-5 w-5 text-primary" /> Nạp điểm vào ví
+                  <CreditCard className="h-5 w-5 text-primary" /> Nạp điểm vào
+                  ví
                 </h3>
-                <p className="mt-1 text-sm text-slate-500">Tỷ lệ quy đổi: 1.000 VNĐ = 1 điểm</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Tỷ lệ quy đổi: 1.000 VNĐ = 1.000 điểm
+                </p>
               </div>
-              
+
               <div className="flex flex-1 flex-col gap-6 p-5">
                 <div className="space-y-3">
-                  <label className="text-sm font-semibold text-slate-700">Chọn mức nạp nhanh</label>
+                  <label className="text-sm font-semibold text-slate-700">
+                    Chọn mức nạp nhanh
+                  </label>
                   <div className="grid grid-cols-2 gap-3">
                     {quickTopupOptions.map((item) => (
                       <button
@@ -525,7 +618,12 @@ export const EmployerWalletPage = () => {
                             : 'border-slate-200 bg-white hover:border-primary/40 hover:bg-slate-50',
                         )}
                       >
-                        <p className={cn('text-base font-bold', item.active ? 'text-primary' : 'text-slate-700')}>
+                        <p
+                          className={cn(
+                            'text-base font-bold',
+                            item.active ? 'text-primary' : 'text-slate-700',
+                          )}
+                        >
                           {formatNumber(item.amount)}đ
                         </p>
                         <p className="mt-1 text-xs text-slate-500">
@@ -537,12 +635,18 @@ export const EmployerWalletPage = () => {
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-sm font-semibold text-slate-700">Nhập số tiền tuỳ chọn</label>
+                  <label className="text-sm font-semibold text-slate-700">
+                    Nhập số tiền tuỳ chọn
+                  </label>
                   <div className="relative">
                     <Input
                       type="text"
                       value={formatCommaNumber(topupAmount)}
-                      onChange={(e) => setTopupAmount(String(e.target.value || '').replace(/\D/g, ''))}
+                      onChange={(e) =>
+                        setTopupAmount(
+                          String(e.target.value || '').replace(/\D/g, ''),
+                        )
+                      }
                       placeholder="VD: 50,000"
                       inputMode="numeric"
                       className="h-12 rounded-lg pr-14 text-lg font-semibold text-slate-900"
@@ -613,9 +717,13 @@ export const EmployerWalletPage = () => {
         {checkoutData && (
           <div className="grid gap-5 lg:grid-cols-[1fr_1fr]">
             <div className="rounded-none border border-slate-200 bg-linear-to-b from-white to-slate-50 p-4 shadow-sm">
-                    <div className="rounded-none border border-slate-200 bg-white p-3 shadow-sm">
+              <div className="rounded-none border border-slate-200 bg-white p-3 shadow-sm">
                 {checkoutData.paymentUrl ? (
-                  <img src={checkoutData.paymentUrl} alt="QR nạp điểm" className="mx-auto w-full max-w-[320px] rounded-none" />
+                  <img
+                    src={checkoutData.paymentUrl}
+                    alt="QR nạp điểm"
+                    className="mx-auto w-full max-w-[320px] rounded-none"
+                  />
                 ) : (
                   <div className="flex min-h-70 items-center justify-center rounded-none border border-dashed border-slate-200 bg-slate-50 text-sm text-slate-500">
                     Đang khởi tạo mã QR...
@@ -627,23 +735,33 @@ export const EmployerWalletPage = () => {
             <div className="space-y-4 rounded-none border border-slate-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Thông tin chuyển khoản</p>
-                  <h4 className="mt-1 text-xl font-black text-slate-900">{checkoutData.paymentCode}</h4>
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                    Thông tin chuyển khoản
+                  </p>
+                  <h4 className="mt-1 text-xl font-black text-slate-900">
+                    {checkoutData.paymentCode}
+                  </h4>
                 </div>
                 <div className="rounded-none bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-                  {isOrderRealtimeSubscribed ? 'Đang theo dõi realtime' : 'Đang chờ thanh toán'}
+                  {isOrderRealtimeSubscribed
+                    ? 'Đang theo dõi realtime'
+                    : 'Đang chờ thanh toán'}
                 </div>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-none bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Số tiền</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                    Số tiền
+                  </p>
                   <p className="mt-2 text-2xl font-black text-slate-900">
                     {formatNumber(checkoutData.amount || 0)}đ
                   </p>
                 </div>
                 <div className="rounded-none bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Điểm nhận</p>
+                  <p className="text-xs uppercase tracking-[0.18em] text-slate-500">
+                    Điểm nhận
+                  </p>
                   <p className="mt-2 text-2xl font-black text-slate-900">
                     {formatNumber(checkoutData.pointAmount || 0)}
                   </p>
@@ -655,7 +773,10 @@ export const EmployerWalletPage = () => {
                   <div className="mt-0.5 rounded-none bg-white p-1.5 text-slate-700 shadow-sm">
                     <CheckCircle2 className="h-4 w-4" />
                   </div>
-                  <p>Chuyển khoản đúng nội dung hiển thị ở trên để hệ thống tự cộng điểm.</p>
+                  <p>
+                    Chuyển khoản đúng nội dung hiển thị ở trên để hệ thống tự
+                    cộng điểm.
+                  </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <div className="mt-0.5 rounded-none bg-white p-1.5 text-slate-700 shadow-sm">
@@ -672,12 +793,19 @@ export const EmployerWalletPage = () => {
                     <Wallet className="h-4 w-4" />
                   </div>
                   <p>
-                    Số dư hiện tại: <strong>{formatNumber(wallet?.balancePoint || 0)} điểm</strong>
+                    Số dư hiện tại:{' '}
+                    <strong>
+                      {formatNumber(wallet?.balancePoint || 0)} điểm
+                    </strong>
                   </p>
                 </div>
               </div>
 
-              <Button className="w-full rounded-none border-primary/20 bg-primary/5 text-primary hover:bg-primary/10" variant="outline" onClick={closeCheckoutModal}>
+              <Button
+                className="w-full rounded-none border-primary/20 bg-primary/5 text-primary hover:bg-primary/10"
+                variant="outline"
+                onClick={closeCheckoutModal}
+              >
                 Đóng cửa sổ thanh toán
               </Button>
             </div>
@@ -687,4 +815,3 @@ export const EmployerWalletPage = () => {
     </DashboardLayout>
   );
 };
-

@@ -6,11 +6,12 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { AppPagination } from '@/shared/components/AppPagination';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Modal } from '@/shared/components/Modal';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
-import parse from "html-react-parser";
+import parse from 'html-react-parser';
 import {
   Building2,
   FileText,
@@ -37,17 +38,44 @@ import {
   useUpdateReviewReportStatus,
   useHideCompanyReview,
 } from '../api/useGetCompanies';
-import { useGetAllJobReports, useUpdateJobReportStatus, useUpdateJobStatus } from '@/features/jobs/api/useJobs';
+import {
+  useGetAllJobReports,
+  useUpdateJobReportStatus,
+  useUpdateJobStatus,
+} from '@/features/jobs/api/useJobs';
 import { SupportTicketBoard } from '@/features/support/components/SupportTicketBoard';
 
 // 1. Management Menu and Status Colors configuration
 const MANAGEMENT_MENU = [
-  { key: 'companies', label: 'Doanh nghiệp đăng kí' },
+  { key: 'companies', label: 'Doanh nghiệp đăng ký' },
   { key: 'company_updates', label: 'Yêu cầu đổi thông tin' },
-  { key: 'job_reports', label: 'Báo cáo tin tuyển dụng' },
-  { key: 'review_reports', label: 'Báo cáo nhận xét' },
-  { key: 'support', label: 'Xử lý yêu cầu trợ giúp' },
+  { key: 'job_reports', label: 'Báo cáo việc làm' },
+  { key: 'review_reports', label: 'Báo cáo đánh giá' },
+  { key: 'support', label: 'Hỗ trợ khách hàng' },
 ];
+
+const TAB_HEADERS = {
+  companies: {
+    title: 'Danh sách doanh nghiệp mới',
+    subtitle: 'Giám sát hoạt động và xử lý hồ sơ đăng ký doanh nghiệp mới.',
+  },
+  company_updates: {
+    title: 'Yêu cầu cập nhật thông tin',
+    subtitle: 'Xem xét và phê duyệt các thay đổi thông tin từ doanh nghiệp.',
+  },
+  job_reports: {
+    title: 'Báo cáo tin tuyển dụng',
+    subtitle: 'Xử lý các báo cáo vi phạm liên quan đến tin đăng tuyển dụng.',
+  },
+  review_reports: {
+    title: 'Báo cáo đánh giá',
+    subtitle: 'Quản lý các phản hồi và báo cáo vi phạm trong phần đánh giá.',
+  },
+  support: {
+    title: 'Xử lý yêu cầu trợ giúp',
+    subtitle: 'Giải đáp thắc mắc và hỗ trợ người dùng hệ thống.',
+  },
+};
 
 const STATUS_COLORS = {
   APPROVED: {
@@ -81,6 +109,12 @@ const REPORT_STATUS_LABELS = {
   PENDING: 'Chờ xử lý',
   RESOLVED: 'Đã giải quyết',
   REJECTED: 'Đã từ chối',
+};
+
+const REPORT_STATUS_COLORS = {
+  PENDING: 'bg-blue-50 text-blue-700 border-blue-100',
+  RESOLVED: 'bg-emerald-50 text-emerald-700 border-emerald-100',
+  REJECTED: 'bg-rose-50 text-rose-700 border-rose-100',
 };
 
 function formatManagerDateTime(value) {
@@ -138,7 +172,8 @@ export const ManagerDashboard = () => {
   const [reportStatus, setReportStatus] = useState('ALL');
   const [viewingReportId, setViewingReportId] = useState(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [isApproveReportModalOpen, setIsApproveReportModalOpen] = useState(false);
+  const [isApproveReportModalOpen, setIsApproveReportModalOpen] =
+    useState(false);
 
   const [reportCompanyName, setReportCompanyName] = useState('');
   const [reportReporterName, setReportReporterName] = useState('');
@@ -149,7 +184,8 @@ export const ManagerDashboard = () => {
   const [reviewReportStatus, setReviewReportStatus] = useState('ALL');
   const [viewingReviewReportId, setViewingReviewReportId] = useState(null);
   const [isReviewReportModalOpen, setIsReviewReportModalOpen] = useState(false);
-  const [isApproveReviewReportModalOpen, setIsApproveReviewReportModalOpen] = useState(false);
+  const [isApproveReviewReportModalOpen, setIsApproveReviewReportModalOpen] =
+    useState(false);
 
   const [reviewReportCompanyName, setReviewReportCompanyName] = useState('');
   const [reviewReportReporterName, setReviewReportReporterName] = useState('');
@@ -157,19 +193,34 @@ export const ManagerDashboard = () => {
   const [reviewReportToDate, setReviewReportToDate] = useState('');
 
   // --- DATA FETCHING FROM API ---
-  const { data: allCompanies = [], isLoading: isLoadingAll } = useGetCompanies();
+  const { data: allCompanies = [], isLoading: isLoadingAll } =
+    useGetCompanies();
   const { data: pendingUpdateCompanies = [] } = useGetPendingUpdateCompanies();
   const { data: companyDetails, isLoading: isLoadingDetails } =
     useGetCompaniesById(viewingCompanyId);
-  const { data: companyUpdateRequest } = useGetCompanyUpdateRequest(viewingCompanyId);
+  const { data: companyUpdateRequest } =
+    useGetCompanyUpdateRequest(viewingCompanyId);
   const reviewCompanyMutation = useReviewCompany();
 
-  const { data: listReportsData = [], isLoading: loadingReports } = useGetAllJobReports(reportStatus, 1, 50, reportCompanyName, reportReporterName, reportFromDate, reportToDate);
+  const { data: listReportsData = [], isLoading: loadingReports } =
+    useGetAllJobReports(
+      reportStatus,
+      1,
+      50,
+      reportCompanyName,
+      reportReporterName,
+      reportFromDate,
+      reportToDate,
+    );
   const updateReportMutation = useUpdateJobReportStatus();
   const updateJobStatusMutation = useUpdateJobStatus();
 
   const { data: listReviewReportsData, isLoading: loadingReviewReports } =
-    useGetReviewReports(reviewReportStatus === 'ALL' ? undefined : reviewReportStatus, 1, 50);
+    useGetReviewReports(
+      reviewReportStatus === 'ALL' ? undefined : reviewReportStatus,
+      1,
+      50,
+    );
   const updateReviewReportMutation = useUpdateReviewReportStatus();
   const hideReviewMutation = useHideCompanyReview();
 
@@ -214,8 +265,12 @@ export const ManagerDashboard = () => {
   }, [tabFromUrl, setSearchParams]);
 
   // Find the viewing report in the list
-  const viewingReport = listReportsData?.data?.find(r => r.id === viewingReportId);
-  const viewingReviewReport = listReviewReportsData?.data?.find(r => r.id === viewingReviewReportId);
+  const viewingReport = listReportsData?.data?.find(
+    (r) => r.id === viewingReportId,
+  );
+  const viewingReviewReport = listReviewReportsData?.data?.find(
+    (r) => r.id === viewingReviewReportId,
+  );
 
   // Logic to select which list to display
   const isLoadingData = isLoadingAll;
@@ -225,7 +280,9 @@ export const ManagerDashboard = () => {
   const filteredCompanies = sourceList
     .filter((item) => item.status !== 'UPDATING')
     .filter((item) =>
-      companyStatusFilter === 'ALL' ? true : item.status === companyStatusFilter,
+      companyStatusFilter === 'ALL'
+        ? true
+        : item.status === companyStatusFilter,
     )
     .filter((item) => {
       if (!companyFromDate && !companyToDate) return true;
@@ -320,9 +377,17 @@ export const ManagerDashboard = () => {
       });
 
       if (companyDetails?.status === 'UPDATING') {
-        toast(newStatus === 'APPROVED' ? 'Đã duyệt hồ sơ cập nhật' : 'Đã từ chối hồ sơ cập nhật');
+        toast(
+          newStatus === 'APPROVED'
+            ? 'Đã duyệt hồ sơ cập nhật'
+            : 'Đã từ chối hồ sơ cập nhật',
+        );
       } else {
-        toast(newStatus === 'APPROVED' ? 'Đã duyệt hồ sơ doanh nghiệp' : 'Đã từ chối hồ sơ doanh nghiệp');
+        toast(
+          newStatus === 'APPROVED'
+            ? 'Đã duyệt hồ sơ doanh nghiệp'
+            : 'Đã từ chối hồ sơ doanh nghiệp',
+        );
       }
 
       // Reset state after completion
@@ -411,27 +476,88 @@ export const ManagerDashboard = () => {
     }
   };
 
+  // --- SKELETON LOADERS ---
+  const renderTableSkeleton = () => (
+    <div className="space-y-4">
+      <Card className="p-3 flex flex-wrap gap-3 items-center border border-slate-200">
+        <Skeleton className="h-10 w-48 rounded-lg" />
+        <Skeleton className="h-10 w-32 rounded-lg" />
+        <Skeleton className="h-10 w-32 rounded-lg" />
+        <Skeleton className="h-10 w-32 rounded-lg" />
+        <div className="ml-auto">
+          <Skeleton className="h-6 w-24" />
+        </div>
+      </Card>
+      <Card className="rounded-xl border border-slate-200 shadow-sm overflow-hidden bg-white">
+        <div className="p-6 space-y-4">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-lg" />
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+
+  const renderDetailsSkeleton = () => (
+    <div className="space-y-6">
+      <Skeleton className="h-10 w-24" />
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card className="p-6 rounded-xl border border-slate-200 shadow-sm bg-white">
+            <div className="flex gap-6 items-start pb-6 border-b">
+              <Skeleton className="h-20 w-20 rounded-lg" />
+              <div className="flex-1 pt-1 space-y-3">
+                <Skeleton className="h-8 w-1/3" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            </div>
+            <div className="grid md:grid-cols-2 gap-8 mt-8">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="space-y-2">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-5 w-3/4" />
+                </div>
+              ))}
+            </div>
+            <Skeleton className="h-32 w-full mt-8 rounded-xl" />
+          </Card>
+        </div>
+        <div className="space-y-6">
+          <Card className="p-6 rounded-xl border border-slate-200 shadow-sm bg-white">
+            <Skeleton className="h-5 w-32 mb-4" />
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-10 w-10 rounded-full" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-16" />
+              </div>
+            </div>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+
   // ==========================================================
   // VIEW 1: COMPANY DETAILS (WHEN VIEWING)
   // ==========================================================
   const renderDetails = () => {
-    if (isLoadingDetails)
-      return (
-        <div className="flex flex-col items-center justify-center min-h-100 text-slate-600">
-          <div className="h-10 w-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin mb-4"></div>
-          <p>Đang tải dữ liệu...</p>
-        </div>
-      );
+    if (isLoadingDetails) return renderDetailsSkeleton();
 
     if (!companyDetails) return null;
 
     const proposed = companyUpdateRequest?.proposed || null;
     const current = companyUpdateRequest?.current || companyDetails;
-    const isUpdatingProfile = companyDetails.status === 'UPDATING' && !!proposed;
+    const isUpdatingProfile =
+      companyDetails.status === 'UPDATING' && !!proposed;
 
     const renderCompareValue = (value, key) => {
       if (!value) return <span className="text-slate-400">—</span>;
-      if (key === 'website' || key === 'logoUrl' || key === 'businessLicenseUrl') {
+      if (
+        key === 'website' ||
+        key === 'logoUrl' ||
+        key === 'businessLicenseUrl'
+      ) {
         return (
           <a
             href={String(value)}
@@ -444,7 +570,9 @@ export const ManagerDashboard = () => {
         );
       }
       if (key === 'description') {
-        return <div className="text-sm leading-relaxed">{parse(String(value))}</div>;
+        return (
+          <div className="text-sm leading-relaxed">{parse(String(value))}</div>
+        );
       }
       return <span>{String(value)}</span>;
     };
@@ -532,7 +660,9 @@ export const ManagerDashboard = () => {
                   Giới thiệu công ty
                 </h4>
                 <div className="text-slate-600 leading-relaxed text-sm">
-                  {companyDetails.description ? parse(companyDetails.description) : 'Chưa có mô tả chi tiết.'}
+                  {companyDetails.description
+                    ? parse(companyDetails.description)
+                    : 'Chưa có mô tả chi tiết.'}
                 </div>
               </div>
 
@@ -562,10 +692,20 @@ export const ManagerDashboard = () => {
                         {comparisonFields.map((field) => {
                           const oldValue = current?.[field.key];
                           const newValue = proposed?.[field.key];
-                          const changed = String(oldValue ?? '') !== String(newValue ?? '');
+                          const changed =
+                            String(oldValue ?? '') !== String(newValue ?? '');
                           return (
-                            <div key={`old-${field.key}`} className={changed ? 'rounded-md bg-white p-2 border border-orange-200' : ''}>
-                              <p className="text-[11px] uppercase text-slate-500 mb-1">{field.label}</p>
+                            <div
+                              key={`old-${field.key}`}
+                              className={
+                                changed
+                                  ? 'rounded-md bg-white p-2 border border-orange-200'
+                                  : ''
+                              }
+                            >
+                              <p className="text-[11px] uppercase text-slate-500 mb-1">
+                                {field.label}
+                              </p>
                               {renderCompareValue(oldValue, field.key)}
                             </div>
                           );
@@ -580,10 +720,20 @@ export const ManagerDashboard = () => {
                         {comparisonFields.map((field) => {
                           const oldValue = current?.[field.key];
                           const newValue = proposed?.[field.key];
-                          const changed = String(oldValue ?? '') !== String(newValue ?? '');
+                          const changed =
+                            String(oldValue ?? '') !== String(newValue ?? '');
                           return (
-                            <div key={`new-${field.key}`} className={changed ? 'rounded-md bg-white p-2 border border-orange-300' : ''}>
-                              <p className="text-[11px] uppercase text-slate-500 mb-1">{field.label}</p>
+                            <div
+                              key={`new-${field.key}`}
+                              className={
+                                changed
+                                  ? 'rounded-md bg-white p-2 border border-orange-300'
+                                  : ''
+                              }
+                            >
+                              <p className="text-[11px] uppercase text-slate-500 mb-1">
+                                {field.label}
+                              </p>
                               {renderCompareValue(newValue, field.key)}
                             </div>
                           );
@@ -621,28 +771,33 @@ export const ManagerDashboard = () => {
                     <Mail className="h-4 w-4 text-slate-400" />{' '}
                     {companyDetails.owner?.email}
                   </div>
-                  <div className="flex items-center gap-3 text-sm text-slate-600">
+                  {/* <div className="flex items-center gap-3 text-sm text-slate-600">
                     <Phone className="h-4 w-4 text-slate-400" />{' '}
                     {companyDetails.owner?.phone}
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </Card>
 
-            {(companyDetails.status === 'PENDING' || companyDetails.status === 'UPDATING') && (
+            {(companyDetails.status === 'PENDING' ||
+              companyDetails.status === 'UPDATING') && (
               <div className="space-y-3">
                 <Button
                   className="w-full h-11 rounded-lg"
                   onClick={() => setIsApproveModalOpen(true)}
                 >
-                  {companyDetails.status === 'UPDATING' ? 'Duyệt hồ sơ cập nhật' : 'Duyệt hồ sơ'}
+                  {companyDetails.status === 'UPDATING'
+                    ? 'Duyệt hồ sơ cập nhật'
+                    : 'Duyệt hồ sơ'}
                 </Button>
                 <Button
                   variant="outline"
                   className="w-full h-11 rounded-lg border-red-100 text-red-600 hover:bg-red-50 font-semibold"
                   onClick={() => setIsRejectModalOpen(true)}
                 >
-                  {companyDetails.status === 'UPDATING' ? 'Từ chối hồ sơ cập nhật' : 'Từ chối hồ sơ'}
+                  {companyDetails.status === 'UPDATING'
+                    ? 'Từ chối hồ sơ cập nhật'
+                    : 'Từ chối hồ sơ'}
                 </Button>
               </div>
             )}
@@ -659,44 +814,67 @@ export const ManagerDashboard = () => {
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex flex-wrap gap-3 flex-1">
+          <div className="flex flex-wrap items-center gap-3 flex-1">
             <select
-              className="border p-2 rounded-lg text-sm bg-slate-50 w-full sm:w-auto"
+              className="h-10 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-sm focus:border-blue-500 outline-none min-w-40"
               value={reportStatus}
-              onChange={e => setReportStatus(e.target.value)}
+              onChange={(e) => setReportStatus(e.target.value)}
             >
               <option value="ALL">Tất cả trạng thái</option>
               <option value="PENDING">Chờ xử lý</option>
               <option value="RESOLVED">Đã giải quyết</option>
               <option value="REJECTED">Đã từ chối</option>
             </select>
-            <Input
-              placeholder="Tên công ty"
-              className="w-full sm:w-48 text-sm"
-              value={reportCompanyName}
-              onChange={(e) => setReportCompanyName(e.target.value)}
-            />
-            <Input
-              placeholder="Tên người báo cáo"
-              className="w-full sm:w-48 text-sm"
-              value={reportReporterName}
-              onChange={(e) => setReportReporterName(e.target.value)}
-            />
+            <div className="relative flex-1 min-w-48 max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Tìm công ty..."
+                className="pl-9 rounded-xl h-10 border-slate-200 focus:border-blue-500 bg-slate-50/50"
+                value={reportCompanyName}
+                onChange={(e) => setReportCompanyName(e.target.value)}
+              />
+            </div>
+            <div className="relative flex-1 min-w-48 max-w-xs">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Người báo cáo..."
+                className="pl-9 rounded-xl h-10 border-slate-200 focus:border-blue-500 bg-slate-50/50"
+                value={reportReporterName}
+                onChange={(e) => setReportReporterName(e.target.value)}
+              />
+            </div>
             <Input
               type="date"
-              className="w-full sm:w-40 text-sm"
+              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50 text-sm"
               value={reportFromDate}
               onChange={(e) => setReportFromDate(e.target.value)}
             />
             <Input
               type="date"
-              className="w-full sm:w-40 text-sm"
+              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50 text-sm"
               value={reportToDate}
               onChange={(e) => setReportToDate(e.target.value)}
             />
+            <Button
+              variant="outline"
+              className="h-10 rounded-xl border-slate-200 hover:bg-slate-50"
+              onClick={() => {
+                setReportStatus('ALL');
+                setReportCompanyName('');
+                setReportReporterName('');
+                setReportFromDate('');
+                setReportToDate('');
+              }}
+            >
+              Đặt lại
+            </Button>
           </div>
           <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
-            Hiển thị <span className="text-blue-600 font-bold">{listReportsData?.data?.length || 0}</span> báo cáo
+            Tổng cộng:{' '}
+            <span className="text-blue-600 font-bold">
+              {listReportsData?.data?.length || 0}
+            </span>{' '}
+            báo cáo
           </p>
         </div>
 
@@ -704,35 +882,58 @@ export const ManagerDashboard = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 text-left text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-semibold">Công việc</th>
-                  <th className="px-6 py-4 font-semibold">Người báo cáo</th>
-                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Thời gian</th>
-                  <th className="px-6 py-4 font-semibold">Lý do</th>
-                  <th className="px-6 py-4 font-semibold">Trạng thái</th>
-                  <th className="px-6 py-4 text-right font-semibold">Thao tác</th>
+                <tr className="bg-slate-50/80 text-slate-500 text-left text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
+                  <th className="px-6 py-4">Nội dung báo cáo</th>
+                  <th className="px-6 py-4">Người báo cáo</th>
+                  <th className="px-6 py-4 whitespace-nowrap">Thời gian</th>
+                  <th className="px-6 py-4">Lý do</th>
+                  <th className="px-6 py-4 text-center">Trạng thái</th>
+                  <th className="px-6 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loadingReports ? (
+              <tbody className="divide-y divide-slate-100 text-sm">
+                {!listReportsData?.data?.length ? (
                   <tr>
-                    <td colSpan="6" className="py-10 text-center text-slate-400 font-medium">Đang tải...</td>
-                  </tr>
-                ) : !listReportsData?.data?.length ? (
-                  <tr>
-                    <td colSpan="6" className="py-10 text-center text-slate-400 font-medium">Không có báo cáo nào</td>
+                    <td
+                      colSpan="6"
+                      className="py-10 text-center text-slate-400 font-medium"
+                    >
+                      Không có báo cáo nào
+                    </td>
                   </tr>
                 ) : (
-                  listReportsData.data.map(r => (
-                    <tr key={r.id} className="hover:bg-slate-50/50">
+                  listReportsData.data.map((r) => (
+                    <tr
+                      key={r.id}
+                      className="hover:bg-slate-50/50 transition-colors"
+                    >
                       <td className="px-6 py-4">
-                        <div className="text-sm font-semibold text-slate-800">{r.job?.title || '—'}</div>
-                        <div className="text-xs text-slate-500 mt-0.5">{r.job?.company?.name || '—'}</div>
+                        <div className="min-w-[200px]">
+                          <p className="font-semibold text-slate-800 line-clamp-1">
+                            {r.job?.title || '—'}
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">
+                            {r.job?.company?.name || '—'}
+                          </p>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-sm"><ReporterCell user={r.reporter} /></td>
-                      <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{formatManagerDateTime(r.createdAt)}</td>
-                      <td className="px-6 py-4 text-sm text-red-600 font-medium">{REPORT_REASON_LABELS[r.reason] || r.reason}</td>
-                      <td className="px-6 py-4 text-sm"><Badge variant="outline">{REPORT_STATUS_LABELS[r.status] || r.status}</Badge></td>
+                      <td className="px-6 py-4">
+                        <ReporterCell user={r.reporter} />
+                      </td>
+                      <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
+                        {formatManagerDateTime(r.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 text-red-600 font-medium">
+                        {REPORT_REASON_LABELS[r.reason] || r.reason}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <Badge
+                          variant="outline"
+                          className={REPORT_STATUS_COLORS[r.status] || ''}
+                        >
+                          {REPORT_STATUS_LABELS[r.status] || r.status}
+                        </Badge>
+                      </td>
                       <td className="px-6 py-4 text-right">
                         <Button
                           onClick={() => {
@@ -741,7 +942,7 @@ export const ManagerDashboard = () => {
                           }}
                           variant="outline"
                           size="sm"
-                          className="rounded-lg"
+                          className="rounded-xl border-slate-200 hover:bg-slate-50 shadow-sm"
                         >
                           <Eye className="h-3.5 w-3.5 mr-1.5" /> Chi tiết
                         </Button>
@@ -765,61 +966,90 @@ export const ManagerDashboard = () => {
 
     // Client-side filtering
     if (reviewReportCompanyName) {
-      list = list.filter(r => r.review?.company?.name?.toLowerCase().includes(reviewReportCompanyName.toLowerCase()));
+      list = list.filter((r) =>
+        r.review?.company?.name
+          ?.toLowerCase()
+          .includes(reviewReportCompanyName.toLowerCase()),
+      );
     }
     if (reviewReportReporterName) {
-      list = list.filter(r => r.reporter?.fullName?.toLowerCase().includes(reviewReportReporterName.toLowerCase()));
+      list = list.filter((r) =>
+        r.reporter?.fullName
+          ?.toLowerCase()
+          .includes(reviewReportReporterName.toLowerCase()),
+      );
     }
     if (reviewReportFromDate) {
       const from = new Date(`${reviewReportFromDate}T00:00:00`);
-      list = list.filter(r => new Date(r.createdAt) >= from);
+      list = list.filter((r) => new Date(r.createdAt) >= from);
     }
     if (reviewReportToDate) {
       const to = new Date(`${reviewReportToDate}T23:59:59`);
-      list = list.filter(r => new Date(r.createdAt) <= to);
+      list = list.filter((r) => new Date(r.createdAt) <= to);
     }
 
     return (
       <div className="space-y-4">
         <div className="flex flex-wrap gap-4 items-center justify-between bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
-          <div className="flex flex-wrap gap-3 flex-1">
+          <div className="flex flex-wrap items-center gap-3 flex-1">
             <select
-              className="border p-2 rounded-lg text-sm bg-slate-50 w-full sm:w-auto"
+              className="h-10 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-sm focus:border-blue-500 outline-none min-w-40"
               value={reviewReportStatus}
-              onChange={e => setReviewReportStatus(e.target.value)}
+              onChange={(e) => setReviewReportStatus(e.target.value)}
             >
               <option value="ALL">Tất cả trạng thái</option>
               <option value="PENDING">Chờ xử lý</option>
               <option value="RESOLVED">Đã giải quyết</option>
               <option value="REJECTED">Đã từ chối</option>
             </select>
-            <Input
-              placeholder="Tên công ty"
-              className="w-full sm:w-48 text-sm"
-              value={reviewReportCompanyName}
-              onChange={(e) => setReviewReportCompanyName(e.target.value)}
-            />
-            <Input
-              placeholder="Tên người báo cáo"
-              className="w-full sm:w-48 text-sm"
-              value={reviewReportReporterName}
-              onChange={(e) => setReviewReportReporterName(e.target.value)}
-            />
+            <div className="relative flex-1 min-w-48 max-w-xs">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Tìm công ty..."
+                className="pl-9 rounded-xl h-10 border-slate-200 focus:border-blue-500 bg-slate-50/50"
+                value={reviewReportCompanyName}
+                onChange={(e) => setReviewReportCompanyName(e.target.value)}
+              />
+            </div>
+            <div className="relative flex-1 min-w-48 max-w-xs">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                placeholder="Người báo cáo..."
+                className="pl-9 rounded-xl h-10 border-slate-200 focus:border-blue-500 bg-slate-50/50"
+                value={reviewReportReporterName}
+                onChange={(e) => setReviewReportReporterName(e.target.value)}
+              />
+            </div>
             <Input
               type="date"
-              className="w-full sm:w-40 text-sm"
+              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50 text-sm"
               value={reviewReportFromDate}
               onChange={(e) => setReviewReportFromDate(e.target.value)}
             />
             <Input
               type="date"
-              className="w-full sm:w-40 text-sm"
+              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50 text-sm"
               value={reviewReportToDate}
               onChange={(e) => setReviewReportToDate(e.target.value)}
             />
+            <Button
+              variant="outline"
+              className="h-10 rounded-xl border-slate-200 hover:bg-slate-50"
+              onClick={() => {
+                setReviewReportStatus('ALL');
+                setReviewReportCompanyName('');
+                setReviewReportReporterName('');
+                setReviewReportFromDate('');
+                setReviewReportToDate('');
+              }}
+            >
+              Đặt lại
+            </Button>
           </div>
           <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
-            Hiển thị <span className="text-blue-600 font-bold">{list.length}</span> báo cáo
+            Tổng cộng:{' '}
+            <span className="text-blue-600 font-bold">{list.length}</span> báo
+            cáo
           </p>
         </div>
 
@@ -827,45 +1057,76 @@ export const ManagerDashboard = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 text-left text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-semibold">Công ty</th>
-                  <th className="px-6 py-4 font-semibold">Đánh giá</th>
-                  <th className="px-6 py-4 font-semibold">Người báo cáo</th>
-                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Thời gian</th>
-                  <th className="px-6 py-4 font-semibold">Lý do</th>
-                  <th className="px-6 py-4 font-semibold">Trạng thái</th>
-                  <th className="px-6 py-4 text-right font-semibold">Thao tác</th>
+                <tr className="bg-slate-50/80 text-slate-500 text-left text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
+                  <th className="px-6 py-4">Doanh nghiệp</th>
+                  <th className="px-6 py-4">Nội dung đánh giá</th>
+                  <th className="px-6 py-4">Người báo cáo</th>
+                  <th className="px-6 py-4 whitespace-nowrap">Thời gian</th>
+                  <th className="px-6 py-4">Lý do</th>
+                  <th className="px-6 py-4 text-center">Trạng thái</th>
+                  <th className="px-6 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {loadingReviewReports ? (
+              <tbody className="divide-y divide-slate-100 text-sm">
+                {!list.length ? (
                   <tr>
-                    <td colSpan="7" className="py-10 text-center text-slate-400 font-medium">Đang tải...</td>
-                  </tr>
-                ) : !list.length ? (
-                  <tr>
-                    <td colSpan="7" className="py-10 text-center text-slate-400 font-medium">Không có báo cáo nào</td>
+                    <td
+                      colSpan="7"
+                      className="py-10 text-center text-slate-400 font-medium"
+                    >
+                      Không có báo cáo nào
+                    </td>
                   </tr>
                 ) : (
-                  list.map(r => (
-                    <tr key={r.id} className="hover:bg-slate-50/50">
-                      <td className="px-6 py-4 text-sm font-semibold">{r.review?.company?.name || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-slate-700 max-w-70">
+                  list.map((r) => (
+                    <tr
+                      key={r.id}
+                      className="hover:bg-slate-50/50 transition-colors"
+                    >
+                      <td className="px-6 py-4 font-semibold text-slate-800">
+                        {r.review?.company?.name || '—'}
+                      </td>
+                      <td className="px-6 py-4 max-w-[250px]">
                         <div className="flex items-center gap-1 mb-1 text-amber-500">
-                          {'★'.repeat(r.review?.rating || 0)}
-                          <span className="text-slate-500 text-xs ml-1">({r.review?.rating || 0}/5)</span>
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <span
+                              key={star}
+                              className={
+                                star <= (r.review?.rating || 0)
+                                  ? 'text-amber-500'
+                                  : 'text-slate-200'
+                              }
+                            >
+                              ★
+                            </span>
+                          ))}
+                          <span className="text-slate-400 text-[10px] ml-1">
+                            ({r.review?.rating || 0}/5)
+                          </span>
                         </div>
-                        <p className="truncate" title={r.review?.title || r.review?.content}>
+                        <p
+                          className="text-slate-600 line-clamp-1 text-xs"
+                          title={r.review?.title || r.review?.content}
+                        >
                           {r.review?.title || r.review?.content || '—'}
                         </p>
                       </td>
-                      <td className="px-6 py-4 text-sm"><ReporterCell user={r.reporter} /></td>
-                      <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">{formatManagerDateTime(r.createdAt)}</td>
-                      <td className="px-6 py-4 text-sm text-red-600 font-medium">
+                      <td className="px-6 py-4">
+                        <ReporterCell user={r.reporter} />
+                      </td>
+                      <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
+                        {formatManagerDateTime(r.createdAt)}
+                      </td>
+                      <td className="px-6 py-4 text-red-600 font-medium">
                         {REPORT_REASON_LABELS[r.reason] || r.reason}
                       </td>
-                      <td className="px-6 py-4 text-sm">
-                        <Badge variant="outline">{REPORT_STATUS_LABELS[r.status] || r.status}</Badge>
+                      <td className="px-6 py-4 text-center">
+                        <Badge
+                          variant="outline"
+                          className={REPORT_STATUS_COLORS[r.status] || ''}
+                        >
+                          {REPORT_STATUS_LABELS[r.status] || r.status}
+                        </Badge>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Button
@@ -875,7 +1136,7 @@ export const ManagerDashboard = () => {
                           }}
                           variant="outline"
                           size="sm"
-                          className="rounded-lg"
+                          className="rounded-xl border-slate-200 hover:bg-slate-50 shadow-sm"
                         >
                           <Eye className="h-3.5 w-3.5 mr-1.5" /> Chi tiết
                         </Button>
@@ -903,14 +1164,14 @@ export const ManagerDashboard = () => {
             <div className="relative flex-1 min-w-64 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
-                placeholder="Tìm kiếm công ty..."
-                className="pl-9 rounded-lg h-10 border-slate-200 focus:border-blue-500 bg-slate-50/50"
+                placeholder="Tìm tên công ty, email..."
+                className="pl-9 rounded-xl h-10 border-slate-200 focus:border-blue-500 bg-slate-50/50"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
               />
             </div>
             <select
-              className="h-10 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-sm"
+              className="h-10 rounded-xl border border-slate-200 bg-slate-50/50 px-3 text-sm focus:border-blue-500 outline-none"
               value={companyStatusFilter}
               onChange={(e) => setCompanyStatusFilter(e.target.value)}
             >
@@ -923,18 +1184,18 @@ export const ManagerDashboard = () => {
               type="date"
               value={companyFromDate}
               onChange={(e) => setCompanyFromDate(e.target.value)}
-              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50"
+              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50 text-sm"
             />
             <Input
               type="date"
               value={companyToDate}
               onChange={(e) => setCompanyToDate(e.target.value)}
-              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50"
+              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50 text-sm"
             />
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-xl border-slate-200"
+              className="h-10 rounded-xl border-slate-200 hover:bg-slate-50"
               onClick={() => {
                 setSearchKeyword('');
                 setCompanyStatusFilter('ALL');
@@ -942,11 +1203,11 @@ export const ManagerDashboard = () => {
                 setCompanyToDate('');
               }}
             >
-              Đặt lại lọc
+              Đặt lại
             </Button>
           </div>
-          <p className="text-sm text-slate-500 px-2 font-medium">
-            Hiển thị{' '}
+          <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
+            Tổng cộng:{' '}
             <span className="text-blue-600 font-bold">
               {filteredCompanies.length}
             </span>{' '}
@@ -959,27 +1220,16 @@ export const ManagerDashboard = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 text-left text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-semibold">Công ty</th>
-                  <th className="px-6 py-4 font-semibold">Địa chỉ</th>
-                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Đăng ký</th>
-                  <th className="px-6 py-4 font-semibold">Trạng thái</th>
-                  <th className="px-6 py-4 text-right font-semibold">
-                    Thao tác
-                  </th>
+                <tr className="bg-slate-50/80 text-slate-500 text-left text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
+                  <th className="px-6 py-4">Doanh nghiệp</th>
+                  <th className="px-6 py-4">Địa chỉ</th>
+                  <th className="px-6 py-4 whitespace-nowrap">Ngày đăng ký</th>
+                  <th className="px-6 py-4 text-center">Trạng thái</th>
+                  <th className="px-6 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {isLoadingData ? (
-                  <tr>
-                    <td
-                      colSpan="5"
-                      className="py-20 text-center text-slate-400 font-medium"
-                    >
-                      Đang tải dữ liệu...
-                    </td>
-                  </tr>
-                ) : displayList.length === 0 ? (
+              <tbody className="divide-y divide-slate-100 text-sm">
+                {displayList.length === 0 ? (
                   <tr>
                     <td
                       colSpan="5"
@@ -996,11 +1246,11 @@ export const ManagerDashboard = () => {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                          <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden">
                             {c.logoUrl ? (
                               <img
                                 src={c.logoUrl}
-                                className="h-full w-full object-cover rounded-lg"
+                                className="h-full w-full object-cover"
                                 alt={c.name}
                               />
                             ) : (
@@ -1008,53 +1258,47 @@ export const ManagerDashboard = () => {
                             )}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-800 text-sm">
+                            <p className="font-semibold text-slate-800 line-clamp-1">
                               {c.name}
                             </p>
-                            {c.owner?.fullName?.trim() ? (
-                              <p className="text-xs text-slate-600 font-medium">
-                                {c.owner.fullName.trim()}
-                              </p>
-                            ) : null}
-                            <p className="text-xs text-slate-400 font-normal">
-                              {c.owner?.email || 'Chưa có email'}
+                            <p className="text-xs text-slate-500 font-normal truncate max-w-[200px]">
+                              {c.owner?.fullName ||
+                                c.owner?.email ||
+                                'Chưa có thông tin'}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 text-sm">
-                        {c.address || '—'}
+                      <td className="px-6 py-4 text-slate-600">
+                        <p
+                          className="line-clamp-1 max-w-[250px]"
+                          title={c.address}
+                        >
+                          {c.address || '—'}
+                        </p>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
+                      <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
                         {formatManagerDateTime(c.createdAt)}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 text-center">
                         <Badge
                           variant="outline"
                           className={
-                            (STATUS_COLORS[c.status]?.color || 'bg-slate-50 text-slate-700 border-slate-100') +
-                            ' border font-normal px-2 py-0.5 rounded-md text-[10px]'
+                            STATUS_COLORS[c.status]?.color ||
+                            'bg-slate-50 text-slate-700 border-slate-100'
                           }
                         >
                           {STATUS_COLORS[c.status]?.label || c.status}
                         </Badge>
-                        {c.status === 'REJECTED' && c.rejectionReason && (
-                          <p
-                            className="text-[10px] text-red-500 mt-1 max-w-37.5 truncate italic"
-                            title={c.rejectionReason}
-                          >
-                            Lý do: {c.rejectionReason}
-                          </p>
-                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <Button
                           onClick={() => setViewingCompanyId(c.id)}
                           variant="outline"
                           size="sm"
-                          className="rounded-xl bg-primary-muted border-primary/20 text-primary-muted-foreground hover:bg-primary/10 hover:border-primary/30 transition-colors shadow-sm"
+                          className="rounded-xl border-slate-200 hover:bg-slate-50 shadow-sm"
                         >
-                          <Eye className="h-3.5 w-3.5 mr-1.5" /> Xem
+                          <Eye className="h-3.5 w-3.5 mr-1.5" /> Chi tiết
                         </Button>
                       </td>
                     </tr>
@@ -1086,7 +1330,7 @@ export const ManagerDashboard = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Tìm hồ sơ cập nhật..."
-                className="pl-9 rounded-lg h-10 border-slate-200 focus:border-blue-500 bg-slate-50/50"
+                className="pl-9 rounded-xl h-10 border-slate-200 focus:border-blue-500 bg-slate-50/50"
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
               />
@@ -1095,29 +1339,29 @@ export const ManagerDashboard = () => {
               type="date"
               value={companyFromDate}
               onChange={(e) => setCompanyFromDate(e.target.value)}
-              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50"
+              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50 text-sm"
             />
             <Input
               type="date"
               value={companyToDate}
               onChange={(e) => setCompanyToDate(e.target.value)}
-              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50"
+              className="h-10 w-40 rounded-xl border-slate-200 bg-slate-50/50 text-sm"
             />
             <Button
               type="button"
               variant="outline"
-              className="h-10 rounded-xl border-slate-200"
+              className="h-10 rounded-xl border-slate-200 hover:bg-slate-50"
               onClick={() => {
                 setSearchKeyword('');
                 setCompanyFromDate('');
                 setCompanyToDate('');
               }}
             >
-              Đặt lại lọc
+              Đặt lại
             </Button>
           </div>
-          <p className="text-sm text-slate-500 px-2 font-medium">
-            Hiển thị{' '}
+          <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
+            Tổng cộng:{' '}
             <span className="text-blue-600 font-bold">
               {filteredUpdateQueue.length}
             </span>{' '}
@@ -1129,55 +1373,74 @@ export const ManagerDashboard = () => {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-slate-50 text-slate-500 text-left text-xs uppercase tracking-wider">
-                  <th className="px-6 py-4 font-semibold">Công ty</th>
-                  <th className="px-6 py-4 font-semibold">Địa chỉ</th>
-                  <th className="px-6 py-4 font-semibold whitespace-nowrap">Cập nhật lúc</th>
-                  <th className="px-6 py-4 font-semibold">Trạng thái</th>
-                  <th className="px-6 py-4 text-right font-semibold">Thao tác</th>
+                <tr className="bg-slate-50/80 text-slate-500 text-left text-[11px] uppercase tracking-wider font-bold border-b border-slate-200">
+                  <th className="px-6 py-4">Doanh nghiệp</th>
+                  <th className="px-6 py-4">Địa chỉ</th>
+                  <th className="px-6 py-4 whitespace-nowrap">Ngày cập nhật</th>
+                  <th className="px-6 py-4 text-center">Trạng thái</th>
+                  <th className="px-6 py-4 text-right">Thao tác</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {isLoadingData ? (
+              <tbody className="divide-y divide-slate-100 text-sm">
+                {displayUpdateList.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="py-20 text-center text-slate-400 font-medium">
-                      Đang tải dữ liệu...
-                    </td>
-                  </tr>
-                ) : displayUpdateList.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="py-20 text-center text-slate-400">
+                    <td
+                      colSpan="5"
+                      className="py-20 text-center text-slate-400"
+                    >
                       Chưa có hồ sơ cập nhật nào đang chờ duyệt.
                     </td>
                   </tr>
                 ) : (
                   displayUpdateList.map((item) => (
-                    <tr key={`updating-${item.id}`} className="hover:bg-slate-50/50 transition-colors">
+                    <tr
+                      key={`updating-${item.id}`}
+                      className="hover:bg-slate-50/50 transition-colors"
+                    >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200">
+                          <div className="h-10 w-10 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 border border-slate-200 overflow-hidden">
                             {item.logoUrl ? (
-                              <img src={item.logoUrl} className="h-full w-full object-cover rounded-lg" alt={item.name} />
+                              <img
+                                src={item.logoUrl}
+                                className="h-full w-full object-cover"
+                                alt={item.name}
+                              />
                             ) : (
                               <Building2 className="h-5 w-5 text-slate-400" />
                             )}
                           </div>
                           <div>
-                            <p className="font-semibold text-slate-800 text-sm">{item.name}</p>
-                            <p className="text-xs text-slate-400 font-normal">{item.owner?.email || 'Chưa có email'}</p>
+                            <p className="font-semibold text-slate-800 line-clamp-1">
+                              {item.name}
+                            </p>
+                            <p className="text-xs text-slate-500 font-normal truncate max-w-[200px]">
+                              {item.owner?.fullName ||
+                                item.owner?.email ||
+                                'Chưa có thông tin'}
+                            </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-500 text-sm">{item.address || '—'}</td>
-                      <td className="px-6 py-4 text-sm text-slate-600 whitespace-nowrap">
-                        {formatManagerDateTime(item.updatedAt || item.createdAt)}
-                      </td>
                       <td className="px-6 py-4">
+                        <p
+                          className="text-slate-600 line-clamp-1 max-w-[250px]"
+                          title={item.address}
+                        >
+                          {item.address || '—'}
+                        </p>
+                      </td>
+                      <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
+                        {formatManagerDateTime(
+                          item.updatedAt || item.createdAt,
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
                         <Badge
                           variant="outline"
                           className={
-                            (STATUS_COLORS[item.status]?.color || 'bg-slate-50 text-slate-700 border-slate-100') +
-                            ' border font-normal px-2 py-0.5 rounded-md text-[10px]'
+                            STATUS_COLORS[item.status]?.color ||
+                            'bg-slate-50 text-slate-700 border-slate-100'
                           }
                         >
                           {STATUS_COLORS[item.status]?.label || item.status}
@@ -1188,9 +1451,9 @@ export const ManagerDashboard = () => {
                           onClick={() => setViewingCompanyId(item.id)}
                           variant="outline"
                           size="sm"
-                          className="rounded-xl bg-primary-muted border-primary/20 text-primary-muted-foreground hover:bg-primary/10 hover:border-primary/30 transition-colors shadow-sm"
+                          className="rounded-xl border-slate-200 hover:bg-slate-50 shadow-sm"
                         >
-                          <Eye className="h-3.5 w-3.5 mr-1.5" /> Xem
+                          <Eye className="h-3.5 w-3.5 mr-1.5" /> Chi tiết
                         </Button>
                       </td>
                     </tr>
@@ -1216,10 +1479,8 @@ export const ManagerDashboard = () => {
   // --- MAIN RENDER ---
   return (
     <DashboardLayout
-      title={
-        MANAGEMENT_MENU.find((m) => m.key === currentTab)?.label ||
-        'Quản lý hệ thống'
-      }
+      title={TAB_HEADERS[currentTab]?.title || 'Quản lý hệ thống'}
+      subtitle={TAB_HEADERS[currentTab]?.subtitle}
       menu={MANAGEMENT_MENU}
       activeKey={currentTab}
       onSelect={(key) => {
@@ -1228,44 +1489,59 @@ export const ManagerDashboard = () => {
       }}
       topbarBell={<NotificationBellPopover />}
     >
-      <div className="min-h-screen bg-slate-50/50 p-6">
-        <div className="max-w-7xl mx-auto space-y-4">
-          <h2 className="text-xl font-bold text-slate-800">
-            {currentTab === 'companies'
-              ? 'Danh sách hồ sơ doanh nghiệp mới'
-              : currentTab === 'company_updates'
-                ? 'Danh sách hồ sơ cập nhật doanh nghiệp'
-                : MANAGEMENT_MENU.find((m) => m.key === currentTab)?.label}
-          </h2>
-          {currentTab === 'job_reports'
-            ? renderJobReports()
-            : currentTab === 'review_reports'
-              ? renderReviewReports()
-              : currentTab === 'company_updates'
-                ? viewingCompanyId ? renderDetails() : renderCompanyUpdates()
-                : currentTab === 'support'
-                  ? <SupportTicketBoard />
-                  : viewingCompanyId ? renderDetails() : renderCompanyList()}
-        </div>
+      <div className="space-y-6">
+        {viewingCompanyId ? (
+          renderDetails()
+        ) : (
+          <>
+            {currentTab === 'companies' &&
+              (isLoadingData ? renderTableSkeleton() : renderCompanyList())}
+            {currentTab === 'company_updates' &&
+              (isLoadingData ? renderTableSkeleton() : renderCompanyUpdates())}
+            {currentTab === 'job_reports' &&
+              (loadingReports ? renderTableSkeleton() : renderJobReports())}
+            {currentTab === 'review_reports' &&
+              (loadingReviewReports
+                ? renderTableSkeleton()
+                : renderReviewReports())}
+            {currentTab === 'support' && (
+              <div className="h-[calc(100vh-250px)]">
+                <SupportTicketBoard role="MANAGER" />
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {/* --- CONFIRMATION MODALS --- */}
       <Modal
         open={isApproveModalOpen}
-        title={companyDetails?.status === 'UPDATING' ? 'Duyệt hồ sơ cập nhật?' : 'Duyệt hồ sơ doanh nghiệp?'}
+        title={
+          companyDetails?.status === 'UPDATING'
+            ? 'Duyệt hồ sơ cập nhật?'
+            : 'Duyệt hồ sơ doanh nghiệp?'
+        }
         description={
           companyDetails?.status === 'UPDATING'
             ? 'Sau khi duyệt, hệ thống sẽ hiển thị thông tin doanh nghiệp mới cho người lao động.'
             : 'Sau khi duyệt, doanh nghiệp có thể bắt đầu đăng tin tuyển dụng.'
         }
-        confirmLabel={companyDetails?.status === 'UPDATING' ? 'Duyệt hồ sơ cập nhật' : 'Duyệt hồ sơ'}
+        confirmLabel={
+          companyDetails?.status === 'UPDATING'
+            ? 'Duyệt hồ sơ cập nhật'
+            : 'Duyệt hồ sơ'
+        }
         onConfirm={() => handleReviewCompany('APPROVED')}
         onClose={() => setIsApproveModalOpen(false)}
       />
 
       <Modal
         open={isRejectModalOpen}
-        title={companyDetails?.status === 'UPDATING' ? 'Lý do từ chối hồ sơ cập nhật' : 'Lý do từ chối hồ sơ'}
+        title={
+          companyDetails?.status === 'UPDATING'
+            ? 'Lý do từ chối hồ sơ cập nhật'
+            : 'Lý do từ chối hồ sơ'
+        }
         confirmLabel="Gửi thông báo"
         tone="danger"
         onConfirm={() => handleReviewCompany('REJECTED')}
@@ -1301,22 +1577,46 @@ export const ManagerDashboard = () => {
                   target="_blank"
                   className="text-sm font-semibold text-blue-600 hover:underline flex items-center gap-1"
                 >
-                  {viewingReport.job?.title} <ExternalLink className="h-3 w-3" />
+                  {viewingReport.job?.title}{' '}
+                  <ExternalLink className="h-3 w-3" />
                 </Link>
               </div>
-              <InfoItem icon={User} label="Người báo cáo" value={viewingReport.reporter?.fullName} />
-              <InfoItem icon={Mail} label="Email người báo cáo" value={viewingReport.reporter?.email} />
-              <InfoItem icon={Calendar} label="Ngày báo cáo" value={new Date(viewingReport.createdAt).toLocaleDateString('vi-VN')} />
+              <InfoItem
+                icon={User}
+                label="Người báo cáo"
+                value={viewingReport.reporter?.fullName}
+              />
+              <InfoItem
+                icon={Mail}
+                label="Email người báo cáo"
+                value={viewingReport.reporter?.email}
+              />
+              <InfoItem
+                icon={Calendar}
+                label="Ngày báo cáo"
+                value={new Date(viewingReport.createdAt).toLocaleDateString(
+                  'vi-VN',
+                )}
+              />
             </div>
 
             <div className="p-4 bg-red-50 rounded-lg border border-red-100">
-              <p className="text-xs font-bold text-red-800 uppercase mb-1">Lý do báo cáo</p>
-              <p className="text-sm font-semibold text-red-700">{REPORT_REASON_LABELS[viewingReport.reason] || viewingReport.reason}</p>
+              <p className="text-xs font-bold text-red-800 uppercase mb-1">
+                Lý do báo cáo
+              </p>
+              <p className="text-sm font-semibold text-red-700">
+                {REPORT_REASON_LABELS[viewingReport.reason] ||
+                  viewingReport.reason}
+              </p>
             </div>
 
             <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-              <p className="text-xs font-bold text-slate-500 uppercase mb-1">Mô tả chi tiết</p>
-              <p className="text-sm text-slate-700">{viewingReport.description || 'Không có mô tả chi tiết'}</p>
+              <p className="text-xs font-bold text-slate-500 uppercase mb-1">
+                Mô tả chi tiết
+              </p>
+              <p className="text-sm text-slate-700">
+                {viewingReport.description || 'Không có mô tả chi tiết'}
+              </p>
             </div>
 
             {viewingReport.status === 'PENDING' && (
@@ -1350,7 +1650,9 @@ export const ManagerDashboard = () => {
             ? 'Đang xử lý...'
             : 'Xác nhận duyệt'
         }
-        confirmDisabled={updateJobStatusMutation.isPending || updateReportMutation.isPending}
+        confirmDisabled={
+          updateJobStatusMutation.isPending || updateReportMutation.isPending
+        }
         tone="danger"
         onConfirm={handleApproveReport}
         onClose={() => setIsApproveReportModalOpen(false)}
@@ -1392,7 +1694,9 @@ export const ManagerDashboard = () => {
               <InfoItem
                 icon={Calendar}
                 label="Ngày báo cáo"
-                value={new Date(viewingReviewReport.createdAt).toLocaleDateString('vi-VN')}
+                value={new Date(
+                  viewingReviewReport.createdAt,
+                ).toLocaleDateString('vi-VN')}
               />
             </div>
 
@@ -1425,14 +1729,19 @@ export const ManagerDashboard = () => {
             </div>
 
             <div className="p-4 bg-red-50 rounded-lg border border-red-100">
-              <p className="text-xs font-bold text-red-800 uppercase mb-1">Lý do báo cáo</p>
+              <p className="text-xs font-bold text-red-800 uppercase mb-1">
+                Lý do báo cáo
+              </p>
               <p className="text-sm font-semibold text-red-700">
-                {REPORT_REASON_LABELS[viewingReviewReport.reason] || viewingReviewReport.reason}
+                {REPORT_REASON_LABELS[viewingReviewReport.reason] ||
+                  viewingReviewReport.reason}
               </p>
             </div>
 
             <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-              <p className="text-xs font-bold text-slate-500 uppercase mb-1">Mô tả chi tiết</p>
+              <p className="text-xs font-bold text-slate-500 uppercase mb-1">
+                Mô tả chi tiết
+              </p>
               <p className="text-sm text-slate-700">
                 {viewingReviewReport.description || 'Không có mô tả chi tiết'}
               </p>
@@ -1471,7 +1780,9 @@ export const ManagerDashboard = () => {
             ? 'Đang xử lý...'
             : 'Xác nhận duyệt'
         }
-        confirmDisabled={hideReviewMutation.isPending || updateReviewReportMutation.isPending}
+        confirmDisabled={
+          hideReviewMutation.isPending || updateReviewReportMutation.isPending
+        }
         tone="danger"
         onConfirm={handleApproveReviewReport}
         onClose={() => setIsApproveReviewReportModalOpen(false)}
@@ -1479,7 +1790,6 @@ export const ManagerDashboard = () => {
     </DashboardLayout>
   );
 };
-
 
 // Sub-component for displaying each info line
 const InfoItem = ({ icon: Icon, label, value, link }) => (
