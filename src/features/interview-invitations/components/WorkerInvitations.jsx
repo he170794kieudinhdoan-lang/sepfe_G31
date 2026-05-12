@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useWorkerInvitations } from '../hooks/useWorkerInvitations'
+import { useWorkerInvitations, useRespondToInvitationMutation } from '../hooks'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
@@ -49,10 +49,17 @@ const WorkerInvitations = ({ embedded = false }) => {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [searchParams, setSearchParams] = useSearchParams()
-  const { invitations, loading, error, pagination, respond } = useWorkerInvitations(
+  const { data: invitationsData, isLoading: loading, error } = useWorkerInvitations(
     page,
     PAGE_SIZE,
   )
+  const invitations = invitationsData?.data || []
+  const pagination = {
+    total: invitationsData?.total || 0,
+    page: invitationsData?.page || page,
+    limit: invitationsData?.limit || PAGE_SIZE,
+  }
+  const { mutateAsync: respond } = useRespondToInvitationMutation()
   const [respondingId, setRespondingId] = useState(null)
   const [selectedSlotByInvitation, setSelectedSlotByInvitation] = useState({})
   const [rejectReasonByInvitation, setRejectReasonByInvitation] = useState({})
@@ -97,9 +104,12 @@ const WorkerInvitations = ({ embedded = false }) => {
     }
 
     try {
-      await respond(invitationId, {
-        status: 'ACCEPTED',
-        selectedSlotId: slotId,
+      await respond({
+        invitationId,
+        payload: {
+          status: 'ACCEPTED',
+          selectedSlotId: slotId,
+        }
       })
       const isRescheduled = invitation?.status === 'ACCEPTED'
       setSuccessMessage(
@@ -121,9 +131,12 @@ const WorkerInvitations = ({ embedded = false }) => {
     }
 
     try {
-      await respond(invitationId, {
-        status: 'REJECTED',
-        responseMessage: rejectReason,
+      await respond({
+        invitationId,
+        payload: {
+          status: 'REJECTED',
+          responseMessage: rejectReason,
+        }
       })
       setRejectReasonByInvitation((prev) => ({ ...prev, [invitationId]: '' }))
       setRespondingId(null)

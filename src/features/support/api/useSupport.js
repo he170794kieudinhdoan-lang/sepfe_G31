@@ -18,7 +18,7 @@ export const useSupportTickets = (params = {}, options = {}) => {
   return useQuery({
     queryKey: [...SUPPORT_TICKET_QUERY_KEY, params],
     queryFn: () => supportApi.getSupportTickets(params),
-    staleTime: 30 * 1000,
+    staleTime: 0,
     ...options,
   });
 };

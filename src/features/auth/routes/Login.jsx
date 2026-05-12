@@ -19,10 +19,7 @@ const schema = z.object({
 
 export const Login = () => {
   const { mutate: login, isPending } = useLogin();
-  const {
-    mutate: loginGoogle,
-    isPending: isGooglePending,
-  } = useLoginGoogle();
+  const { mutate: loginGoogle, isPending: isGooglePending } = useLoginGoogle();
 
   const {
     register,
@@ -45,10 +42,7 @@ export const Login = () => {
   };
 
   return (
-    <AuthLayout
-      title="Đăng nhập"
-      subtitle="Google: đã có tài khoản sẽ đăng nhập ngay · Lần đầu Google sẽ mở bước chọn vai trò"
-    >
+    <AuthLayout title="Đăng nhập">
       <Card className="p-6 rounded-2xl shadow-sm border-0">
         <GoogleSignInButton
           disabled={isPending || isGooglePending}

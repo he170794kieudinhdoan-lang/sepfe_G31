@@ -5,7 +5,7 @@ export const useNotifications = (options = {}) => {
     return useQuery({
         queryKey: ['notifications'],
         queryFn: notificationApi.getNotifications,
-        staleTime: 60 * 1000,
+        staleTime: 0,
         retry: 1,
         ...options,
     });

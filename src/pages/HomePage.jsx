@@ -1,6 +1,23 @@
 import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, MapPin, X, Check, TrendingUp, Zap, Building2, Users, ChevronLeft, ChevronRight, Briefcase, Heart, Clock, Wallet, ArrowRight, Star } from 'lucide-react';
+import {
+  Search,
+  MapPin,
+  X,
+  Check,
+  TrendingUp,
+  Zap,
+  Building2,
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  Briefcase,
+  Heart,
+  Clock,
+  Wallet,
+  ArrowRight,
+  Star,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -40,14 +57,10 @@ import { cn } from '@/lib/utils';
 import { SupportTicketForm } from '@/features/support/components/SupportTicketForm';
 import useEmblaCarousel from 'embla-carousel-react';
 
-
 const POPOVER_CHIP =
   'inline-flex max-w-full items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700';
 
-const PROMO_SLIDES = [
-  { image: '/banner_1.png' },
-  { image: '/banner_2.png' },
-];
+const PROMO_SLIDES = [{ image: '/banner_1.png' }, { image: '/banner_2.png' }];
 
 const POPULAR_KEYWORDS = [
   'công nhân sản xuất',
@@ -404,9 +417,7 @@ function SearchBarPopover({
                       }}
                     >
                       <span className="truncate">{k.name}</span>
-                      {province === k.name && (
-                        <Check className="h-3.5 w-3.5" />
-                      )}
+                      {province === k.name && <Check className="h-3.5 w-3.5" />}
                     </button>
                   ))}
                 </div>
@@ -495,7 +506,10 @@ export function HomePage() {
     return () => clearInterval(autoplay);
   }, [emblaApi]);
 
-  const [boostedEmblaRef, boostedEmblaApi] = useEmblaCarousel({ loop: true, align: 'start' });
+  const [boostedEmblaRef, boostedEmblaApi] = useEmblaCarousel({
+    loop: true,
+    align: 'start',
+  });
 
   // Autoplay for Boosted Embla
   useEffect(() => {
@@ -602,13 +616,37 @@ export function HomePage() {
               </div>
 
               <h1 className="text-4xl md:text-5xl lg:text-[52px] font-black text-slate-900 leading-[1.15] tracking-tight mb-6 animate-in fade-in slide-in-from-bottom-6 duration-1000">
-                Tìm tin <span className="text-primary relative inline-block">dễ dàng<svg className="absolute -bottom-1 left-0 w-full h-2 text-primary/30" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,10 Q50,20 100,10" stroke="currentColor" strokeWidth="4" fill="transparent" /></svg></span>, <br />
-                thông tin <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-primary">rõ ràng</span>, <br />
+                Tìm tin{' '}
+                <span className="text-primary relative inline-block">
+                  dễ dàng
+                  <svg
+                    className="absolute -bottom-1 left-0 w-full h-2 text-primary/30"
+                    viewBox="0 0 100 20"
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d="M0,10 Q50,20 100,10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="transparent"
+                    />
+                  </svg>
+                </span>
+                , <br />
+                thông tin{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-primary">
+                  rõ ràng
+                </span>
+                , <br />
                 cơ hội tốt hơn cùng <br />
                 <span className="text-primary inline-block mt-2">
                   <Typewriter
                     onInit={(typewriter) => {
-                      typewriter.typeString('Tương Lai').pauseFor(3000).deleteAll().start();
+                      typewriter
+                        .typeString('Tương Lai')
+                        .pauseFor(3000)
+                        .deleteAll()
+                        .start();
                     }}
                     options={{ loop: true, autoStart: true }}
                   />
@@ -616,7 +654,8 @@ export function HomePage() {
               </h1>
 
               <p className="text-base text-slate-500 max-w-xl mb-8 font-medium leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
-                Hệ thống kết nối tin tuyển dụng trực tiếp tới các doanh nghiệp hàng đầu.
+                Hệ thống kết nối tin tuyển dụng trực tiếp tới các doanh nghiệp
+                hàng đầu.
               </p>
 
               {/* Search Box */}
@@ -645,16 +684,27 @@ export function HomePage() {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/5 rounded-full blur-[80px] -z-10 pointer-events-none" />
 
               <div className="relative group w-full">
-                <div className="overflow-hidden rounded-[2.5rem] cursor-grab active:cursor-grabbing shadow-2xl shadow-primary/10 border-[6px] border-white bg-white" ref={emblaRef}>
+                <div
+                  className="overflow-hidden rounded-[2.5rem] cursor-grab active:cursor-grabbing shadow-2xl shadow-primary/10 border-[6px] border-white bg-white"
+                  ref={emblaRef}
+                >
                   <div className="flex">
                     {PROMO_SLIDES.map((slide, i) => (
                       <div key={i} className="flex-[0_0_100%] min-w-0 relative">
                         <div className="relative aspect-[4/3] md:aspect-[4/5] lg:aspect-[3/4] overflow-hidden rounded-[2rem]">
-                          <img src={slide.image} alt={`Banner ${i}`} className="w-full h-full object-cover transition-transform duration-700 hover:scale-105" />
+                          <img
+                            src={slide.image}
+                            alt={`Banner ${i}`}
+                            className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
+                          />
                           <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent pointer-events-none" />
                           <div className="absolute bottom-0 left-0 p-8 w-full">
-                            <Badge className="bg-primary text-primary-foreground mb-3 border-0 px-3 py-1 text-xs">Tin tức mới</Badge>
-                            <h3 className="text-2xl font-bold text-white drop-shadow-md leading-tight">Xem tin tuyển dụng mới nhất</h3>
+                            <Badge className="bg-primary text-primary-foreground mb-3 border-0 px-3 py-1 text-xs">
+                              Tin tức mới
+                            </Badge>
+                            <h3 className="text-2xl font-bold text-white drop-shadow-md leading-tight">
+                              Xem tin tuyển dụng mới nhất
+                            </h3>
                           </div>
                         </div>
                       </div>
@@ -699,22 +749,34 @@ export function HomePage() {
 
               <div className="inline-flex items-center justify-center px-5 py-2 rounded-full bg-gradient-to-r from-amber-200 to-yellow-300 mb-6 border border-amber-300/80 shadow-md transform -rotate-1 hover:rotate-0 transition-transform cursor-default">
                 <Star className="h-4 w-4 text-amber-800 fill-amber-700 mr-2 animate-bounce-slow" />
-                <span className="text-amber-950 font-black tracking-widest uppercase text-xs drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">Tin tiêu điểm</span>
+                <span className="text-amber-950 font-black tracking-widest uppercase text-xs drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]">
+                  Tin tiêu điểm
+                </span>
               </div>
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900">
-                Tin tuyển dụng <span className="text-transparent bg-clip-text bg-gradient-to-br from-amber-500 to-orange-500 filter drop-shadow-sm">nổi bật</span>
+                Tin tuyển dụng{' '}
+                <span className="text-transparent bg-clip-text bg-gradient-to-br from-amber-500 to-orange-500 filter drop-shadow-sm">
+                  nổi bật
+                </span>
               </h2>
               <p className="text-slate-700 mt-5 font-semibold max-w-2xl text-lg leading-relaxed">
-                Các vị trí được tuyển chọn từ những đối tác uy tín trên hệ thống.
+                Các vị trí được tuyển chọn từ những đối tác uy tín trên hệ
+                thống.
               </p>
             </div>
 
             <div className="relative group px-1">
-              <div className="overflow-hidden cursor-grab active:cursor-grabbing p-4 -m-4" ref={boostedEmblaRef}>
+              <div
+                className="overflow-hidden cursor-grab active:cursor-grabbing p-4 -m-4"
+                ref={boostedEmblaRef}
+              >
                 <div className="flex -ml-4 items-stretch">
                   {isBoostedLoading
                     ? Array.from({ length: 1 }).map((_, slideIdx) => (
-                        <div key={`skel-slide-${slideIdx}`} className="flex-[0_0_100%] min-w-0 pl-4">
+                        <div
+                          key={`skel-slide-${slideIdx}`}
+                          className="flex-[0_0_100%] min-w-0 pl-4"
+                        >
                           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                             {Array.from({ length: 6 }).map((_, i) => (
                               <JobCardSkeleton key={`boosted-skel-${i}`} />
@@ -723,7 +785,10 @@ export function HomePage() {
                         </div>
                       ))
                     : chunkedBoostedJobs.map((chunk, slideIdx) => (
-                        <div key={`slide-${slideIdx}`} className="flex-[0_0_100%] min-w-0 pl-4">
+                        <div
+                          key={`slide-${slideIdx}`}
+                          className="flex-[0_0_100%] min-w-0 pl-4"
+                        >
                           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                             {chunk.map((job) => (
                               <div
@@ -776,33 +841,39 @@ export function HomePage() {
         <MatchedJobs />
       </div>
 
-      <section id="jobs" className="py-12 bg-white relative overflow-hidden homepage-job-sections">
+      <section
+        id="jobs"
+        className="py-12 bg-white relative overflow-hidden homepage-job-sections"
+      >
         <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-slate-50 to-transparent pointer-events-none" />
         <Container className="max-w-7xl relative z-10">
           <div className="flex flex-col md:flex-row items-end justify-between mb-8 gap-4">
             <div>
-              <h2 className="text-3xl font-black tracking-tight text-slate-900 flex items-center gap-3">
-                <TrendingUp className="h-8 w-8 text-emerald-500" />
+              <h2 className="text-xl font-black tracking-tight text-slate-900 flex items-center gap-3">
                 Tin mới đăng
               </h2>
-              <p className="text-slate-500 mt-2 font-medium">Dữ liệu tin tuyển dụng được cập nhật liên tục.</p>
             </div>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {isLoading
-              ? Array.from({ length: limit }).map((_, i) => <JobCardSkeleton key={i} />)
+              ? Array.from({ length: limit }).map((_, i) => (
+                  <JobCardSkeleton key={i} />
+                ))
               : newestJobs?.items?.slice(0, 6).map((job) => (
-                <div key={`newest-${job.id}`} className="transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl rounded-2xl">
-                  <JobCardHoverPreview
-                    job={job}
-                    activePreviewKey={activePreviewKey}
-                    previewKey={`newest-${job.id}`}
-                    handleMouseEnter={handlePreviewMouseEnter}
-                    handleMouseLeave={handlePreviewMouseLeave}
-                  />
-                </div>
-              ))}
+                  <div
+                    key={`newest-${job.id}`}
+                    className="transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl rounded-2xl"
+                  >
+                    <JobCardHoverPreview
+                      job={job}
+                      activePreviewKey={activePreviewKey}
+                      previewKey={`newest-${job.id}`}
+                      handleMouseEnter={handlePreviewMouseEnter}
+                      handleMouseLeave={handlePreviewMouseLeave}
+                    />
+                  </div>
+                ))}
           </div>
 
           <div className="mt-14 text-center">
@@ -812,7 +883,8 @@ export function HomePage() {
               asChild
             >
               <Link to="/search" className="flex items-center gap-2">
-                Xem toàn bộ tin đăng <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
+                Xem toàn bộ tin đăng{' '}
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1.5 transition-transform" />
               </Link>
             </Button>
           </div>
@@ -835,7 +907,9 @@ export function HomePage() {
               </Badge>
               <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-[1.1] text-slate-900">
                 Gặp vướng mắc? <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-500">Liên hệ ngay</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-600 to-orange-500">
+                  Liên hệ ngay
+                </span>
               </h2>
               <p className="max-w-xl text-sm leading-relaxed text-slate-600">
                 Nếu bạn gặp lỗi đăng nhập, vấn đề hồ sơ, ứng tuyển hoặc cần
@@ -848,15 +922,23 @@ export function HomePage() {
                   <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-4 border border-amber-200/50">
                     <Clock className="w-6 h-6 text-amber-600" />
                   </div>
-                  <h4 className="font-bold text-slate-900 mb-2 text-lg">Xử lý ngay</h4>
-                  <p className="text-sm text-slate-600 font-medium">Xử lý việc gấp trong 2 giờ làm việc.</p>
+                  <h4 className="font-bold text-slate-900 mb-2 text-lg">
+                    Xử lý ngay
+                  </h4>
+                  <p className="text-sm text-slate-600 font-medium">
+                    Xử lý việc gấp trong 2 giờ làm việc.
+                  </p>
                 </div>
                 <div className="bg-white/60 border border-amber-200/60 rounded-[1.5rem] p-6 backdrop-blur-md hover:bg-white/90 transition-colors shadow-sm">
                   <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mb-4 border border-amber-200/50">
                     <Heart className="w-6 h-6 text-amber-600" />
                   </div>
-                  <h4 className="font-bold text-slate-900 mb-2 text-lg">Chăm sóc riêng</h4>
-                  <p className="text-sm text-slate-600 font-medium">Tư vấn nghiệp vụ riêng cho nhà tuyển dụng.</p>
+                  <h4 className="font-bold text-slate-900 mb-2 text-lg">
+                    Chăm sóc riêng
+                  </h4>
+                  <p className="text-sm text-slate-600 font-medium">
+                    Tư vấn nghiệp vụ riêng cho nhà tuyển dụng.
+                  </p>
                 </div>
               </div>
             </div>
@@ -864,8 +946,12 @@ export function HomePage() {
             <div className="bg-amber-200/40 p-2 rounded-[2.5rem] backdrop-blur-xl border border-amber-300/60 shadow-2xl">
               <div className="bg-white rounded-[2rem] p-6 md:p-8 text-slate-900 shadow-inner">
                 <div className="mb-6">
-                  <h3 className="text-2xl font-black text-slate-900">Mở yêu cầu mới</h3>
-                  <p className="text-sm text-slate-500 font-semibold mt-1">Mô tả nội dung cần xử lý.</p>
+                  <h3 className="text-2xl font-black text-slate-900">
+                    Mở yêu cầu mới
+                  </h3>
+                  <p className="text-sm text-slate-500 font-semibold mt-1">
+                    Mô tả nội dung cần xử lý.
+                  </p>
                 </div>
                 <SupportTicketForm />
               </div>

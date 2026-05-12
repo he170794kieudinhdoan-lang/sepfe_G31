@@ -161,7 +161,11 @@ const schema = z
     }
   });
 
-export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => {
+export const CreateJobPage = ({
+  onBack,
+  onSuccess: onSuccessProp,
+  isModal,
+}) => {
   const PROVINCES_API = import.meta.env.VITE_PROVINCES_API_URL;
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -180,7 +184,8 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
   const { provinces, isLoading: loadingProvince } = useProvinces();
   const [districts, setDistricts] = useState([]);
   const [loadingDistrict, setLoadingDistrict] = useState(false);
-  const [insufficientPointModalOpen, setInsufficientPointModalOpen] = useState(false);
+  const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
+    useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
     'Số dư điểm không đủ để đăng tin.',
   );
@@ -241,11 +246,12 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
     params.delete('walletTopupSuccess');
     params.delete('resumeKey');
     navigate(
-      params.toString() ? `${location.pathname}?${params.toString()}` : location.pathname,
+      params.toString()
+        ? `${location.pathname}?${params.toString()}`
+        : location.pathname,
       { replace: true },
     );
   }, [location.pathname, location.search, navigate, reset, toast]);
-
 
   const watchSectorId = watch('sectorId');
   const watchProvince = watch('province');
@@ -379,7 +385,10 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
         }
       },
       onError: (error) => {
-        const errorText = extractApiErrorMessage(error, 'Tạo tin tuyển dụng thất bại');
+        const errorText = extractApiErrorMessage(
+          error,
+          'Tạo tin tuyển dụng thất bại',
+        );
         if (isInsufficientPointError(error)) {
           setInsufficientPointMessage(errorText);
           setInsufficientPointModalOpen(true);
@@ -411,8 +420,20 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
 
   return (
     <>
-      <div className={isModal ? "w-full bg-transparent" : "min-h-screen bg-slate-50 py-8 px-4"}>
-        <div className={isModal ? "w-full bg-transparent p-0 border-0 shadow-none" : "max-w-5xl mx-auto bg-white rounded-2xl w-full max-h-[none] sm:max-h-[90vh] overflow-y-auto relative p-6 shadow-xl border border-slate-100"}>
+      <div
+        className={
+          isModal
+            ? 'w-full bg-transparent'
+            : 'min-h-screen bg-slate-50 py-8 px-4'
+        }
+      >
+        <div
+          className={
+            isModal
+              ? 'w-full bg-transparent p-0 border-0 shadow-none'
+              : 'max-w-5xl mx-auto bg-white rounded-2xl w-full max-h-[none] sm:max-h-[90vh] overflow-y-auto relative p-6 shadow-xl border border-slate-100'
+          }
+        >
           <Button
             variant="ghost"
             size="icon"
@@ -450,12 +471,13 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
                 >
                   <div
                     className={`w-12 h-12 rounded-full flex items-center justify-center border-4 shadow-sm transition-all duration-300
-                                    ${isActive
-                        ? 'bg-primary border-primary/20 text-white scale-110'
-                        : isCompleted
-                          ? 'bg-primary border-primary text-white'
-                          : 'bg-white border-gray-200 text-gray-400'
-                      }`}
+                                    ${
+                                      isActive
+                                        ? 'bg-primary border-primary/20 text-white scale-110'
+                                        : isCompleted
+                                          ? 'bg-primary border-primary text-white'
+                                          : 'bg-white border-gray-200 text-gray-400'
+                                    }`}
                   >
                     {isCompleted ? (
                       <CheckCircle size={20} />
@@ -473,7 +495,9 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
             })}
           </div>
 
-          <Card className={`rounded-2xl border-0 overflow-hidden ${isModal ? 'bg-white border border-slate-100 shadow-sm' : 'bg-white shadow-xl'}`}>
+          <Card
+            className={`rounded-2xl border-0 overflow-hidden ${isModal ? 'bg-white border border-slate-100 shadow-sm' : 'bg-white shadow-xl'}`}
+          >
             <div className="h-2 bg-primary w-full" />
             <div className="p-8 sm:p-10">
               {/* STEP 1: THÔNG TIN CHUNG */}
@@ -485,14 +509,20 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
                   <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 text-sm text-slate-700">
                     <p>
                       Số dư ví:{' '}
-                      <strong>{(wallet?.balancePoint || 0).toLocaleString('vi-VN')} điểm</strong>
+                      <strong>
+                        {(wallet?.balancePoint || 0).toLocaleString('vi-VN')}{' '}
+                        điểm
+                      </strong>
                     </p>
                     <p className="mt-1">
                       Chi phí đăng tin:{' '}
                       <strong>
-                        {Number(walletPricing?.JOB_POST_POINT_COST || 0).toLocaleString('vi-VN')} điểm
-                      </strong>
-                      {' '} (tin đầu tiên được miễn phí theo chính sách hệ thống).
+                        {Number(
+                          walletPricing?.JOB_POST_POINT_COST || 0,
+                        ).toLocaleString('vi-VN')}{' '}
+                        điểm
+                      </strong>{' '}
+                      (tin đầu tiên được miễn phí theo chính sách hệ thống).
                     </p>
                   </div>
 
@@ -519,7 +549,9 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
                             >
                               <SelectValue
                                 placeholder={
-                                  loadingSector ? 'Đang tải...' : 'Chọn lĩnh vực'
+                                  loadingSector
+                                    ? 'Đang tải...'
+                                    : 'Chọn lĩnh vực'
                                 }
                               />
                             </SelectTrigger>
@@ -675,38 +707,50 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
                           <Controller
                             control={control}
                             name="salaryMin"
-                            render={({ field: { onChange, value, ...field } }) => (
+                            render={({
+                              field: { onChange, value, ...field },
+                            }) => (
                               <Input
                                 {...field}
-                                type="text"
+                                type="number"
                                 placeholder="Từ (Tối thiểu 0)"
                                 className={`h-11 bg-white ${errors.salaryMin ? 'border-red-500' : ''}`}
-                                value={value ? formatVND(value) : ''}
-                                onChange={(e) => {
-                                  const rawValue = e.target.value.replace(/[^0-9]/g, '');
-                                  onChange(rawValue ? Number(rawValue) : undefined);
-                                }}
+                                value={value ?? ''}
+                                onChange={(e) =>
+                                  onChange(
+                                    e.target.value === ''
+                                      ? undefined
+                                      : Number(e.target.value),
+                                  )
+                                }
                               />
                             )}
                           />
                           <FieldError error={errors.salaryMin} />
                         </div>
-                        <span className="text-gray-400 font-medium mt-3">-</span>
+                        <span className="text-gray-400 font-medium mt-3">
+                          -
+                        </span>
                         <div className="flex-1">
                           <Controller
                             control={control}
                             name="salaryMax"
-                            render={({ field: { onChange, value, ...field } }) => (
+                            render={({
+                              field: { onChange, value, ...field },
+                            }) => (
                               <Input
                                 {...field}
-                                type="text"
+                                type="number"
                                 placeholder="Đến"
                                 className={`h-11 bg-white ${errors.salaryMax ? 'border-red-500' : ''}`}
-                                value={value ? formatVND(value) : ''}
-                                onChange={(e) => {
-                                  const rawValue = e.target.value.replace(/[^0-9]/g, '');
-                                  onChange(rawValue ? Number(rawValue) : undefined);
-                                }}
+                                value={value ?? ''}
+                                onChange={(e) =>
+                                  onChange(
+                                    e.target.value === ''
+                                      ? undefined
+                                      : Number(e.target.value),
+                                  )
+                                }
                               />
                             )}
                           />
@@ -728,8 +772,8 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
                       className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.expiredAt ? 'border-red-500' : ''}`}
                     />
                     <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                      <CheckCircle size={12} className="text-green-500" /> Tin sẽ
-                      tự động ẩn sau ngày này
+                      <CheckCircle size={12} className="text-green-500" /> Tin
+                      sẽ tự động ẩn sau ngày này
                     </p>
                     <FieldError error={errors.expiredAt} />
                   </div>
@@ -872,7 +916,6 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
                   </div>
                 </div>
               )}
-
             </div>
 
             {/* Footer Controls */}
@@ -907,7 +950,8 @@ export const CreateJobPage = ({ onBack, onSuccess: onSuccessProp, isModal }) => 
                 >
                   {isSubmitting ? (
                     <>
-                      <Loader2 className="animate-spin" size={18} /> Đang tạo tin...
+                      <Loader2 className="animate-spin" size={18} /> Đang tạo
+                      tin...
                     </>
                   ) : (
                     <>

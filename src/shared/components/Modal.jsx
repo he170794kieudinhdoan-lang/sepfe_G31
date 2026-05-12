@@ -14,6 +14,7 @@ export const Modal = ({
   tone = 'default',
   variant = 'confirm',
   confirmDisabled = false,
+  showFooter = true,
   className,
   contentClassName,
   bodyClassName,
@@ -67,7 +68,7 @@ export const Modal = ({
         >
           {children}
 
-          {variant === 'confirm' && (
+          {showFooter && variant === 'confirm' && (
             <div className="flex items-center justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={onClose}>
                 {cancelLabel}

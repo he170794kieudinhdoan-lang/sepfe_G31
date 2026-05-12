@@ -30,10 +30,7 @@ const schema = z
 
 export const RegisterEmployer = () => {
   const { mutate: signUpMutate, isPending: isSigningUp } = useSignUp();
-  const {
-    mutate: loginGoogle,
-    isPending: isGooglePending,
-  } = useLoginGoogle();
+  const { mutate: loginGoogle, isPending: isGooglePending } = useLoginGoogle();
 
   const {
     register: formRegister,
@@ -60,10 +57,7 @@ export const RegisterEmployer = () => {
   };
 
   return (
-    <AuthLayout
-      title="Đăng ký · Nhà tuyển dụng"
-      subtitle="Tạo tài khoản bằng form hoặc Google"
-    >
+    <AuthLayout title="Đăng ký · Nhà tuyển dụng">
       <Card className="p-6 rounded-2xl shadow-sm border-0">
         <Link
           to="/auth/register"
