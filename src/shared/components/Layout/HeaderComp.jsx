@@ -137,15 +137,48 @@ export const Header = () => {
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
-              {TASKBAR_LINKS.map(({ to, label }) => (
+              {TASKBAR_LINKS.map(({ to, label }) => {
+                // Determine if this link is currently active
+                // Simple logic: if window location pathname starts with `to`
+                const isActive = window.location.pathname === to;
+                return (
+                  <Link
+                    key={to}
+                    to={to}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive 
+                        ? 'bg-amber-50 text-amber-600' 
+                        : 'text-gray-700 hover:bg-primary/10 hover:text-primary'
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                );
+              })}
+              {isAuthenticated && isWorkerRole(user) && (
                 <Link
-                  key={to}
-                  to={to}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors"
+                  to="/job-invitations"
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    window.location.pathname.includes('job-invitations') 
+                      ? 'bg-amber-50 text-amber-600' 
+                      : 'text-gray-700 hover:bg-primary/10 hover:text-primary'
+                  }`}
                 >
-                  {label}
+                  Lời mời từ NTD
                 </Link>
-              ))}
+              )}
+              {isAuthenticated && (isWorkerRole(user) || user?.roleType === 'EMPLOYER') && (
+                <Link
+                  to={isWorkerRole(user) ? '/interview-invitations' : '/employer/interviews'}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    window.location.pathname.includes('interview') 
+                      ? 'bg-amber-50 text-amber-600' 
+                      : 'text-gray-700 hover:bg-primary/10 hover:text-primary'
+                  }`}
+                >
+                  Quản lý phỏng vấn
+                </Link>
+              )}
             </nav>
           </div>
 

@@ -1,5 +1,6 @@
 export {
   createCampaign,
+  updateCampaign,
   getCampaigns,
   getCampaignDetail,
   sendCampaign,

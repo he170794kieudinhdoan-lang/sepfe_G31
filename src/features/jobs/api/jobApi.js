@@ -105,6 +105,12 @@ export const getEmployerApplications = async (jobId) => {
   return await apiClient.get('/job/employer/applications', { params });
 };
 
+export const getSuitableApplicationsApi = async (jobId, page = 1, limit = 10, search = '') => {
+  const params = { jobId, page, limit };
+  if (search) params.search = search;
+  return await apiClient.get('/job/employer/applications/suitable', { params });
+};
+
 export const updateApplicationStatus = async ({ applicationId, status }) => {
   return await apiClient.put(`/job/applications/${applicationId}/status`, { status });
 };

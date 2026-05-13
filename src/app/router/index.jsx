@@ -140,10 +140,18 @@ export const router = createBrowserRouter([
       { path: 'profile', element: withSuspense(<UserProfilePage />) },
       { path: 'profile/:id', element: withSuspense(<UserProfilePage />) },
       {
+        path: 'job-invitations',
+        element: withSuspense(
+          <RequireRoles roles={['WORKER']}>
+            <WorkerInvitations type="job" />
+          </RequireRoles>,
+        ),
+      },
+      {
         path: 'interview-invitations',
         element: withSuspense(
           <RequireRoles roles={['WORKER']}>
-            <WorkerInvitations />
+            <WorkerInvitations type="interview" />
           </RequireRoles>,
         ),
       },
