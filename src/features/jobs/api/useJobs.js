@@ -26,6 +26,7 @@ import {
   getMyApplicationsApi,
   cancelApplyJobApi,
   getEmployerApplications,
+  getSuitableApplicationsApi,
   updateApplicationStatus,
   getMatchedJobsApi,
   getMatchedWorkersApi,
@@ -105,6 +106,15 @@ export const useEmployerApplications = (jobId) => {
   return useQuery({
     queryKey: ['employer-applications', jobId],
     queryFn: () => getEmployerApplications(jobId),
+  });
+};
+
+export const useSuitableApplications = (jobId, page = 1, limit = 10, search = '') => {
+  return useQuery({
+    queryKey: ['employer-suitable-applications', jobId, page, limit, search],
+    queryFn: () => getSuitableApplicationsApi(jobId, page, limit, search),
+    enabled: !!jobId,
+    keepPreviousData: true,
   });
 };
 

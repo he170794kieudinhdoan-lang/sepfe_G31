@@ -6,10 +6,20 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import viLocale from '@fullcalendar/core/locales/vi';
+
+import { SuitableCandidatesModal } from '@/features/jobs/components/SuitableCandidatesModal';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { Modal } from '@/shared/components/Modal';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
@@ -25,13 +35,15 @@ import {
   getCampaigns,
   sendCampaign,
 } from '@/features/interview-invitations/api/interviewInvitationApi';
-import { useCancelCampaignMutation } from '@/features/interview-invitations/hooks';
+import { useCancelCampaignMutation, useUpdateCampaignMutation } from '@/features/interview-invitations/hooks';
 import {
   AlertCircle,
+  Building2,
   Clock3,
   Loader2,
   MapPin,
   Plus,
+  Search,
   Users,
 } from 'lucide-react';
 import { EMPLOYER_MENU } from '@/pages/EmployerDashboard';
@@ -123,18 +135,27 @@ export const EmployerInterviewSchedulePage = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { mutateAsync: cancelCampaignMutation } = useCancelCampaignMutation();
+  const { mutateAsync: updateCampaignMutation } = useUpdateCampaignMutation();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingCampaignId, setEditingCampaignId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailData, setDetailData] = useState(null);
   const [detailError, setDetailError] = useState('');
   const [detailSelectedSlotId, setDetailSelectedSlotId] = useState(null);
+  const [detailSearchQuery, setDetailSearchQuery] = useState('');
+  const [detailCurrentPage, setDetailCurrentPage] = useState(1);
   const [cancellingId, setCancellingId] = useState(null);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedUpcomingJobKey, setSelectedUpcomingJobKey] = useState(null);
   const slotApplicantPanelRef = useRef(null);
   const jobIdFromUrl = searchParams.get('jobId');
+
+  // Suitable Candidates Modal state
+  const [isSuitableModalOpen, setIsSuitableModalOpen] = useState(false);
+  const [selectedJobForSuitableModal, setSelectedJobForSuitableModal] = useState(null);
 
   const [form, setForm] = useState({
     jobId: '',
@@ -185,8 +206,7 @@ export const EmployerInterviewSchedulePage = () => {
         : null;
       const isNotExpired =
         expiredAt === null || (!Number.isNaN(expiredAt) && expiredAt >= now);
-      const hasExistingSchedule = scheduledJobIds.has(Number(job?.id));
-      return isNotExpired && !hasExistingSchedule;
+      return isNotExpired && !scheduledJobIds.has(Number(job.id));
     });
   }, [allJobs, campaigns]);
   const applicants = applicationsResult?.data || [];
@@ -310,6 +330,30 @@ export const EmployerInterviewSchedulePage = () => {
   }, [jobIdFromUrl, upcomingJobs]);
 
   useEffect(() => {
+    const action = searchParams.get('action');
+    if (!action || !jobIdFromUrl) return;
+
+    if (action === 'create' && allJobs.length > 0) {
+      const validJob = allJobs.find((job) => String(job.id) === String(jobIdFromUrl));
+      if (validJob) {
+        setForm((prev) => ({ ...prev, jobId: String(jobIdFromUrl) }));
+        setIsCreateOpen(true);
+      }
+      searchParams.delete('action');
+      navigate(`?${searchParams.toString()}`, { replace: true });
+    } else if (action === 'edit' && upcomingJobs.length > 0) {
+      const matchedJob = upcomingJobs.find(
+        (job) => String(job.jobId || '') === String(jobIdFromUrl),
+      );
+      if (matchedJob && matchedJob.campaigns && matchedJob.campaigns[0]) {
+        handleEditClick(matchedJob.campaigns[0].id);
+      }
+      searchParams.delete('action');
+      navigate(`?${searchParams.toString()}`, { replace: true });
+    }
+  }, [searchParams, jobIdFromUrl, allJobs, upcomingJobs, navigate]);
+
+  useEffect(() => {
     if (!form.jobId) return;
     const stillAvailable = availableJobs.some(
       (job) => String(job.id) === String(form.jobId),
@@ -331,6 +375,36 @@ export const EmployerInterviewSchedulePage = () => {
       slots: [defaultSlot],
     });
     setSelectedSlotId(defaultSlot.localId);
+    setIsEditMode(false);
+    setEditingCampaignId(null);
+  };
+
+  const handleEditClick = (campaignId) => {
+    const campaign = campaigns.find((c) => c.id === campaignId);
+    if (!campaign) return;
+
+    setForm({
+      jobId: String(campaign.jobId || ''),
+      expiresAt: campaign.expiresAt ? new Date(campaign.expiresAt).toISOString().slice(0, 16) : '',
+      workerIds: [],
+      slots: (campaign.slots || []).map((slot) => ({
+        id: slot.id,
+        localId: `slot-${slot.id}-${Date.now()}`,
+        startAt: new Date(slot.startAt).toISOString(),
+        endAt: new Date(slot.endAt).toISOString(),
+        capacity: slot.capacity,
+        location: slot.location || '',
+        note: slot.note || '',
+      })),
+    });
+    setIsEditMode(true);
+    setEditingCampaignId(campaignId);
+    setIsCreateOpen(true);
+    setTimeout(() => {
+      setSelectedSlotId(
+        (prev) => prev || `slot-${campaign.slots[0]?.id}-${Date.now()}` || null,
+      );
+    }, 0);
   };
 
   const invalidateInterviewData = async () => {
@@ -338,6 +412,9 @@ export const EmployerInterviewSchedulePage = () => {
       refetchCampaigns(),
       queryClient.invalidateQueries({
         queryKey: ['employer-interview-campaigns'],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['employer-overview'],
       }),
     ]);
   };
@@ -363,6 +440,8 @@ export const EmployerInterviewSchedulePage = () => {
     setDetailLoading(true);
     setDetailError('');
     setDetailSelectedSlotId(preferredSlotId);
+    setDetailSearchQuery('');
+    setDetailCurrentPage(1);
     try {
       const detail = await getCampaignDetail(campaignId);
       setDetailData(detail);
@@ -564,6 +643,27 @@ export const EmployerInterviewSchedulePage = () => {
     );
   }, [detailData, selectedDetailSlot]);
 
+  const filteredDetailSlotInvitations = useMemo(() => {
+    if (!detailSearchQuery.trim()) return selectedDetailSlotInvitations;
+    const lowerQuery = detailSearchQuery.toLowerCase().trim();
+    return selectedDetailSlotInvitations.filter((inv) => {
+      const name = inv?.worker?.fullName?.toLowerCase() || '';
+      const phone = inv?.worker?.phone?.toLowerCase() || '';
+      return name.includes(lowerQuery) || phone.includes(lowerQuery);
+    });
+  }, [selectedDetailSlotInvitations, detailSearchQuery]);
+
+  const paginatedDetailSlotInvitations = useMemo(() => {
+    const startIndex = (detailCurrentPage - 1) * 10;
+    return filteredDetailSlotInvitations.slice(startIndex, startIndex + 10);
+  }, [filteredDetailSlotInvitations, detailCurrentPage]);
+
+  const totalPages = Math.ceil(filteredDetailSlotInvitations.length / 10);
+
+  useEffect(() => {
+    setDetailCurrentPage(1);
+  }, [detailSearchQuery, detailSelectedSlotId]);
+
   const handleCreateCampaign = async () => {
     if (!form.jobId) {
       toast('Vui lòng chọn tin tuyển dụng.', 'error');
@@ -625,18 +725,34 @@ export const EmployerInterviewSchedulePage = () => {
 
     setIsSubmitting(true);
     try {
-      const campaign = await createCampaign({
-        jobId: Number(form.jobId),
-        slots: normalizedSlots,
-        workerIds: suitableWorkerIds,
-        expiresAt: form.expiresAt
-          ? new Date(form.expiresAt).toISOString()
-          : undefined,
-      });
-      if (campaign?.id) {
-        await sendCampaign(campaign.id);
+      if (isEditMode) {
+        await updateCampaignMutation({
+          campaignId: editingCampaignId,
+          data: {
+            slots: normalizedSlots.map((slot, idx) => ({
+              id: form.slots[idx].id,
+              ...slot,
+            })),
+            expiresAt: form.expiresAt
+              ? new Date(form.expiresAt).toISOString()
+              : undefined,
+          },
+        });
+        toast('Đã cập nhật lịch phỏng vấn.', 'success');
+      } else {
+        const campaign = await createCampaign({
+          jobId: Number(form.jobId),
+          slots: normalizedSlots,
+          workerIds: suitableWorkerIds,
+          expiresAt: form.expiresAt
+            ? new Date(form.expiresAt).toISOString()
+            : undefined,
+        });
+        if (campaign?.id) {
+          await sendCampaign(campaign.id);
+        }
+        toast('Đã tạo lịch phỏng vấn.', 'success');
       }
-      toast('Đã tạo lịch phỏng vấn.', 'success');
       setIsCreateOpen(false);
       resetForm();
       await invalidateInterviewData();
@@ -879,8 +995,7 @@ export const EmployerInterviewSchedulePage = () => {
                                       variant="outline"
                                       className="border-slate-300 text-slate-700"
                                     >
-                                      {selectedDetailSlot.bookedCount || 0}/
-                                      {selectedDetailSlot.capacity || 0} ứng
+                                      {selectedDetailSlot.bookedCount || 0} ứng
                                       viên
                                     </Badge>
                                   </div>
@@ -895,36 +1010,107 @@ export const EmployerInterviewSchedulePage = () => {
                                     </p>
                                   ) : null}
 
-                                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                                    <p className="text-sm font-semibold text-slate-800">
-                                      Danh sách ứng viên của ca
-                                    </p>
-                                    {selectedDetailSlotInvitations.length ===
-                                    0 ? (
-                                      <p className="mt-2 text-sm text-slate-500">
+                                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                                      <div>
+                                        <p className="text-sm font-semibold text-slate-800">
+                                          Danh sách ứng viên của ca
+                                        </p>
+                                        <p className="mt-0.5 text-xs text-slate-500">
+                                          Tổng: {selectedDetailSlotInvitations.length} ứng viên
+                                        </p>
+                                      </div>
+                                      {selectedDetailSlotInvitations.length > 0 && (
+                                        <div className="relative">
+                                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                          <Input
+                                            type="text"
+                                            placeholder="Tìm tên, SĐT..."
+                                            className="w-full sm:w-[220px] h-9 pl-8 text-sm bg-white rounded-lg border-slate-200 shadow-sm"
+                                            value={detailSearchQuery}
+                                            onChange={(e) => setDetailSearchQuery(e.target.value)}
+                                          />
+                                        </div>
+                                      )}
+                                    </div>
+                                    
+                                    {selectedDetailSlotInvitations.length === 0 ? (
+                                      <p className="mt-2 text-sm text-slate-500 text-center py-4 bg-white rounded-lg border border-slate-200 border-dashed">
                                         Chưa có ứng viên chọn ca này.
                                       </p>
+                                    ) : paginatedDetailSlotInvitations.length === 0 ? (
+                                      <p className="mt-2 text-sm text-slate-500 text-center py-4 bg-white rounded-lg border border-slate-200 border-dashed">
+                                        Không tìm thấy ứng viên phù hợp.
+                                      </p>
                                     ) : (
-                                      <div className="mt-2 space-y-2">
-                                        {selectedDetailSlotInvitations.map(
-                                          (invitation) => (
-                                            <div
-                                              key={invitation.id}
-                                              className="rounded-lg border border-slate-200 bg-white px-3 py-2"
-                                            >
-                                              <p className="text-sm font-medium text-slate-900">
-                                                {invitation?.worker?.fullName ||
-                                                  `Worker #${invitation?.workerId}`}
-                                              </p>
-                                              <p className="text-xs text-slate-500">
-                                                {invitation?.worker?.phone ||
-                                                  invitation?.worker?.email ||
-                                                  'Chưa có liên hệ'}
-                                              </p>
-                                            </div>
-                                          ),
+                                      <>
+                                        <div className="space-y-2">
+                                          {paginatedDetailSlotInvitations.map(
+                                            (invitation) => (
+                                              <div
+                                                key={invitation.id}
+                                                className="rounded-lg border border-slate-200 bg-white px-3 py-2 flex items-center justify-between"
+                                              >
+                                                <div>
+                                                  <p className="text-sm font-medium text-slate-900">
+                                                    {invitation?.worker?.fullName ||
+                                                      `Worker #${invitation?.workerId}`}
+                                                  </p>
+                                                  <p className="text-xs text-slate-500">
+                                                    {invitation?.worker?.phone ||
+                                                      invitation?.worker?.email ||
+                                                      'Chưa có liên hệ'}
+                                                  </p>
+                                                </div>
+                                              </div>
+                                            ),
+                                          )}
+                                        </div>
+                                        {totalPages > 1 && (
+                                          <div className="mt-5 flex justify-center">
+                                            <Pagination>
+                                              <PaginationContent>
+                                                <PaginationItem>
+                                                  <PaginationPrevious 
+                                                    href="#" 
+                                                    onClick={(e) => {
+                                                      e.preventDefault();
+                                                      setDetailCurrentPage(p => Math.max(1, p - 1));
+                                                    }}
+                                                    className={detailCurrentPage === 1 ? 'pointer-events-none opacity-50' : ''}
+                                                  />
+                                                </PaginationItem>
+                                                
+                                                {[...Array(totalPages)].map((_, i) => (
+                                                  <PaginationItem key={i + 1}>
+                                                    <PaginationLink 
+                                                      href="#"
+                                                      isActive={detailCurrentPage === i + 1}
+                                                      onClick={(e) => {
+                                                        e.preventDefault();
+                                                        setDetailCurrentPage(i + 1);
+                                                      }}
+                                                    >
+                                                      {i + 1}
+                                                    </PaginationLink>
+                                                  </PaginationItem>
+                                                ))}
+
+                                                <PaginationItem>
+                                                  <PaginationNext 
+                                                    href="#" 
+                                                    onClick={(e) => {
+                                                      e.preventDefault();
+                                                      setDetailCurrentPage(p => Math.min(totalPages, p + 1));
+                                                    }}
+                                                    className={detailCurrentPage === totalPages ? 'pointer-events-none opacity-50' : ''}
+                                                  />
+                                                </PaginationItem>
+                                              </PaginationContent>
+                                            </Pagination>
+                                          </div>
                                         )}
-                                      </div>
+                                      </>
                                     )}
                                   </div>
                                 </div>
@@ -966,9 +1152,36 @@ export const EmployerInterviewSchedulePage = () => {
                     })}
                   </div>
                   <div className="space-y-4">
-                    {!selectedUpcomingJob
-                      ? null
-                      : selectedUpcomingJob.slots.map((slot, index) => {
+                    {!selectedUpcomingJob ? null : (
+                      <>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                          <div>
+                            <h3 className="text-lg font-bold text-slate-900">{selectedUpcomingJob.jobTitle}</h3>
+                            <p className="mt-1 text-sm text-slate-500">Quản lý lịch phỏng vấn chung cho tin tuyển dụng này</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                              onClick={() => {
+                                setSelectedJobForSuitableModal(selectedUpcomingJob);
+                                setIsSuitableModalOpen(true);
+                              }}
+                            >
+                              Xem đối tượng phù hợp
+                            </Button>
+                            {selectedUpcomingJob.campaigns[0] && (
+                              <Button
+                                variant="outline"
+                                className="rounded-xl border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
+                                onClick={() => handleEditClick(selectedUpcomingJob.campaigns[0]?.id)}
+                              >
+                                Sửa lịch phỏng vấn
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                        {selectedUpcomingJob.slots.map((slot, index) => {
                           const statusMeta = getCampaignStatusMeta(
                             slot.campaignStatus,
                           );
@@ -986,12 +1199,6 @@ export const EmployerInterviewSchedulePage = () => {
                                     {slot.campaignTitle}
                                   </h3>
                                 </div>
-                                <Badge
-                                  variant="outline"
-                                  className={statusMeta.className}
-                                >
-                                  {statusMeta.label}
-                                </Badge>
                               </div>
 
                               <div className="mt-4 space-y-2 text-sm text-slate-600">
@@ -1007,8 +1214,7 @@ export const EmployerInterviewSchedulePage = () => {
                                 </p>
                                 <p className="flex items-center gap-2">
                                   <Users className="h-4 w-4 text-slate-400" />
-                                  {slot.bookedCount || 0}/{slot.capacity || 0}{' '}
-                                  ứng viên đã chọn ca
+                                  {slot.bookedCount || 0} ứng viên đã chọn ca
                                 </p>
                               </div>
 
@@ -1022,26 +1228,12 @@ export const EmployerInterviewSchedulePage = () => {
                                 >
                                   Xem ứng viên của ca
                                 </Button>
-                                {!['CANCELLED'].includes(
-                                  slot.campaignStatus,
-                                ) && (
-                                  <Button
-                                    variant="ghost"
-                                    className="rounded-xl text-rose-600 hover:bg-rose-50 hover:text-rose-700"
-                                    onClick={() =>
-                                      handleCancelCampaign(slot.campaignId)
-                                    }
-                                    disabled={cancellingId === slot.campaignId}
-                                  >
-                                    {cancellingId === slot.campaignId
-                                      ? 'Đang hủy...'
-                                      : 'Hủy lịch'}
-                                  </Button>
-                                )}
-                              </div>
+                                </div>
                             </Card>
                           );
                         })}
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -1057,8 +1249,8 @@ export const EmployerInterviewSchedulePage = () => {
           setIsCreateOpen(false);
           resetForm();
         }}
-        title="Tạo lịch phỏng vấn"
-        description="Chọn job, ứng viên và các ca phỏng vấn muốn tạo."
+        title={isEditMode ? "Sửa lịch phỏng vấn" : "Tạo lịch phỏng vấn"}
+        description={isEditMode ? "Chỉnh sửa các ca phỏng vấn và thời hạn đăng ký." : "Chọn job, ứng viên và các ca phỏng vấn muốn tạo."}
         variant="custom"
         contentClassName="max-w-6xl"
         bodyClassName="space-y-5"
@@ -1070,8 +1262,9 @@ export const EmployerInterviewSchedulePage = () => {
                 Tin tuyển dụng
               </p>
               <select
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm disabled:bg-slate-100 disabled:text-slate-500"
                 value={form.jobId}
+                disabled={isEditMode}
                 onChange={(e) =>
                   setForm((prev) => ({
                     ...prev,
@@ -1332,10 +1525,23 @@ export const EmployerInterviewSchedulePage = () => {
             Hủy
           </Button>
           <Button onClick={handleCreateCampaign} disabled={isSubmitting}>
-            {isSubmitting ? 'Đang tạo...' : 'Tạo lịch phỏng vấn'}
+            {isSubmitting ? (isEditMode ? 'Đang lưu...' : 'Đang tạo...') : (isEditMode ? 'Lưu thay đổi' : 'Tạo lịch phỏng vấn')}
           </Button>
         </div>
       </Modal>
+
+      {/* Suitable Candidates Modal */}
+      {selectedJobForSuitableModal && (
+        <SuitableCandidatesModal
+          isOpen={isSuitableModalOpen}
+          onClose={() => {
+            setIsSuitableModalOpen(false);
+            setTimeout(() => setSelectedJobForSuitableModal(null), 300);
+          }}
+          jobId={selectedJobForSuitableModal.jobId}
+          jobTitle={selectedJobForSuitableModal.jobTitle}
+        />
+      )}
     </DashboardLayout>
   );
 };

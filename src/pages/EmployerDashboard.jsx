@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -1382,15 +1383,7 @@ const JobApplicantsPanel = ({
         {/* Left: Candidate List */}
         <div className="w-[40%] shrink-0 border-r border-slate-100 flex flex-col overflow-hidden bg-slate-50/30">
           <div className="p-3.5 border-b border-slate-100 px-5 space-y-3">
-            {interviewScheduleMissing && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex items-start gap-2">
-                <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                <span>
-                  Công việc này chưa có lịch phỏng vấn. Vui lòng tạo lịch phỏng
-                  vấn trước khi mời ứng viên.
-                </span>
-              </div>
-            )}
+
             <div className="flex items-center justify-between gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -1433,23 +1426,19 @@ const JobApplicantsPanel = ({
               <div className="flex gap-2 shrink-0">
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="h-8 text-xs rounded-xl gap-1.5"
+                  variant={inviteConstraints?.hasExistingSchedule ? 'outline' : 'default'}
+                  className={cn(
+                    'h-8 text-xs rounded-xl gap-1.5',
+                    !inviteConstraints?.hasExistingSchedule && 'bg-amber-500 hover:bg-amber-600 text-white'
+                  )}
                   onClick={() => {
-                    if (!inviteConstraints?.hasExistingSchedule) {
-                      toast(
-                        'Công việc này chưa có lịch phỏng vấn. Vui lòng tạo lịch phỏng vấn trước.',
-                        'error',
-                      );
-                      return;
-                    }
-
+                    const action = inviteConstraints?.hasExistingSchedule ? 'edit' : 'create';
                     navigate(
-                      `/employer/interviews?jobId=${encodeURIComponent(jobId)}`,
+                      `/employer/interviews?jobId=${encodeURIComponent(jobId)}&action=${action}`,
                     );
                   }}
                 >
-                  <Users size={12} /> Ca phỏng vấn
+                  <Users size={12} /> {inviteConstraints?.hasExistingSchedule ? 'Sửa lịch phỏng vấn' : 'Tạo lịch phỏng vấn'}
                 </Button>
                 {selectedApplicantIds.size > 0 && (
                   <Button
@@ -2102,7 +2091,7 @@ const MatchedWorkersPanel = ({
     if (inviteModalOpen && !inviteMessage) {
       const companyName = jobDetail?.company?.name || 'chúng tôi';
       setInviteMessage(
-        `Chào bạn, tôi là nhà tuyển dụng từ **${companyName}**. Tôi thấy hồ sơ của bạn rất phù hợp với vị trí **${jobDetail?.title || jobTitle}**. Hãy chọn ca phỏng vấn phù hợp với bạn nhé!`,
+        `Chào bạn, tôi là nhà tuyển dụng từ **${companyName}**. Tôi thấy hồ sơ của bạn rất phù hợp với vị trí **${jobDetail?.title || jobTitle}**. Chúng tôi muốn mời bạn ứng tuyển vào vị trí này!`,
       );
     }
   }, [inviteModalOpen, inviteMessage, jobDetail, jobTitle]);
@@ -2199,10 +2188,6 @@ const MatchedWorkersPanel = ({
       toast('Vui lòng nhập nội dung lời mời.', 'error');
       return;
     }
-    if (!inviteSlots.length) {
-      toast('Vui lòng tạo ít nhất 1 ca phỏng vấn.', 'error');
-      return;
-    }
     const workerIds = Array.from(selectedIds)
       .map(Number)
       .filter((id) => !Number.isNaN(id));
@@ -2210,31 +2195,13 @@ const MatchedWorkersPanel = ({
       toast('Vui lòng chọn ít nhất 1 ứng viên.', 'error');
       return;
     }
+    // Xoá logic tạo slot vì bây giờ là Mời ứng tuyển
     const normalizedSlots = [];
-    for (const slot of inviteSlots) {
-      const startAt = new Date(slot.startAt);
-      const endAt = new Date(slot.endAt);
-      if (Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
-        toast('Thời gian ca phỏng vấn không hợp lệ.', 'error');
-        return;
-      }
-      if (endAt <= startAt) {
-        toast('Giờ kết thúc phải sau giờ bắt đầu.', 'error');
-        return;
-      }
-      normalizedSlots.push({
-        startAt: startAt.toISOString(),
-        endAt: endAt.toISOString(),
-        capacity: Number(slot.capacity) || 1,
-        location: slot.location?.trim() || undefined,
-        note: slot.note?.trim() || undefined,
-      });
-    }
     setIsSending(true);
     try {
       const campaign = await createCampaign({
-        title: `Mời phỏng vấn AI - ${jobDetail?.title || jobTitle}`,
-        description: `Chiến dịch mời phỏng vấn ứng viên AI cho vị trí #${jobId}`,
+        title: `Mời ứng tuyển AI - ${jobDetail?.title || jobTitle}`,
+        description: `Chiến dịch mời ứng tuyển AI cho vị trí #${jobId}`,
         message: inviteMessage.trim(),
         jobId: Number(jobId),
         workerIds,
@@ -2243,8 +2210,9 @@ const MatchedWorkersPanel = ({
       if (!campaign?.id) throw new Error('Không nhận được mã chiến dịch.');
       await sendCampaign(campaign.id);
       queryClient.invalidateQueries({ queryKey: ['my-wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['matched-workers', jobId] });
       toast(
-        `Đã gửi lời mời phỏng vấn cho ${workerIds.length} ứng viên.`,
+        `Đã gửi lời mời ứng tuyển cho ${workerIds.length} ứng viên.`,
         'success',
       );
       setInviteModalOpen(false);
@@ -2383,157 +2351,38 @@ const MatchedWorkersPanel = ({
           setInviteMessage(''),
           setSelectedSlotId(null))
         }
-        title="Tạo lịch và gửi lời mời phỏng vấn"
-        contentClassName="max-w-5xl min-h-[80vh]"
+        title="Gửi lời mời ứng tuyển"
+        contentClassName="max-w-2xl min-h-[40vh]"
         bodyClassName="space-y-4"
         onConfirm={handleSendInvite}
-        confirmLabel={isSending ? 'Đang gửi...' : 'Tạo lịch và gửi lời mời'}
+        confirmLabel={isSending ? 'Đang gửi...' : 'Gửi lời mời'}
         cancelLabel="Hủy"
         confirmDisabled={
-          isSending || !inviteMessage.trim() || !inviteSlots.length
+          isSending || !inviteMessage.trim() || selectedIds.size === 0
         }
       >
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-          {/* Left: Calendar */}
-          <div className="space-y-3">
-            <div className="rounded-2xl border border-slate-200 bg-white p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">
-                Lịch phỏng vấn — kéo để tạo ca ({inviteSlots.length} ca)
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_280px]">
+          {/* Left: Nội dung lời mời */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2 flex flex-col h-full">
+            <div className="flex justify-between items-center">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Nội dung lời mời
               </p>
-              <FullCalendar
-                plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                initialView="timeGridWeek"
-                locale={viLocale}
-                selectable
-                editable
-                height={420}
-                events={calendarEvents}
-                select={handleCalendarSelect}
-                eventDrop={handleSlotDropOrResize}
-                eventResize={handleSlotDropOrResize}
-                eventClick={(info) => setSelectedSlotId(info.event.id)}
-                headerToolbar={{
-                  left: 'prev,next today',
-                  center: 'title',
-                  right: 'timeGridWeek,timeGridDay',
-                }}
-              />
+              <span className="text-[10px] text-slate-400">
+                {inviteMessage.length} ký tự
+              </span>
             </div>
-
-            {/* Nội dung lời mời */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-2">
-              <div className="flex justify-between items-center">
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Nội dung lời mời
-                </p>
-                <span className="text-[10px] text-slate-400">
-                  {inviteMessage.length} ký tự
-                </span>
-              </div>
-              <Textarea
-                value={inviteMessage}
-                onChange={(e) => setInviteMessage(e.target.value)}
-                rows={4}
-                placeholder="Nhập nội dung lời mời phỏng vấn..."
-                className="rounded-xl border-slate-200 resize-none"
-              />
-            </div>
+            <Textarea
+              value={inviteMessage}
+              onChange={(e) => setInviteMessage(e.target.value)}
+              rows={8}
+              placeholder="Nhập nội dung lời mời ứng tuyển..."
+              className="rounded-xl border-slate-200 resize-none flex-1"
+            />
           </div>
 
-          {/* Right: Slot details + Worker list */}
-          <div className="space-y-3">
-            {/* Thông tin ca được chọn */}
-            {selectedSlot ? (
-              <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
-                <p className="text-xs font-bold text-primary uppercase tracking-wide">
-                  Ca đang chỉnh sửa
-                </p>
-                <div className="text-xs text-slate-600 space-y-1">
-                  <p>
-                    🕐 {new Date(selectedSlot.startAt).toLocaleString('vi-VN')}{' '}
-                    → {new Date(selectedSlot.endAt).toLocaleString('vi-VN')}
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-[10px] text-slate-500 font-medium block mb-1">
-                      Sức chứa
-                    </label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={selectedSlot.capacity}
-                      onChange={(e) =>
-                        setInviteSlots((prev) =>
-                          prev.map((s) =>
-                            s.id === selectedSlot.id
-                              ? { ...s, capacity: Number(e.target.value) || 1 }
-                              : s,
-                          ),
-                        )
-                      }
-                      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] text-slate-500 font-medium block mb-1">
-                      Địa điểm
-                    </label>
-                    <input
-                      type="text"
-                      value={selectedSlot.location || ''}
-                      onChange={(e) =>
-                        setInviteSlots((prev) =>
-                          prev.map((s) =>
-                            s.id === selectedSlot.id
-                              ? { ...s, location: e.target.value }
-                              : s,
-                          ),
-                        )
-                      }
-                      placeholder="VD: Tầng 3, Phòng A"
-                      className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] text-slate-500 font-medium block mb-1">
-                    Ghi chú
-                  </label>
-                  <input
-                    type="text"
-                    value={selectedSlot.note || ''}
-                    onChange={(e) =>
-                      setInviteSlots((prev) =>
-                        prev.map((s) =>
-                          s.id === selectedSlot.id
-                            ? { ...s, note: e.target.value }
-                            : s,
-                        ),
-                      )
-                    }
-                    placeholder="VD: Mang theo CCCD"
-                    className="w-full rounded-lg border border-slate-200 px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary/30"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setInviteSlots((prev) =>
-                      prev.filter((s) => s.id !== selectedSlot.id),
-                    );
-                    setSelectedSlotId(null);
-                  }}
-                  className="text-xs text-rose-500 hover:text-rose-600 font-medium"
-                >
-                  Xóa ca này
-                </button>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 p-6 text-center text-slate-400 text-sm">
-                Kéo trên lịch để tạo ca phỏng vấn
-              </div>
-            )}
+          {/* Right: Worker list */}
+          <div className="space-y-3 flex flex-col h-full">
 
             {/* Danh sách ứng viên được mời */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4">

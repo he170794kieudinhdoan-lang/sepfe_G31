@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { createCampaign, sendCampaign, cancelCampaign } from '../api/interviewInvitationApi'
+import { createCampaign, sendCampaign, cancelCampaign, updateCampaign } from '../api/interviewInvitationApi'
 
 export const useCreateCampaignMutation = () => {
   const queryClient = useQueryClient()
@@ -31,3 +31,14 @@ export const useCancelCampaignMutation = () => {
     },
   })
 }
+
+export const useUpdateCampaignMutation = () => {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ campaignId, data }) => updateCampaign(campaignId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employer-interview-campaigns'] })
+    },
+  })
+}
+

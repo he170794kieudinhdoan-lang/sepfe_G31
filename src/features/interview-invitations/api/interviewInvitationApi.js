@@ -10,6 +10,10 @@ export const createCampaign = async (campaignData) => {
   return await apiClient.post('/interview-invitations/campaigns', payload)
 }
 
+export const updateCampaign = async (campaignId, campaignData) => {
+  return await apiClient.put(`/interview-invitations/campaigns/${campaignId}`, campaignData)
+}
+
 export const getCampaigns = async (page = 1, limit = 10, status = null) => {
   const params = new URLSearchParams({ page, limit })
   if (status) params.append('status', status)
@@ -49,10 +53,12 @@ export const getJobInviteConstraints = async (jobId) => {
   )
 }
 
-export const getMyInvitations = async (page = 1, limit = 10) => {
-  return await apiClient.get(
-    `/interview-invitations/my-invitations?page=${page}&limit=${limit}`,
-  )
+export const getMyInvitations = async (page = 1, limit = 10, type = null) => {
+  let url = `/interview-invitations/my-invitations?page=${page}&limit=${limit}`;
+  if (type) {
+    url += `&type=${type}`;
+  }
+  return await apiClient.get(url)
 }
 
 export const respondToInvitation = async (invitationId, payload) => {

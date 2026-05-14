@@ -45,13 +45,14 @@ const formatDateTime = (value) => {
   })
 }
 
-const WorkerInvitations = ({ embedded = false }) => {
+const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
   const navigate = useNavigate()
   const [page, setPage] = useState(1)
   const [searchParams, setSearchParams] = useSearchParams()
   const { data: invitationsData, isLoading: loading, error } = useWorkerInvitations(
     page,
     PAGE_SIZE,
+    type
   )
   const invitations = invitationsData?.data || []
   const pagination = {
@@ -93,57 +94,49 @@ const WorkerInvitations = ({ embedded = false }) => {
     ? rejectReasonByInvitation[selectedInvitation.id] || ''
     : ''
 
-  const handleAccept = async (invitationId) => {
-    const invitation = invitations.find((item) => item.id === invitationId)
-    const slotId = Number(
-      selectedSlotByInvitation[invitationId] || invitation?.selectedSlot?.id,
-    )
-    if (!slotId) {
-      alert('Chọn giờ trước.')
-      return
-    }
+  const handleSlotClick = async (invitationId, slotId, isCurrentlySelected) => {
+    if (respondingId) return
+    setRespondingId(invitationId)
 
     try {
-      await respond({
-        invitationId,
-        payload: {
-          status: 'ACCEPTED',
-          selectedSlotId: slotId,
-        }
-      })
-      const isRescheduled = invitation?.status === 'ACCEPTED'
-      setSuccessMessage(
-        isRescheduled
-          ? 'Đã đổi giờ. Công ty nhận theo giờ mới.'
-          : 'Đã ghi nhận. Vui lòng đi đúng giờ, đúng nơi.',
-      )
+      if (isCurrentlySelected) {
+        await respond({
+          invitationId,
+          payload: { status: 'REJECTED' }
+        })
+        setSuccessMessage('Đã hủy khỏi ca phỏng vấn.')
+      } else {
+        await respond({
+          invitationId,
+          payload: { status: 'ACCEPTED', selectedSlotId: slotId }
+        })
+        setSuccessMessage('Đã nhận ca phỏng vấn.')
+      }
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
-      console.error('Error accepting invitation:', err)
+      console.error('Error responding to invitation:', err)
+    } finally {
+      setRespondingId(null)
     }
   }
 
-  const handleReject = async (invitationId) => {
-    const rejectReason = (rejectReasonByInvitation[invitationId] || '').trim()
-    if (!rejectReason) {
-      alert('Nhập lý do từ chối.')
-      return
-    }
-
+  const handleJobInvitationRespond = async (invitationId, status) => {
     try {
+      setRespondingId(invitationId)
       await respond({
         invitationId,
-        payload: {
-          status: 'REJECTED',
-          responseMessage: rejectReason,
-        }
+        payload: { status }
       })
-      setRejectReasonByInvitation((prev) => ({ ...prev, [invitationId]: '' }))
-      setRespondingId(null)
-      setSuccessMessage('Đã từ chối.')
+      if (status === 'ACCEPTED') {
+        setSuccessMessage('Bạn đã đồng ý ứng tuyển! Hồ sơ của bạn đã được chuyển đến nhà tuyển dụng.')
+      } else {
+        setSuccessMessage('Đã từ chối lời mời ứng tuyển.')
+      }
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
-      console.error('Error rejecting invitation:', err)
+      console.error('Error responding to invitation:', err)
+    } finally {
+      setRespondingId(null)
     }
   }
 
@@ -166,7 +159,7 @@ const WorkerInvitations = ({ embedded = false }) => {
           <div className="overflow-hidden rounded-[2rem] border border-amber-200/70 bg-white/85 shadow-[0_20px_60px_-28px_rgba(15,23,42,0.24)] backdrop-blur">
             <div className="px-6 py-6 md:px-8">
               <h2 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
-                Lời mời phỏng vấn
+                {type === 'job' ? 'Lời mời từ NTD' : 'Quản lý phỏng vấn'}
               </h2>
             </div>
           </div>
@@ -185,7 +178,10 @@ const WorkerInvitations = ({ embedded = false }) => {
       )}
 
       {invitations.length === 0 ? (
-        <EmptyState title="Chưa có lời mời" description="Quay lại sau." />
+        <EmptyState 
+          title={type === 'job' ? 'Chưa có lời mời ứng tuyển' : 'Chưa có lời mời phỏng vấn'} 
+          description="Quay lại sau." 
+        />
       ) : (
         <>
           <div className="space-y-5">
@@ -210,16 +206,11 @@ const WorkerInvitations = ({ embedded = false }) => {
               const preselectedSlotId =
                 selectedSlotByInvitation[invitation.id] || currentSelectedSlotId
 
+              const isSlotLess = (invitation.campaign.slots || []).length === 0
+
               const canChooseOrChangeSlot =
-                (invitation.status === 'PENDING' || invitation.status === 'ACCEPTED') &&
+                (invitation.status === 'PENDING' || invitation.status === 'ACCEPTED' || invitation.status === 'REJECTED') &&
                 !isRescheduleExpired
-              const canPendingRespond =
-                invitation.status === 'PENDING' && !isRescheduleExpired && selectableSlots.length > 0
-              const canReschedule =
-                invitation.status === 'ACCEPTED' &&
-                !isRescheduleExpired &&
-                selectableSlots.length > 0
-              const hasSelectedSlot = !!preselectedSlotId
 
               return (
                 <Card
@@ -282,6 +273,42 @@ const WorkerInvitations = ({ embedded = false }) => {
                         </p>
                       </div>
 
+                      {(() => {
+                        const locations = [...new Set((invitation.campaign.slots || []).map(s => s.location).filter(Boolean))]
+                        const notes = [...new Set((invitation.campaign.slots || []).map(s => s.note).filter(Boolean))]
+                        
+                        return (
+                          <>
+                            {locations.length > 0 && (
+                              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                <p className="text-xs font-semibold text-slate-600">Địa điểm phỏng vấn</p>
+                                <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-700">
+                                  {locations.map((loc, i) => (
+                                    <li key={i} className="flex gap-2">
+                                      <span className="text-slate-400">•</span>
+                                      <span>{loc}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                            {notes.length > 0 && (
+                              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                                <p className="text-xs font-semibold text-slate-600">Ghi chú</p>
+                                <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-700">
+                                  {notes.map((note, i) => (
+                                    <li key={i} className="flex gap-2 whitespace-pre-wrap">
+                                      <span className="text-slate-400">•</span>
+                                      <span>{note}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()}
+
                       {invitation.responseMessage && (
                         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
@@ -297,12 +324,40 @@ const WorkerInvitations = ({ embedded = false }) => {
                     <div className="space-y-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
                       {canChooseOrChangeSlot ? (
                         <p className="text-sm font-bold text-slate-900">
-                          {invitation.status === 'ACCEPTED' ? 'Đổi giờ' : 'Chọn giờ'}
+                          {isSlotLess
+                            ? 'Phản hồi lời mời'
+                            : invitation.status === 'ACCEPTED'
+                              ? 'Đổi giờ'
+                              : 'Chọn giờ'}
                         </p>
                       ) : null}
 
                       {canChooseOrChangeSlot ? (
-                        selectableSlots.length === 0 ? (
+                        isSlotLess ? (
+                          <div className="flex flex-col gap-3">
+                            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-primary-800">
+                              Đây là lời mời ứng tuyển trực tiếp từ nhà tuyển dụng (chưa có lịch phỏng vấn).
+                              Nếu bạn đồng ý, hồ sơ của bạn sẽ được đánh dấu Phù Hợp và chuyển đến nhà tuyển dụng để xếp lịch phỏng vấn sau.
+                            </div>
+                            <div className="flex gap-3">
+                              <Button
+                                className="flex-1 rounded-xl"
+                                disabled={respondingId === invitation.id}
+                                onClick={() => handleJobInvitationRespond(invitation.id, 'ACCEPTED')}
+                              >
+                                Tôi đồng ý
+                              </Button>
+                              <Button
+                                variant="outline"
+                                className="flex-1 rounded-xl"
+                                disabled={respondingId === invitation.id}
+                                onClick={() => handleJobInvitationRespond(invitation.id, 'REJECTED')}
+                              >
+                                Từ chối
+                              </Button>
+                            </div>
+                          </div>
+                        ) : selectableSlots.length === 0 ? (
                           <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-800">
                             Hết suất. Nhắn công ty.
                           </div>
@@ -312,23 +367,17 @@ const WorkerInvitations = ({ embedded = false }) => {
                               const remainingSeats =
                                 slot.remainingSeats ??
                                 Math.max(0, slot.capacity - (slot.bookedCount || 0))
-                              const isCurrentSelected = slot.id === currentSelectedSlotId
+                                const isCurrentSelected = slot.id === currentSelectedSlotId
                               const isFull = remainingSeats <= 0 && !isCurrentSelected
-                              const isSelected = Number(preselectedSlotId) === slot.id
 
                               return (
                                 <button
                                   key={slot.id}
                                   type="button"
-                                  disabled={isFull}
-                                  onClick={() =>
-                                    setSelectedSlotByInvitation((prev) => ({
-                                      ...prev,
-                                      [invitation.id]: slot.id,
-                                    }))
-                                  }
+                                  disabled={isFull || respondingId === invitation.id}
+                                  onClick={() => handleSlotClick(invitation.id, slot.id, isCurrentSelected)}
                                   className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
-                                    isSelected
+                                    isCurrentSelected
                                       ? 'border-primary/60 bg-primary/8 shadow-[0_10px_24px_-18px_rgba(245,158,11,0.65)] ring-1 ring-primary/30'
                                       : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm'
                                   } ${isFull ? 'cursor-not-allowed opacity-50' : ''}`}
@@ -337,11 +386,6 @@ const WorkerInvitations = ({ embedded = false }) => {
                                     <div>
                                       <p className="text-sm font-semibold text-slate-950">
                                         {formatDateTime(slot.startAt)} - {formatDateTime(slot.endAt)}
-                                      </p>
-                                      <p className="mt-1 text-xs text-slate-600">
-                                        <span className="font-medium text-slate-800">
-                                          {slot.location || 'Chưa rõ'}
-                                        </span>
                                       </p>
                                     </div>
                                     <span
@@ -354,16 +398,15 @@ const WorkerInvitations = ({ embedded = false }) => {
                                       {isFull ? 'Hết chỗ' : `Còn ${remainingSeats} chỗ / ${slot.capacity}`}
                                     </span>
                                   </div>
-                                  {slot.note ? (
-                                    <p className="mt-3 text-xs leading-5 text-slate-500">
-                                      {slot.note}
-                                    </p>
-                                  ) : null}
-                                  {isSelected ? (
+                                  {isCurrentSelected ? (
                                     <p className="mt-2 text-xs font-medium text-primary">
-                                      {invitation.status === 'ACCEPTED' ? 'Bấm xác nhận' : 'Bấm đồng ý'}
+                                      Đang chọn (bấm lại để hủy)
                                     </p>
-                                  ) : null}
+                                  ) : (
+                                    <p className="mt-2 text-xs font-medium text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      Bấm để chọn
+                                    </p>
+                                  )}
                                 </button>
                               )
                             })}
@@ -372,130 +415,32 @@ const WorkerInvitations = ({ embedded = false }) => {
                       ) : (
                         <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                           {invitation.status === 'ACCEPTED'
-                            ? isRescheduleExpired
-                              ? 'Đã quá hạn đổi lịch. Lịch đã chốt.'
-                              : 'Lịch đã lưu.'
+                            ? isSlotLess
+                              ? 'Bạn đã đồng ý ứng tuyển.'
+                              : isRescheduleExpired
+                                ? 'Đã quá hạn đổi lịch. Lịch đã chốt.'
+                                : 'Lịch đã lưu.'
                             : invitation.status === 'REJECTED'
                               ? 'Đã từ chối.'
                               : 'Không chọn giờ ở đây.'}
                         </div>
                       )}
 
-                      {invitation.status === 'ACCEPTED' && invitation.selectedSlot ? (
-                        <div className="rounded-2xl border border-primary/25 bg-primary/5 px-4 py-3 text-sm text-slate-700">
-                          <p className="font-medium">
-                            {formatDateTime(invitation.selectedSlot.startAt)} –{' '}
-                            {formatDateTime(invitation.selectedSlot.endAt)}
-                          </p>
-                          <p className="mt-1 text-slate-600">
-                            {invitation.selectedSlot.location || 'Chưa rõ'}
-                          </p>
-                        </div>
-                      ) : null}
-
                       <div className="flex flex-wrap items-center gap-2 pt-2">
-                        {canPendingRespond ? (
-                          <>
-                            <Button
-                              className="rounded-full bg-slate-950 px-5 shadow-sm transition hover:bg-slate-800"
-                              disabled={!hasSelectedSlot}
-                              onClick={() => handleAccept(invitation.id)}
-                            >
-                              Đồng ý nhận lịch
-                            </Button>
-
-                            {respondingId === invitation.id ? (
-                              <div className="w-full space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                                <Textarea
-                                  placeholder="Lý do"
-                                  value={selectedRejectReason}
-                                  onChange={(e) =>
-                                    setRejectReasonByInvitation((prev) => ({
-                                      ...prev,
-                                      [invitation.id]: e.target.value,
-                                    }))
-                                  }
-                                  rows={4}
-                                  className="rounded-xl border-slate-200 bg-white focus-visible:ring-primary/20"
-                                />
-                                <div className="flex flex-wrap items-center gap-2">
-                                  <Button
-                                    variant="destructive"
-                                    size="sm"
-                                    className="rounded-full px-4"
-                                    onClick={() => handleReject(invitation.id)}
-                                  >
-                                    Gửi từ chối
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="rounded-full px-4"
-                                    onClick={() => {
-                                      setRespondingId(null)
-                                      setRejectReasonByInvitation((prev) => ({
-                                        ...prev,
-                                        [invitation.id]: '',
-                                      }))
-                                    }}
-                                  >
-                                    Bỏ qua
-                                  </Button>
-                                </div>
-                              </div>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                className="rounded-full border-slate-200 px-5 shadow-sm"
-                                onClick={() => setRespondingId(invitation.id)}
-                              >
-                                Không nhận lịch
-                              </Button>
-                            )}
-
-                            <Button
-                              variant="outline"
-                              className="rounded-full border-slate-200 px-5"
-                              onClick={() => navigate('/chat')}
-                            >
-                              Nhắn công ty
-                            </Button>
-                          </>
-                        ) : canReschedule ? (
-                          <>
-                            <Button
-                              className="rounded-full bg-slate-950 px-5 shadow-sm transition hover:bg-slate-800"
-                              disabled={!hasSelectedSlot}
-                              onClick={() => handleAccept(invitation.id)}
-                            >
-                              Xác nhận đổi giờ
-                            </Button>
-                            <Button
-                              variant="outline"
-                              className="rounded-full border-slate-200 px-5"
-                              onClick={() => navigate('/chat')}
-                            >
-                              Nhắn công ty
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              variant="outline"
-                              className="rounded-full border-slate-200 px-5"
-                              onClick={() => navigate('/chat')}
-                            >
-                              Mở tin nhắn
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              className="rounded-full px-5 text-slate-600 hover:bg-slate-100"
-                              onClick={() => navigate('/')}
-                            >
-                              Về trang chính
-                            </Button>
-                          </>
-                        )}
+                        <Button
+                          variant="outline"
+                          className="rounded-full border-slate-200 px-5 shadow-sm"
+                          onClick={() => navigate('/chat')}
+                        >
+                          Nhắn công ty
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          className="rounded-full px-5 text-slate-600 hover:bg-slate-100"
+                          onClick={() => navigate('/')}
+                        >
+                          Về trang chính
+                        </Button>
                       </div>
                     </div>
                   </div>
