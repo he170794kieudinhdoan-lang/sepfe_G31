@@ -38,12 +38,13 @@ import {
 import { useCancelCampaignMutation, useUpdateCampaignMutation } from '@/features/interview-invitations/hooks';
 import {
   AlertCircle,
+  Building2,
   Clock3,
   Loader2,
   MapPin,
   Plus,
-  Users,
   Search,
+  Users,
 } from 'lucide-react';
 import { EMPLOYER_MENU } from '@/pages/EmployerDashboard';
 
@@ -205,9 +206,9 @@ export const EmployerInterviewSchedulePage = () => {
         : null;
       const isNotExpired =
         expiredAt === null || (!Number.isNaN(expiredAt) && expiredAt >= now);
-      return isNotExpired;
+      return isNotExpired && !scheduledJobIds.has(Number(job.id));
     });
-  }, [allJobs]);
+  }, [allJobs, campaigns]);
   const applicants = applicationsResult?.data || [];
 
   const selectableApplicants = useMemo(() => {
@@ -411,6 +412,9 @@ export const EmployerInterviewSchedulePage = () => {
       refetchCampaigns(),
       queryClient.invalidateQueries({
         queryKey: ['employer-interview-campaigns'],
+      }),
+      queryClient.invalidateQueries({
+        queryKey: ['employer-overview'],
       }),
     ]);
   };

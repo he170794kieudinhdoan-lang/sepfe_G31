@@ -8,6 +8,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useGetUserConversations } from '@/features/chat/api/useChat';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
 import { useMyWallet } from '@/features/wallet/api/useWallet';
+import { useEmployerOverview } from '@/features/statistics/api/useStatistics';
 
 export const DashboardLayout = ({
   title,
@@ -26,6 +27,9 @@ export const DashboardLayout = ({
   const isEmployer = user?.roleType === 'EMPLOYER';
   const { data: walletRes } = useMyWallet({ enabled: isEmployer });
   const wallet = walletRes?.data || walletRes;
+
+  const { data: overviewData } = useEmployerOverview({ enabled: isEmployer });
+  const overview = overviewData?.data || overviewData;
 
   useChatRealtime(null, user?.userId || user?.id);
 
@@ -72,6 +76,12 @@ export const DashboardLayout = ({
                 {item.key === 'chat' && unreadCount > 0 && (
                   <span className="ml-auto bg-red-500 text-white  text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full animate-in zoom-in duration-300">
                     {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+                {item.key === 'interviews' && overview?.hasInterviewWarning && (
+                  <span className="ml-auto flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
                   </span>
                 )}
                 {activeKey === item.key &&

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Modal } from '@/shared/components/Overlay/Modal';
-import { Input } from '@/shared/components/Form/Input';
-import { Button } from '@/shared/components/Button/Button';
+import { Modal } from '@/shared/components/Modal';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Pagination,
   PaginationContent,
@@ -9,7 +9,7 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from '@/shared/components/Pagination/pagination';
+} from '@/components/ui/pagination';
 import { Search, Loader2 } from 'lucide-react';
 import { useSuitableApplications } from '../api/useJobs';
 

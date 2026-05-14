@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -1382,15 +1383,7 @@ const JobApplicantsPanel = ({
         {/* Left: Candidate List */}
         <div className="w-[40%] shrink-0 border-r border-slate-100 flex flex-col overflow-hidden bg-slate-50/30">
           <div className="p-3.5 border-b border-slate-100 px-5 space-y-3">
-            {interviewScheduleMissing && (
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 flex items-start gap-2">
-                <AlertCircle size={14} className="mt-0.5 shrink-0" />
-                <span>
-                  Công việc này chưa có lịch phỏng vấn. Vui lòng tạo lịch phỏng
-                  vấn trước khi mời ứng viên.
-                </span>
-              </div>
-            )}
+
             <div className="flex items-center justify-between gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -1433,8 +1426,11 @@ const JobApplicantsPanel = ({
               <div className="flex gap-2 shrink-0">
                 <Button
                   size="sm"
-                  variant="outline"
-                  className="h-8 text-xs rounded-xl gap-1.5"
+                  variant={inviteConstraints?.hasExistingSchedule ? 'outline' : 'default'}
+                  className={cn(
+                    'h-8 text-xs rounded-xl gap-1.5',
+                    !inviteConstraints?.hasExistingSchedule && 'bg-amber-500 hover:bg-amber-600 text-white'
+                  )}
                   onClick={() => {
                     const action = inviteConstraints?.hasExistingSchedule ? 'edit' : 'create';
                     navigate(
@@ -2214,6 +2210,7 @@ const MatchedWorkersPanel = ({
       if (!campaign?.id) throw new Error('Không nhận được mã chiến dịch.');
       await sendCampaign(campaign.id);
       queryClient.invalidateQueries({ queryKey: ['my-wallet'] });
+      queryClient.invalidateQueries({ queryKey: ['matched-workers', jobId] });
       toast(
         `Đã gửi lời mời ứng tuyển cho ${workerIds.length} ứng viên.`,
         'success',
