@@ -67,6 +67,11 @@ const EmployerInterviewSchedulePage = lazy(() =>
     default: m.EmployerInterviewSchedulePage,
   })),
 );
+const EmployerInterviewCandidatesPage = lazy(() =>
+  import('@/pages/EmployerInterviewCandidatesPage').then((m) => ({
+    default: m.EmployerInterviewCandidatesPage,
+  })),
+);
 const CreateJobPage = lazy(() =>
   import('@/pages/CreateJobPage').then((m) => ({ default: m.CreateJobPage })),
 );
@@ -230,6 +235,14 @@ export const router = createBrowserRouter([
     element: withSuspense(
       <RequireRoles roles={['EMPLOYER']}>
         <EmployerInterviewSchedulePage />
+      </RequireRoles>,
+    ),
+  },
+  {
+    path: '/employer/interviews/candidates/:jobId',
+    element: withSuspense(
+      <RequireRoles roles={['EMPLOYER']}>
+        <EmployerInterviewCandidatesPage />
       </RequireRoles>,
     ),
   },

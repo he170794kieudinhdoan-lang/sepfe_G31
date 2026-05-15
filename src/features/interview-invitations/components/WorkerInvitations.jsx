@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { AppLoadingScene } from '@/shared/components/AppLoadingScene'
 import { EmptyState } from '@/shared/components/EmptyState'
+import { Modal } from '@/shared/components/Modal'
 
 const PAGE_SIZE = 10
 
@@ -84,6 +85,7 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
     )
   }, [invitationIdFromUrl, loading, setSearchParams])
   const [successMessage, setSuccessMessage] = useState(null)
+  const [confirmRespond, setConfirmRespond] = useState(null)
 
   const selectedInvitation = useMemo(
     () => invitations.find((item) => item.id === respondingId) || null,
@@ -96,25 +98,18 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
 
   const handleSlotClick = async (invitationId, slotId, isCurrentlySelected) => {
     if (respondingId) return
+    if (isCurrentlySelected) return // Do nothing if already selected, user must click "Cannot attend" to cancel
+    
     setRespondingId(invitationId)
-
     try {
-      if (isCurrentlySelected) {
-        await respond({
-          invitationId,
-          payload: { status: 'REJECTED' }
-        })
-        setSuccessMessage('Đã hủy khỏi ca phỏng vấn.')
-      } else {
-        await respond({
-          invitationId,
-          payload: { status: 'ACCEPTED', selectedSlotId: slotId }
-        })
-        setSuccessMessage('Đã nhận ca phỏng vấn.')
-      }
+      await respond({
+        invitationId,
+        payload: { status: 'ACCEPTED', selectedSlotId: slotId }
+      })
+      setSuccessMessage('Đã nhận ca phỏng vấn.')
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
-      console.error('Error responding to invitation:', err)
+      console.error('Error changing slot:', err)
     } finally {
       setRespondingId(null)
     }
@@ -239,9 +234,6 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                             <h3 className="truncate text-xl font-black tracking-tight text-slate-950">
                               {invitation.campaign.title}
                             </h3>
-                            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
-                              {statusBadge.label}
-                            </span>
                           </div>
                           {invitation.company && (
                             <p className="mt-1 text-sm text-slate-500">
@@ -274,8 +266,16 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                       </div>
 
                       {(() => {
-                        const locations = [...new Set((invitation.campaign.slots || []).map(s => s.location).filter(Boolean))]
-                        const notes = [...new Set((invitation.campaign.slots || []).map(s => s.note).filter(Boolean))]
+                        if (invitation.status === 'REJECTED') return null;
+                        if (!preselectedSlotId) return null;
+
+                        const selectedSlot = (invitation.campaign.slots || []).find(s => s.id === preselectedSlotId);
+                        if (!selectedSlot) return null;
+
+                        const locations = [selectedSlot.location].filter(Boolean);
+                        const notes = [selectedSlot.note].filter(Boolean);
+
+                        if (locations.length === 0 && notes.length === 0) return null;
                         
                         return (
                           <>
@@ -332,55 +332,108 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                         </p>
                       ) : null}
 
-                      {canChooseOrChangeSlot ? (
-                        isSlotLess ? (
+                      {isSlotLess ? (
+                        canChooseOrChangeSlot ? (
                           <div className="flex flex-col gap-3">
                             <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-primary-800">
                               Đây là lời mời ứng tuyển trực tiếp từ nhà tuyển dụng (chưa có lịch phỏng vấn).
                               Nếu bạn đồng ý, hồ sơ của bạn sẽ được đánh dấu Phù Hợp và chuyển đến nhà tuyển dụng để xếp lịch phỏng vấn sau.
                             </div>
-                            <div className="flex gap-3">
-                              <Button
-                                className="flex-1 rounded-xl"
-                                disabled={respondingId === invitation.id}
-                                onClick={() => handleJobInvitationRespond(invitation.id, 'ACCEPTED')}
+                            <div className="grid gap-3">
+                              <button
+                                type="button"
+                                disabled={respondingId === invitation.id || invitation.status !== 'PENDING'}
+                                onClick={() => setConfirmRespond({ invitationId: invitation.id, payload: { status: 'ACCEPTED' }, title: 'Xác nhận đồng ý ứng tuyển', desc: 'Bạn có chắc chắn muốn đồng ý ứng tuyển? Lựa chọn này chỉ được thực hiện một lần duy nhất và không thể thay đổi sau đó.' })}
+                                className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
+                                  invitation.status === 'ACCEPTED'
+                                    ? 'border-primary/60 bg-primary/8 shadow-[0_10px_24px_-18px_rgba(245,158,11,0.65)] ring-1 ring-primary/30 cursor-default'
+                                    : invitation.status !== 'PENDING'
+                                      ? 'border-slate-200 bg-white opacity-60 cursor-not-allowed'
+                                      : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm'
+                                }`}
                               >
-                                Tôi đồng ý
-                              </Button>
-                              <Button
-                                variant="outline"
-                                className="flex-1 rounded-xl"
-                                disabled={respondingId === invitation.id}
-                                onClick={() => handleJobInvitationRespond(invitation.id, 'REJECTED')}
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className={`text-sm font-semibold ${invitation.status === 'ACCEPTED' ? 'text-primary-700' : 'text-slate-950'}`}>
+                                      Tôi đồng ý ứng tuyển
+                                    </p>
+                                  </div>
+                                </div>
+                                {invitation.status === 'ACCEPTED' ? (
+                                  <p className="mt-2 text-xs font-medium text-primary">Đã chọn</p>
+                                ) : (
+                                  invitation.status === 'PENDING' && (
+                                    <p className="mt-2 text-xs font-medium text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">Bấm để chọn</p>
+                                  )
+                                )}
+                              </button>
+
+                              <button
+                                type="button"
+                                disabled={respondingId === invitation.id || invitation.status !== 'PENDING'}
+                                onClick={() => setConfirmRespond({ invitationId: invitation.id, payload: { status: 'REJECTED' }, title: 'Xác nhận từ chối ứng tuyển', desc: 'Bạn có chắc chắn muốn từ chối ứng tuyển? Lựa chọn này chỉ được thực hiện một lần duy nhất và không thể thay đổi sau đó.', tone: 'danger' })}
+                                className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
+                                  invitation.status === 'REJECTED'
+                                    ? 'border-rose-400 bg-rose-50 shadow-[0_10px_24px_-18px_rgba(244,63,94,0.65)] ring-1 ring-rose-200 cursor-default'
+                                    : invitation.status !== 'PENDING'
+                                      ? 'border-slate-200 bg-white opacity-60 cursor-not-allowed'
+                                      : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-sm'
+                                }`}
                               >
-                                Từ chối
-                              </Button>
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className={`text-sm font-semibold ${invitation.status === 'REJECTED' ? 'text-rose-700' : 'text-slate-700'}`}>
+                                      Tôi từ chối ứng tuyển
+                                    </p>
+                                  </div>
+                                </div>
+                                {invitation.status === 'REJECTED' ? (
+                                  <p className="mt-2 text-xs font-medium text-rose-600">Đã chọn</p>
+                                ) : (
+                                  invitation.status === 'PENDING' && (
+                                    <p className="mt-2 text-xs font-medium text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">Bấm để chọn</p>
+                                  )
+                                )}
+                              </button>
                             </div>
                           </div>
-                        ) : selectableSlots.length === 0 ? (
-                          <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-800">
-                            Hết suất. Nhắn công ty.
-                          </div>
                         ) : (
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                            {invitation.status === 'ACCEPTED'
+                              ? 'Bạn đã đồng ý ứng tuyển.'
+                              : invitation.status === 'REJECTED'
+                                ? 'Đã từ chối.'
+                                : isRescheduleExpired
+                                  ? 'Đã quá hạn phản hồi.'
+                                  : 'Không chọn giờ ở đây.'}
+                          </div>
+                        )
+                      ) : (
+                        <div className="flex flex-col gap-3">
                           <div className="grid gap-3">
                             {(invitation.campaign.slots || []).map((slot) => {
                               const remainingSeats =
                                 slot.remainingSeats ??
                                 Math.max(0, slot.capacity - (slot.bookedCount || 0))
-                                const isCurrentSelected = slot.id === currentSelectedSlotId
+                              const isCurrentSelected = slot.id === currentSelectedSlotId
                               const isFull = remainingSeats <= 0 && !isCurrentSelected
+                              const isDisabled = isFull || respondingId === invitation.id || !canChooseOrChangeSlot
 
                               return (
                                 <button
                                   key={slot.id}
                                   type="button"
-                                  disabled={isFull || respondingId === invitation.id}
-                                  onClick={() => handleSlotClick(invitation.id, slot.id, isCurrentSelected)}
+                                  disabled={isDisabled}
+                                  onClick={() => {
+                                    if (canChooseOrChangeSlot) {
+                                      handleSlotClick(invitation.id, slot.id, isCurrentSelected)
+                                    }
+                                  }}
                                   className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
                                     isCurrentSelected
                                       ? 'border-primary/60 bg-primary/8 shadow-[0_10px_24px_-18px_rgba(245,158,11,0.65)] ring-1 ring-primary/30'
                                       : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm'
-                                  } ${isFull ? 'cursor-not-allowed opacity-50' : ''}`}
+                                  } ${isDisabled ? 'cursor-not-allowed opacity-60' : ''}`}
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
@@ -390,39 +443,83 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                                     </div>
                                     <span
                                       className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                        isFull
+                                        isFull && !isCurrentSelected
                                           ? 'bg-rose-100 text-rose-700'
                                           : 'bg-emerald-100 text-emerald-700'
                                       }`}
                                     >
-                                      {isFull ? 'Hết chỗ' : `Còn ${remainingSeats} chỗ / ${slot.capacity}`}
+                                      {isFull && !isCurrentSelected ? 'Hết chỗ' : `Còn ${remainingSeats} chỗ / ${slot.capacity}`}
                                     </span>
                                   </div>
                                   {isCurrentSelected ? (
                                     <p className="mt-2 text-xs font-medium text-primary">
-                                      Đang chọn (bấm lại để hủy)
+                                      Đã chọn
                                     </p>
                                   ) : (
-                                    <p className="mt-2 text-xs font-medium text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                      Bấm để chọn
-                                    </p>
+                                    canChooseOrChangeSlot && !isFull && (
+                                      <p className="mt-2 text-xs font-medium text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        Bấm để chọn
+                                      </p>
+                                    )
                                   )}
                                 </button>
                               )
                             })}
+
+                            <button
+                              type="button"
+                              disabled={respondingId === invitation.id || !canChooseOrChangeSlot}
+                              onClick={() => {
+                                if (canChooseOrChangeSlot && invitation.status !== 'REJECTED') {
+                                  if (respondingId) return
+                                  setConfirmRespond({ invitationId: invitation.id, payload: { status: 'REJECTED' }, title: 'Xác nhận từ chối', desc: 'Bạn có chắc chắn không tham gia buổi phỏng vấn này? Lựa chọn này chỉ được thực hiện một lần duy nhất và không thể thay đổi sau đó.', tone: 'danger' })
+                                }
+                              }}
+                              className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
+                                invitation.status === 'REJECTED'
+                                  ? 'border-rose-400 bg-rose-50 shadow-[0_10px_24px_-18px_rgba(244,63,94,0.65)] ring-1 ring-rose-200'
+                                  : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-sm'
+                              } ${(!canChooseOrChangeSlot && invitation.status !== 'REJECTED') ? 'cursor-not-allowed opacity-60' : (!canChooseOrChangeSlot && invitation.status === 'REJECTED') ? 'cursor-not-allowed opacity-90' : ''}`}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className={`text-sm font-semibold ${invitation.status === 'REJECTED' ? 'text-rose-700' : 'text-slate-700'}`}>
+                                    Tôi không tham gia được
+                                  </p>
+                                </div>
+                              </div>
+                              {invitation.status === 'REJECTED' ? (
+                                <p className="mt-2 text-xs font-medium text-rose-600">
+                                  Đã chọn
+                                </p>
+                              ) : (
+                                canChooseOrChangeSlot && (
+                                  <p className="mt-2 text-xs font-medium text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    Bấm để chọn
+                                  </p>
+                                )
+                              )}
+                            </button>
                           </div>
-                        )
-                      ) : (
-                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                          {invitation.status === 'ACCEPTED'
-                            ? isSlotLess
-                              ? 'Bạn đã đồng ý ứng tuyển.'
-                              : isRescheduleExpired
-                                ? 'Đã quá hạn đổi lịch. Lịch đã chốt.'
-                                : 'Lịch đã lưu.'
-                            : invitation.status === 'REJECTED'
-                              ? 'Đã từ chối.'
-                              : 'Không chọn giờ ở đây.'}
+
+                          {canChooseOrChangeSlot && selectableSlots.length === 0 && (
+                            <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm leading-relaxed text-rose-800">
+                              Hết suất. Nhắn công ty.
+                            </div>
+                          )}
+                          {!canChooseOrChangeSlot && (
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                              {invitation.status === 'ACCEPTED'
+                                ? isRescheduleExpired
+                                  ? 'Đã quá hạn đổi lịch. Lịch đã chốt.'
+                                  : 'Lịch đã lưu.'
+                                : invitation.status === 'REJECTED'
+                                  ? 'Đã từ chối.'
+                                  : isRescheduleExpired
+                                    ? 'Đã quá hạn phản hồi hoặc chọn giờ.'
+                                    : 'Không chọn giờ ở đây.'}
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -476,6 +573,21 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
           )}
         </>
       )}
+
+      <Modal
+        open={!!confirmRespond}
+        onClose={() => setConfirmRespond(null)}
+        title={confirmRespond?.title || 'Xác nhận'}
+        description={confirmRespond?.desc}
+        tone={confirmRespond?.tone || 'default'}
+        confirmLabel="Xác nhận"
+        cancelLabel="Hủy"
+        onConfirm={() => {
+          if (!confirmRespond) return;
+          handleJobInvitationRespond(confirmRespond.invitationId, confirmRespond.payload.status);
+          setConfirmRespond(null);
+        }}
+      />
     </div>
   )
 }

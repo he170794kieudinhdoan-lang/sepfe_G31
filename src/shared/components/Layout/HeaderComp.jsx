@@ -36,6 +36,7 @@ import { useToast } from '@/shared/contexts/ToastContext';
 import { useGetUserConversations } from '@/features/chat/api/useChat';
 import { useChatRealtime } from '@/features/chat/hooks/useChatRealtime';
 import { isWorkerRole } from '@/shared/utils/userRole';
+import { usePendingInvitationsStatus } from '@/features/interview-invitations/hooks';
 
 const TASKBAR_LINKS = [
   { to: '/search', label: 'Tin tuyển dụng' },
@@ -82,6 +83,10 @@ export const Header = () => {
   const notifications = normalizeNotifications(notificationData);
   const unreadCount = getUnreadCount(notifications);
   const previewItems = notifications.slice(0, 5);
+
+  const { data: pendingStatusData } = usePendingInvitationsStatus();
+  const hasPendingJob = pendingStatusData?.hasPendingJob || false;
+  const hasPendingInterview = pendingStatusData?.hasPendingInterview || false;
 
   const handleLogout = async () => {
     await logout();
@@ -158,25 +163,31 @@ export const Header = () => {
               {isAuthenticated && isWorkerRole(user) && (
                 <Link
                   to="/job-invitations"
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     window.location.pathname.includes('job-invitations') 
                       ? 'bg-amber-50 text-amber-600' 
                       : 'text-gray-700 hover:bg-primary/10 hover:text-primary'
                   }`}
                 >
                   Lời mời từ NTD
+                  {hasPendingJob && (
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                  )}
                 </Link>
               )}
               {isAuthenticated && (isWorkerRole(user) || user?.roleType === 'EMPLOYER') && (
                 <Link
                   to={isWorkerRole(user) ? '/interview-invitations' : '/employer/interviews'}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     window.location.pathname.includes('interview') 
                       ? 'bg-amber-50 text-amber-600' 
                       : 'text-gray-700 hover:bg-primary/10 hover:text-primary'
                   }`}
                 >
                   Quản lý phỏng vấn
+                  {isWorkerRole(user) && hasPendingInterview && (
+                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
+                  )}
                 </Link>
               )}
             </nav>
