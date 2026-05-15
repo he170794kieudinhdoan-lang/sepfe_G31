@@ -7,7 +7,7 @@ import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import viLocale from '@fullcalendar/core/locales/vi';
 
-import { SuitableCandidatesModal } from '@/features/jobs/components/SuitableCandidatesModal';
+
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -39,6 +39,7 @@ import { useCancelCampaignMutation, useUpdateCampaignMutation } from '@/features
 import {
   AlertCircle,
   Building2,
+  Clock,
   Clock3,
   Loader2,
   MapPin,
@@ -146,10 +147,14 @@ export const EmployerInterviewSchedulePage = () => {
   const [detailError, setDetailError] = useState('');
   const [detailSelectedSlotId, setDetailSelectedSlotId] = useState(null);
   const [detailSearchQuery, setDetailSearchQuery] = useState('');
+  const [campaignSearchQuery, setCampaignSearchQuery] = useState('');
   const [detailCurrentPage, setDetailCurrentPage] = useState(1);
   const [cancellingId, setCancellingId] = useState(null);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedUpcomingJobKey, setSelectedUpcomingJobKey] = useState(null);
+  const [activeTab, setActiveTab] = useState('upcoming');
+  const [pastSearchQuery, setPastSearchQuery] = useState('');
+  const [selectedPastJobKey, setSelectedPastJobKey] = useState(null);
   const slotApplicantPanelRef = useRef(null);
   const jobIdFromUrl = searchParams.get('jobId');
 
@@ -278,7 +283,12 @@ export const EmployerInterviewSchedulePage = () => {
           jobTitle,
           campaigns: [],
           slots: [],
+          createdAt: new Date(campaign.createdAt).getTime(),
         };
+        const campaignCreatedAt = new Date(campaign.createdAt).getTime();
+        if (campaignCreatedAt > current.createdAt) {
+          current.createdAt = campaignCreatedAt;
+        }
         current.campaigns.push(campaign);
         current.slots.push(
           ...futureSlots.map((slot) => ({
@@ -302,11 +312,7 @@ export const EmployerInterviewSchedulePage = () => {
             new Date(a.startAt).getTime() - new Date(b.startAt).getTime(),
         ),
       }))
-      .sort((a, b) => {
-        const aStart = new Date(a.slots[0]?.startAt || 0).getTime();
-        const bStart = new Date(b.slots[0]?.startAt || 0).getTime();
-        return aStart - bStart;
-      });
+      .sort((a, b) => b.createdAt - a.createdAt);
   }, [campaigns, allJobs]);
   const selectedUpcomingJob = useMemo(() => {
     if (!upcomingJobs.length) return null;
@@ -316,6 +322,79 @@ export const EmployerInterviewSchedulePage = () => {
       upcomingJobs[0]
     );
   }, [upcomingJobs, selectedUpcomingJobKey]);
+
+  const pastJobs = useMemo(() => {
+    const now = Date.now();
+    const grouped = new Map();
+    campaigns
+      .filter((campaign) => campaign?.status !== 'CANCELLED')
+      .forEach((campaign) => {
+        const pastSlots = (campaign?.slots || []).filter((slot) => {
+          const startAt = new Date(slot.startAt).getTime();
+          return !Number.isNaN(startAt) && startAt < now;
+        });
+        if (!pastSlots.length) return;
+        const jobId = campaign?.jobId ?? `campaign-${campaign.id}`;
+        const key = String(jobId);
+        const matchedJob = allJobs.find(
+          (job) => Number(job.id) === Number(campaign?.jobId),
+        );
+        const jobTitle =
+          matchedJob?.title ||
+          campaign?.title ||
+          `Job #${campaign?.jobId || campaign.id}`;
+        const current = grouped.get(key) || {
+          key,
+          jobId: campaign?.jobId || null,
+          jobTitle,
+          campaigns: [],
+          slots: [],
+          createdAt: new Date(campaign.createdAt).getTime(),
+        };
+        const campaignCreatedAt = new Date(campaign.createdAt).getTime();
+        if (campaignCreatedAt > current.createdAt) {
+          current.createdAt = campaignCreatedAt;
+        }
+        current.campaigns.push(campaign);
+        current.slots.push(
+          ...pastSlots.map((slot) => ({
+            ...slot,
+            campaignId: campaign.id,
+            campaignTitle: campaign.title,
+            campaignStatus: campaign.status,
+            acceptedCount: campaign.acceptedCount || 0,
+            pendingCount: campaign.pendingCount || 0,
+            totalCount: campaign.totalCount || 0,
+          })),
+        );
+        grouped.set(key, current);
+      });
+
+    return Array.from(grouped.values())
+      .map((group) => ({
+        ...group,
+        slots: group.slots.sort(
+          (a, b) =>
+            new Date(b.startAt).getTime() - new Date(a.startAt).getTime(),
+        ),
+      }))
+      .sort((a, b) => b.createdAt - a.createdAt);
+  }, [campaigns, allJobs]);
+
+  const selectedPastJob = useMemo(() => {
+    if (!pastJobs.length) return null;
+    if (!selectedPastJobKey) return pastJobs[0];
+    return (
+      pastJobs.find((job) => job.key === selectedPastJobKey) ||
+      pastJobs[0]
+    );
+  }, [pastJobs, selectedPastJobKey]);
+
+  const displayedJobs = activeTab === 'upcoming' ? upcomingJobs : pastJobs;
+  const displayedSearchQuery = activeTab === 'upcoming' ? campaignSearchQuery : pastSearchQuery;
+  const setDisplayedSearchQuery = activeTab === 'upcoming' ? setCampaignSearchQuery : setPastSearchQuery;
+  const displayedSelectedJob = activeTab === 'upcoming' ? selectedUpcomingJob : selectedPastJob;
+  const setDisplayedSelectedJobKey = activeTab === 'upcoming' ? setSelectedUpcomingJobKey : setSelectedPastJobKey;
 
   useEffect(() => {
     if (!jobIdFromUrl || !upcomingJobs.length) return;
@@ -354,7 +433,7 @@ export const EmployerInterviewSchedulePage = () => {
   }, [searchParams, jobIdFromUrl, allJobs, upcomingJobs, navigate]);
 
   useEffect(() => {
-    if (!form.jobId) return;
+    if (!form.jobId || isEditMode) return;
     const stillAvailable = availableJobs.some(
       (job) => String(job.id) === String(form.jobId),
     );
@@ -364,7 +443,7 @@ export const EmployerInterviewSchedulePage = () => {
       jobId: '',
       workerIds: [],
     }));
-  }, [availableJobs, form.jobId]);
+  }, [availableJobs, form.jobId, isEditMode]);
 
   const resetForm = () => {
     const defaultSlot = createDefaultSlot();
@@ -383,8 +462,11 @@ export const EmployerInterviewSchedulePage = () => {
     const campaign = campaigns.find((c) => c.id === campaignId);
     if (!campaign) return;
 
+    const jobGroup = upcomingJobs.find(group => group.campaigns.some(c => c.id === campaignId));
+    const effectiveJobId = String(campaign.jobId || jobGroup?.jobId || jobGroup?.key || '');
+
     setForm({
-      jobId: String(campaign.jobId || ''),
+      jobId: effectiveJobId,
       expiresAt: campaign.expiresAt ? new Date(campaign.expiresAt).toISOString().slice(0, 16) : '',
       workerIds: [],
       slots: (campaign.slots || []).map((slot) => ({
@@ -579,7 +661,7 @@ export const EmployerInterviewSchedulePage = () => {
     () =>
       form.slots.map((slot) => ({
         id: slot.localId,
-        title: `Ca (${slot.capacity})`,
+        title: '',
         start: slot.startAt,
         end: slot.endAt,
       })),
@@ -793,7 +875,7 @@ export const EmployerInterviewSchedulePage = () => {
         subtitle="Theo dõi các lịch phỏng vấn sắp tới của doanh nghiệp."
         menu={EMPLOYER_MENU}
         activeKey="interviews"
-        onSelect={() => {}}
+        onSelect={() => { }}
       >
         <div className="py-10 flex justify-center">
           <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -808,7 +890,7 @@ export const EmployerInterviewSchedulePage = () => {
       subtitle="Tạo lịch phỏng vấn và theo dõi lịch phỏng vấn."
       menu={EMPLOYER_MENU}
       activeKey="interviews"
-      onSelect={() => {}}
+      onSelect={() => { }}
       topbarBell={<NotificationBellPopover />}
     >
       {!hasCompany ? (
@@ -829,30 +911,6 @@ export const EmployerInterviewSchedulePage = () => {
         </Card>
       ) : (
         <div className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Card className="rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-sm text-slate-500">Ca phỏng vấn sắp tới</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">
-                {upcomingSlots.length}
-              </p>
-            </Card>
-            <Card className="rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-sm text-slate-500">Chiến dịch đang có lịch</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">
-                {upcomingCampaignCount}
-              </p>
-            </Card>
-            <Card className="rounded-2xl border border-slate-200 bg-white p-5">
-              <p className="text-sm text-slate-500">Ứng viên đã xác nhận</p>
-              <p className="mt-2 text-3xl font-bold text-slate-900">
-                {campaigns.reduce(
-                  (sum, item) => sum + Number(item?.acceptedCount || 0),
-                  0,
-                )}
-              </p>
-            </Card>
-          </div>
-
           {companyStatus !== 'APPROVED' && (
             <Card className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-start gap-3 text-amber-800">
@@ -870,15 +928,31 @@ export const EmployerInterviewSchedulePage = () => {
             </Card>
           )}
 
-          <Card className="rounded-2xl border border-slate-200 bg-white p-5">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">
-                  Lịch phỏng vấn sắp tới
-                </h2>
-                <p className="text-sm text-slate-500">
-                  Danh sách các ca phỏng vấn chưa diễn ra của employer.
-                </p>
+          <Card className="rounded-2xl border border-slate-200 bg-white p-5 min-h-[600px]">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
+              <div className="flex space-x-1 rounded-xl bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('upcoming')}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                    activeTab === 'upcoming'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                  }`}
+                >
+                  Sắp tới
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('past')}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                    activeTab === 'past'
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50'
+                  }`}
+                >
+                  Đã qua
+                </button>
               </div>
               <Button
                 className="gap-2"
@@ -935,34 +1009,7 @@ export const EmployerInterviewSchedulePage = () => {
                         </div>
                       ) : !detailData ? null : (
                         <div className="space-y-4">
-                          <div className="grid gap-3 sm:grid-cols-4">
-                            <Card className="p-4">
-                              <p className="text-xs text-slate-500">
-                                Tổng lời mời
-                              </p>
-                              <p className="mt-1 text-2xl font-bold text-slate-900">
-                                {detailData.totalCount || 0}
-                              </p>
-                            </Card>
-                            <Card className="p-4">
-                              <p className="text-xs text-slate-500">Đã nhận</p>
-                              <p className="mt-1 text-2xl font-bold text-emerald-700">
-                                {detailData.acceptedCount || 0}
-                              </p>
-                            </Card>
-                            <Card className="p-4">
-                              <p className="text-xs text-slate-500">Từ chối</p>
-                              <p className="mt-1 text-2xl font-bold text-rose-700">
-                                {detailData.rejectedCount || 0}
-                              </p>
-                            </Card>
-                            <Card className="p-4">
-                              <p className="text-xs text-slate-500">Đang chờ</p>
-                              <p className="mt-1 text-2xl font-bold text-amber-700">
-                                {detailData.pendingCount || 0}
-                              </p>
-                            </Card>
-                          </div>
+
 
                           {(detailData.slots || []).length === 0 ? (
                             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
@@ -1033,7 +1080,7 @@ export const EmployerInterviewSchedulePage = () => {
                                         </div>
                                       )}
                                     </div>
-                                    
+
                                     {selectedDetailSlotInvitations.length === 0 ? (
                                       <p className="mt-2 text-sm text-slate-500 text-center py-4 bg-white rounded-lg border border-slate-200 border-dashed">
                                         Chưa có ứng viên chọn ca này.
@@ -1071,8 +1118,8 @@ export const EmployerInterviewSchedulePage = () => {
                                             <Pagination>
                                               <PaginationContent>
                                                 <PaginationItem>
-                                                  <PaginationPrevious 
-                                                    href="#" 
+                                                  <PaginationPrevious
+                                                    href="#"
                                                     onClick={(e) => {
                                                       e.preventDefault();
                                                       setDetailCurrentPage(p => Math.max(1, p - 1));
@@ -1080,10 +1127,10 @@ export const EmployerInterviewSchedulePage = () => {
                                                     className={detailCurrentPage === 1 ? 'pointer-events-none opacity-50' : ''}
                                                   />
                                                 </PaginationItem>
-                                                
+
                                                 {[...Array(totalPages)].map((_, i) => (
                                                   <PaginationItem key={i + 1}>
-                                                    <PaginationLink 
+                                                    <PaginationLink
                                                       href="#"
                                                       isActive={detailCurrentPage === i + 1}
                                                       onClick={(e) => {
@@ -1097,8 +1144,8 @@ export const EmployerInterviewSchedulePage = () => {
                                                 ))}
 
                                                 <PaginationItem>
-                                                  <PaginationNext 
-                                                    href="#" 
+                                                  <PaginationNext
+                                                    href="#"
                                                     onClick={(e) => {
                                                       e.preventDefault();
                                                       setDetailCurrentPage(p => Math.min(totalPages, p + 1));
@@ -1122,66 +1169,88 @@ export const EmployerInterviewSchedulePage = () => {
                     </div>
                   </div>
                 </div>
+              ) : displayedJobs.length === 0 ? (
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 py-16 text-center">
+                  <Clock className="mb-4 h-12 w-12 text-slate-300" />
+                  <h3 className="text-lg font-semibold text-slate-900">
+                    Chưa có lịch phỏng vấn nào {activeTab === 'upcoming' ? 'sắp tới' : 'trong quá khứ'}
+                  </h3>
+                </div>
               ) : (
                 <div className="grid gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
                   <div className="space-y-2">
-                    {upcomingJobs.map((jobGroup) => {
-                      const isActive =
-                        selectedUpcomingJob?.key === jobGroup.key;
-                      return (
-                        <button
-                          key={jobGroup.key}
-                          type="button"
-                          onClick={() =>
-                            setSelectedUpcomingJobKey(jobGroup.key)
-                          }
-                          className={`w-full rounded-xl border px-3 py-3 text-left transition ${
-                            isActive
-                              ? 'border-primary bg-primary/10'
-                              : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
-                          }`}
-                        >
-                          <p className="text-sm font-semibold text-slate-900">
-                            {jobGroup.jobTitle}
-                          </p>
-                          <p className="mt-1 text-xs text-slate-500">
-                            {jobGroup.slots.length} ca sắp tới
-                          </p>
-                        </button>
-                      );
-                    })}
+                    <div className="relative mb-3">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                      <Input
+                        type="text"
+                        placeholder="Tìm công việc..."
+                        className="w-full h-9 pl-8 text-sm bg-white rounded-lg border-slate-200 shadow-sm"
+                        value={displayedSearchQuery}
+                        onChange={(e) => setDisplayedSearchQuery(e.target.value)}
+                      />
+                    </div>
+                    {displayedJobs
+                      .filter(job => job.jobTitle.toLowerCase().includes(displayedSearchQuery.toLowerCase()))
+                      .map((jobGroup) => {
+                        const isActive =
+                          displayedSelectedJob?.key === jobGroup.key;
+                        return (
+                          <button
+                            key={jobGroup.key}
+                            type="button"
+                            onClick={() =>
+                              setDisplayedSelectedJobKey(jobGroup.key)
+                            }
+                            className={`w-full rounded-xl border px-3 py-3 text-left transition ${isActive
+                                ? 'border-primary bg-primary/10'
+                                : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
+                              }`}
+                          >
+                            <p className="text-sm font-semibold text-slate-900">
+                              {jobGroup.jobTitle}
+                            </p>
+                            <p className="mt-1 text-xs text-slate-500">
+                              {jobGroup.slots.length} ca phỏng vấn
+                            </p>
+                          </button>
+                        );
+                      })}
                   </div>
-                  <div className="space-y-4">
-                    {!selectedUpcomingJob ? null : (
+                  <div className="space-y-4 min-h-[600px]">
+                    {!displayedSelectedJob ? null : (
                       <>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                          <div>
-                            <h3 className="text-lg font-bold text-slate-900">{selectedUpcomingJob.jobTitle}</h3>
+                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="text-lg font-bold text-slate-900 break-words">{displayedSelectedJob.jobTitle}</h3>
                             <p className="mt-1 text-sm text-slate-500">Quản lý lịch phỏng vấn chung cho tin tuyển dụng này</p>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2 shrink-0">
                             <Button
                               variant="outline"
                               className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
                               onClick={() => {
-                                setSelectedJobForSuitableModal(selectedUpcomingJob);
-                                setIsSuitableModalOpen(true);
+                                navigate(`/employer/interviews/candidates/${displayedSelectedJob.jobId}`, {
+                                  state: {
+                                    jobTitle: displayedSelectedJob.jobTitle,
+                                    slots: displayedSelectedJob.slots
+                                  }
+                                });
                               }}
                             >
-                              Xem đối tượng phù hợp
+                              Quản lí ứng viên phỏng vấn
                             </Button>
-                            {selectedUpcomingJob.campaigns[0] && (
+                            {displayedSelectedJob.campaigns[0] && (
                               <Button
                                 variant="outline"
                                 className="rounded-xl border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
-                                onClick={() => handleEditClick(selectedUpcomingJob.campaigns[0]?.id)}
+                                onClick={() => handleEditClick(displayedSelectedJob.campaigns[0]?.id)}
                               >
                                 Sửa lịch phỏng vấn
                               </Button>
                             )}
                           </div>
                         </div>
-                        {selectedUpcomingJob.slots.map((slot, index) => {
+                        {displayedSelectedJob.slots.map((slot, index) => {
                           const statusMeta = getCampaignStatusMeta(
                             slot.campaignStatus,
                           );
@@ -1228,7 +1297,7 @@ export const EmployerInterviewSchedulePage = () => {
                                 >
                                   Xem ứng viên của ca
                                 </Button>
-                                </div>
+                              </div>
                             </Card>
                           );
                         })}
@@ -1275,10 +1344,18 @@ export const EmployerInterviewSchedulePage = () => {
               >
                 <option value="">Chọn tin tuyển dụng</option>
                 {availableJobs.map((job) => (
-                  <option key={job.id} value={job.id}>
+                  <option key={job.id} value={String(job.id)}>
                     {job.title}
                   </option>
                 ))}
+                {isEditMode && form.jobId && !availableJobs.some(j => String(j.id) === form.jobId) && (
+                  <option value={form.jobId}>
+                    {allJobs.find(j => String(j.id) === form.jobId)?.title ||
+                      campaigns.find(c => String(c.jobId) === form.jobId)?.title ||
+                      upcomingJobs.find(group => String(group.jobId || group.key) === form.jobId)?.jobTitle ||
+                      'Tin tuyển dụng'}
+                  </option>
+                )}
               </select>
             </div>
 
@@ -1493,11 +1570,10 @@ export const EmployerInterviewSchedulePage = () => {
                       key={slot.localId}
                       type="button"
                       onClick={() => setSelectedSlotId(slot.localId)}
-                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
-                        active
-                          ? 'border-primary bg-primary/10 text-primary'
-                          : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                      }`}
+                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${active
+                        ? 'border-primary bg-primary/10 text-primary'
+                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                        }`}
                     >
                       <p className="text-xs font-semibold">Ca #{index + 1}</p>
                       <p className="mt-1 text-xs">
@@ -1530,18 +1606,7 @@ export const EmployerInterviewSchedulePage = () => {
         </div>
       </Modal>
 
-      {/* Suitable Candidates Modal */}
-      {selectedJobForSuitableModal && (
-        <SuitableCandidatesModal
-          isOpen={isSuitableModalOpen}
-          onClose={() => {
-            setIsSuitableModalOpen(false);
-            setTimeout(() => setSelectedJobForSuitableModal(null), 300);
-          }}
-          jobId={selectedJobForSuitableModal.jobId}
-          jobTitle={selectedJobForSuitableModal.jobTitle}
-        />
-      )}
+
     </DashboardLayout>
   );
 };

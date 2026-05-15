@@ -1,2 +1,2 @@
 export { useCreateCampaignMutation, useSendCampaignMutation, useCancelCampaignMutation, useUpdateCampaignMutation } from './useCampaignMutation'
-export { useWorkerInvitations, useRespondToInvitationMutation } from './useWorkerInvitations'
+export { useWorkerInvitations, useRespondToInvitationMutation, usePendingInvitationsStatus } from './useWorkerInvitations'

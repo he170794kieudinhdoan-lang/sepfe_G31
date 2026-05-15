@@ -61,6 +61,10 @@ export const getMyInvitations = async (page = 1, limit = 10, type = null) => {
   return await apiClient.get(url)
 }
 
+export const getPendingInvitationsStatus = async () => {
+  return await apiClient.get('/interview-invitations/my-invitations/pending-status')
+}
+
 export const respondToInvitation = async (invitationId, payload) => {
   return await apiClient.put(
     `/interview-invitations/invitations/${invitationId}/respond`,

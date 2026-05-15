@@ -7,5 +7,6 @@ export {
   cancelCampaign,
   getCampaignStats,
   getMyInvitations,
+  getPendingInvitationsStatus,
   respondToInvitation,
 } from './interviewInvitationApi'

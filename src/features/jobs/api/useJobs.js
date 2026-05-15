@@ -109,10 +109,10 @@ export const useEmployerApplications = (jobId) => {
   });
 };
 
-export const useSuitableApplications = (jobId, page = 1, limit = 10, search = '') => {
+export const useSuitableApplications = (jobId, page = 1, limit = 10, search = '', interviewStatus = 'ALL', slotId = 'ALL') => {
   return useQuery({
-    queryKey: ['employer-suitable-applications', jobId, page, limit, search],
-    queryFn: () => getSuitableApplicationsApi(jobId, page, limit, search),
+    queryKey: ['employer-suitable-applications', jobId, page, limit, search, interviewStatus, slotId],
+    queryFn: () => getSuitableApplicationsApi(jobId, page, limit, search, interviewStatus, slotId),
     enabled: !!jobId,
     keepPreviousData: true,
   });

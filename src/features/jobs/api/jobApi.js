@@ -105,9 +105,11 @@ export const getEmployerApplications = async (jobId) => {
   return await apiClient.get('/job/employer/applications', { params });
 };
 
-export const getSuitableApplicationsApi = async (jobId, page = 1, limit = 10, search = '') => {
+export const getSuitableApplicationsApi = async (jobId, page = 1, limit = 10, search = '', interviewStatus = 'ALL', slotId = 'ALL') => {
   const params = { jobId, page, limit };
   if (search) params.search = search;
+  if (interviewStatus !== 'ALL') params.interviewStatus = interviewStatus;
+  if (slotId !== 'ALL') params.slotId = slotId;
   return await apiClient.get('/job/employer/applications/suitable', { params });
 };
 
