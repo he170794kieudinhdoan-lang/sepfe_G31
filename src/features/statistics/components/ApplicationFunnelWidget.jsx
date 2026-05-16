@@ -9,9 +9,17 @@ import {
   ChevronLeft,
   ChevronRight,
   PieChart as PieChartIcon,
+  Calendar,
+  UserCheck,
+  Eye,
 } from 'lucide-react';
+import { format, subDays, subMonths, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
-import { useApplicationFunnel, useJobStatus } from '../api/useStatistics';
+import {
+  useDashboardStats,
+  useJobFunnel,
+  useJobStatus,
+} from '../api/useStatistics';
 import {
   AreaChart,
   Area,
@@ -36,7 +44,7 @@ const StatusBadge = ({ status }) => {
     },
     WARNING: {
       color: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-      label: 'Cảnh báo',
+      label: 'Chờ thanh toán',
     },
     EXPIRED: {
       color: 'bg-red-50 text-red-700 border-red-200',
@@ -97,7 +105,9 @@ const CustomTooltip = ({ active, payload, label }) => {
 
     return (
       <div className="bg-white p-3 border border-slate-200 shadow-lg rounded-xl min-w-[180px]">
-        <p className="text-sm font-bold text-slate-800 mb-2 border-b pb-1">{label}</p>
+        <p className="text-sm font-bold text-slate-800 mb-2 border-b pb-1">
+          {payload[0].payload.tooltipDate || label}
+        </p>
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2">
@@ -118,7 +128,9 @@ const CustomTooltip = ({ active, payload, label }) => {
             </span>
           </div>
           <div className="pt-2 mt-1 border-t border-slate-100 flex items-center justify-between gap-4">
-            <span className="text-xs font-medium text-slate-500 italic">Hiệu quả (CVR):</span>
+            <span className="text-xs font-medium text-slate-500 italic">
+              Hiệu quả (CVR):
+            </span>
             <span className="text-xs font-bold text-primary">{rate}%</span>
           </div>
         </div>
@@ -130,72 +142,114 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // ─── JOB FUNNEL ROW ──────────────────────────────────────────────────────────
 const JobFunnelRow = ({ job }) => {
-  const { data: funnelData, isLoading: funnelLoading } = useApplicationFunnel(
-    job.id,
-  );
+  const { data: funnelData, isLoading: funnelLoading } = useJobFunnel(job.id);
 
   const views = job.viewCount || 0;
   const apps = job._count?.applications || 0;
   const rate = views > 0 ? (apps / views) * 100 : 0;
-  const displayProgress = Math.min(100, rate);
+
+  const STEPS = [
+    {
+      key: 'applied',
+      label: 'Chờ thanh toán',
+      color: 'text-amber-600',
+      dot: 'bg-amber-500',
+    },
+    {
+      key: 'viewed',
+      label: 'Đã xem',
+      color: 'text-blue-600',
+      dot: 'bg-blue-500',
+    },
+    {
+      key: 'suitable',
+      label: 'Phù hợp',
+      color: 'text-emerald-600',
+      dot: 'bg-emerald-500',
+    },
+    { isDivider: true },
+    {
+      key: 'unsuitable',
+      label: 'Từ chối',
+      color: 'text-rose-600',
+      dot: 'bg-rose-500',
+    },
+    {
+      key: 'cancelled',
+      label: 'Đã hủy',
+      color: 'text-slate-500',
+      dot: 'bg-slate-400',
+    },
+  ];
 
   return (
-    <tr className="group">
-      <td className="py-3 px-6 align-top">
-        <p className="font-bold text-slate-800 text-sm whitespace-normal min-w-[180px]">
+    <tr className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
+      <td className="py-4 px-6 align-top">
+        <p className="font-bold text-slate-800 text-sm whitespace-normal min-w-[180px] line-clamp-2">
           {job.title}
         </p>
-        <p className="text-slate-500 text-xs mt-0.5">{job.occupation?.name}</p>
+        <p className="text-slate-500 text-[11px] mt-1 font-medium">
+          {job.occupation?.name}
+        </p>
       </td>
 
-      <td className="py-3 px-6 align-top pt-4">
+      <td className="py-4 px-6 align-top pt-5">
         <StatusBadge status={job.status} />
       </td>
 
-      <td className="py-3 px-6 text-center align-top pt-4">
-        <span className="text-slate-600 font-medium tabular-nums">
+      <td className="py-4 px-6 text-center align-top pt-5">
+        <span className="text-slate-600 font-bold tabular-nums">
           {views.toLocaleString('vi-VN')}
         </span>
       </td>
 
-      <td className="py-3 px-6 text-center align-top pt-4">
-        <span className="text-slate-600 font-medium tabular-nums">
+      <td className="py-4 px-6 text-center align-top pt-5">
+        <span className="text-blue-600 font-bold tabular-nums">
           {apps.toLocaleString('vi-VN')}
         </span>
       </td>
 
-      <td className="py-3 px-6 align-top pt-4">
-        <div className="flex items-center justify-end gap-2">
-          <span className="text-sm font-semibold text-slate-700 w-12 text-right">
-            {rate.toFixed(1)}%
-          </span>
-          <div className="w-[80px] h-2 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-500 rounded-full transition-all"
-              style={{ width: `${displayProgress}%` }}
-            />
-          </div>
-        </div>
+      <td className="py-4 px-6 text-center align-top pt-5">
+        <span className="text-sm font-bold text-slate-700">
+          {rate.toFixed(1)}%
+        </span>
       </td>
 
-      <td className="py-3 px-6 align-top pt-4">
-        <div className="flex flex-wrap gap-1.5 justify-end w-full max-w-[280px] ml-auto">
-          {funnelLoading ? (
-            <Loader2 className="w-3 h-3 animate-spin text-slate-400" />
-          ) : (
-            FUNNEL_ITEMS.map(({ key, label, bg, text }) => {
-              const count = funnelData?.[key] ?? 0;
+      <td className="py-4 px-6 align-top">
+        <div className="flex items-center justify-center gap-0 w-full">
+          {STEPS.map((step, idx) => {
+            if (step.isDivider) {
               return (
-                <span
-                  key={key}
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-semibold ${bg} ${text}`}
-                >
-                  {label}
-                  <span className="font-black">{count}</span>
-                </span>
+                <div
+                  key={`div-${idx}`}
+                  className="w-[1px] h-6 bg-slate-200 mx-3 mt-2"
+                />
               );
-            })
-          )}
+            }
+            const count = funnelData?.[step.key] ?? 0;
+            return (
+              <React.Fragment key={step.key}>
+                <div className="flex flex-col items-center min-w-[70px]">
+                  <div className="flex items-center gap-1 mb-0.5">
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full ${step.dot} shadow-sm`}
+                    />
+                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">
+                      {step.label}
+                    </span>
+                  </div>
+                  <span className="text-xs font-black text-slate-900">
+                    {count}
+                  </span>
+                </div>
+                {idx < STEPS.length - 1 &&
+                  !STEPS[idx + 1].isDivider &&
+                  !step.isDivider && (
+                    <div className="w-[1px] h-3 bg-slate-100 mt-2 mx-2" />
+                  )}
+              </React.Fragment>
+            );
+          })}
         </div>
       </td>
     </tr>
@@ -206,23 +260,73 @@ const JobFunnelRow = ({ job }) => {
 export const ApplicationFunnelWidget = ({ jobs = [] }) => {
   const [filter, setFilter] = useState('ALL');
   const [page, setPage] = useState(1);
+  const [activePreset, setActivePreset] = useState('14D');
+  const [dateRange, setDateRange] = useState({
+    from: format(subDays(new Date(), 13), 'yyyy-MM-dd'),
+    to: format(new Date(), 'yyyy-MM-dd'),
+  });
   const limit = 5;
 
-  // Aggregate timeline (không có jobId)
-  const { data: funnelRes, isLoading } = useApplicationFunnel(undefined);
+  const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+  const handlePresetChange = (preset) => {
+    setActivePreset(preset);
+    if (preset === 'CUSTOM') return;
+
+    const today = new Date();
+    let fromDate;
+    if (preset === '7D') fromDate = subDays(today, 6);
+    else if (preset === '14D') fromDate = subDays(today, 13);
+    else if (preset === '1M') fromDate = subMonths(today, 1);
+    else if (preset === '3M') fromDate = subMonths(today, 3);
+
+    setDateRange({
+      from: format(fromDate, 'yyyy-MM-dd'),
+      to: format(today, 'yyyy-MM-dd'),
+    });
+  };
+
+  const displayDateRange = useMemo(() => {
+    if (!dateRange.from || !dateRange.to) return '14 ngày gần nhất';
+    try {
+      const [fYear, fMonth, fDay] = dateRange.from.split('-').map(Number);
+      const [tYear, tMonth, tDay] = dateRange.to.split('-').map(Number);
+
+      const from = format(new Date(fYear, fMonth - 1, fDay), 'dd/MM/yyyy');
+      const to = format(new Date(tYear, tMonth - 1, tDay), 'dd/MM/yyyy');
+      return `Từ ${from} đến ${to}`;
+    } catch (e) {
+      return 'Khoảng thời gian';
+    }
+  }, [dateRange]);
+
+  // Aggregate timeline (Dashboard Overview)
+  const { data: dashboardRes, isLoading } = useDashboardStats({
+    from: dateRange.from || undefined,
+    to: dateRange.to || undefined,
+  });
   // Job status stats (Pie Chart data)
   const { data: jobStatusRes, isLoading: jobStatusLoading } = useJobStatus();
 
   const formattedTimeline = useMemo(() => {
-    return (funnelRes?.timeline || []).map((item) => {
-      const parts = item.period?.split('-') || [];
-      return {
-        ...item,
-        displayDate:
-          parts.length === 3 ? `${parts[2]}/${parts[1]}` : item.period,
-      };
+    return (dashboardRes?.timeline || []).map((item) => {
+      try {
+        const [year, month, day] = item.period.split('-').map(Number);
+        const dateObj = new Date(year, month - 1, day);
+        return {
+          ...item,
+          displayDate: format(dateObj, 'dd/MM'),
+          tooltipDate: format(dateObj, 'dd/MM/yyyy'),
+        };
+      } catch (e) {
+        return {
+          ...item,
+          displayDate: item.period,
+          tooltipDate: item.period,
+        };
+      }
     });
-  }, [funnelRes?.timeline]);
+  }, [dashboardRes?.timeline]);
 
   // Block 2: Job list with filter & pagination
   const filteredJobs = useMemo(() => {
@@ -253,15 +357,15 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
         value: jobStatusRes.published,
         fill: '#3b82f6', // Light Blue as in image
       },
-      { 
-        name: 'Chờ duyệt', 
-        value: jobStatusRes.warning, 
-        fill: '#10b981' // Green as in image
+      {
+        name: 'Chờ thanh toán',
+        value: jobStatusRes.warning,
+        fill: '#10b981', // Green as in image
       },
-      { 
-        name: 'Hết hạn', 
-        value: jobStatusRes.expired, 
-        fill: '#f59e0b' // Orange as in image
+      {
+        name: 'Hết hạn',
+        value: jobStatusRes.expired,
+        fill: '#f59e0b', // Orange as in image
       },
     ].filter((item) => item.value > 0);
   }, [jobStatusRes]);
@@ -289,9 +393,74 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
           BLOCK 1: OVERVIEW CHART
       ================================================================ */}
       <Card className="p-6 rounded-2xl shadow-sm border-slate-200 bg-white">
-        <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
-          Lượt xem & Lượt ứng tuyển trong 14 ngày qua
-        </h3>
+        <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6 mb-8">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-1">
+              Lượt xem & Lượt ứng tuyển
+            </h3>
+            <p className="text-sm text-slate-500 font-medium flex items-center gap-1.5">
+              <Calendar className="w-3.5 h-3.5" />
+              {displayDateRange}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Presets */}
+            <div className="flex bg-slate-100/80 p-1 rounded-xl">
+              {[
+                { value: '7D', label: '1 tuần' },
+                { value: '14D', label: '14 ngày' },
+                { value: '1M', label: '1 tháng' },
+                { value: '3M', label: '3 tháng' },
+                { value: 'CUSTOM', label: 'Tùy chỉnh' },
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  onClick={() => handlePresetChange(value)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                    activePreset === value
+                      ? 'bg-white text-slate-900 shadow-sm'
+                      : 'text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Range Picker */}
+            {activePreset === 'CUSTOM' && (
+              <div className="flex items-center gap-2 animate-in fade-in slide-in-from-right-2 duration-300">
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={dateRange.from}
+                    max={todayStr}
+                    onChange={(e) =>
+                      setDateRange((prev) => ({
+                        ...prev,
+                        from: e.target.value,
+                      }))
+                    }
+                    className="pl-3 pr-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+                <span className="text-slate-400 text-xs font-bold">-</span>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={dateRange.to}
+                    max={todayStr}
+                    onChange={(e) =>
+                      setDateRange((prev) => ({ ...prev, to: e.target.value }))
+                    }
+                    className="pl-3 pr-2 py-1.5 border border-slate-200 rounded-lg text-xs font-medium text-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 bg-white"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
 
         {isLoading ? (
           <div className="flex items-center justify-center min-h-[400px]">
@@ -307,7 +476,9 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
             {/* Chart 1: Lượt xem */}
             <div className="h-[200px]">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">Lượt xem</span>
+                <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                  Lượt xem
+                </span>
               </div>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
@@ -315,9 +486,17 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
                   syncId="funnelSync"
                   margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f1f5f9"
+                  />
                   <XAxis dataKey="displayDate" hide />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#64748b', fontSize: 11 }}
+                  />
                   <Tooltip content={<CustomTooltip />} />
                   <Area
                     type="monotone"
@@ -335,7 +514,9 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
             {/* Chart 2: Lượt ứng tuyển */}
             <div className="h-[160px]">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Lượt ứng tuyển</span>
+                <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">
+                  Lượt ứng tuyển
+                </span>
               </div>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart
@@ -343,22 +524,37 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
                   syncId="funnelSync"
                   margin={{ top: 5, right: 10, left: -20, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    vertical={false}
+                    stroke="#f1f5f9"
+                  />
                   <XAxis
                     dataKey="displayDate"
                     axisLine={false}
                     tickLine={false}
                     tick={{ fill: '#64748b', fontSize: 11 }}
                     dy={10}
+                    interval="preserveStartEnd"
+                    minTickGap={30}
                   />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fill: '#64748b', fontSize: 11 }}
+                  />
                   <Tooltip content={<CustomTooltip />} />
                   <Line
                     type="monotone"
                     dataKey="applications"
                     stroke="#10b981"
                     strokeWidth={3}
-                    dot={{ r: 4, fill: '#10b981', strokeWidth: 2, stroke: '#fff' }}
+                    dot={{
+                      r: 4,
+                      fill: '#10b981',
+                      strokeWidth: 2,
+                      stroke: '#fff',
+                    }}
                     activeDot={{ r: 6 }}
                     isAnimationActive={false}
                   />
@@ -385,7 +581,7 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
               {[
                 { value: 'ALL', label: 'Tất cả' },
                 { value: 'PUBLISHED', label: 'Hiển thị' },
-                { value: 'WARNING', label: 'Cảnh báo' },
+                { value: 'WARNING', label: 'Chờ thanh toán' },
                 { value: 'EXPIRED', label: 'Hết hạn' },
               ].map(({ value, label }) => (
                 <button
@@ -407,24 +603,24 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
           <div className="overflow-x-auto flex-1 custom-scrollbar">
             <table className="w-full text-left text-sm whitespace-nowrap">
               <thead className="bg-slate-50/80 text-slate-500 border-b border-slate-200">
-                <tr>
-                  <th className="font-semibold py-4 px-6 tracking-wide text-xs w-[30%]">
-                    Công việc
+                <tr className="border-b border-slate-100">
+                  <th className="py-4 px-6 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Tin tuyển dụng
                   </th>
-                  <th className="font-semibold py-4 px-6 tracking-wide text-xs">
+                  <th className="py-4 px-6 text-left text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Trạng thái
                   </th>
-                  <th className="font-semibold py-4 px-6 tracking-wide text-xs text-center">
+                  <th className="py-4 px-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Lượt xem
                   </th>
-                  <th className="font-semibold py-4 px-6 tracking-wide text-xs text-center">
+                  <th className="py-4 px-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Ứng tuyển
                   </th>
-                  <th className="font-semibold py-4 px-6 tracking-wide text-xs text-right w-[15%] min-w-[140px]">
-                    Tỉ lệ ứng tuyển
+                  <th className="py-4 px-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Hiệu quả (CVR)
                   </th>
-                  <th className="font-semibold py-4 px-6 tracking-wide text-xs text-right w-[25%] min-w-[280px]">
-                    Tiến trình hồ sơ ứng viên
+                  <th className="py-4 px-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Tiến trình hồ sơ
                   </th>
                 </tr>
               </thead>
@@ -508,18 +704,27 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
                       stroke="#fff"
                       strokeWidth={2}
                       fill="#3b82f6"
-                      label={({ cx, cy, midAngle, innerRadius, outerRadius, value, name, percent }) => {
+                      label={({
+                        cx,
+                        cy,
+                        midAngle,
+                        innerRadius,
+                        outerRadius,
+                        value,
+                        name,
+                        percent,
+                      }) => {
                         const RADIAN = Math.PI / 180;
                         const radius = outerRadius + 25;
                         const x = cx + radius * Math.cos(-midAngle * RADIAN);
                         const y = cy + radius * Math.sin(-midAngle * RADIAN);
-                      
+
                         return (
-                          <text 
-                            x={x} 
-                            y={y} 
-                            fill="#64748b" 
-                            textAnchor={x > cx ? 'start' : 'end'} 
+                          <text
+                            x={x}
+                            y={y}
+                            fill="#64748b"
+                            textAnchor={x > cx ? 'start' : 'end'}
                             dominantBaseline="central"
                             className="text-[11px] font-bold"
                           >
@@ -567,18 +772,18 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
                 {/* Custom Legend at bottom in a horizontal layout to match image */}
                 <div className="w-full mt-6 flex flex-wrap justify-center gap-4 border-t border-slate-50 pt-4">
                   {pieData.map((item, index) => (
+                    <div
+                      key={index}
+                      className="flex items-center gap-2 text-[11px]"
+                    >
                       <div
-                        key={index}
-                        className="flex items-center gap-2 text-[11px]"
-                      >
-                        <div
-                          className="w-3 h-3 rounded-sm"
-                          style={{ backgroundColor: item.fill }}
-                        />
-                        <span className="text-slate-600 font-medium">
-                          {item.name}
-                        </span>
-                      </div>
+                        className="w-3 h-3 rounded-sm"
+                        style={{ backgroundColor: item.fill }}
+                      />
+                      <span className="text-slate-600 font-medium">
+                        {item.name}
+                      </span>
+                    </div>
                   ))}
                 </div>
               </>
