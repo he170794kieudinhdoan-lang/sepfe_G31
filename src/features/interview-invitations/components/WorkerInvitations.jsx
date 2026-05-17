@@ -65,11 +65,14 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
   const [respondingId, setRespondingId] = useState(null)
   const [selectedSlotByInvitation, setSelectedSlotByInvitation] = useState({})
   const [rejectReasonByInvitation, setRejectReasonByInvitation] = useState({})
+  const [expandedId, setExpandedId] = useState(null)
 
   const invitationIdFromUrl = searchParams.get('invitationId')
   useEffect(() => {
     if (!invitationIdFromUrl || loading) return
-    const el = document.getElementById(`invitation-${invitationIdFromUrl}`)
+    const idNum = Number(invitationIdFromUrl)
+    setExpandedId(idNum)
+    const el = document.getElementById(`invitation-${idNum}`)
     if (el) {
       requestAnimationFrame(() =>
         el.scrollIntoView({ behavior: 'smooth', block: 'center' }),
@@ -149,14 +152,15 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
     >
       {!embedded && (
         <>
-          <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(circle_at_top_left,_rgba(245,158,11,0.16),_transparent_36%),radial-gradient(circle_at_top_right,_rgba(15,23,42,0.06),_transparent_28%),linear-gradient(180deg,_rgba(255,255,255,0.96),_rgba(255,255,255,0.72))]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-72 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-slate-50 to-transparent" />
 
-          <div className="overflow-hidden rounded-[2rem] border border-amber-200/70 bg-white/85 shadow-[0_20px_60px_-28px_rgba(15,23,42,0.24)] backdrop-blur">
-            <div className="px-6 py-6 md:px-8">
-              <h2 className="text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
-                {type === 'job' ? 'Lời mời từ NTD' : 'Quản lý phỏng vấn'}
-              </h2>
-            </div>
+          <div className="mb-6 px-2">
+            <h2 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+              {type === 'job' ? 'Thư Mời Ứng Tuyển' : 'Lịch Phỏng Vấn'}
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              {type === 'job' ? 'Xem và phản hồi các cơ hội việc làm dành riêng cho bạn.' : 'Quản lý lịch hẹn phỏng vấn từ các nhà tuyển dụng.'}
+            </p>
           </div>
         </>
       )}
@@ -207,57 +211,62 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                 (invitation.status === 'PENDING' || invitation.status === 'ACCEPTED' || invitation.status === 'REJECTED') &&
                 !isRescheduleExpired
 
+              const isExpanded = expandedId === invitation.id
+
               return (
                 <Card
                   key={invitation.id}
                   id={`invitation-${invitation.id}`}
-                  className="overflow-hidden rounded-[1.75rem] border-slate-200 bg-white/95 p-0 shadow-[0_18px_48px_-34px_rgba(15,23,42,0.35)]"
+                  className={`group overflow-hidden transition-all duration-300 border-slate-200 bg-white shadow-sm hover:shadow-md ${isExpanded ? 'rounded-[1.25rem] ring-1 ring-primary/20' : 'rounded-[1rem] cursor-pointer hover:border-slate-300'}`}
                 >
-                  <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-amber-50/70 px-5 py-5 md:px-6">
-                    <div className="flex flex-wrap items-start justify-between gap-4">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white shadow-sm">
-                          {invitation.company?.logoUrl ? (
-                            <img
-                              src={invitation.company.logoUrl}
-                              alt={invitation.company?.name}
-                              className="h-14 w-14 rounded-2xl object-cover"
-                            />
-                          ) : (
-                            <span className="text-sm font-black text-slate-500">
-                              {invitation.company?.name?.slice(0, 2)?.toUpperCase() || 'PV'}
-                            </span>
-                          )}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="truncate text-xl font-black tracking-tight text-slate-950">
-                              {invitation.campaign.title}
-                            </h3>
-                          </div>
-                          {invitation.company && (
-                            <p className="mt-1 text-sm text-slate-500">
-                              {invitation.company.name}
-                            </p>
-                          )}
-                        </div>
+                  {/* Compact Header */}
+                  <div
+                    className={`px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors cursor-pointer ${isExpanded ? 'bg-slate-50/60 border-b border-slate-100' : 'hover:bg-slate-50/50'}`}
+                    onClick={() => setExpandedId(isExpanded ? null : invitation.id)}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-slate-200 bg-white shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
+                        {invitation.company?.logoUrl ? (
+                          <img
+                            src={invitation.company.logoUrl}
+                            alt={invitation.company?.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm font-black text-slate-400">
+                            {invitation.company?.name?.slice(0, 2)?.toUpperCase() || 'PV'}
+                          </span>
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="truncate text-base font-bold text-slate-900 group-hover:text-primary transition-colors">
+                          {invitation.campaign.title}
+                        </h3>
+                        <p className="truncate text-[13px] font-medium text-slate-500 mt-0.5">
+                          {invitation.company?.name || 'Công ty ẩn danh'}
+                        </p>
                       </div>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                        <span className="rounded-full bg-white px-3 py-1.5 font-medium shadow-sm ring-1 ring-slate-200">
-                        Gửi: {formatDateTime(invitation.createdAt)}
+                    <div className="flex items-center gap-3 self-start sm:self-auto ml-16 sm:ml-0">
+                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold border ${statusBadge.className}`}>
+                        {statusBadge.label}
                       </span>
-                      {invitation.campaign.expiresAt && (
-                        <span className="rounded-full bg-white px-3 py-1.5 font-medium shadow-sm ring-1 ring-slate-200">
-                          Hạn đổi lịch: {formatDateTime(invitation.campaign.expiresAt)}
-                        </span>
-                      )}
+                      <span className="text-[12px] font-medium text-slate-400 whitespace-nowrap">
+                        {formatDateTime(invitation.createdAt)}
+                      </span>
+                      <div className={`h-6 w-6 rounded-full flex items-center justify-center transition-colors ${isExpanded ? 'bg-primary/10 text-primary' : 'bg-slate-100 text-slate-400 group-hover:bg-primary/10 group-hover:text-primary'}`}>
+                        <svg className={`h-4 w-4 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="grid gap-4 px-5 py-5 md:grid-cols-[1.15fr_0.85fr] md:px-6">
-                    <div className="space-y-4">
+                  {/* Expandable Body */}
+                  {isExpanded && (
+                    <div className="grid gap-4 px-5 py-5 md:grid-cols-[1.1fr_0.9fr] md:px-6 bg-white animate-in slide-in-from-top-2 fade-in duration-200">
+                      <div className="space-y-4">
                       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
                         <p className="text-xs font-semibold text-slate-600">Tin công ty</p>
                         <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-700">
@@ -541,6 +550,7 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                       </div>
                     </div>
                   </div>
+                  )}
                 </Card>
               )
             })}

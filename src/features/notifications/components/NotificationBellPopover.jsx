@@ -76,17 +76,21 @@ export const NotificationBellPopover = () => {
     };
 
     const handleNotificationClick = (item) => {
-        if (!item.read) {
-            handleRead(item.id);
-        }
-
         setOpen(false);
         navigateToNotification(navigate, item);
     };
 
     return (
         <>
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover 
+            open={open} 
+            onOpenChange={(isOpen) => {
+                setOpen(isOpen);
+                if (isOpen && unreadCount > 0 && !markAllReadMutation.isPending) {
+                    handleReadAll();
+                }
+            }}
+        >
             <PopoverTrigger asChild>
                 <Button variant='ghost' size='icon' className='relative rounded-full'>
                     <Bell className='h-5 w-5' />
@@ -134,7 +138,6 @@ export const NotificationBellPopover = () => {
                                     item={item}
                                     onRowClick={() => handleNotificationClick(item)}
                                     onDetailClick={() => {
-                                        if (!item.read) handleRead(item.id);
                                         setDetailItem(item);
                                     }}
                                     onDelete={() => handleDelete(item.id)}

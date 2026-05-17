@@ -1,4 +1,4 @@
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 /**
@@ -42,7 +42,7 @@ export function ApplicationProgressTimeline({ status, updatedAt }) {
                   className={cn(
                     'h-[3px] min-h-[3px] min-w-0 flex-1 rounded-full',
                     steps[i - 1].state === 'done'
-                      ? 'bg-emerald-500'
+                      ? 'bg-amber-400'
                       : 'bg-slate-200',
                   )}
                   aria-hidden
@@ -51,19 +51,23 @@ export function ApplicationProgressTimeline({ status, updatedAt }) {
               <div className="flex shrink-0 justify-center px-1">
                 <span
                   className={cn(
-                    'flex h-5 w-5 items-center justify-center rounded-full transition-colors',
+                    'flex h-6 w-6 items-center justify-center rounded-full transition-colors',
                     step.state === 'done' &&
-                      'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20',
+                      'bg-amber-500 text-white shadow-sm shadow-amber-500/20',
                     step.state === 'current' &&
-                      'box-border border-[3px] border-sky-600 bg-white shadow-[0_0_0_4px_rgba(2,132,199,0.12)]',
+                      'box-border border-[3px] border-amber-500 bg-white shadow-[0_0_0_4px_rgba(245,158,11,0.15)]',
                     step.state === 'pending' &&
                       'border-2 border-slate-200 bg-white',
+                    step.state === 'error' &&
+                      'bg-rose-500 text-white shadow-sm shadow-rose-500/20',
                   )}
                 >
                   {step.state === 'done' ? (
-                    <Check className="h-2.5 w-2.5" strokeWidth={3} />
+                    <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                  ) : step.state === 'error' ? (
+                    <X className="h-3.5 w-3.5" strokeWidth={3} />
                   ) : step.state === 'current' ? (
-                    <span className="h-2 w-2 rounded-full bg-sky-600" />
+                    <span className="h-2 w-2 rounded-full bg-amber-500" />
                   ) : (
                     <span className="h-1.5 w-1.5 rounded-full bg-slate-200" />
                   )}
@@ -76,7 +80,7 @@ export function ApplicationProgressTimeline({ status, updatedAt }) {
                   className={cn(
                     'h-[3px] min-h-[3px] min-w-0 flex-1 rounded-full',
                     step.state === 'done'
-                      ? 'bg-emerald-500'
+                      ? 'bg-amber-400'
                       : 'bg-slate-200',
                   )}
                   aria-hidden
@@ -88,8 +92,9 @@ export function ApplicationProgressTimeline({ status, updatedAt }) {
                 className={cn(
                   'text-[11px] leading-snug sm:text-xs',
                   step.state === 'current' &&
-                    'font-semibold text-slate-900',
-                  step.state === 'done' && 'text-slate-600',
+                    'font-bold text-amber-700',
+                  step.state === 'done' && 'text-amber-600 font-semibold',
+                  step.state === 'error' && 'text-rose-600 font-semibold',
                   step.state === 'pending' && 'text-slate-400',
                 )}
               >
@@ -121,8 +126,8 @@ function formatUpdated(value) {
 function buildSteps(status) {
   if (status === 'APPLIED') {
     return [
-      { key: 'submit', label: 'Đã nộp', state: 'done' },
-      { key: 'viewed', label: 'Nhà tuyển dụng xem hồ sơ', state: 'current' },
+      { key: 'submit', label: 'Đã nộp', state: 'current' },
+      { key: 'viewed', label: 'Chờ xem hồ sơ', state: 'pending' },
       { key: 'result', label: 'Kết quả', state: 'pending' },
     ];
   }
@@ -130,8 +135,8 @@ function buildSteps(status) {
   if (status === 'VIEWED') {
     return [
       { key: 'submit', label: 'Đã nộp', state: 'done' },
-      { key: 'viewed', label: 'Đã xem hồ sơ', state: 'done' },
-      { key: 'result', label: 'Chờ phản hồi cuối', state: 'current' },
+      { key: 'viewed', label: 'Đã xem hồ sơ', state: 'current' },
+      { key: 'result', label: 'Chờ phản hồi', state: 'pending' },
     ];
   }
 
@@ -147,7 +152,7 @@ function buildSteps(status) {
     return [
       { key: 'submit', label: 'Đã nộp', state: 'done' },
       { key: 'viewed', label: 'Đã xem hồ sơ', state: 'done' },
-      { key: 'result', label: 'Không phù hợp', state: 'done' },
+      { key: 'result', label: 'Chưa phù hợp', state: 'error' },
     ];
   }
 

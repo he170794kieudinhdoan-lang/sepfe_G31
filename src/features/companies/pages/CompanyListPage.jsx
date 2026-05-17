@@ -65,21 +65,40 @@ export const CompanyListPage = () => {
   };
 
   return (
-    <>
-      <h1 className="text-2xl font-bold mb-6">Danh sách công ty</h1>
+    <div className="pb-16 pt-4">
+      {/* Hero section */}
+      <div className="bg-white rounded-[24px] p-6 sm:p-10 mb-8 border border-slate-100 shadow-[0_2px_20px_rgba(0,0,0,0.02)] text-center relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/5 rounded-full blur-[80px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-amber-200/10 rounded-full blur-[60px] pointer-events-none" />
+        
+        <div className="relative z-10 max-w-2xl mx-auto">
+          <h1 className="text-3xl font-extrabold text-slate-900 mb-3">
+            Khám phá doanh nghiệp
+          </h1>
+          <p className="text-slate-500 text-[15px] mb-8">
+            Tìm hiểu văn hóa và môi trường làm việc từ các nhà tuyển dụng hàng đầu
+          </p>
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
-        <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Tìm theo tên công ty"
-            value={keywordForm}
-            onChange={(e) => {
-              setKeywordForm(e.target.value);
-              setPage(1);
-            }}
-            className="pl-9 rounded-xl bg-white shadow-sm"
-          />
+          <div className="bg-white rounded-[16px] shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-slate-100/80 p-2 max-w-xl mx-auto flex items-center transition-all focus-within:ring-2 focus-within:ring-primary/20">
+            <div className="relative flex items-center flex-1">
+              <Search className="h-5 w-5 text-slate-400 absolute left-4" />
+              <Input
+                placeholder="Tìm công ty theo tên..."
+                value={keywordForm}
+                onChange={(e) => {
+                  setKeywordForm(e.target.value);
+                  setPage(1);
+                }}
+                className="border-0 shadow-none focus-visible:ring-0 text-[15px] bg-transparent h-12 pl-12 pr-4 font-medium w-full placeholder:text-slate-400"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+        <div className="text-[14px] font-semibold text-slate-500">
+          {companies.length > 0 && `Danh sách công ty`}
         </div>
 
         <Select
@@ -89,13 +108,13 @@ export const CompanyListPage = () => {
             setPage(1);
           }}
         >
-          <SelectTrigger className="w-[180px] h-10! border-gray-200 bg-white focus:bg-gray transition-colors">
+          <SelectTrigger className="w-[180px] h-10 rounded-[12px] border-slate-200 bg-white font-medium hover:bg-slate-50 transition-colors">
             <SelectValue placeholder="Sắp xếp theo" />
           </SelectTrigger>
-          <SelectContent>
-            {Object.entries(sortByMap).map(([key, lable]) => (
-              <SelectItem key={key} value={key} className="cursor-pointer">
-                {lable}
+          <SelectContent className="rounded-[12px] border-slate-100 shadow-xl">
+            {Object.entries(sortByMap).map(([key, label]) => (
+              <SelectItem key={key} value={key} className="cursor-pointer rounded-lg text-[13px] font-medium">
+                {label}
               </SelectItem>
             ))}
           </SelectContent>
@@ -151,6 +170,6 @@ export const CompanyListPage = () => {
           />
         </>
       )}
-    </>
+    </div>
   );
 };

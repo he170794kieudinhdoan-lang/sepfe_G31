@@ -38,6 +38,7 @@ import {
 import { toast } from 'sonner';
 import { Container } from '@/shared/components/Container';
 import { isWorkerRole } from '@/shared/utils/userRole';
+import { cn } from '@/lib/utils';
 
 // ========================
 // CONSTANTS
@@ -103,17 +104,18 @@ const genderLabel = (g) => {
 
 /** Skeleton loading cho Job Search Card */
 const JobCardSkeleton = () => (
-  <Card className="p-0 rounded-2xl overflow-hidden border-0 shadow-sm">
-    <Skeleton className="h-36 w-full" />
-    <div className="p-4 space-y-3">
-      <Skeleton className="h-5 w-3/4" />
-      <Skeleton className="h-4 w-1/2" />
-      <div className="flex gap-2">
-        <Skeleton className="h-6 w-16 rounded-full" />
-        <Skeleton className="h-6 w-20 rounded-full" />
-        <Skeleton className="h-6 w-14 rounded-full" />
+  <Card className="p-4 rounded-[16px] overflow-hidden border border-slate-100 shadow-sm bg-white">
+    <div className="flex items-center gap-4">
+      <Skeleton className="h-14 w-14 rounded-[12px] shrink-0" />
+      <div className="flex-1 space-y-2.5">
+        <Skeleton className="h-5 w-1/3" />
+        <Skeleton className="h-4 w-1/4" />
+        <div className="flex gap-2">
+          <Skeleton className="h-5 w-20 rounded-[6px]" />
+          <Skeleton className="h-5 w-24 rounded-[6px]" />
+          <Skeleton className="h-5 w-20 rounded-[6px]" />
+        </div>
       </div>
-      <Skeleton className="h-9 w-full rounded-xl" />
     </div>
   </Card>
 );
@@ -176,133 +178,96 @@ const SearchJobCard = ({ job }) => {
 
   return (
     <Card
-      className={`group w-full rounded-2xl overflow-hidden hover:cursor-pointer transition-all duration-300 border ${
+      className={cn(
+        'group w-full rounded-[16px] overflow-hidden hover:cursor-pointer transition-all duration-300 border',
         isBoosted
-          ? 'bg-linear-to-br from-yellow-50/90 via-white to-yellow-50/60 border-yellow-300 ring-1 ring-yellow-200/80 shadow-md hover:shadow-lg'
-          : 'bg-white border-slate-100'
-      }`}
+          ? 'bg-gradient-to-r from-amber-50/40 to-white border-amber-200/50 shadow-[0_2px_12px_-4px_rgba(251,191,36,0.1)] hover:shadow-[0_8px_24px_-6px_rgba(251,191,36,0.2)] hover:-translate-y-0.5 hover:border-amber-300/60'
+          : 'bg-white border-slate-200/60 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_24px_-6px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 hover:border-slate-300/60'
+      )}
       onMouseEnter={() => setDisplayMoreButton(true)}
       onMouseLeave={() => setDisplayMoreButton(false)}
     >
-      <div className="flex">
-        <div className="min-w-0 flex-1 p-5">
-          {/* HEADER */}
-          <div className="flex items-start gap-3 mb-4">
-            <div
-              className="h-12 w-32 rounded-xl 
-                        flex items-center justify-center 
-                        shrink-0 
-                        transition-transform p-4"
-            >
-              {/* <Building2 className="h-5 w-5 text-yellow-600" /> */}
-              <img src={job.company?.logoUrl} alt="" />
-            </div>
-
-            <div className="flex-1 min-w-0">
-              {isBoosted && (
-                <Badge className="mb-2 border border-[#FDE047]/90 bg-[#FEF08A] text-[10px] font-extrabold tracking-wide text-slate-900 shadow-sm hover:bg-[#FDE68A] px-2.5 py-1">
-                  TIN NỔI BẬT
-                </Badge>
-              )}
-              <h3
-                className="font-semibold text-gray-800 
-                           leading-snug line-clamp-2 
-                           group-hover:text-primary 
-                           transition-colors
-                           cursor-pointer"
-              >
-                <Link to={`/job/${job.id}`}>{job.title}</Link>
-              </h3>
-
-              {job.company && (
-                <p className="text-sm text-gray-500 mt-1 truncate">
-                  {job.company.name || 'Công ty'}
-                </p>
-              )}
-            </div>
+      <div className="flex items-center justify-between p-4">
+        <div className="flex min-w-0 flex-1 items-start gap-4">
+          <div className="h-14 w-14 rounded-[12px] border border-slate-100 bg-white p-2 flex items-center justify-center shrink-0 shadow-sm group-hover:scale-105 transition-transform">
+            <img src={job.company?.logoUrl} alt="" className="max-h-full max-w-full object-contain" />
           </div>
 
-          <div className="mt-3 space-y-1.5">
-            <div className="flex flex-wrap gap-1.5">
-              <span
-                className="inline-flex items-center gap-0.5 max-w-full rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700"
-                title={formatSalary(job.salaryMin, job.salaryMax)}
-              >
-                <Wallet className="h-2.5 w-2.5 shrink-0 text-slate-500" />
-                <span className="truncate">
-                  {formatSalary(job.salaryMin, job.salaryMax)}
-                </span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-bold text-[15px] text-slate-800 truncate group-hover:text-primary transition-colors">
+                <Link to={`/job/${job.id}`}>{job.title}</Link>
+              </h3>
+              {isBoosted && (
+                <Badge className="border border-yellow-300 bg-yellow-100 text-[9px] font-bold tracking-wide text-yellow-700 shadow-sm px-1.5 py-[1px] shrink-0">
+                  NỔI BẬT
+                </Badge>
+              )}
+            </div>
+
+            {job.company && (
+              <p className="text-[13px] font-medium text-slate-500 truncate mb-2.5">
+                {job.company.name || 'Công ty'}
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1 rounded-[6px] border border-slate-100/60 bg-slate-50/80 px-2 py-[2px] text-[11px] font-medium text-slate-600 transition-colors group-hover:bg-white group-hover:border-slate-200/60" title={formatSalary(job.salaryMin, job.salaryMax)}>
+                <Wallet className="h-3 w-3 text-emerald-500 shrink-0" />
+                <span className="truncate max-w-[8rem]">{formatSalary(job.salaryMin, job.salaryMax)}</span>
               </span>
 
               {job.province && (
-                <span
-                  className="inline-flex max-w-[min(100%,11rem)] items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700"
-                  title={job.province}
-                >
-                  <MapPin className="h-2.5 w-2.5 shrink-0 text-primary" />
-                  <span className="truncate">{job.province}</span>
+                <span className="inline-flex items-center gap-1 rounded-[6px] border border-slate-100/60 bg-slate-50/80 px-2 py-[2px] text-[11px] font-medium text-slate-600 transition-colors group-hover:bg-white group-hover:border-slate-200/60" title={job.province}>
+                  <MapPin className="h-3 w-3 text-rose-500 shrink-0" />
+                  <span className="truncate max-w-[8rem]">{job.province}</span>
                 </span>
               )}
 
-              <span className="inline-flex items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700">
-                <Timer className="h-2.5 w-2.5 shrink-0 text-primary" />
+              <span className="inline-flex items-center gap-1 rounded-[6px] border border-slate-100/60 bg-slate-50/80 px-2 py-[2px] text-[11px] font-medium text-slate-600 transition-colors group-hover:bg-white group-hover:border-slate-200/60">
+                <Timer className="h-3 w-3 text-primary shrink-0" />
                 {shiftLabel(job.workingShift)}
               </span>
-            </div>
 
-            {((job.ageMin || job.ageMax) || job.quantity > 0) && (
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-slate-500">
-                {(job.ageMin || job.ageMax) && (
-                  <span className="inline-flex items-center gap-0.5">
-                    <Calendar className="h-2.5 w-2.5 shrink-0 text-primary" />
-                    {job.ageMin && job.ageMax
-                      ? `${job.ageMin}–${job.ageMax} tuổi`
-                      : job.ageMin
-                        ? `Từ ${job.ageMin} tuổi`
-                        : `Đến ${job.ageMax} tuổi`}
-                  </span>
-                )}
-                {job.quantity > 0 && (
-                  <span className="inline-flex items-center gap-0.5">
-                    <Briefcase className="h-2.5 w-2.5 shrink-0 text-primary" />
-                    {job.quantity} vị trí
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-        {isWorker && (
-          <div className="flex w-full shrink-0 flex-col items-end justify-end gap-2 pb-5 pr-4 sm:w-auto sm:pr-5">
-            <div
-              className={`transition-opacity duration-200 ${displayMoreButton || isSaved ? 'opacity-100' : 'opacity-0'}`}
-            >
-              <Button
-                variant="outline"
-                size="icon"
-                className={`h-9 w-9 rounded-full shadow-sm hover:shadow active:scale-[0.98] transition-colors duration-150 ${isSaved ? 'bg-amber-50 hover:bg-amber-100 border-amber-100' : ''}`}
-                title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
-                onClick={handleWishlistToggle}
-                disabled={wishlistBusy}
-                aria-busy={wishlistBusy}
-              >
-                <Heart
-                  className={`h-4 w-4 ${isSaved ? 'fill-yellow-500 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`}
-                />
-              </Button>
-            </div>
-            <div>
-              {displayMoreButton && (
-                <Button
-                  size="sm"
-                  className="flex h-8 items-center gap-1 rounded-full px-3 text-xs animate-in"
-                  title="Ứng tuyển"
-                  asChild
-                >
-                  <Link to={`/job/${job.id}`}>Ứng tuyển</Link>
-                </Button>
+              {((job.ageMin || job.ageMax) || job.quantity > 0) && (
+                <div className="flex items-center gap-2 pl-2 border-l border-slate-200 ml-1 text-[11px] font-medium text-slate-400">
+                  {(job.ageMin || job.ageMax) && (
+                    <span className="inline-flex items-center gap-1">
+                      {job.ageMin && job.ageMax ? `${job.ageMin}-${job.ageMax}t` : job.ageMin ? `Từ ${job.ageMin}t` : `Đến ${job.ageMax}t`}
+                    </span>
+                  )}
+                  {job.quantity > 0 && (
+                    <span className="inline-flex items-center gap-1">
+                      {job.quantity} vị trí
+                    </span>
+                  )}
+                </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {isWorker && (
+          <div className="flex flex-col items-end justify-center gap-3 shrink-0 ml-4 border-l border-slate-100 pl-4 py-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn('h-8 w-8 rounded-full transition-colors', isSaved ? 'bg-rose-50 hover:bg-rose-100' : 'hover:bg-rose-50 hover:text-rose-500 text-slate-400')}
+              title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
+              onClick={handleWishlistToggle}
+              disabled={wishlistBusy}
+            >
+              <Heart className={cn('h-4 w-4', isSaved ? 'fill-rose-500 text-rose-500' : '')} />
+            </Button>
+
+            <Button
+              size="sm"
+              className={cn("h-8 rounded-full px-4 text-xs font-semibold shadow-sm transition-all", displayMoreButton ? "bg-primary text-primary-foreground" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}
+              title="Ứng tuyển"
+              asChild
+            >
+              <Link to={`/job/${job.id}`}>Ứng tuyển</Link>
+            </Button>
           </div>
         )}
       </div>
