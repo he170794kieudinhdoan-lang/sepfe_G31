@@ -230,7 +230,15 @@ export const Header = () => {
                 <Link to="/admin">Trang quản trị</Link>
               </Button>
             )}
-            <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+            <Popover 
+              open={notificationOpen} 
+              onOpenChange={(isOpen) => {
+                setNotificationOpen(isOpen);
+                if (isOpen && unreadCount > 0 && !markAllReadMutation.isPending) {
+                  handleMarkAllRead();
+                }
+              }}
+            >
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
@@ -293,16 +301,10 @@ export const Header = () => {
                           key={item.id}
                           item={item}
                           onRowClick={() => {
-                            if (!item.read) {
-                              handleMarkRead(item.id);
-                            }
                             setNotificationOpen(false);
                             navigateToNotification(navigate, item);
                           }}
                           onDetailClick={() => {
-                            if (!item.read) {
-                              handleMarkRead(item.id);
-                            }
                             setNotificationDetailItem(item);
                           }}
                           onDelete={() => handleDeleteNotification(item.id)}

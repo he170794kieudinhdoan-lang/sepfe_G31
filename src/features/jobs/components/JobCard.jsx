@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState, useRef } from 'react';
+import { useState, useRef, memo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { MapPin, Clock, Sparkles, Heart, Wallet } from 'lucide-react';
@@ -67,17 +67,13 @@ import { formatSalary } from '@/shared/utils/salaryUtils';
 import { isWorkerRole } from '@/shared/utils/userRole';
 import { cn } from '@/lib/utils';
 
-const CHIP =
-  'inline-flex max-w-full items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700';
-
-export const JobCard = ({
+export const JobCard = memo(({
   job,
   featured,
   compact,
   aiSuggest,
   matchPercentage,
   matchScores,
-  /** Chỉ mở popover preview khi hover chip/tag — tránh mở khi lướt qua toàn thẻ */
   popoverHover,
 }) => {
   const { user } = useAuth();
@@ -145,28 +141,29 @@ export const JobCard = ({
       boostExpiredAt > new Date());
 
   const chipCls = cn(
-    CHIP,
-    compact && 'rounded border px-1.5 py-px text-[11px] leading-snug',
+    'inline-flex max-w-full items-center gap-1.5 rounded-[8px] border border-slate-100/60 bg-slate-50/80 px-2 py-0.5 text-[11px] font-medium leading-tight text-slate-600 transition-colors group-hover:bg-white group-hover:border-slate-200/60',
+    compact && 'px-1.5 py-[2px] text-[10px] gap-1'
   );
 
   return (
     <Card
       className={cn(
-        'group relative z-0 border hover:shadow-xl transition-all hover:z-20',
-        compact ? 'p-3 rounded-xl duration-200 flex flex-col justify-between' : 'p-4 rounded-2xl duration-300 flex flex-col justify-between',
+        'group relative z-0 flex flex-col justify-between transition-all duration-400 hover:z-20 h-full',
+        compact ? 'p-3.5 rounded-[16px]' : 'p-5 rounded-[20px]',
         isBoosted
-          ? 'border-yellow-300 bg-linear-to-br from-yellow-50/90 via-white to-yellow-50/70 shadow-md ring-1 ring-yellow-200/80'
-          : 'border-slate-100 bg-white shadow-sm',
+          ? 'border-amber-200/50 bg-gradient-to-b from-amber-50/30 to-white shadow-[0_4px_16px_-4px_rgba(251,191,36,0.15)] hover:shadow-[0_20px_40px_-8px_rgba(251,191,36,0.3)] hover:-translate-y-1.5'
+          : 'border-slate-200/60 bg-white shadow-[0_4px_16px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.12)] hover:-translate-y-1.5 hover:border-slate-300/60',
       )}
+      onMouseEnter={popoverHover?.onMouseEnter}
+      onMouseLeave={popoverHover?.onMouseLeave}
     >
-      <div className={cn('flex', compact ? 'gap-2.5' : 'gap-4')}>
+      <div className={cn('flex items-start', compact ? 'gap-3.5' : 'gap-4')}>
         {/* Logo Section */}
         <div
           className={cn(
-            'relative shrink-0 overflow-hidden border border-slate-100 bg-white shadow-sm',
-            compact
-              ? 'h-10 w-10 rounded-lg p-0.5'
-              : 'h-16 w-16 rounded-xl p-1',
+            'relative shrink-0 overflow-hidden bg-white rounded-[14px] flex items-center justify-center transition-all duration-500 group-hover:scale-105 group-hover:shadow-[0_4px_12px_rgba(0,0,0,0.05)]',
+            isBoosted ? 'shadow-[0_2px_8px_rgba(251,191,36,0.15)] ring-1 ring-amber-100' : 'shadow-[0_2px_8px_rgba(0,0,0,0.02)] ring-1 ring-slate-100/80',
+            compact ? 'h-[48px] w-[48px] p-1.5' : 'h-[60px] w-[60px] p-2',
           )}
         >
           <ImageWithFallback
@@ -174,46 +171,45 @@ export const JobCard = ({
             alt={job.companyName || job.company?.name || 'Company'}
             className="h-full w-full object-contain"
             fallbackClassName={cn(
-              'h-full w-full flex items-center justify-center text-slate-400 text-center p-1',
-              compact ? 'text-[11px]' : 'text-[10px]',
+              'h-full w-full flex items-center justify-center text-slate-300 font-medium',
+              compact ? 'text-[9px]' : 'text-[10px]',
             )}
           />
         </div>
 
         {/* Content Section */}
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
               <h3
                 className={cn(
-                  'font-bold text-slate-900 line-clamp-1 group-hover:text-primary transition-colors relative z-20',
-                  compact ? 'text-[13px] leading-snug' : 'text-sm',
+                  'font-bold text-slate-800 line-clamp-1 group-hover:text-primary transition-colors relative z-20',
+                  compact ? 'text-[14px] leading-tight mb-0.5' : 'text-[16px] leading-tight mb-1.5',
                 )}
+                title={job.title}
               >
                 <Link to={`/job/${job.id}`}>{job.title}</Link>
               </h3>
-              <p className="mt-0.5 line-clamp-1 text-[11px] font-medium text-slate-500">
+              <p 
+                className={cn(
+                  'line-clamp-1 font-medium text-slate-500 group-hover:text-slate-600 transition-colors',
+                  compact ? 'text-[11px]' : 'text-[13px]'
+                )}
+                title={job.companyName || job.company?.name}
+              >
                 {job.companyName || job.company?.name || 'Công ty ẩn'}
               </p>
             </div>
 
-            <div
-              className={cn(
-                'flex flex-col items-end shrink-0 z-20',
-                compact ? 'gap-0.5' : 'gap-1',
-              )}
-            >
+            <div className="flex flex-col items-end shrink-0 z-20 gap-1.5 pt-0.5">
               {isBoosted && (
                 <Badge
                   className={cn(
-                    'border border-[#FDE047]/90 bg-[#FEF08A] font-extrabold tracking-wide text-slate-900 shadow-sm',
-                    'hover:bg-[#FDE68A]',
-                    'gap-0.5 leading-none whitespace-nowrap',
-                    compact
-                      ? 'px-2.5 py-0.5 text-[11px]'
-                      : 'px-2 py-0.5 text-[11px]',
+                    'border border-yellow-300 bg-yellow-100 font-bold tracking-wide text-yellow-700 shadow-sm whitespace-nowrap',
+                    compact ? 'px-1.5 py-[1px] text-[9px]' : 'px-2 py-0.5 text-[10px]',
                   )}
                 >
+                  <Sparkles className="w-2.5 h-2.5 mr-1 inline-block text-yellow-500" />
                   NỔI BẬT
                 </Badge>
               )}
@@ -222,25 +218,21 @@ export const JobCard = ({
                   variant="ghost"
                   size="icon"
                   className={cn(
-                    'rounded-full shadow-sm hover:shadow active:scale-[0.98] transition-colors duration-150',
-                    'h-8 w-8',
+                    'rounded-full active:scale-90 transition-all duration-300 relative',
+                    compact ? 'h-7 w-7' : 'h-8 w-8',
                     isSaved
-                      ? isBoosted
-                        ? 'bg-yellow-50 hover:bg-yellow-100 border-yellow-200/80'
-                        : 'bg-amber-50 hover:bg-amber-100 border-amber-100'
-                      : 'bg-white hover:bg-gray-50',
+                      ? 'bg-rose-50 text-rose-500 hover:bg-rose-100'
+                      : 'bg-transparent text-slate-300 hover:bg-rose-50 hover:text-rose-400',
                   )}
                   title={isSaved ? 'Đã lưu' : 'Lưu công việc này'}
                   onClick={handleWishlistToggle}
                   disabled={wishlistBusy}
-                  aria-busy={wishlistBusy}
                 >
                   <Heart
                     className={cn(
-                      isSaved
-                        ? 'fill-yellow-500 text-yellow-500'
-                        : 'text-gray-400 hover:text-yellow-500',
-                      'h-4 w-4',
+                      'transition-all duration-300',
+                      compact ? 'h-3.5 w-3.5' : 'h-4 w-4',
+                      isSaved ? 'fill-current scale-110' : 'scale-100'
                     )}
                   />
                 </Button>
@@ -251,91 +243,64 @@ export const JobCard = ({
           <div
             className={cn(
               'flex gap-2 items-end justify-between',
-              compact ? 'mt-1.5' : 'mt-2.5',
+              compact ? 'mt-2.5' : 'mt-4',
+              popoverHover && 'relative z-30'
             )}
           >
-            <div
-              className={cn(
-                'min-w-0 flex-1 space-y-2',
-                popoverHover && 'relative z-30',
-              )}
-              onMouseEnter={popoverHover?.onMouseEnter}
-              onMouseLeave={popoverHover?.onMouseLeave}
-            >
-              <div
-                className={cn(
-                  'flex flex-wrap',
-                  compact ? 'gap-1.5' : 'gap-1.5',
-                )}
-              >
-                <span
-                  className={chipCls}
-                  title={formatSalary(job.salaryMin, job.salaryMax, 'vndCompact')}
-                >
-                  <Wallet
-                    className="h-2.5 w-2.5 shrink-0 text-slate-500"
-                  />
-                  <span className="truncate">
+            <div className="flex flex-col gap-2 flex-1 min-w-0">
+              {/* Tags/Chips */}
+              <div className="flex flex-wrap gap-1.5">
+                <span className={chipCls}>
+                  <Wallet className={cn("shrink-0 text-emerald-500", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                  <span className="truncate font-semibold text-slate-700">
                     {formatSalary(job.salaryMin, job.salaryMax, compact ? 'compact' : 'vndCompact')}
                   </span>
                 </span>
-                {job.workingShift && (
-                  <span className={chipCls}>
-                    <Clock className="h-2.5 w-2.5 shrink-0 text-primary" />
-                    <span className="whitespace-nowrap">
-                      {SHIFTS.find((s) => s.value === job.workingShift)?.label ||
-                        job.workingShift}
-                    </span>
-                  </span>
-                )}
-                <span
-                  className={cn(chipCls, 'max-w-[min(100%,11rem)]')}
-                  title={
-                    job.province || job.address || job.location || 'Toàn quốc'
-                  }
-                >
-                  <MapPin className="h-2.5 w-2.5 shrink-0 text-primary" />
+                <span className={chipCls}>
+                  <MapPin className={cn("shrink-0 text-slate-400", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
                   <span className="truncate">
                     {job.province || job.address || job.location || 'Toàn quốc'}
                   </span>
                 </span>
+                {job.workingShift && (
+                  <span className={chipCls}>
+                    <Clock className={cn("shrink-0 text-primary/70", compact ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                    <span className="whitespace-nowrap">
+                      {SHIFTS.find((s) => s.value === job.workingShift)?.label || job.workingShift}
+                    </span>
+                  </span>
+                )}
               </div>
 
-              <div
-                className={cn('flex flex-wrap', compact ? 'gap-1.5' : 'gap-1.5')}
-              >
-                {job.tags &&
-                  job.tags.length > 0 &&
-                  job.tags.slice(0, 2).map((tag) => (
+              {/* Skills/Tags */}
+              {job.tags && job.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-0.5">
+                  {job.tags.slice(0, 2).map((tag) => (
                     <span
                       key={tag}
-                      className={cn(
-                        'font-semibold bg-primary-muted text-primary rounded-md border border-primary/10 leading-tight max-w-[8rem] truncate',
-                        compact
-                          ? 'text-[10px] px-1.5 py-0.5'
-                          : 'text-[10px] px-1.5 py-0.5',
-                      )}
+                      className="font-medium bg-yellow-100/90 text-yellow-700 border border-yellow-200/80 rounded-md px-1.5 py-[1px] text-[10px] max-w-[8rem] truncate group-hover:bg-yellow-200 transition-colors"
                       title={tag}
                     >
                       {tag}
                     </span>
                   ))}
-              </div>
+                  {job.tags.length > 2 && (
+                    <span className="font-medium text-slate-400 text-[10px] px-1 py-[1px]">
+                      +{job.tags.length - 2}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {(featured || matchPercentage) && (
-              <div
-                className={cn(
-                  'flex flex-col items-end shrink-0',
-                  compact ? 'gap-1.5' : 'gap-1.5',
-                )}
-              >
-                {featured && (
+              <div className="flex flex-col items-end shrink-0 gap-1.5">
+                {featured && !isBoosted && (
                   <Badge
-                    variant="secondary"
+                    variant="outline"
                     className={cn(
-                      'font-extrabold tracking-wide',
-                      compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5',
+                      'font-semibold text-primary/80 border-primary/20 bg-primary/5 shadow-sm',
+                      compact ? 'px-1.5 py-[1px] text-[9px]' : 'px-2 py-0.5 text-[10px]',
                     )}
                   >
                     Mới
@@ -352,11 +317,12 @@ export const JobCard = ({
                         <Badge
                           variant="secondary"
                           className={cn(
-                            'font-extrabold tracking-wide cursor-help shadow-sm',
-                            compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5',
+                            'font-bold tracking-wide cursor-help shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-200/50 bg-white text-primary hover:bg-slate-50',
+                            compact ? 'px-2 py-[2px] text-[10px]' : 'px-2.5 py-0.5',
                           )}
                         >
-                          {matchPercentage}% phù hợp
+                          <Sparkles className="w-2.5 h-2.5 mr-1 inline-block" />
+                          {matchPercentage}%
                         </Badge>
                       </div>
                     </PopoverAnchor>
@@ -369,15 +335,17 @@ export const JobCard = ({
                         collisionPadding={10}
                         onMouseEnter={handleAiEnter}
                         onMouseLeave={handleAiLeave}
-                        className="w-[340px] z-[9999] bg-white border border-primary/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.2)] rounded-[20px] p-5"
+                        className="w-[340px] z-[9999] bg-white/95 backdrop-blur-xl border border-primary/10 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.15)] rounded-[20px] p-5"
                       >
                         <div className="flex items-center gap-2 mb-4">
-                          <Sparkles className="w-4 h-4 text-primary" />
-                          <span className="text-[12px] font-extrabold text-primary uppercase tracking-[0.05em]">
+                          <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Sparkles className="w-3.5 h-3.5 text-primary" />
+                          </div>
+                          <span className="text-[12px] font-bold text-slate-800 uppercase tracking-[0.05em]">
                             Phân tích độ phù hợp
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+                        <div className="grid grid-cols-2 gap-x-8 gap-y-5">
                           <TinyScoreItem
                             label="Kỹ năng"
                             score={matchScores.skillScore}
@@ -424,4 +392,4 @@ export const JobCard = ({
       />
     </Card>
   );
-};
+});

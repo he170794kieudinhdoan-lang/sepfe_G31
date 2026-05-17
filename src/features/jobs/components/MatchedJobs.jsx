@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { MapPin, Heart, Clock, Wallet, Badge } from 'lucide-react';
+import { MapPin, Heart, Clock, Wallet, Badge, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ImageWithFallback } from '@/components/ui/ImageWithFallback';
@@ -153,13 +153,16 @@ export const MatchedJobs = () => {
   return (
     <section className="bg-slate-50/50 py-6 border-y border-slate-100">
       <Container>
-        <div className="flex flex-col mb-4">
-          <h2 className="text-xl font-bold text-slate-900 leading-tight tracking-tight">
-            Việc làm phù hợp với bạn
-          </h2>
-          <p className="text-slate-500 text-xs mt-1">
-            AI gợi ý dựa trên hồ sơ và kĩ năng của bạn
-          </p>
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-amber-500 fill-amber-500" />
+              Việc Làm Phù Hợp
+            </h2>
+            <p className="text-sm text-slate-500 mt-1">
+              Gợi ý dựa trên hồ sơ và kĩ năng của bạn
+            </p>
+          </div>
         </div>
 
         <Carousel

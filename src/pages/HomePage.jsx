@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import { useMemo, useRef, useState, useEffect, useCallback, memo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -17,6 +17,10 @@ import {
   Wallet,
   ArrowRight,
   Star,
+  UserCircle,
+  MessageSquare,
+  BarChart3,
+  Sparkles,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -41,6 +45,7 @@ import {
   useSearchJobs,
   useBoostedJobs,
 } from '@/features/jobs/api/useJobs';
+import { useSearchCompanies } from '@/features/companies/api/useGetCompanies';
 import {
   useWishlist,
   useSaveJob,
@@ -70,6 +75,63 @@ const POPULAR_KEYWORDS = [
   'nhân viên kho',
   'phụ kho - bốc xếp',
 ];
+
+function TopEmployers() {
+  const { data, isLoading } = useSearchCompanies({ limit: 12 });
+  const companies = data?.items || [];
+  
+  if (!isLoading && companies.length === 0) return null;
+
+  return (
+    <div className="py-10 border-t border-slate-100 bg-slate-50/50 overflow-hidden relative">
+      <style dangerouslySetInnerHTML={{__html: `
+        @keyframes custom-marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-custom-marquee {
+          animation: custom-marquee 30s linear infinite;
+          width: max-content;
+        }
+        .marquee-container:hover .animate-custom-marquee {
+          animation-play-state: paused;
+        }
+      `}} />
+      <Container>
+        <div className="text-center mb-8">
+          <h3 className="text-[11px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">ĐỐI TÁC CỦA CHÚNG TÔI</h3>
+          <h2 className="text-2xl font-black text-slate-900">Doanh Nghiệp Hàng Đầu</h2>
+        </div>
+      </Container>
+      
+      <div className="relative flex overflow-hidden marquee-container max-w-full">
+        {/* Gradient overlays for smooth entry/exit effect */}
+        <div className="absolute left-0 top-0 w-16 md:w-32 h-full bg-gradient-to-r from-slate-50/50 to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 w-16 md:w-32 h-full bg-gradient-to-l from-slate-50/50 to-transparent z-10 pointer-events-none" />
+        
+        <div className="flex animate-custom-marquee">
+          {isLoading ? (
+            <div className="flex gap-12 px-6 items-center">
+              {Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="w-16 h-16 md:w-20 md:h-20 rounded-lg shrink-0" />)}
+            </div>
+          ) : (
+            <div className="flex gap-12 px-6 items-center">
+              {[...companies, ...companies].map((c, idx) => (
+                <Link to={`/company/${c.id}`} key={`${c.id}-${idx}`} className="block shrink-0">
+                  <div className="w-16 h-16 md:w-20 md:h-20 relative grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-300 hover:scale-105">
+                    <ImageWithFallback src={c.logoUrl} alt={c.name} className="absolute inset-0 w-full h-full object-contain" />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+
 
 function JobCardSkeleton() {
   return (
@@ -148,15 +210,15 @@ function SaveJobButton({ job }) {
   );
 }
 
-function JobCardHoverPreview({
+const JobCardHoverPreview = memo(function JobCardHoverPreview({
   job,
-  activePreviewKey,
+  isOpen,
   previewKey,
   handleMouseEnter,
   handleMouseLeave,
 }) {
   return (
-    <Popover modal={false} open={activePreviewKey === previewKey}>
+    <Popover modal={false} open={isOpen}>
       <PopoverAnchor asChild>
         <div className="relative">
           <JobCard
@@ -283,7 +345,7 @@ function JobCardHoverPreview({
       </PopoverContent>
     </Popover>
   );
-}
+});
 
 function SearchBarPopover({
   keyword,
@@ -489,22 +551,24 @@ export function HomePage() {
   const [searchMode, setSearchMode] = useState('both');
   const [wardsName, setWardsName] = useState('');
   const [activePreviewKey, setActivePreviewKey] = useState(null);
+  const [isBoostedHovered, setIsBoostedHovered] = useState(false);
+  const [isHeroHovered, setIsHeroHovered] = useState(false);
   const timeoutRef = useRef(null);
 
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'start' });
 
   // Autoplay for Embla
   useEffect(() => {
-    if (!emblaApi) return;
+    if (!emblaApi || isHeroHovered) return;
     const autoplay = setInterval(() => {
       if (emblaApi.canScrollNext()) {
         emblaApi.scrollNext();
       } else {
         emblaApi.scrollTo(0);
       }
-    }, 4000);
+    }, 3000);
     return () => clearInterval(autoplay);
-  }, [emblaApi]);
+  }, [emblaApi, isHeroHovered]);
 
   const [boostedEmblaRef, boostedEmblaApi] = useEmblaCarousel({
     loop: true,
@@ -513,7 +577,7 @@ export function HomePage() {
 
   // Autoplay for Boosted Embla
   useEffect(() => {
-    if (!boostedEmblaApi) return;
+    if (!boostedEmblaApi || isBoostedHovered) return;
     const autoplay = setInterval(() => {
       if (boostedEmblaApi.canScrollNext()) {
         boostedEmblaApi.scrollNext();
@@ -522,21 +586,21 @@ export function HomePage() {
       }
     }, 3000);
     return () => clearInterval(autoplay);
-  }, [boostedEmblaApi]);
+  }, [boostedEmblaApi, isBoostedHovered]);
 
-  const handlePreviewMouseEnter = (key) => {
+  const handlePreviewMouseEnter = useCallback((key) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setActivePreviewKey(key);
     }, 300);
-  };
+  }, []);
 
-  const handlePreviewMouseLeave = () => {
+  const handlePreviewMouseLeave = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
     timeoutRef.current = setTimeout(() => {
       setActivePreviewKey(null);
     }, 200);
-  };
+  }, []);
 
   const { data: newestJobs, isLoading } = useSearchJobs({
     limit: 12,
@@ -551,7 +615,7 @@ export function HomePage() {
     return Array.isArray(boostedJobs?.items) ? boostedJobs.items : [];
   }, [boostedJobs?.items]);
 
-  const chunkedBoostedJobs = useMemo(() => {
+  const columnBoostedJobs = useMemo(() => {
     const featured = [...displayedBoostedJobs];
     const newest = Array.isArray(newestJobs?.items) ? newestJobs.items : [];
     const existingIds = new Set(featured.map((job) => job.id));
@@ -564,102 +628,82 @@ export function HomePage() {
       }
     }
 
-    const chunks = [];
-    for (let i = 0; i < featured.length; i += 6) {
-      chunks.push(featured.slice(i, i + 6));
+    const columns = [];
+    for (let i = 0; i < featured.length; i += 2) {
+      columns.push(featured.slice(i, i + 2));
     }
-    return chunks;
+    return columns;
   }, [displayedBoostedJobs, newestJobs?.items]);
 
   return (
     <div className="bg-background min-h-full font-sans">
       {/* 1. CREATIVE HERO SECTION */}
-      <style>{`
-        /* Bỏ border radius và cố định chiều cao cho tất cả các thẻ Job trên HomePage */
-        .homepage-job-sections [class*="rounded-xl"],
-        .homepage-job-sections [class*="rounded-2xl"] {
-          border-radius: 0 !important;
-        }
-        
-        .homepage-job-sections .group.relative {
-          min-height: 120px !important;
-          height: 100% !important;
-        }
-
-        /* Khôi phục border-radius cho các button/badge bị ảnh hưởng */
-        .homepage-job-sections button[class*="rounded-"],
-        .homepage-job-sections .badge,
-        .homepage-job-sections a[class*="rounded-full"],
-        .homepage-job-sections .rounded-full {
-          border-radius: 9999px !important;
-        }
-      `}</style>
-      <section className="relative flex flex-col items-center justify-center overflow-hidden bg-slate-50 pt-24 pb-16">
+      <section className="relative w-full overflow-hidden bg-slate-50 pt-32 pb-48 md:pt-40 md:pb-56">
         {/* Dynamic Background Elements */}
-        <div className="absolute top-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[60%] bg-primary/10 blur-[120px] rounded-full mix-blend-multiply" />
-          <div className="absolute top-[20%] -right-[10%] w-[40%] h-[50%] bg-amber-400/10 blur-[100px] rounded-full mix-blend-multiply" />
-          <div className="absolute bottom-0 left-0 right-0 h-[40%] bg-gradient-to-t from-slate-50 to-transparent" />
-          {/* Pattern overlay */}
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4IiBoZWlnaHQ9IjgiPgo8cmVjdCB3aWR0aD0iOCIgaGVpZ2h0PSI4IiBmaWxsPSIjZmZmIj48L3JlY3Q+CjxjaXJjbGUgY3g9IjMiIGN5PSIzIiByPSIxIiBmaWxsPSIjZjFmNWY5Ij48L2NpcmNsZT4KPC9zdmc+')] opacity-60" />
+        <div className="absolute inset-0 z-0">
+          <img src="/banner_0.png" alt="hero" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-slate-900/40" />
+        </div>
+
+        {/* Decorative Amber Blobs */}
+        <div className="absolute top-0 w-full h-full overflow-hidden pointer-events-none z-0">
+          <div className="absolute -top-[20%] -left-[10%] w-[50%] h-[60%] bg-amber-500/20 blur-[120px] rounded-full mix-blend-screen" />
+          <div className="absolute top-[20%] -right-[10%] w-[40%] h-[50%] bg-amber-400/20 blur-[100px] rounded-full mix-blend-screen" />
         </div>
 
         <Container className="relative z-10">
-          <div className="grid lg:grid-cols-[1.3fr_0.7fr] gap-12 lg:gap-10 items-center">
-            {/* Left Column: Text & Search */}
-            <div className="flex flex-col items-center lg:items-start text-center lg:text-left pt-10">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white border border-slate-200 shadow-sm mb-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <span className="flex h-2 w-2 rounded-full bg-primary animate-pulse" />
-                <span className="text-xs font-bold text-slate-700 uppercase tracking-widest">
-                  Worklink - Kết nối tin tuyển dụng
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 backdrop-blur-md mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+                <span className="text-[11px] font-black text-amber-400 uppercase tracking-[0.2em]">
+                  Worklink - Nền tảng tuyển dụng hàng đầu
                 </span>
-              </div>
+             </div>
+             
+             <h1 className="text-4xl md:text-5xl lg:text-[56px] font-black text-white leading-[1.25] tracking-tight mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 drop-shadow-sm">
+               Tìm tin{' '}
+               <span className="text-amber-400 relative inline-block">
+                 dễ dàng
+                 <svg
+                   className="absolute -bottom-1 left-0 w-full h-2 text-amber-400/40"
+                   viewBox="0 0 100 20"
+                   preserveAspectRatio="none"
+                 >
+                   <path
+                     d="M0,10 Q50,20 100,10"
+                     stroke="currentColor"
+                     strokeWidth="4"
+                     fill="transparent"
+                   />
+                 </svg>
+               </span>
+               , <br className="hidden md:block" />
+               thông tin{' '}
+               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">
+                 rõ ràng
+               </span>
+               , <br className="hidden md:block" />
+               cơ hội tốt hơn cùng <br />
+               <span className="text-amber-400 inline-block mt-4 text-5xl md:text-6xl lg:text-[72px]">
+                 <Typewriter
+                   onInit={(typewriter) => {
+                     typewriter
+                       .typeString('Worklink')
+                       .pauseFor(3000)
+                       .deleteAll()
+                       .start();
+                   }}
+                   options={{ loop: true, autoStart: true }}
+                 />
+               </span>
+             </h1>
+             
+             <p className="text-lg md:text-xl text-slate-300 font-medium max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
+               Hơn 10.000+ cơ hội việc làm đang chờ đón bạn. Khám phá ngay các vị trí tốt nhất từ những nhà tuyển dụng uy tín hàng đầu.
+             </p>
 
-              <h1 className="text-4xl md:text-5xl lg:text-[52px] font-black text-slate-900 leading-[1.15] tracking-tight mb-6 animate-in fade-in slide-in-from-bottom-6 duration-1000">
-                Tìm tin{' '}
-                <span className="text-primary relative inline-block">
-                  dễ dàng
-                  <svg
-                    className="absolute -bottom-1 left-0 w-full h-2 text-primary/30"
-                    viewBox="0 0 100 20"
-                    preserveAspectRatio="none"
-                  >
-                    <path
-                      d="M0,10 Q50,20 100,10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                      fill="transparent"
-                    />
-                  </svg>
-                </span>
-                , <br />
-                thông tin{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-primary">
-                  rõ ràng
-                </span>
-                , <br />
-                cơ hội tốt hơn cùng <br />
-                <span className="text-primary inline-block mt-2">
-                  <Typewriter
-                    onInit={(typewriter) => {
-                      typewriter
-                        .typeString('Tương Lai')
-                        .pauseFor(3000)
-                        .deleteAll()
-                        .start();
-                    }}
-                    options={{ loop: true, autoStart: true }}
-                  />
-                </span>
-              </h1>
-
-              <p className="text-base text-slate-500 max-w-xl mb-8 font-medium leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
-                Hệ thống kết nối tin tuyển dụng trực tiếp tới các doanh nghiệp
-                hàng đầu.
-              </p>
-
-              {/* Search Box */}
-              <div className="w-full max-w-2xl animate-in fade-in zoom-in-95 duration-1000 delay-300">
+             {/* Search Box */}
+             <div className="w-full max-w-4xl mx-auto pt-8 animate-in fade-in zoom-in-95 duration-1000 delay-300">
                 <SearchBarPopover
                   keyword={keyword}
                   setKeyword={setKeyword}
@@ -675,64 +719,12 @@ export function HomePage() {
                   wardsName={wardsName}
                   setWardsName={setWardsName}
                 />
-              </div>
-            </div>
-
-            {/* Right Column: Carousel Banners */}
-            <div className="relative w-full h-full min-h-[400px] flex flex-col justify-center animate-in fade-in slide-in-from-right-8 duration-1000 delay-300">
-              {/* Decorative background behind carousel */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-primary/5 rounded-full blur-[80px] -z-10 pointer-events-none" />
-
-              <div className="relative group w-full">
-                <div
-                  className="overflow-hidden rounded-[2.5rem] cursor-grab active:cursor-grabbing shadow-2xl shadow-primary/10 border-[6px] border-white bg-white"
-                  ref={emblaRef}
-                >
-                  <div className="flex">
-                    {PROMO_SLIDES.map((slide, i) => (
-                      <div key={i} className="flex-[0_0_100%] min-w-0 relative">
-                        <div className="relative aspect-[4/3] md:aspect-[4/5] lg:aspect-[3/4] overflow-hidden rounded-[2rem]">
-                          <img
-                            src={slide.image}
-                            alt={`Banner ${i}`}
-                            className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-transparent to-transparent pointer-events-none" />
-                          <div className="absolute bottom-0 left-0 p-8 w-full">
-                            <Badge className="bg-primary text-primary-foreground mb-3 border-0 px-3 py-1 text-xs">
-                              Tin tức mới
-                            </Badge>
-                            <h3 className="text-2xl font-bold text-white drop-shadow-md leading-tight">
-                              Xem tin tuyển dụng mới nhất
-                            </h3>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {/* Navigation buttons for Embla */}
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="absolute -left-5 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white shadow-xl border-slate-100 hidden md:flex text-slate-700 hover:text-primary z-10 transition-transform active:scale-95"
-                  onClick={() => emblaApi?.scrollPrev()}
-                >
-                  <ChevronLeft className="h-5 w-5" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="absolute -right-5 top-1/2 -translate-y-1/2 h-12 w-12 rounded-full bg-white shadow-xl border-slate-100 hidden md:flex text-slate-700 hover:text-primary z-10 transition-transform active:scale-95"
-                  onClick={() => emblaApi?.scrollNext()}
-                >
-                  <ChevronRight className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
+             </div>
           </div>
         </Container>
       </section>
+
+
 
       {/* 3. BOOSTED JOBS SECTION */}
       {(isBoostedLoading || displayedBoostedJobs.length > 0) && (
@@ -755,7 +747,7 @@ export function HomePage() {
               </div>
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-slate-900">
                 Tin tuyển dụng{' '}
-                <span className="text-transparent bg-clip-text bg-gradient-to-br from-amber-500 to-orange-500 filter drop-shadow-sm">
+                <span className="text-transparent bg-clip-text bg-gradient-to-br from-yellow-400 to-yellow-500 filter drop-shadow-sm">
                   nổi bật
                 </span>
               </h2>
@@ -765,39 +757,42 @@ export function HomePage() {
               </p>
             </div>
 
-            <div className="relative group px-1">
+            <div 
+              className="relative px-1"
+              onMouseEnter={() => setIsBoostedHovered(true)}
+              onMouseLeave={() => setIsBoostedHovered(false)}
+            >
               <div
                 className="overflow-hidden cursor-grab active:cursor-grabbing p-4 -m-4"
                 ref={boostedEmblaRef}
               >
-                <div className="flex -ml-4 items-stretch">
+                <div className="flex -ml-4 items-stretch will-change-transform transform-gpu">
                   {isBoostedLoading
-                    ? Array.from({ length: 1 }).map((_, slideIdx) => (
+                    ? Array.from({ length: 6 }).map((_, i) => (
                         <div
-                          key={`skel-slide-${slideIdx}`}
-                          className="flex-[0_0_100%] min-w-0 pl-4"
+                          key={`skel-slide-${i}`}
+                          className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333333%] min-w-0 pl-4 py-2"
                         >
-                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {Array.from({ length: 6 }).map((_, i) => (
-                              <JobCardSkeleton key={`boosted-skel-${i}`} />
-                            ))}
+                          <div className="flex flex-col gap-6">
+                            <JobCardSkeleton />
+                            <JobCardSkeleton />
                           </div>
                         </div>
                       ))
-                    : chunkedBoostedJobs.map((chunk, slideIdx) => (
+                    : columnBoostedJobs.map((col, colIdx) => (
                         <div
-                          key={`slide-${slideIdx}`}
-                          className="flex-[0_0_100%] min-w-0 pl-4"
+                          key={`boosted-col-${colIdx}`}
+                          className="flex-[0_0_100%] sm:flex-[0_0_50%] lg:flex-[0_0_33.333333%] min-w-0 pl-4 py-2"
                         >
-                          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {chunk.map((job) => (
+                          <div className="flex flex-col gap-6 h-full">
+                            {col.map((job) => (
                               <div
                                 key={`boosted-${job.id}`}
-                                className="transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl rounded-2xl"
+                                className="transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl rounded-2xl flex-1"
                               >
                                 <JobCardHoverPreview
                                   job={job}
-                                  activePreviewKey={activePreviewKey}
+                                  isOpen={activePreviewKey === `boosted-${job.id}`}
                                   previewKey={`boosted-${job.id}`}
                                   handleMouseEnter={handlePreviewMouseEnter}
                                   handleMouseLeave={handlePreviewMouseLeave}
@@ -811,7 +806,7 @@ export function HomePage() {
               </div>
 
               {/* Navigation buttons for Boosted Embla */}
-              {chunkedBoostedJobs.length > 1 && (
+              {columnBoostedJobs.length > 1 && (
                 <>
                   <Button
                     variant="outline"
@@ -867,7 +862,7 @@ export function HomePage() {
                   >
                     <JobCardHoverPreview
                       job={job}
-                      activePreviewKey={activePreviewKey}
+                      isOpen={activePreviewKey === `newest-${job.id}`}
                       previewKey={`newest-${job.id}`}
                       handleMouseEnter={handlePreviewMouseEnter}
                       handleMouseLeave={handlePreviewMouseLeave}
@@ -891,7 +886,12 @@ export function HomePage() {
         </Container>
       </section>
 
-      {/* 5. SUPPORT TICKET SECTION */}
+      {/* 5. TOP EMPLOYERS */}
+      <TopEmployers />
+
+
+
+      {/* 7. SUPPORT TICKET SECTION */}
       <section className="bg-amber-50 py-20 relative overflow-hidden text-slate-900 border-t border-amber-100">
         {/* Abstract shapes for light section */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-amber-300/30 rounded-full blur-[120px] opacity-60 pointer-events-none" />
