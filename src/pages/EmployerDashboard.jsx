@@ -1383,7 +1383,6 @@ const JobApplicantsPanel = ({
         {/* Left: Candidate List */}
         <div className="w-[40%] shrink-0 border-r border-slate-100 flex flex-col overflow-hidden bg-slate-50/30">
           <div className="p-3.5 border-b border-slate-100 px-5 space-y-3">
-
             <div className="flex items-center justify-between gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -1426,19 +1425,29 @@ const JobApplicantsPanel = ({
               <div className="flex gap-2 shrink-0">
                 <Button
                   size="sm"
-                  variant={inviteConstraints?.hasExistingSchedule ? 'outline' : 'default'}
+                  variant={
+                    inviteConstraints?.hasExistingSchedule
+                      ? 'outline'
+                      : 'default'
+                  }
                   className={cn(
                     'h-8 text-xs rounded-xl gap-1.5',
-                    !inviteConstraints?.hasExistingSchedule && 'bg-amber-500 hover:bg-amber-600 text-white'
+                    !inviteConstraints?.hasExistingSchedule &&
+                      'bg-amber-500 hover:bg-amber-600 text-white',
                   )}
                   onClick={() => {
-                    const action = inviteConstraints?.hasExistingSchedule ? 'edit' : 'create';
+                    const action = inviteConstraints?.hasExistingSchedule
+                      ? 'edit'
+                      : 'create';
                     navigate(
                       `/employer/interviews?jobId=${encodeURIComponent(jobId)}&action=${action}`,
                     );
                   }}
                 >
-                  <Users size={12} /> {inviteConstraints?.hasExistingSchedule ? 'Sửa lịch phỏng vấn' : 'Tạo lịch phỏng vấn'}
+                  <Users size={12} />{' '}
+                  {inviteConstraints?.hasExistingSchedule
+                    ? 'Sửa lịch phỏng vấn'
+                    : 'Tạo lịch phỏng vấn'}
                 </Button>
                 {selectedApplicantIds.size > 0 && (
                   <Button
@@ -2383,7 +2392,6 @@ const MatchedWorkersPanel = ({
 
           {/* Right: Worker list */}
           <div className="space-y-3 flex flex-col h-full">
-
             {/* Danh sách ứng viên được mời */}
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-3">
@@ -3521,7 +3529,10 @@ export const EmployerDashboard = () => {
                         <table className="w-full text-sm text-left">
                           <thead className="bg-slate-50/90 text-slate-700 font-semibold border-b border-slate-200">
                             <tr>
-                              <th className="py-3.5 px-4 rounded-tl-lg whitespace-nowrap">
+                              <th className="px-4 py-3.5 rounded-tl-lg whitespace-nowrap">
+                                ID
+                              </th>
+                              <th className="py-3.5 px-4 whitespace-nowrap">
                                 Tiêu đề công việc
                               </th>
                               <th className="px-4 whitespace-nowrap text-center">
@@ -3545,7 +3556,7 @@ export const EmployerDashboard = () => {
                             {loadingJobs ? (
                               <tr>
                                 <td
-                                  colSpan="6"
+                                  colSpan="7"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <Loader2 className="animate-spin mx-auto text-primary" />
@@ -3558,7 +3569,7 @@ export const EmployerDashboard = () => {
                               ).length === 0 ? (
                               <tr>
                                 <td
-                                  colSpan="6"
+                                  colSpan="7"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <div className="flex flex-col items-center gap-2">
@@ -3588,6 +3599,11 @@ export const EmployerDashboard = () => {
                                       key={job.id}
                                       className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors"
                                     >
+                                      <td className="py-4 px-4">
+                                        <span className="text-[11px] font-bold text-slate-400 tabular-nums">
+                                          {job.id}
+                                        </span>
+                                      </td>
                                       <td className="py-4 px-4">
                                         <p className="font-semibold text-slate-800">
                                           {job.title}

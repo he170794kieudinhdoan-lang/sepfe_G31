@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   getEmployerOverviewApi,
-  getApplicationFunnelApi,
+  getDashboardStatsApi,
+  getJobFunnelApi,
   getEmployerPaymentsApi,
   getJobStatusApi,
 } from './statisticApi';
@@ -15,10 +16,20 @@ export const useEmployerOverview = () => {
   });
 };
 
-export const useApplicationFunnel = (jobId) => {
+export const useDashboardStats = (params) => {
   return useQuery({
-    queryKey: ['application-funnel', jobId],
-    queryFn: () => getApplicationFunnelApi(jobId),
+    queryKey: ['dashboard-stats', params],
+    queryFn: () => getDashboardStatsApi(params),
+    staleTime: 0,
+    retry: 1,
+  });
+};
+
+export const useJobFunnel = (jobId) => {
+  return useQuery({
+    queryKey: ['job-funnel', jobId],
+    queryFn: () => getJobFunnelApi(jobId),
+    enabled: !!jobId,
     staleTime: 0,
     retry: 1,
   });
