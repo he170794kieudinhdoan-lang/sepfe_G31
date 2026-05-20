@@ -533,6 +533,15 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                       )}
 
                       <div className="flex flex-wrap items-center gap-2 pt-2">
+                        {invitation.campaign.jobId && (
+                          <Button
+                            variant="default"
+                            className="rounded-full px-5 shadow-sm"
+                            onClick={() => navigate(`/job/${invitation.campaign.jobId}`)}
+                          >
+                            Xem tin tuyển dụng
+                          </Button>
+                        )}
                         <Button
                           variant="outline"
                           className="rounded-full border-slate-200 px-5 shadow-sm"

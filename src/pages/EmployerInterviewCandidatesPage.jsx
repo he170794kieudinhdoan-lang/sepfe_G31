@@ -17,7 +17,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Search, Loader2, Calendar, ArrowLeft } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Search, Loader2, Calendar, ArrowLeft, User, Briefcase, MapPin, Clock, Mail, Phone } from 'lucide-react';
 import { useSuitableApplications } from '@/features/jobs/api/useJobs';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { EMPLOYER_MENU } from '@/pages/EmployerDashboard';
@@ -34,6 +40,7 @@ export const EmployerInterviewCandidatesPage = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [interviewStatus, setInterviewStatus] = useState('ALL');
   const [slotId, setSlotId] = useState('ALL');
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
   const limit = 10;
 
   // Debounce search
@@ -56,19 +63,14 @@ export const EmployerInterviewCandidatesPage = () => {
 
   const renderStatusBadge = (invitation) => {
     if (!invitation) return null;
-    switch (invitation.status) {
-      case 'PENDING':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"><span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>Chưa phản hồi</span>;
-      case 'ACCEPTED':
-        const slotText = invitation.selectedSlot
-          ? `${new Date(invitation.selectedSlot.startAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}`
-          : 'Đã chọn';
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"><Calendar className="h-3 w-3" />{slotText}</span>;
-      case 'REJECTED':
-        return <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20"><span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>Không tham gia được</span>;
-      default:
-        return null;
+    if (invitation.selectedSlot) {
+      const slotText = `${new Date(invitation.selectedSlot.startAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}`;
+      return <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20"><Calendar className="h-3 w-3" />{slotText}</span>;
     }
+    if (invitation.status === 'REJECTED') {
+      return <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2 py-1 text-xs font-medium text-rose-700 ring-1 ring-inset ring-rose-600/20"><span className="h-1.5 w-1.5 rounded-full bg-rose-500"></span>Không tham gia</span>;
+    }
+    return <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2 py-1 text-xs font-medium text-amber-700 ring-1 ring-inset ring-amber-600/20"><span className="h-1.5 w-1.5 rounded-full bg-amber-500"></span>Chưa chọn ca</span>;
   };
 
   const applications = data?.data || [];
@@ -115,8 +117,8 @@ export const EmployerInterviewCandidatesPage = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
-                    <SelectItem value="PENDING">Chưa phản hồi</SelectItem>
-                    <SelectItem value="ACCEPTED">Tham gia được</SelectItem>
+                    <SelectItem value="ACCEPTED">Đã chọn ca</SelectItem>
+                    <SelectItem value="NO_SLOT">Chưa chọn ca</SelectItem>
                     <SelectItem value="REJECTED">Không tham gia</SelectItem>
                   </SelectContent>
                 </Select>
@@ -173,7 +175,8 @@ export const EmployerInterviewCandidatesPage = () => {
                     return (
                       <div
                         key={app.id}
-                        className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md transition-shadow"
+                        className="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-primary/30 transition-all cursor-pointer"
+                        onClick={() => setSelectedCandidate(app)}
                       >
                         <div className="h-14 w-14 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
                           {app.user?.avatar ? (
@@ -253,6 +256,114 @@ export const EmployerInterviewCandidatesPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Candidate Profile Dialog */}
+      <Dialog open={!!selectedCandidate} onOpenChange={(open) => !open && setSelectedCandidate(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg">Thông tin ứng viên</DialogTitle>
+          </DialogHeader>
+          {selectedCandidate?.user && (() => {
+            const user = selectedCandidate.user;
+            const profile = user.workerProfile;
+            const invitation = user.interviewInvitations?.[0];
+            const genderMap = { MALE: 'Nam', FEMALE: 'Nữ', OTHER: 'Khác' };
+            const shiftMap = { DAY: 'Ca ngày', NIGHT: 'Ca đêm', FLEXIBLE: 'Linh hoạt' };
+            return (
+              <div className="space-y-5">
+                {/* Avatar + Name */}
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-slate-200 bg-slate-100">
+                    {user.avatar ? (
+                      <img src={user.avatar} alt={user.fullName} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-slate-400">
+                        {(user.fullName || 'W').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900">{user.fullName}</h3>
+                    {profile?.occupation?.name && (
+                      <p className="text-sm text-primary font-medium">{profile.occupation.name}</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Contact Info */}
+                <div className="rounded-lg bg-slate-50 p-4 space-y-2.5">
+                  <div className="flex items-center gap-2.5 text-sm">
+                    <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span className="text-slate-700">{user.email || 'Chưa cập nhật'}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 text-sm">
+                    <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span className="text-slate-700">{user.phone || 'Chưa có SĐT'}</span>
+                  </div>
+                  {profile?.province && (
+                    <div className="flex items-center gap-2.5 text-sm">
+                      <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                      <span className="text-slate-700">{profile.province}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Profile Details */}
+                {profile && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {profile.gender && (
+                      <div className="rounded-lg border border-slate-200 p-3">
+                        <p className="text-xs text-slate-400 mb-0.5">Giới tính</p>
+                        <p className="text-sm font-medium text-slate-800">{genderMap[profile.gender] || profile.gender}</p>
+                      </div>
+                    )}
+                    {profile.birthYear && (
+                      <div className="rounded-lg border border-slate-200 p-3">
+                        <p className="text-xs text-slate-400 mb-0.5">Năm sinh</p>
+                        <p className="text-sm font-medium text-slate-800">{profile.birthYear}</p>
+                      </div>
+                    )}
+                    {profile.experienceYear != null && (
+                      <div className="rounded-lg border border-slate-200 p-3">
+                        <p className="text-xs text-slate-400 mb-0.5">Kinh nghiệm</p>
+                        <p className="text-sm font-medium text-slate-800">{profile.experienceYear} năm</p>
+                      </div>
+                    )}
+                    {profile.expectedSalary != null && (
+                      <div className="rounded-lg border border-slate-200 p-3">
+                        <p className="text-xs text-slate-400 mb-0.5">Lương mong muốn</p>
+                        <p className="text-sm font-medium text-slate-800">{Number(profile.expectedSalary).toLocaleString('vi-VN')}đ</p>
+                      </div>
+                    )}
+                    {profile.shift && (
+                      <div className="rounded-lg border border-slate-200 p-3 col-span-2">
+                        <p className="text-xs text-slate-400 mb-0.5">Ca làm việc</p>
+                        <p className="text-sm font-medium text-slate-800">{shiftMap[profile.shift] || profile.shift}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Bio */}
+                {profile?.bio && (
+                  <div className="rounded-lg border border-slate-200 p-3">
+                    <p className="text-xs text-slate-400 mb-1">Giới thiệu bản thân</p>
+                    <p className="text-sm text-slate-700 whitespace-pre-line">{profile.bio}</p>
+                  </div>
+                )}
+
+                {/* Interview Status */}
+                {invitation && (
+                  <div className="flex items-center justify-between rounded-lg bg-primary/5 border border-primary/10 p-3">
+                    <span className="text-sm text-slate-600">Trạng thái phỏng vấn</span>
+                    {renderStatusBadge(invitation)}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

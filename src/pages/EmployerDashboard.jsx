@@ -63,6 +63,8 @@ import {
   Trash2,
   Send,
   Wallet,
+  Star,
+  Zap,
 } from 'lucide-react';
 import { useGetMyCompany } from '@/features/companies/api/useGetCompanies';
 import {
@@ -85,6 +87,7 @@ import {
   createCampaign,
   getCampaignDetail,
   getJobInviteConstraints,
+  getInvitedWorkersByJob,
   sendCampaign,
 } from '@/features/interview-invitations/api/interviewInvitationApi';
 import { SHIFTS, GENDERS } from '@/shared/constants/enums';
@@ -399,10 +402,10 @@ const ApplicantDetailPane = ({
               <p className="font-medium mt-1">
                 {applicantDetail.user?.workerProfile?.expectedSalary
                   ? new Intl.NumberFormat('vi-VN', {
-                      style: 'currency',
-                      currency: 'VND',
-                      notation: 'compact',
-                    }).format(applicantDetail.user.workerProfile.expectedSalary)
+                    style: 'currency',
+                    currency: 'VND',
+                    notation: 'compact',
+                  }).format(applicantDetail.user.workerProfile.expectedSalary)
                   : 'Thỏa thuận'}
               </p>
             </div>
@@ -461,11 +464,10 @@ const ApplicantDetailPane = ({
                 <button
                   key={status.value}
                   onClick={() => onRequestStatusChange(status.value)}
-                  className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
-                    applicantStatus === status.value
+                  className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
                       ? status.activeClass
                       : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {status.label}
                 </button>
@@ -1433,7 +1435,7 @@ const JobApplicantsPanel = ({
                   className={cn(
                     'h-8 text-xs rounded-xl gap-1.5',
                     !inviteConstraints?.hasExistingSchedule &&
-                      'bg-amber-500 hover:bg-amber-600 text-white',
+                    'bg-amber-500 hover:bg-amber-600 text-white',
                   )}
                   onClick={() => {
                     const action = inviteConstraints?.hasExistingSchedule
@@ -1482,11 +1484,10 @@ const JobApplicantsPanel = ({
                 return (
                   <div
                     key={a.id}
-                    className={`group w-full flex items-start gap-2 p-2 rounded-xl border transition-all cursor-pointer ${
-                      isSelected
+                    className={`group w-full flex items-start gap-2 p-2 rounded-xl border transition-all cursor-pointer ${isSelected
                         ? 'bg-primary/5 border-primary/25 shadow-sm'
                         : 'bg-white border-slate-100 hover:border-primary/20 hover:bg-slate-50'
-                    }`}
+                      }`}
                     onClick={() => handleSelectApplicant(a)}
                   >
                     <div className="flex-1 min-w-0 flex items-start gap-3">
@@ -1791,11 +1792,10 @@ const JobApplicantsPanel = ({
                       key={slot.id}
                       type="button"
                       onClick={() => setSelectedInviteSlotId(slot.id)}
-                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${
-                        active
+                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${active
                           ? 'border-primary bg-primary/10 text-primary'
                           : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                      }`}
+                        }`}
                     >
                       <p className="text-xs font-semibold">Ca #{index + 1}</p>
                       <p className="mt-1 text-xs">
@@ -1875,11 +1875,10 @@ const MatchedWorkerListItem = ({
 
   return (
     <div
-      className={`group w-full flex items-center gap-2 p-1.5 rounded-xl border transition-all ${
-        isActive
+      className={`group w-full flex items-center gap-2 p-1.5 rounded-xl border transition-all ${isActive
           ? 'bg-primary/5 border-primary/25 shadow-sm'
           : 'bg-white border-slate-100 hover:border-primary/20 hover:bg-slate-50'
-      }`}
+        }`}
     >
       <div className="pl-1.5 pr-0.5">
         <Checkbox
@@ -2088,6 +2087,26 @@ const MatchedWorkersPanel = ({
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [isSending, setIsSending] = useState(false);
 
+  // Manage invited workers modal state
+  const [manageModalOpen, setManageModalOpen] = useState(false);
+  const [invitedWorkers, setInvitedWorkers] = useState([]);
+  const [loadingInvited, setLoadingInvited] = useState(false);
+  const [manageSearch, setManageSearch] = useState('');
+  const [manageFilter, setManageFilter] = useState('ALL');
+
+  const handleOpenManageModal = async () => {
+    setManageModalOpen(true);
+    setLoadingInvited(true);
+    try {
+      const data = await getInvitedWorkersByJob(jobId);
+      setInvitedWorkers(Array.isArray(data) ? data : []);
+    } catch {
+      setInvitedWorkers([]);
+    } finally {
+      setLoadingInvited(false);
+    }
+  };
+
   // Auto-select first worker when data loads
   useEffect(() => {
     if (workers.length > 0 && !selectedWorker) {
@@ -2269,15 +2288,25 @@ const MatchedWorkersPanel = ({
             Hệ thống gợi ý {workers.length} ứng viên cho bạn
           </p>
         </div>
-        {selectedIds.size > 0 && (
+        <div className="flex items-center gap-2 shrink-0">
           <Button
             size="sm"
-            className="rounded-xl h-9 gap-2 shadow-md animate-in zoom-in duration-200"
-            onClick={() => setInviteModalOpen(true)}
+            variant="outline"
+            className="rounded-xl h-9 gap-2"
+            onClick={handleOpenManageModal}
           >
-            <Send size={14} /> Mời phỏng vấn ({selectedIds.size})
+            <Users size={14} /> Quản lý lời mời
           </Button>
-        )}
+          {selectedIds.size > 0 && (
+            <Button
+              size="sm"
+              className="rounded-xl h-9 gap-2 shadow-md animate-in zoom-in duration-200"
+              onClick={() => setInviteModalOpen(true)}
+            >
+              <Send size={14} /> Mời phỏng vấn ({selectedIds.size})
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Panel Body */}
@@ -2356,9 +2385,9 @@ const MatchedWorkersPanel = ({
         onClose={() =>
           !isSending &&
           (setInviteModalOpen(false),
-          setInviteSlots([]),
-          setInviteMessage(''),
-          setSelectedSlotId(null))
+            setInviteSlots([]),
+            setInviteMessage(''),
+            setSelectedSlotId(null))
         }
         title="Gửi lời mời ứng tuyển"
         contentClassName="max-w-2xl min-h-[40vh]"
@@ -2435,6 +2464,128 @@ const MatchedWorkersPanel = ({
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* Manage Invited Workers Modal */}
+      <Modal
+        open={manageModalOpen}
+        onClose={() => { setManageModalOpen(false); setManageSearch(''); setManageFilter('ALL'); }}
+        title="Quản lý lời mời ứng tuyển"
+        contentClassName="max-w-lg"
+        bodyClassName="space-y-3"
+        cancelLabel="Đóng"
+      >
+        {loadingInvited ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            <span className="ml-2 text-sm text-slate-500">Đang tải...</span>
+          </div>
+        ) : invitedWorkers.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="h-12 w-12 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Users className="text-slate-400" size={20} />
+            </div>
+            <p className="text-slate-500 font-medium">Chưa mời ứng viên nào</p>
+          </div>
+        ) : (() => {
+          const statusTabs = [
+            { key: 'ALL', label: 'Tất cả', count: invitedWorkers.length },
+            { key: 'ACCEPTED', label: 'Đã đồng ý', count: invitedWorkers.filter(i => i.status === 'ACCEPTED').length, color: 'text-emerald-600' },
+            { key: 'REJECTED', label: 'Đã từ chối', count: invitedWorkers.filter(i => i.status === 'REJECTED').length, color: 'text-rose-600' },
+            { key: 'PENDING', label: 'Chưa phản hồi', count: invitedWorkers.filter(i => i.status === 'PENDING').length, color: 'text-amber-600' },
+          ];
+          const filtered = invitedWorkers.filter((inv) => {
+            if (manageFilter !== 'ALL' && inv.status !== manageFilter) return false;
+            if (manageSearch.trim()) {
+              const q = manageSearch.toLowerCase().trim();
+              const name = (inv.worker?.fullName || '').toLowerCase();
+              const phone = (inv.worker?.phone || '').toLowerCase();
+              const email = (inv.worker?.email || '').toLowerCase();
+              if (!name.includes(q) && !phone.includes(q) && !email.includes(q)) return false;
+            }
+            return true;
+          });
+          return (
+            <>
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input
+                  placeholder="Tìm theo tên, SĐT, email..."
+                  value={manageSearch}
+                  onChange={(e) => setManageSearch(e.target.value)}
+                  className="pl-9 h-9 rounded-xl text-sm"
+                />
+              </div>
+              {/* Status Filter Tabs */}
+              <div className="flex gap-1.5 flex-wrap">
+                {statusTabs.map((tab) => (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    onClick={() => setManageFilter(tab.key)}
+                    className={`text-xs font-medium px-3 py-1.5 rounded-lg border transition-all ${manageFilter === tab.key
+                        ? 'bg-primary text-white border-primary shadow-sm'
+                        : 'bg-white text-slate-600 border-slate-200 hover:border-primary/30'
+                      }`}
+                  >
+                    {tab.label} <span className={manageFilter === tab.key ? 'text-white/80' : (tab.color || 'text-slate-400')}>({tab.count})</span>
+                  </button>
+                ))}
+              </div>
+              {/* List */}
+              {filtered.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-slate-400 text-sm">Không tìm thấy ứng viên phù hợp</p>
+                </div>
+              ) : (
+                <div className="space-y-2 max-h-[350px] overflow-y-auto custom-scrollbar">
+                  {filtered.map((inv) => {
+                    const statusMap = {
+                      PENDING: { label: 'Chưa phản hồi', color: 'bg-amber-50 text-amber-700 border-amber-200' },
+                      ACCEPTED: { label: 'Đã đồng ý', color: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+                      REJECTED: { label: 'Đã từ chối', color: 'bg-rose-50 text-rose-700 border-rose-200' },
+                    };
+                    const st = statusMap[inv.status] || statusMap.PENDING;
+                    return (
+                      <div
+                        key={inv.id}
+                        className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-white hover:bg-slate-50 transition-colors"
+                      >
+                        <img
+                          src={
+                            inv.worker?.avatar ||
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                              inv.worker?.fullName || 'U',
+                            )}&background=ede9fe&color=6d28d9`
+                          }
+                          alt="avatar"
+                          className="w-10 h-10 rounded-xl object-cover border border-slate-100 shrink-0"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-800 text-sm truncate">
+                            {inv.worker?.fullName || 'Ứng viên'}
+                          </p>
+                          <p className="text-xs text-slate-400 truncate">
+                            {inv.worker?.phone || inv.worker?.email || ''}
+                            {inv.respondedAt && (
+                              <> • {new Date(inv.respondedAt).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</>
+                            )}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg border ${st.color}`}
+                        >
+                          {st.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </>
+          );
+        })()}
       </Modal>
     </div>
   );
@@ -3260,68 +3411,68 @@ export const EmployerDashboard = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                 {loadingOverview
                   ? Array.from({ length: 4 }).map((_, idx) => (
+                    <Card
+                      key={idx}
+                      className="p-5 rounded-xl border border-slate-200 shadow-sm bg-white animate-pulse"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="w-11 h-11 rounded-lg bg-slate-100" />
+                      </div>
+                      <div className="mt-4 space-y-2">
+                        <div className="h-8 w-16 bg-slate-100 rounded-lg" />
+                        <div className="h-4 w-24 bg-slate-100 rounded" />
+                      </div>
+                    </Card>
+                  ))
+                  : buildKpiItems(overview).map((item, idx) => {
+                    const isPositive = item.change > 0;
+                    const isNegative = item.change < 0;
+                    const trendColor = isPositive
+                      ? 'text-emerald-600'
+                      : isNegative
+                        ? 'text-rose-600'
+                        : 'text-slate-500';
+
+                    return (
                       <Card
                         key={idx}
-                        className="p-5 rounded-xl border border-slate-200 shadow-sm bg-white animate-pulse"
+                        className="p-5 rounded-2xl border border-slate-200/60 shadow-sm bg-white flex flex-col justify-between hover:border-primary/25 transition-all hover:shadow-md group"
                       >
-                        <div className="flex justify-between items-start">
-                          <div className="w-11 h-11 rounded-lg bg-slate-100" />
-                        </div>
-                        <div className="mt-4 space-y-2">
-                          <div className="h-8 w-16 bg-slate-100 rounded-lg" />
-                          <div className="h-4 w-24 bg-slate-100 rounded" />
-                        </div>
-                      </Card>
-                    ))
-                  : buildKpiItems(overview).map((item, idx) => {
-                      const isPositive = item.change > 0;
-                      const isNegative = item.change < 0;
-                      const trendColor = isPositive
-                        ? 'text-emerald-600'
-                        : isNegative
-                          ? 'text-rose-600'
-                          : 'text-slate-500';
+                        <div>
+                          <p className="text-[13px] font-medium text-slate-500 mb-2">
+                            {item.label}
+                          </p>
+                          <div className="text-3xl font-bold tabular-nums text-slate-900 tracking-tight flex  gap-4 ">
+                            {item.isPercentage
+                              ? `${(item.value || 0).toLocaleString('vi-VN')}%`
+                              : (item.value || 0).toLocaleString('vi-VN')}
 
-                      return (
-                        <Card
-                          key={idx}
-                          className="p-5 rounded-2xl border border-slate-200/60 shadow-sm bg-white flex flex-col justify-between hover:border-primary/25 transition-all hover:shadow-md group"
-                        >
-                          <div>
-                            <p className="text-[13px] font-medium text-slate-500 mb-2">
-                              {item.label}
-                            </p>
-                            <div className="text-3xl font-bold tabular-nums text-slate-900 tracking-tight flex  gap-4 ">
-                              {item.isPercentage
-                                ? `${(item.value || 0).toLocaleString('vi-VN')}%`
-                                : (item.value || 0).toLocaleString('vi-VN')}
-
-                              <div
-                                className={`mt-4 flex items-center gap-1.5 text-[13px] font-bold ${trendColor}`}
-                              >
-                                {isPositive ? (
-                                  <span className="flex items-center gap-0.5">
-                                    ▲{' '}
-                                    {item.isCountTrend
-                                      ? `${item.change} tin mới tuần này`
-                                      : `${Math.abs(item.change)}% so với tháng trước`}
-                                  </span>
-                                ) : isNegative ? (
-                                  <span className="flex items-center gap-0.5">
-                                    ▼ {Math.abs(item.change)}% so với tháng
-                                    trước
-                                  </span>
-                                ) : (
-                                  <span className="text-slate-400">
-                                    Không có thay đổi
-                                  </span>
-                                )}
-                              </div>
+                            <div
+                              className={`mt-4 flex items-center gap-1.5 text-[13px] font-bold ${trendColor}`}
+                            >
+                              {isPositive ? (
+                                <span className="flex items-center gap-0.5">
+                                  ▲{' '}
+                                  {item.isCountTrend
+                                    ? `${item.change} tin mới tuần này`
+                                    : `${Math.abs(item.change)}% so với tháng trước`}
+                                </span>
+                              ) : isNegative ? (
+                                <span className="flex items-center gap-0.5">
+                                  ▼ {Math.abs(item.change)}% so với tháng
+                                  trước
+                                </span>
+                              ) : (
+                                <span className="text-slate-400">
+                                  Không có thay đổi
+                                </span>
+                              )}
                             </div>
                           </div>
-                        </Card>
-                      );
-                    })}
+                        </div>
+                      </Card>
+                    );
+                  })}
               </div>
 
               {/* Quick Actions & Recent Applicants Preview */}
@@ -3529,10 +3680,7 @@ export const EmployerDashboard = () => {
                         <table className="w-full text-sm text-left">
                           <thead className="bg-slate-50/90 text-slate-700 font-semibold border-b border-slate-200">
                             <tr>
-                              <th className="px-4 py-3.5 rounded-tl-lg whitespace-nowrap">
-                                ID
-                              </th>
-                              <th className="py-3.5 px-4 whitespace-nowrap">
+                              <th className="py-3.5 px-4 whitespace-nowrap rounded-tl-lg">
                                 Tiêu đề công việc
                               </th>
                               <th className="px-4 whitespace-nowrap text-center">
@@ -3556,20 +3704,20 @@ export const EmployerDashboard = () => {
                             {loadingJobs ? (
                               <tr>
                                 <td
-                                  colSpan="7"
+                                  colSpan="6"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <Loader2 className="animate-spin mx-auto text-primary" />
                                 </td>
                               </tr>
                             ) : jobs.filter((j) =>
-                                j.title
-                                  .toLowerCase()
-                                  .includes(jobSearchText.toLowerCase()),
-                              ).length === 0 ? (
+                              j.title
+                                .toLowerCase()
+                                .includes(jobSearchText.toLowerCase()),
+                            ).length === 0 ? (
                               <tr>
                                 <td
-                                  colSpan="7"
+                                  colSpan="6"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <div className="flex flex-col items-center gap-2">
@@ -3599,11 +3747,6 @@ export const EmployerDashboard = () => {
                                       key={job.id}
                                       className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors"
                                     >
-                                      <td className="py-4 px-4">
-                                        <span className="text-[11px] font-bold text-slate-400 tabular-nums">
-                                          {job.id}
-                                        </span>
-                                      </td>
                                       <td className="py-4 px-4">
                                         <p className="font-semibold text-slate-800">
                                           {job.title}
@@ -3670,8 +3813,8 @@ export const EmployerDashboard = () => {
                                             Đang nổi bật đến{' '}
                                             {job.boostExpiredAt
                                               ? new Date(
-                                                  job.boostExpiredAt,
-                                                ).toLocaleDateString('vi-VN')
+                                                job.boostExpiredAt,
+                                              ).toLocaleDateString('vi-VN')
                                               : 'không thời hạn'}
                                           </Badge>
                                         ) : (
@@ -4112,12 +4255,8 @@ export const EmployerDashboard = () => {
 
       <Modal
         open={boostModalOpen}
-        title="Đăng tin nổi bật"
-        description={
-          selectedBoostJob
-            ? `Xác nhận boost tin bằng point: ${selectedBoostJob.title}`
-            : 'Xác nhận boost tin tuyển dụng bằng point'
-        }
+        title="Đẩy tin nổi bật"
+        description=""
         onClose={() => {
           setBoostModalOpen(false);
           setSelectedBoostJob(null);
@@ -4126,128 +4265,115 @@ export const EmployerDashboard = () => {
         confirmLabel={
           createBoostCheckoutMutation.isPending
             ? 'Đang xử lý...'
-            : 'Boost bằng point'
+            : `Xác nhận — ${Number(selectedBoostPackage?.price || configuredBoostPointCost).toLocaleString('vi-VN')} điểm`
         }
         cancelLabel="Hủy"
         confirmDisabled={createBoostCheckoutMutation.isPending}
       >
-        <div className="mt-1 space-y-4">
-          <div className="rounded-2xl border border-primary/20 bg-gradient-to-r from-primary/10 via-primary/5 to-white p-4">
-            <p className="text-[11px] font-bold uppercase tracking-[0.15em] text-primary/80">
-              Tin đang chọn
-            </p>
-            <p className="mt-1 text-sm font-semibold text-slate-900 line-clamp-2">
-              {selectedBoostJob?.title || 'Tin tuyển dụng'}
-            </p>
-            <p className="mt-2 text-xs text-slate-600">
-              Chọn gói phù hợp để đẩy tin lên vị trí ưu tiên và tăng khả năng
-              tiếp cận ứng viên.
-            </p>
+        <div className="space-y-5 -mt-2">
+          {/* Header with gradient */}
+          <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-5 text-white">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/2" />
+            <div className="relative">
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="h-5 w-5" />
+                <span className="text-sm font-bold uppercase tracking-wider opacity-90">Tin đang chọn</span>
+              </div>
+              <h3 className="text-lg font-bold line-clamp-2 leading-snug">
+                {selectedBoostJob?.title || 'Tin tuyển dụng'}
+              </h3>
+              <p className="mt-2 text-sm opacity-80 leading-relaxed">
+                Đưa tin lên vị trí ưu tiên, tăng lượt xem và thu hút nhiều ứng viên chất lượng hơn.
+              </p>
+            </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_290px]">
-            <div className="space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                Chọn thời hạn đẩy tin
-              </p>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {boostPackageOptions.map((pkg) => {
-                  const isSelected =
-                    String(pkg.id) === String(selectedBoostPackage?.id);
-                  const durationDays = Number(pkg.durationDays || 0);
-                  const price = Number(pkg.price || 0);
-                  const pointPerDay =
-                    durationDays > 0 ? Math.round(price / durationDays) : price;
-                  return (
-                    <button
-                      key={`${pkg.id}-${pkg.durationDays}`}
-                      type="button"
-                      className={`group w-full rounded-2xl border p-4 text-left transition-all ${
-                        isSelected
-                          ? 'border-primary bg-primary/10 shadow-sm ring-2 ring-primary/20'
-                          : 'border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300'
+          {/* Package Selection */}
+          <div>
+            <p className="text-sm font-semibold text-slate-800 mb-3">Chọn gói đẩy tin</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {boostPackageOptions.map((pkg, idx) => {
+                const isSelected = String(pkg.id) === String(selectedBoostPackage?.id);
+                const durationDays = Number(pkg.durationDays || 0);
+                const price = Number(pkg.price || 0);
+                const pointPerDay = durationDays > 0 ? Math.round(price / durationDays) : price;
+                const isBestValue = !!pkg.isDefault;
+                return (
+                  <button
+                    key={`${pkg.id}-${pkg.durationDays}`}
+                    type="button"
+                    className={`relative group w-full rounded-2xl border-2 p-4 text-left transition-all duration-200 ${isSelected
+                        ? 'border-amber-500 bg-amber-50/80 shadow-lg shadow-amber-500/10 scale-[1.02]'
+                        : 'border-slate-200 bg-white hover:border-amber-300 hover:shadow-md'
                       }`}
-                      onClick={() => setSelectedBoostPackageId(pkg.id)}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <div
-                            className={`h-10 w-10 rounded-xl border flex items-center justify-center text-sm font-extrabold ${
-                              isSelected
-                                ? 'border-primary/30 bg-primary/15 text-primary'
-                                : 'border-slate-200 bg-slate-50 text-slate-700'
-                            }`}
-                          >
-                            {durationDays}N
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-slate-900">
-                              {durationDays} ngày
-                            </p>
-                            <p className="mt-0.5 text-xs text-slate-500">
-                              ~ {pointPerDay.toLocaleString('vi-VN')} điểm/ngày
-                            </p>
-                          </div>
+                    onClick={() => setSelectedBoostPackageId(pkg.id)}
+                  >
+                    {isBestValue && (
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider shadow-sm">
+                          <Star className="h-3 w-3" /> Phổ biến
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`h-12 w-12 rounded-xl flex items-center justify-center transition-all ${isSelected
+                            ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-md'
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-amber-100 group-hover:text-amber-700'
+                          }`}>
+                          <span className="text-lg font-extrabold">{durationDays}</span>
                         </div>
-                        <div
-                          className={`mt-0.5 h-5 w-5 rounded-full border-2 transition-all ${
-                            isSelected
-                              ? 'border-primary bg-primary'
-                              : 'border-slate-300 bg-white group-hover:border-primary/40'
-                          }`}
-                        >
-                          {isSelected ? (
-                            <CheckCircle2 className="h-4 w-4 text-white" />
-                          ) : null}
+                        <div>
+                          <p className={`text-base font-bold ${isSelected ? 'text-amber-800' : 'text-slate-900'}`}>
+                            {durationDays} ngày
+                          </p>
+                          <p className="text-xs text-slate-500 mt-0.5">
+                            ~{pointPerDay.toLocaleString('vi-VN')} điểm/ngày
+                          </p>
                         </div>
                       </div>
-
-                      <div className="mt-3 border-t border-slate-200/80 pt-3">
-                        <p className="text-[11px] text-slate-500">
-                          Chi phí gói
-                        </p>
-                        <p className="text-base font-extrabold text-slate-900">
-                          {price.toLocaleString('vi-VN')} điểm
-                        </p>
+                      <div className={`h-5 w-5 rounded-full border-2 transition-all flex items-center justify-center ${isSelected
+                          ? 'border-amber-500 bg-amber-500'
+                          : 'border-slate-300 group-hover:border-amber-400'
+                        }`}>
+                        {isSelected && <CheckCircle2 className="h-4 w-4 text-white" />}
                       </div>
-                    </button>
-                  );
-                })}
-              </div>
+                    </div>
+                    <div className={`mt-3 pt-3 border-t ${isSelected ? 'border-amber-200' : 'border-slate-100'}`}>
+                      <p className={`text-xl font-black ${isSelected ? 'text-amber-600' : 'text-slate-800'}`}>
+                        {price.toLocaleString('vi-VN')}
+                        <span className="text-xs font-semibold text-slate-500 ml-1">điểm</span>
+                      </p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
+          </div>
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm lg:sticky lg:top-0 h-fit">
-              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                Tóm tắt thanh toán
+          {/* Summary */}
+          <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-white border border-slate-200 p-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Tóm tắt</p>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-slate-600">Thời gian nổi bật</span>
+              <span className="text-sm font-bold text-slate-900">
+                {Number(selectedBoostPackage?.durationDays || configuredBoostDays)} ngày
+              </span>
+            </div>
+            <div className="h-px bg-slate-200" />
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-slate-700">Tổng chi phí</span>
+              <span className="text-2xl font-black text-amber-600">
+                {Number(selectedBoostPackage?.price || configuredBoostPointCost).toLocaleString('vi-VN')}
+                <span className="text-sm font-semibold text-amber-500/80 ml-1">điểm</span>
+              </span>
+            </div>
+            <div className="rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2 flex items-start gap-2">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-emerald-700 leading-relaxed">
+                Sau khi xác nhận, hệ thống sẽ trừ điểm và bật nổi bật cho tin ngay lập tức.
               </p>
-              <div className="mt-3 space-y-3">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-[11px] text-slate-500">
-                    Thời gian nổi bật
-                  </p>
-                  <p className="mt-1 text-lg font-extrabold text-slate-900">
-                    {Number(
-                      selectedBoostPackage?.durationDays || configuredBoostDays,
-                    )}{' '}
-                    ngày
-                  </p>
-                </div>
-                <div className="rounded-xl border border-primary/30 bg-primary/5 p-3">
-                  <p className="text-[11px] text-slate-500">
-                    Tổng điểm cần trả
-                  </p>
-                  <p className="mt-1 text-2xl font-black text-primary">
-                    {Number(
-                      selectedBoostPackage?.price || configuredBoostPointCost,
-                    ).toLocaleString('vi-VN')}
-                  </p>
-                  <p className="text-xs font-medium text-primary/80">điểm</p>
-                </div>
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-xs text-emerald-800">
-                  Sau khi xác nhận, hệ thống trừ điểm ngay và bật nổi bật cho
-                  tin.
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -4514,11 +4640,10 @@ export const EmployerDashboard = () => {
                       key={tab.key}
                       type="button"
                       onClick={() => setSlotApplicantsTab(tab.key)}
-                      className={`rounded-xl border px-3 py-2 text-left transition-all ${
-                        isActive
+                      className={`rounded-xl border px-3 py-2 text-left transition-all ${isActive
                           ? activeClass
                           : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300'
-                      }`}
+                        }`}
                     >
                       <p className="text-[11px] font-semibold uppercase tracking-wide">
                         {tab.label}
@@ -4574,10 +4699,10 @@ export const EmployerDashboard = () => {
                         <p className="mt-1 text-xs text-slate-500">
                           {slotApplicantsTab === 'REJECTED'
                             ? invitation.responseMessage ||
-                              'Không có lý do từ chối'
+                            'Không có lý do từ chối'
                             : invitation.worker?.phone ||
-                              invitation.worker?.email ||
-                              'Chưa có thông tin liên hệ'}
+                            invitation.worker?.email ||
+                            'Chưa có thông tin liên hệ'}
                         </p>
                         <p className="mt-1 text-[11px] font-medium text-primary">
                           Bấm để xem profile đầy đủ
@@ -4663,7 +4788,7 @@ export const EmployerDashboard = () => {
                       {applicantDetail.user?.workerProfile?.gender === 'MALE'
                         ? 'Nam'
                         : applicantDetail.user?.workerProfile?.gender ===
-                            'FEMALE'
+                          'FEMALE'
                           ? 'Nữ'
                           : 'Chưa cập nhật'}
                     </p>
@@ -4720,10 +4845,10 @@ export const EmployerDashboard = () => {
                     <p className="font-medium mt-1">
                       {applicantDetail.user?.workerProfile?.expectedSalary
                         ? formatSalary(
-                            applicantDetail.user.workerProfile.expectedSalary,
-                            null,
-                            'vndCompact',
-                          )
+                          applicantDetail.user.workerProfile.expectedSalary,
+                          null,
+                          'vndCompact',
+                        )
                         : 'Thỏa thuận'}
                     </p>
                   </div>
@@ -4809,11 +4934,10 @@ export const EmployerDashboard = () => {
                           onClick={() =>
                             handleRequestApplicantStatusChange(status.value)
                           }
-                          className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${
-                            applicantStatus === status.value
+                          className={`px-3 py-2.5 rounded-xl border text-sm font-medium transition-all flex items-center justify-center text-center ${applicantStatus === status.value
                               ? status.activeClass
                               : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                          }`}
+                            }`}
                         >
                           {status.label}
                         </button>

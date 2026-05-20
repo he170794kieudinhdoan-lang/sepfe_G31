@@ -24,6 +24,7 @@ import { MSG } from '@/shared/constants/messages';
 import { SHIFTS, GENDERS } from '@/shared/constants/enums';
 import { useProvinces, useWards } from '@/shared/hooks/useProvinces';
 import { Textarea } from '@/components/ui/textarea';
+import { formatVND, parseNumber } from '@/shared/utils/formatCurrency';
 
 const schema = z.object({
   occupationId: z
@@ -356,12 +357,23 @@ export const WorkerProfileSetup = () => {
                 <Label htmlFor="expectedSalary" className="text-sm font-medium">
                   Mức lương mong muốn
                 </Label>
-                <Input
-                  id="expectedSalary"
-                  type="number"
-                  placeholder="1,000,000"
-                  className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
-                  {...register('expectedSalary', { valueAsNumber: true })}
+                <Controller
+                  name="expectedSalary"
+                  control={control}
+                  render={({ field }) => (
+                    <Input
+                      id="expectedSalary"
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="VD: 10.000.000"
+                      className="h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors"
+                      value={field.value ? formatVND(field.value) : ''}
+                      onChange={(e) => {
+                        const raw = parseNumber(e.target.value);
+                        field.onChange(raw || '');
+                      }}
+                    />
+                  )}
                 />
                 {errors.expectedSalary && (
                   <p className="text-xs text-destructive">
