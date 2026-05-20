@@ -39,13 +39,19 @@ import { useCancelCampaignMutation, useUpdateCampaignMutation } from '@/features
 import {
   AlertCircle,
   Building2,
+  Briefcase,
+  Calendar,
   Clock,
   Clock3,
   Loader2,
+  Mail,
   MapPin,
+  Phone,
   Plus,
   Search,
+  User,
   Users,
+  X,
 } from 'lucide-react';
 import { EMPLOYER_MENU } from '@/pages/EmployerDashboard';
 
@@ -158,6 +164,9 @@ export const EmployerInterviewSchedulePage = () => {
   const slotApplicantPanelRef = useRef(null);
   const jobIdFromUrl = searchParams.get('jobId');
 
+  // Worker Profile Popup state
+  const [selectedWorkerProfile, setSelectedWorkerProfile] = useState(null);
+
   // Suitable Candidates Modal state
   const [isSuitableModalOpen, setIsSuitableModalOpen] = useState(false);
   const [selectedJobForSuitableModal, setSelectedJobForSuitableModal] = useState(null);
@@ -263,11 +272,13 @@ export const EmployerInterviewSchedulePage = () => {
     campaigns
       .filter((campaign) => campaign?.status !== 'CANCELLED')
       .forEach((campaign) => {
-        const futureSlots = (campaign?.slots || []).filter((slot) => {
-          const startAt = new Date(slot.startAt).getTime();
-          return !Number.isNaN(startAt) && startAt >= now;
-        });
-        if (!futureSlots.length) return;
+        const allSlots = (campaign?.slots || []);
+        if (!allSlots.length) return;
+        // Check if the LAST slot (by endAt) is still in the future
+        const lastSlotEndAt = Math.max(
+          ...allSlots.map((slot) => new Date(slot.endAt).getTime()).filter((t) => !Number.isNaN(t)),
+        );
+        if (lastSlotEndAt < now) return; // All slots have ended, skip for upcoming
         const jobId = campaign?.jobId ?? `campaign-${campaign.id}`;
         const key = String(jobId);
         const matchedJob = allJobs.find(
@@ -291,7 +302,7 @@ export const EmployerInterviewSchedulePage = () => {
         }
         current.campaigns.push(campaign);
         current.slots.push(
-          ...futureSlots.map((slot) => ({
+          ...allSlots.map((slot) => ({
             ...slot,
             campaignId: campaign.id,
             campaignTitle: campaign.title,
@@ -329,11 +340,13 @@ export const EmployerInterviewSchedulePage = () => {
     campaigns
       .filter((campaign) => campaign?.status !== 'CANCELLED')
       .forEach((campaign) => {
-        const pastSlots = (campaign?.slots || []).filter((slot) => {
-          const startAt = new Date(slot.startAt).getTime();
-          return !Number.isNaN(startAt) && startAt < now;
-        });
-        if (!pastSlots.length) return;
+        const allSlots = (campaign?.slots || []);
+        if (!allSlots.length) return;
+        // Check if the LAST slot (by endAt) has already passed
+        const lastSlotEndAt = Math.max(
+          ...allSlots.map((slot) => new Date(slot.endAt).getTime()).filter((t) => !Number.isNaN(t)),
+        );
+        if (lastSlotEndAt >= now) return; // Still has active slots, skip for past
         const jobId = campaign?.jobId ?? `campaign-${campaign.id}`;
         const key = String(jobId);
         const matchedJob = allJobs.find(
@@ -357,7 +370,7 @@ export const EmployerInterviewSchedulePage = () => {
         }
         current.campaigns.push(campaign);
         current.slots.push(
-          ...pastSlots.map((slot) => ({
+          ...allSlots.map((slot) => ({
             ...slot,
             campaignId: campaign.id,
             campaignTitle: campaign.title,
@@ -930,6 +943,7 @@ export const EmployerInterviewSchedulePage = () => {
 
           <Card className="rounded-2xl border border-slate-200 bg-white p-5 min-h-[600px]">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
+              {!detailData && (
               <div className="flex space-x-1 rounded-xl bg-slate-100 p-1">
                 <button
                   type="button"
@@ -954,6 +968,8 @@ export const EmployerInterviewSchedulePage = () => {
                   Đã qua
                 </button>
               </div>
+              )}
+              {!detailData && (
               <Button
                 className="gap-2"
                 onClick={() => {
@@ -969,6 +985,7 @@ export const EmployerInterviewSchedulePage = () => {
                 <Plus className="h-4 w-4" />
                 Tạo lịch phỏng vấn
               </Button>
+              )}
             </div>
 
             <div className="mt-5">
@@ -1042,7 +1059,7 @@ export const EmployerInterviewSchedulePage = () => {
                                       variant="outline"
                                       className="border-slate-300 text-slate-700"
                                     >
-                                      {selectedDetailSlot.bookedCount || 0} ứng
+                                      {selectedDetailSlotInvitations.length} ứng
                                       viên
                                     </Badge>
                                   </div>
@@ -1096,7 +1113,8 @@ export const EmployerInterviewSchedulePage = () => {
                                             (invitation) => (
                                               <div
                                                 key={invitation.id}
-                                                className="rounded-lg border border-slate-200 bg-white px-3 py-2 flex items-center justify-between"
+                                                className="rounded-lg border border-slate-200 bg-white px-3 py-2 flex items-center justify-between cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+                                                onClick={() => setSelectedWorkerProfile(invitation?.worker)}
                                               >
                                                 <div>
                                                   <p className="text-sm font-medium text-slate-900">
@@ -1109,6 +1127,7 @@ export const EmployerInterviewSchedulePage = () => {
                                                       'Chưa có liên hệ'}
                                                   </p>
                                                 </div>
+                                                <span className="text-xs text-primary font-medium">Xem chi tiết →</span>
                                               </div>
                                             ),
                                           )}
@@ -1606,6 +1625,140 @@ export const EmployerInterviewSchedulePage = () => {
         </div>
       </Modal>
 
+      {/* Worker Profile Popup */}
+      {selectedWorkerProfile && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setSelectedWorkerProfile(null)}>
+          <div
+            className="relative w-full max-w-lg mx-4 bg-white rounded-2xl shadow-2xl max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-primary/10 to-blue-50 rounded-t-2xl px-6 py-5 border-b border-slate-100">
+              <button
+                onClick={() => setSelectedWorkerProfile(null)}
+                className="absolute top-4 right-4 rounded-full p-1.5 hover:bg-white/70 transition-colors"
+              >
+                <X className="h-5 w-5 text-slate-500" />
+              </button>
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold shrink-0">
+                  {selectedWorkerProfile.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-xl font-bold text-slate-900 truncate">
+                    {selectedWorkerProfile.fullName || 'Chưa cập nhật tên'}
+                  </h3>
+                  <p className="text-sm text-slate-600 mt-0.5">
+                    {selectedWorkerProfile.workerProfile?.occupation?.name || 'Chưa cập nhật nghề nghiệp'}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-5 space-y-5">
+              {/* Contact Info */}
+              <div>
+                <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                  <User className="h-4 w-4 text-primary" />
+                  Thông tin liên hệ
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 border border-slate-100">
+                    <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span className="text-sm text-slate-700 truncate">{selectedWorkerProfile.phone || 'Chưa cập nhật'}</span>
+                  </div>
+                  <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 border border-slate-100">
+                    <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span className="text-sm text-slate-700 truncate">{selectedWorkerProfile.email || 'Chưa cập nhật'}</span>
+                  </div>
+                  {selectedWorkerProfile.workerProfile?.dateOfBirth && (
+                    <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 border border-slate-100">
+                      <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
+                      <span className="text-sm text-slate-700">
+                        {new Date(selectedWorkerProfile.workerProfile.dateOfBirth).toLocaleDateString('vi-VN')}
+                      </span>
+                    </div>
+                  )}
+                  {selectedWorkerProfile.workerProfile?.address && (
+                    <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 border border-slate-100">
+                      <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
+                      <span className="text-sm text-slate-700 truncate">{selectedWorkerProfile.workerProfile.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Work Info */}
+              <div>
+                <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
+                  <Briefcase className="h-4 w-4 text-primary" />
+                  Thông tin nghề nghiệp
+                </h4>
+                <div className="space-y-2.5">
+                  {selectedWorkerProfile.workerProfile?.yearsOfExperience != null && (
+                    <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-slate-50 border border-slate-100">
+                      <span className="text-sm text-slate-600">Kinh nghiệm</span>
+                      <span className="text-sm font-semibold text-slate-800">{selectedWorkerProfile.workerProfile.yearsOfExperience} năm</span>
+                    </div>
+                  )}
+                  {selectedWorkerProfile.workerProfile?.educationLevel && (
+                    <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-slate-50 border border-slate-100">
+                      <span className="text-sm text-slate-600">Trình độ học vấn</span>
+                      <span className="text-sm font-semibold text-slate-800">{selectedWorkerProfile.workerProfile.educationLevel}</span>
+                    </div>
+                  )}
+                  {selectedWorkerProfile.workerProfile?.desiredSalary != null && (
+                    <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-slate-50 border border-slate-100">
+                      <span className="text-sm text-slate-600">Mức lương mong muốn</span>
+                      <span className="text-sm font-semibold text-amber-600">
+                        {Number(selectedWorkerProfile.workerProfile.desiredSalary).toLocaleString('vi-VN')}đ
+                      </span>
+                    </div>
+                  )}
+                  {selectedWorkerProfile.workerProfile?.desiredLocation && (
+                    <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-slate-50 border border-slate-100">
+                      <span className="text-sm text-slate-600">Khu vực mong muốn</span>
+                      <span className="text-sm font-semibold text-slate-800">{selectedWorkerProfile.workerProfile.desiredLocation}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Skills */}
+              {selectedWorkerProfile.workerProfile?.skills && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-800 mb-3">Kỹ năng</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedWorkerProfile.workerProfile.skills.split(',').map((skill, idx) => (
+                      <span key={idx} className="inline-flex items-center rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium">
+                        {skill.trim()}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Bio */}
+              {selectedWorkerProfile.workerProfile?.bio && (
+                <div>
+                  <h4 className="text-sm font-semibold text-slate-800 mb-2">Giới thiệu bản thân</h4>
+                  <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-lg p-3 border border-slate-100">
+                    {selectedWorkerProfile.workerProfile.bio}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-3 rounded-b-2xl">
+              <Button variant="outline" className="w-full" onClick={() => setSelectedWorkerProfile(null)}>
+                Đóng
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </DashboardLayout>
   );

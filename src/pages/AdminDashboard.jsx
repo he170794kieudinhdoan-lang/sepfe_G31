@@ -156,7 +156,7 @@ export const AdminDashboard = () => {
   const [aiLabels, setAiLabels] = useState({});
 
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const { data: statsData, isLoading: loadingStats } = useAdminStatistics({
+  const { data: statsData, isLoading: loadingStats, isFetching: fetchingStats } = useAdminStatistics({
     year: selectedYear,
   });
 
@@ -197,22 +197,7 @@ export const AdminDashboard = () => {
     isActive: true,
   });
 
-  const kpi = [
-    {
-      label: 'Tổng số người dùng trên hệ thống',
-      value: statsData?.users?.total || 0,
-    },
-    {
-      label: 'Tổng số doanh nghiệp trên hệ thống',
-      value: statsData?.companies?.total || 0,
-    },
-    {
-      label: 'Tổng doanh thu toàn thời gian(VNĐ)',
-      value: new Intl.NumberFormat('vi-VN').format(
-        statsData?.payments?.totalRevenue || 0,
-      ),
-    },
-  ];
+
 
   const activePaymentPackages = paymentPackages.filter((pkg) => pkg.isActive);
 
@@ -289,6 +274,41 @@ export const AdminDashboard = () => {
                   {rev > 0 && (
                     <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] whitespace-nowrap text-emerald-600 font-bold">
                       {formatCompactVND(rev)}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <span className="text-[10px] text-slate-500 font-medium mt-3 whitespace-nowrap shrink-0">
+                {label.replace('Tháng ', 'T')}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  const renderBarChart = (dataArr, color, labelPrefix, formatFn) => {
+    const labels = statsData?.charts?.labels?.length
+      ? statsData.charts.labels
+      : Array.from({ length: 12 }, (_, i) => `Tháng ${i + 1}`);
+    const maxVal = Math.max(...dataArr, 1);
+    return (
+      <div className={`flex h-full w-full items-end justify-between px-2 sm:px-4 pb-2 pt-6 gap-2 ${loadingStats ? 'animate-pulse opacity-50' : ''}`}>
+        {labels.map((label, idx) => {
+          const val = dataArr[idx] || 0;
+          const height = val === 0 ? 0 : Math.max(8, (val / maxVal) * 100);
+          return (
+            <div key={label} className="flex flex-col items-center justify-end w-full h-full relative group">
+              <div className="flex flex-col items-center justify-end w-full max-w-5 h-full border-b border-slate-100">
+                <div
+                  className={`relative w-full rounded-t-sm transition-all group-hover:opacity-80 ${val > 0 ? color : 'bg-transparent'}`}
+                  style={{ height: `${height}%` }}
+                  title={`${labelPrefix}: ${formatFn ? formatFn(val) : val}`}
+                >
+                  {val > 0 && (
+                    <span className={`absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] sm:text-[11px] whitespace-nowrap font-bold`} style={{ color: color.replace('bg-', '').includes('violet') ? '#7c3aed' : color.replace('bg-', '').includes('amber') ? '#d97706' : '#334155' }}>
+                      {formatFn ? formatFn(val) : val}
                     </span>
                   )}
                 </div>
@@ -959,144 +979,183 @@ export const AdminDashboard = () => {
       onSelect={setActive}
       topbarBell={<NotificationBellPopover />}
     >
-      {active === 'overview' && (loadingStats ? renderOverviewLoading() : (
-        <div className="space-y-6">
-          <div className="grid md:grid-cols-3 gap-4">
-            {kpi.map((item) => (
+      {active === 'overview' && (loadingStats && !statsData ? renderOverviewLoading() : (
+        <div className={`space-y-6 transition-opacity duration-300 ${fetchingStats ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              { label: 'Tổng người dùng', value: statsData?.users?.total || 0 },
+              { label: 'Tổng doanh nghiệp', value: statsData?.companies?.total || 0 },
+              { label: 'Tổng tin tuyển dụng', value: statsData?.jobs?.total || 0 },
+              { label: 'Tổng đơn ứng tuyển', value: statsData?.applications?.total || 0 },
+              { label: 'Tổng doanh thu (VNĐ)', value: new Intl.NumberFormat('vi-VN').format(statsData?.payments?.totalRevenue || 0) },
+            ].map((item) => (
               <Card key={item.label} className="p-5">
                 <p className="text-sm text-muted-foreground">{item.label}</p>
                 <p className="text-2xl font-bold mt-2">{item.value}</p>
               </Card>
             ))}
           </div>
-          <div className="grid lg:grid-cols-1 gap-6">
-            <Card className="p-6 lg:col-span-1">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
-                <h3 className="text-lg font-semibold">
-                  Phân tích tăng trưởng theo tháng
-                </h3>
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  Năm:
-                  <input
-                    type="number"
-                    value={selectedYear}
-                    onChange={(e) =>
-                      setSelectedYear(
-                        Number(e.target.value) || new Date().getFullYear(),
-                      )
-                    }
-                    className="border border-slate-300 focus:outline-blue-500 rounded-md px-3 py-1.5 w-24 text-center font-bold"
-                    placeholder="2026"
-                    min="2000"
-                    max="2100"
-                  />
+
+          {/* Charts Section */}
+          <Card className="p-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4">
+              <h3 className="text-lg font-semibold">
+                Phân tích tăng trưởng theo tháng
+              </h3>
+              <div className="flex items-center gap-2 text-sm font-medium">
+                Năm:
+                <input
+                  type="number"
+                  value={selectedYear}
+                  onChange={(e) =>
+                    setSelectedYear(
+                      Number(e.target.value) || new Date().getFullYear(),
+                    )
+                  }
+                  className="border border-slate-300 focus:outline-blue-500 rounded-md px-3 py-1.5 w-24 text-center font-bold"
+                  placeholder="2026"
+                  min="2000"
+                  max="2100"
+                />
+              </div>
+            </div>
+            <div className="grid lg:grid-cols-2 gap-8">
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
+                  <div className="w-2 h-2 rounded-full bg-blue-500"></div>{' '}
+                  Người dùng mới
+                </div>
+                <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
+                  {renderUsersChart()}
                 </div>
               </div>
-              <div className="grid lg:grid-cols-2 gap-8">
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
-                    <div className="w-2 h-2 rounded-full bg-blue-500"></div>{' '}
-                    Biểu đồ người dùng mới
-                  </div>
-                  <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
-                    {renderUsersChart()}
-                  </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>{' '}
+                  Doanh thu (VNĐ)
                 </div>
-                <div className="flex flex-col">
-                  <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500"></div>{' '}
-                    Biểu đồ doanh thu (VNĐ)
-                  </div>
-                  <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
-                    {renderRevenueChart()}
-                  </div>
+                <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
+                  {renderRevenueChart()}
                 </div>
               </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
+                  <div className="w-2 h-2 rounded-full bg-violet-500"></div>{' '}
+                  Tin tuyển dụng mới
+                </div>
+                <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
+                  {renderBarChart(statsData?.charts?.newJobs || new Array(12).fill(0), 'bg-violet-500', 'Tin mới')}
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-slate-700">
+                  <div className="w-2 h-2 rounded-full bg-amber-500"></div>{' '}
+                  Đơn ứng tuyển
+                </div>
+                <div className="h-64 rounded-xl bg-slate-50 border border-slate-100 p-2 pt-6">
+                  {renderBarChart(statsData?.charts?.newApplications || new Array(12).fill(0), 'bg-amber-500', 'Đơn ứng tuyển')}
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Revenue by Type + Top Occupations */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            {/* Revenue by Order Type */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Tổng số tiền nạp quy đổi ra điểm</h3>
+              {(() => {
+                const revenueByType = statsData?.payments?.revenueByType || {};
+                const topup = revenueByType.TOPUP_WALLET || 0;
+                if (topup === 0) {
+                  return <p className="text-sm text-slate-400 text-center py-4">Chưa có dữ liệu doanh thu</p>;
+                }
+                return (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium text-slate-700">Nạp điểm</span>
+                      <span className="font-bold text-slate-800">{new Intl.NumberFormat('vi-VN').format(topup)}đ</span>
+                    </div>
+                    <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: '100%' }} />
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <h3 className="text-lg font-semibold mt-6 mb-4 pt-4 border-t">Chi tiêu điểm theo dịch vụ</h3>
+              {(() => {
+                const spending = statsData?.payments?.pointSpendingByType || {};
+                const spendLabels = {
+                  POST_JOB: 'Đăng tin tuyển dụng',
+                  BOOST_JOB: 'Đẩy tin',
+                  AI_INVITE: 'Đề xuất ứng viên AI',
+                };
+                const entries = Object.entries(spending).filter(([, v]) => v > 0);
+                if (entries.length === 0) {
+                  return <p className="text-sm text-slate-400 text-center py-4">Chưa có dữ liệu chi tiêu</p>;
+                }
+                const maxSpend = Math.max(...entries.map(([, v]) => v), 1);
+                const colors = {
+                  POST_JOB: 'bg-indigo-500',
+                  BOOST_JOB: 'bg-amber-500',
+                  AI_INVITE: 'bg-pink-500',
+                };
+                return (
+                  <div className="space-y-3">
+                    {entries.sort((a, b) => b[1] - a[1]).map(([type, points]) => (
+                      <div key={type} className="space-y-1">
+                        <div className="flex justify-between text-sm">
+                          <span className="font-medium text-slate-700">{spendLabels[type] || type}</span>
+                          <span className="font-bold text-slate-800">{new Intl.NumberFormat('vi-VN').format(points)} điểm</span>
+                        </div>
+                        <div className="h-3 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${colors[type] || 'bg-slate-500'}`}
+                            style={{ width: `${Math.max(4, (points / maxSpend) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
             </Card>
 
-            {/* <Card className="p-6 lg:col-span-1 border-primary/15 bg-gradient-to-br from-white to-slate-50">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-semibold">Gói thanh toán</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Quản lý mức giá gói đẩy tin và trạng thái áp dụng.
-                  </p>
-                </div>
-                <Button onClick={() => setActive('payment_packages')} className="rounded-xl">
-                  Mở quản lý gói
-                </Button>
-              </div>
-
-              <div className="grid sm:grid-cols-3 gap-4 mt-5">
-                <div className="rounded-xl border bg-white p-4">
-                  <p className="text-xs text-muted-foreground">Tổng gói</p>
-                  <p className="text-2xl font-bold mt-1">{paymentPackages.length}</p>
-                </div>
-                <div className="rounded-xl border bg-white p-4">
-                  <p className="text-xs text-muted-foreground">Đang hoạt động</p>
-                  <p className="text-2xl font-bold mt-1 text-emerald-600">
-                    {activePaymentPackages.length}
-                  </p>
-                </div>
-                <div className="rounded-xl border bg-white p-4">
-                  <p className="text-xs text-muted-foreground">Gói mặc định</p>
-                  <p className="text-2xl font-bold mt-1 text-primary">
-                    {paymentPackages.filter((pkg) => pkg.isDefault).length}
-                  </p>
-                </div>
-              </div>
-            </Card> */}
-
-            <div className="grid lg:grid-cols-3 gap-6">
-              <Card className="p-6 w-full lg:col-span-3">
-                <h3 className="text-lg font-semibold mb-4">
-                  Biến động hệ thống
-                </h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="flex items-center justify-between bg-slate-50 p-5 rounded-xl border border-slate-100">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-slate-800">
-                        Người dùng mới (7 ngày)
-                      </span>
-                      <span className="text-xs text-muted-foreground mt-1">
-                        Lượng tài khoản mới ghi nhận
-                      </span>
-                    </div>
-                    <span className="font-bold text-2xl text-emerald-600">
-                      +{statsData?.users?.newUsers7Days || 0}
-                    </span>
+            {/* Top Occupations */}
+            <Card className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Top nghề nghiệp được tuyển nhiều nhất</h3>
+              {(() => {
+                const topOccs = statsData?.topOccupations || [];
+                if (topOccs.length === 0) {
+                  return <p className="text-sm text-slate-400 text-center py-8">Chưa có dữ liệu</p>;
+                }
+                const maxCount = Math.max(...topOccs.map((o) => o.jobCount), 1);
+                return (
+                  <div className="space-y-2.5">
+                    {topOccs.map((occ, idx) => (
+                      <div key={occ.occupationId} className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-slate-400 w-5 text-right shrink-0">
+                          {idx + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex justify-between items-center mb-0.5">
+                            <span className="text-sm font-medium text-slate-700 truncate">{occ.name}</span>
+                            <span className="text-xs font-bold text-primary ml-2 shrink-0">{occ.jobCount} tin</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                            <div
+                              className="h-full rounded-full bg-primary/70 transition-all"
+                              style={{ width: `${Math.max(4, (occ.jobCount / maxCount) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-
-                  <div className="flex items-center justify-between bg-orange-50 p-5 rounded-xl border border-orange-100">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-orange-800">
-                        Công ty đang đợi xét duyệt
-                      </span>
-                      <span className="text-xs text-orange-600 mt-1">
-                        Cần kiểm tra hồ sơ và mở tài khoản
-                      </span>
-                    </div>
-                    <span className="font-bold text-2xl text-orange-600">
-                      {statsData?.companies?.pending || 0}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between bg-rose-50 p-5 rounded-xl border border-rose-100">
-                    <div className="flex flex-col">
-                      <span className="text-sm font-semibold text-rose-800">
-                        Báo cáo vi phạm việc làm
-                      </span>
-                      <span className="text-xs text-rose-600 mt-1">
-                        Các tin tuyển dụng chờ xem xét vi phạm
-                      </span>
-                    </div>
-                    <span className="font-bold text-2xl text-rose-600">
-                      {statsData?.reports?.unresolved || 0}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            </div>
+                );
+              })()}
+            </Card>
           </div>
         </div>
       ))}
@@ -1106,230 +1165,230 @@ export const AdminDashboard = () => {
           renderPaymentLoading()
         ) : (
           <div className="space-y-6">
-          {/* Section 1: Pricing Configuration */}
-          <div className="grid gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-                <CreditCard className="h-5 w-5 text-amber-700" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-slate-900">
-                  Cấu hình giá dịch vụ
-                </h3>
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-1 gap-4">
-              <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      Đăng tin tuyển dụng
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Số điểm cho mỗi lần đăng tin.
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-white p-2 shadow-sm">
-                    <Briefcase className="h-4 w-4 text-amber-600" />
-                  </div>
-                </div>
-                <div className="pt-2">
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="50,000"
-                    value={pointPricingForm.JOB_POST_POINT_COST}
-                    onChange={(e) =>
-                      setPointPricingForm((prev) => ({
-                        ...prev,
-                        JOB_POST_POINT_COST: formatCommaNumber(e.target.value),
-                      }))
-                    }
-                    className="font-semibold text-slate-900"
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 space-y-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      AI Gợi ý Ứng viên
-                    </p>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Số điểm cho mỗi ứng viên được mời.
-                    </p>
-                  </div>
-                  <div className="rounded-lg bg-white p-2 shadow-sm">
-                    <Sparkles className="h-4 w-4 text-purple-600" />
-                  </div>
-                </div>
-                <div className="pt-2">
-                  <Input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="1,000"
-                    value={pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER}
-                    onChange={(e) =>
-                      setPointPricingForm((prev) => ({
-                        ...prev,
-                        AI_INVITE_POINT_COST_PER_WORKER: formatCommaNumber(
-                          e.target.value,
-                        ),
-                      }))
-                    }
-                    className="font-semibold text-slate-900"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <Button
-                onClick={handleSavePointPricing}
-                disabled={updatePointPricingMutation.isPending}
-                className="gap-2"
-              >
-                <CreditCard className="h-4 w-4" />
-                {updatePointPricingMutation.isPending ? 'Đang lưu...' : 'Lưu '}
-              </Button>
-            </div>
-          </div>
-
-          {/* Divider */}
-          <div className="h-px bg-slate-200" />
-
-          {/* Section 3: Boost Packages */}
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between gap-4">
+            {/* Section 1: Pricing Configuration */}
+            <div className="grid gap-4">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
-                  <Zap className="h-5 w-5 text-emerald-700" />
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
+                  <CreditCard className="h-5 w-5 text-amber-700" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-slate-900">
-                    Gói đẩy tin tuyển dụng
+                    Cấu hình giá dịch vụ
                   </h3>
                 </div>
               </div>
-              <Button
-                size="sm"
-                className="rounded-xl gap-2 shadow-sm"
-                onClick={() => handleOpenBoostModal()}
-              >
-                <Plus className="h-4 w-4" />
-                Thêm gói mới
-              </Button>
-            </div>
 
-            {/* Packages List */}
-            {boostPackages.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-8 text-center">
-                <div className="flex justify-center mb-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                    <Zap className="h-6 w-6 text-slate-400" />
+              <div className="grid md:grid-cols-1 gap-4">
+                <div className="rounded-xl border border-amber-200 bg-gradient-to-br from-amber-50 to-white p-5 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        Đăng tin tuyển dụng
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Số điểm cho mỗi lần đăng tin.
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-white p-2 shadow-sm">
+                      <Briefcase className="h-4 w-4 text-amber-600" />
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="50,000"
+                      value={pointPricingForm.JOB_POST_POINT_COST}
+                      onChange={(e) =>
+                        setPointPricingForm((prev) => ({
+                          ...prev,
+                          JOB_POST_POINT_COST: formatCommaNumber(e.target.value),
+                        }))
+                      }
+                      className="font-semibold text-slate-900"
+                    />
                   </div>
                 </div>
-                <p className="font-semibold text-slate-600">Chưa có gói</p>
-                <p className="text-sm text-slate-500 mt-1">
-                  Hãy tạo gói mới để bắt đầu sử dụng dịch vụ này.
-                </p>
-              </div>
-            ) : (
-              <div className="grid lg:grid-cols-2 2xl:grid-cols-3 gap-4">
-                {boostPackages.map((pkg) => {
-                  const isOnlyActivePackage =
-                    pkg.isActive && activeBoostPackages.length <= 1;
-                  const pointPerDay =
-                    Number(pkg.durationDays || 0) > 0
-                      ? Math.round(
-                          Number(pkg.price || 0) /
-                            Number(pkg.durationDays || 1),
-                        )
-                      : 0;
-                  return (
-                    <div
-                      key={pkg.id}
-                      className="rounded-xl border border-slate-200 bg-white hover:border-amber-200 hover:shadow-md transition-all p-5 space-y-4"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xl font-bold text-slate-900">
-                              {pkg.durationDays} Ngày
-                            </span>
-                            <Badge
-                              variant={pkg.isActive ? 'default' : 'secondary'}
-                              className={
-                                pkg.isActive
-                                  ? 'bg-emerald-500/10 text-emerald-600 border-0 hover:bg-emerald-500/10'
-                                  : 'bg-slate-100 text-slate-500 border-0 hover:bg-slate-100'
-                              }
-                            >
-                              {pkg.isActive ? 'Đang hoạt động' : 'Tạm ngưng'}
-                            </Badge>
-                          </div>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-bold text-amber-600">
-                              {Number(pkg.price || 0).toLocaleString('vi-VN')}
-                            </span>
-                            <span className="text-xs text-slate-500 font-medium">
-                              điểm
-                            </span>
-                          </div>
-                          <p className="text-[11px] text-slate-400 font-medium">
-                            ~{pointPerDay.toLocaleString('vi-VN')} điểm/ngày
-                          </p>
-                        </div>
-                        <div className="h-10 w-10 flex items-center justify-center rounded-full bg-amber-50">
-                          <Zap className="h-5 w-5 text-amber-600" />
-                        </div>
-                      </div>
 
-                      <div className="flex gap-2 pt-2 border-t border-slate-100">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleOpenBoostModal(pkg)}
-                          className="flex-1 rounded-lg"
-                        >
-                          Chỉnh sửa
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() =>
-                            handleQuickToggleBoostPackage(
-                              pkg,
-                              { isActive: !pkg.isActive },
-                              pkg.isActive
-                                ? 'Đã tạm ngưng gói'
-                                : 'Đã mở lại gói',
-                            )
-                          }
-                          disabled={
-                            updatePaymentPackageMutation.isPending ||
-                            isOnlyActivePackage
-                          }
-                          title={
-                            isOnlyActivePackage
-                              ? 'Cần giữ tối thiểu 1 gói boost đang mở'
-                              : undefined
-                          }
-                          className="flex-1 rounded-lg"
-                        >
-                          {pkg.isActive ? 'Tạm dừng' : 'Mở lại'}
-                        </Button>
-                      </div>
+                <div className="rounded-xl border border-purple-200 bg-gradient-to-br from-purple-50 to-white p-5 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">
+                        AI Gợi ý Ứng viên
+                      </p>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Số điểm cho mỗi ứng viên được mời.
+                      </p>
                     </div>
-                  );
-                })}
+                    <div className="rounded-lg bg-white p-2 shadow-sm">
+                      <Sparkles className="h-4 w-4 text-purple-600" />
+                    </div>
+                  </div>
+                  <div className="pt-2">
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="1,000"
+                      value={pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER}
+                      onChange={(e) =>
+                        setPointPricingForm((prev) => ({
+                          ...prev,
+                          AI_INVITE_POINT_COST_PER_WORKER: formatCommaNumber(
+                            e.target.value,
+                          ),
+                        }))
+                      }
+                      className="font-semibold text-slate-900"
+                    />
+                  </div>
+                </div>
               </div>
-            )}
+
+              <div className="flex justify-end pt-2">
+                <Button
+                  onClick={handleSavePointPricing}
+                  disabled={updatePointPricingMutation.isPending}
+                  className="gap-2"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  {updatePointPricingMutation.isPending ? 'Đang lưu...' : 'Lưu '}
+                </Button>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-slate-200" />
+
+            {/* Section 3: Boost Packages */}
+            <div className="grid gap-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-100">
+                    <Zap className="h-5 w-5 text-emerald-700" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-900">
+                      Gói đẩy tin tuyển dụng
+                    </h3>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  className="rounded-xl gap-2 shadow-sm"
+                  onClick={() => handleOpenBoostModal()}
+                >
+                  <Plus className="h-4 w-4" />
+                  Thêm gói mới
+                </Button>
+              </div>
+
+              {/* Packages List */}
+              {boostPackages.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/50 p-8 text-center">
+                  <div className="flex justify-center mb-3">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+                      <Zap className="h-6 w-6 text-slate-400" />
+                    </div>
+                  </div>
+                  <p className="font-semibold text-slate-600">Chưa có gói</p>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Hãy tạo gói mới để bắt đầu sử dụng dịch vụ này.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid lg:grid-cols-2 2xl:grid-cols-3 gap-4">
+                  {boostPackages.map((pkg) => {
+                    const isOnlyActivePackage =
+                      pkg.isActive && activeBoostPackages.length <= 1;
+                    const pointPerDay =
+                      Number(pkg.durationDays || 0) > 0
+                        ? Math.round(
+                          Number(pkg.price || 0) /
+                          Number(pkg.durationDays || 1),
+                        )
+                        : 0;
+                    return (
+                      <div
+                        key={pkg.id}
+                        className="rounded-xl border border-slate-200 bg-white hover:border-amber-200 hover:shadow-md transition-all p-5 space-y-4"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xl font-bold text-slate-900">
+                                {pkg.durationDays} Ngày
+                              </span>
+                              <Badge
+                                variant={pkg.isActive ? 'default' : 'secondary'}
+                                className={
+                                  pkg.isActive
+                                    ? 'bg-emerald-500/10 text-emerald-600 border-0 hover:bg-emerald-500/10'
+                                    : 'bg-slate-100 text-slate-500 border-0 hover:bg-slate-100'
+                                }
+                              >
+                                {pkg.isActive ? 'Đang hoạt động' : 'Tạm ngưng'}
+                              </Badge>
+                            </div>
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-lg font-bold text-amber-600">
+                                {Number(pkg.price || 0).toLocaleString('vi-VN')}
+                              </span>
+                              <span className="text-xs text-slate-500 font-medium">
+                                điểm
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 font-medium">
+                              ~{pointPerDay.toLocaleString('vi-VN')} điểm/ngày
+                            </p>
+                          </div>
+                          <div className="h-10 w-10 flex items-center justify-center rounded-full bg-amber-50">
+                            <Zap className="h-5 w-5 text-amber-600" />
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-2 border-t border-slate-100">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleOpenBoostModal(pkg)}
+                            className="flex-1 rounded-lg"
+                          >
+                            Chỉnh sửa
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              handleQuickToggleBoostPackage(
+                                pkg,
+                                { isActive: !pkg.isActive },
+                                pkg.isActive
+                                  ? 'Đã tạm ngưng gói'
+                                  : 'Đã mở lại gói',
+                              )
+                            }
+                            disabled={
+                              updatePaymentPackageMutation.isPending ||
+                              isOnlyActivePackage
+                            }
+                            title={
+                              isOnlyActivePackage
+                                ? 'Cần giữ tối thiểu 1 gói boost đang mở'
+                                : undefined
+                            }
+                            className="flex-1 rounded-lg"
+                          >
+                            {pkg.isActive ? 'Tạm dừng' : 'Mở lại'}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
 
       {active === 'users' && (isLoadingUsers ? renderUsersLoading() : (
         <div className="space-y-6">
@@ -1708,64 +1767,64 @@ export const AdminDashboard = () => {
           </div>
 
           <Card className="p-8 shadow-sm rounded-2xl">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
-                {Object.keys(aiConfigs).map((key) => (
-                  <div
-                    key={key}
-                    className={`space-y-3 ${key === 'MIN_SCORE_THRESHOLD' ? 'col-span-full border-t pt-6 mt-2' : ''}`}
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="font-semibold text-slate-700">
-                        {aiLabels[key] || key}
-                        {/* {key === 'MIN_SCORE_THRESHOLD' && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-10">
+              {Object.keys(aiConfigs).map((key) => (
+                <div
+                  key={key}
+                  className={`space-y-3 ${key === 'MIN_SCORE_THRESHOLD' ? 'col-span-full border-t pt-6 mt-2' : ''}`}
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-slate-700">
+                      {aiLabels[key] || key}
+                      {/* {key === 'MIN_SCORE_THRESHOLD' && (
                           <span className="block text-xs text-muted-foreground font-normal mt-1">
                             Độ phù hợp từ ngưỡng này trở lên mới được xem là phù
                             hợp.
                           </span>
                         )} */}
-                      </span>
-                      <span className="text-primary font-bold text-lg">
-                        {aiConfigs[key]}%
-                      </span>
-                    </div>
-                    <Input
-                      type="text"
-                      inputMode="numeric"
-                      className="w-full"
-                      min="0"
-                      max="100"
-                      value={aiConfigs[key]}
-                      onChange={(e) =>
-                        setAiConfigs({
-                          ...aiConfigs,
-                          [key]:
-                            e.target.value === '' ? 0 : Number(e.target.value),
-                        })
-                      }
-                    />
+                    </span>
+                    <span className="text-primary font-bold text-lg">
+                      {aiConfigs[key]}%
+                    </span>
                   </div>
-                ))}
-              </div>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    className="w-full"
+                    min="0"
+                    max="100"
+                    value={aiConfigs[key]}
+                    onChange={(e) =>
+                      setAiConfigs({
+                        ...aiConfigs,
+                        [key]:
+                          e.target.value === '' ? 0 : Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+              ))}
+            </div>
 
-              <div
-                className={`mt-12 p-6 border rounded-xl flex items-center justify-between transition-colors ${totalAiWeight === 100 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}
+            <div
+              className={`mt-12 p-6 border rounded-xl flex items-center justify-between transition-colors ${totalAiWeight === 100 ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200'}`}
+            >
+              <span className="font-semibold text-slate-800 text-lg">
+                Tổng trọng số:
+              </span>
+              <span
+                className={`text-3xl font-bold ${totalAiWeight === 100 ? 'text-emerald-600' : 'text-rose-600'}`}
               >
-                <span className="font-semibold text-slate-800 text-lg">
-                  Tổng trọng số:
-                </span>
-                <span
-                  className={`text-3xl font-bold ${totalAiWeight === 100 ? 'text-emerald-600' : 'text-rose-600'}`}
-                >
-                  {totalAiWeight}%
-                </span>
-              </div>
-              {totalAiWeight !== 100 && (
-                <p className="text-rose-500 text-sm mt-3 animate-pulse">
-                  * Tổng các trọng số hiện tại là {totalAiWeight}%. Vui lòng
-                  điều chỉnh lại cho tròn 100% để bộ học hoạt động tốt.
-                </p>
-              )}
-            </Card>
+                {totalAiWeight}%
+              </span>
+            </div>
+            {totalAiWeight !== 100 && (
+              <p className="text-rose-500 text-sm mt-3 animate-pulse">
+                * Tổng các trọng số hiện tại là {totalAiWeight}%. Vui lòng
+                điều chỉnh lại cho tròn 100% để bộ học hoạt động tốt.
+              </p>
+            )}
+          </Card>
         </div>
       ))}
 
@@ -1960,7 +2019,7 @@ export const AdminDashboard = () => {
         onConfirm={handleConfirmBoostPackage}
         confirmLabel={
           createPaymentPackageMutation.isPending ||
-          updatePaymentPackageMutation.isPending
+            updatePaymentPackageMutation.isPending
             ? 'Đang lưu...'
             : 'Xác nhận'
         }

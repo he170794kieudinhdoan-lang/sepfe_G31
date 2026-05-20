@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, keepPreviousData } from '@tanstack/react-query';
 import {
   createPaymentPackageApi,
   getAdminStatisticsApi,
@@ -13,6 +13,7 @@ export const useAdminStatistics = ({ year } = {}, options = {}) => {
     queryKey: ['admin-statistics', year],
     queryFn: () => getAdminStatisticsApi({ year }),
     staleTime: 0,
+    placeholderData: keepPreviousData,
     ...options,
   });
 };

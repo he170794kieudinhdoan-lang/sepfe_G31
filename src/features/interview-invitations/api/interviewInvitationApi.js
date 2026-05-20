@@ -53,6 +53,12 @@ export const getJobInviteConstraints = async (jobId) => {
   )
 }
 
+export const getInvitedWorkersByJob = async (jobId) => {
+  return await apiClient.get(
+    `/interview-invitations/jobs/${jobId}/invited-workers`,
+  )
+}
+
 export const getMyInvitations = async (page = 1, limit = 10, type = null) => {
   let url = `/interview-invitations/my-invitations?page=${page}&limit=${limit}`;
   if (type) {

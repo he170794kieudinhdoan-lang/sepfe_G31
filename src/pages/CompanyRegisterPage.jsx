@@ -727,7 +727,9 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
         error?.response?.status,
         error?.response?.data || error.message,
       );
-      toast(MSG.MSG36, 'error');
+      const errorMsg =
+        error?.response?.data?.message || 'Đăng ký công ty thất bại. Vui lòng thử lại.';
+      toast(errorMsg, 'error');
     } finally {
       setLoadingSubmit(false);
     }

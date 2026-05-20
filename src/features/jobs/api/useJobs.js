@@ -265,6 +265,7 @@ export const useApplyJobMutation = () => {
     onSuccess: (_, { jobId }) => {
       queryClient.invalidateQueries({ queryKey: ['job-apply', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-detail', jobId] });
+      queryClient.invalidateQueries({ queryKey: ['my-applications'] });
     },
   });
 };
