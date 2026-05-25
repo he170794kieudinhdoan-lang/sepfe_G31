@@ -3,13 +3,14 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
+# Copy source + .env (VITE_* vars are public — embedded into JS bundle at build)
 COPY . .
 
-# VITE_API_URL is embedded at build time — override with --build-arg if needed
-ARG VITE_API_URL=http://localhost:4000/api
-ENV VITE_API_URL=$VITE_API_URL
+# Allow overriding API URL via --build-arg (e.g. for CI/CD pointing to staging)
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
 
 RUN npm run build
 

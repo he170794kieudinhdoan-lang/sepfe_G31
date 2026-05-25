@@ -3,8 +3,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      # VITE_* vars are embedded at build time — .env file is loaded automatically
+      # Override individual vars here if needed, e.g. to point to a different backend
       args:
-        # Trỏ đến backend — đổi URL nếu backend chạy ở nơi khác
         VITE_API_URL: http://localhost:4000/api
     container_name: sep-frontend
     restart: unless-stopped
