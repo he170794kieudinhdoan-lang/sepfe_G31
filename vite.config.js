@@ -17,6 +17,7 @@ export default defineConfig({
     },
   },
   resolve: {
+    dedupe: ['react', 'react-dom'],
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
@@ -44,8 +45,6 @@ export default defineConfig({
           if (id.includes('axios')) return 'axios';
           if (id.includes('react-easy-crop')) return 'crop';
           if (id.includes('typewriter-effect')) return 'typewriter';
-          if (id.includes('react-dom') || id.includes('scheduler')) return 'react-dom';
-          if (id.includes('/react/')) return 'react';
           return 'vendor';
         },
       },
