@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Trỏ đến backend — đổi URL nếu backend chạy ở nơi khác
+        VITE_API_URL: http://localhost:4000/api
+    container_name: sep-frontend
+    restart: unless-stopped
+    ports:
+      - '3000:80'
