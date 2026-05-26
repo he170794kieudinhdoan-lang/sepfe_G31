@@ -118,6 +118,36 @@ pnpm test -- --coverage    # with coverage report
 
 Tests use **MSW** to mock API responses at the network level — no manual fetch mocking required.
 
+## Running with Docker
+
+The frontend is containerized as a **multi-stage build** — React app compiled by Vite, then served by Nginx with gzip + SPA routing.
+
+```bash
+cp .env.example .env    # set VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, etc.
+
+docker compose up --build
+```
+
+Frontend available at `http://localhost:3000`.
+
+The `VITE_*` variables are **baked into the JS bundle at build time**. To point at a different backend:
+
+```bash
+docker compose build --build-arg VITE_API_URL=https://api.yourserver.com/api
+docker compose up
+```
+
+Nginx config (`nginx.conf`) includes:
+- SPA fallback: all routes → `index.html`
+- Static asset caching: `Cache-Control: public, immutable` (1 year, hashed filenames)
+- Gzip compression for JS/CSS/SVG
+
+Stop:
+
+```bash
+docker compose down
+```
+
 ## Linting
 
 ```bash
