@@ -11,6 +11,7 @@ jobs:
   build-push:
     name: Build & Push Docker Image → GHCR
     runs-on: ubuntu-latest
+    environment: G31_FE
 
     permissions:
       contents: read
