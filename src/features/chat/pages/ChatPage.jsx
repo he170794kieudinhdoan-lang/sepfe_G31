@@ -13,6 +13,7 @@ import { Avatar } from '@radix-ui/react-avatar';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useChatRealtime } from '../hooks/useChatRealtime';
+import { useChatSocket } from '../hooks/useChatSocket';
 import { formatMessageTime } from '@/shared/utils/dateUtils';
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -262,13 +263,15 @@ export const MessageThread = ({
   );
 };
 
-export const MessageInput = ({ value, onChange, onSend }) => (
+export const MessageInput = ({ value, onChange, onSend, onFocus, onBlur }) => (
   <div className="p-4 border-t flex gap-2">
     <Input
       placeholder="Nhập tin nhắn..."
       value={value}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={(e) => e.key === 'Enter' && onSend()}
+      onFocus={onFocus}
+      onBlur={onBlur}
       className="rounded-xl flex-1"
     />
     <Button className="rounded-xl shrink-0" onClick={onSend}>
@@ -318,6 +321,27 @@ export const ChatPage = () => {
   const { mutate: markAsRead } = useMarkAsRead();
 
   useChatRealtime(conversationId, user.id);
+
+  const { socketRef, sendTyping } = useChatSocket(conversationId ? Number(conversationId) : null, user?.id)
+
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false)
+  const typingTimerRef = useRef(null)
+
+  useEffect(() => {
+    const socket = socketRef.current
+    if (!socket) return
+    const handler = ({ userId: typingUserId, isTyping }) => {
+      if (typingUserId !== user?.id) {
+        setIsPartnerTyping(isTyping)
+        if (isTyping) {
+          clearTimeout(typingTimerRef.current)
+          typingTimerRef.current = setTimeout(() => setIsPartnerTyping(false), 3000)
+        }
+      }
+    }
+    socket.on('typing', handler)
+    return () => socket.off('typing', handler)
+  }, [socketRef.current, user?.id])
 
   const listQuery = listSearch.trim().toLowerCase();
   const filteredConversations =
@@ -413,7 +437,16 @@ export const ChatPage = () => {
               avatar={avatar}
               highlightQuery={activeThreadSearch}
             />
-            <MessageInput value={input} onChange={setInput} onSend={send} />
+            {isPartnerTyping && (
+              <div className="px-4 py-1 text-xs text-gray-400 italic">Đang nhập...</div>
+            )}
+            <MessageInput
+              value={input}
+              onChange={setInput}
+              onSend={send}
+              onFocus={() => sendTyping(true)}
+              onBlur={() => sendTyping(false)}
+            />
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">

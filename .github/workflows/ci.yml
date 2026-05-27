@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-build:
+    name: Lint / Build
+    runs-on: ubuntu-latest
+    environment: G31_FE
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          # Secrets (set in GitHub repo → Settings → Secrets → Actions)
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_AUTH_SOCIAL_GOOGLE_CLIENT_ID: ${{ secrets.VITE_AUTH_SOCIAL_GOOGLE_CLIENT_ID }}
+          # Non-sensitive values (hardcoded)
+          VITE_APP_TITLE: WORKLINK
+          VITE_ENABLE_MOCK: false
+          VITE_PROVINCES_API_URL: https://provinces.open-api.vn/api/v2
+          VITE_NOTIFICATION_REALTIME_SCHEMA: public
+          VITE_NOTIFICATION_REALTIME_TABLE: Notification
+          VITE_NOTIFICATION_REALTIME_USER_COLUMN: userId
+          VITE_POINT_PRICING_REALTIME_SCHEMA: public
+          VITE_POINT_PRICING_REALTIME_TABLE: SystemSetting
+          VITE_PAYMENT_ORDER_REALTIME_SCHEMA: public
+          VITE_PAYMENT_ORDER_REALTIME_TABLE: PaymentOrder

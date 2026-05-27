@@ -1,104 +1,161 @@
-# Worklink - React Template
+# WorkLink — Frontend (`sepfe_G31`)
 
-This is a modern React web application built with **Vite**, **Tailwind CSS**, and **React Router**. It follows a **Feature-Based Architecture** to ensure scalability and maintainability.
+[![CI](https://github.com/he170794kieudinhdoan-lang/sepfe_G31/actions/workflows/ci.yml/badge.svg)](https://github.com/he170794kieudinhdoan-lang/sepfe_G31/actions/workflows/ci.yml)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![Vite](https://img.shields.io/badge/Vite-7-646CFF?logo=vite)
+![TailwindCSS](https://img.shields.io/badge/Tailwind-4-06B6D4?logo=tailwindcss)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript)
 
-## 🚀 Tech Stack
+Frontend for **WorkLink** — an AI-powered job matching platform for the Vietnamese labor market.
 
-- **Core:** React 19, Vite 7
-- **Styling:** Tailwind CSS
-- **State Management:** React Query (TanStack Query)
-- **Forms:** React Hook Form + Zod Validation
-- **Utilities:** Axios, Lucide React (Icons)
+> Built as the Software Engineering Project (SEP) — Group 31.
 
-## 📂 Project Structure
+**Live demo**: connected to the backend's AI matching engine — candidates receive ranked job recommendations based on semantic vector similarity, not keyword filtering.
 
-The project follows a modular structure where code is organized by **features** rather than technical layers.
+---
+
+## Tech Stack
+
+| Category | Technology |
+|---|---|
+| Framework | React 19 (concurrent features) |
+| Build tool | Vite 7 |
+| Styling | Tailwind CSS 4 + Shadcn/UI (Radix primitives) |
+| Routing | React Router v7 |
+| Server state | TanStack Query v5 (caching, background refetch) |
+| Forms | React Hook Form + Zod validation |
+| Rich text editor | TipTap (job description editor with formatting toolbar) |
+| Calendar | FullCalendar (interview schedule management) |
+| Charts | Recharts (employer dashboard analytics) |
+| Real-time | Supabase Realtime (live notifications) |
+| HTTP client | Axios |
+| Image upload | react-easy-crop |
+| Carousel | Embla Carousel |
+| Toast | Sonner |
+| Testing | Vitest + Testing Library + MSW (API mocking) |
+| Linting | ESLint 9 + TypeScript-ESLint |
+| Deploy | Vercel / Railway |
+
+---
+
+## Key Features
+
+| Feature | Implementation |
+|---|---|
+| AI Job Matching | Calls backend vector-search API — results ranked by Gemini embedding similarity |
+| Real-time Notifications | Supabase Realtime subscriptions — zero-polling |
+| Interview Scheduling | FullCalendar with drag-and-drop, employer invite flow |
+| Rich Job Descriptions | TipTap editor — bold, italic, lists, images, text alignment |
+| Employer Dashboard | Recharts graphs — application trends, view counts, wallet balance |
+| Point Wallet | SePay QR payment integration, real-time order status |
+| Profile Setup | Multi-step form with image crop, occupation picker, shift preferences |
+
+---
+
+## Project Structure
 
 ```
 src/
-├── assets/         # Static assets (images, fonts)
-├── components/     # Shared generic UI components (Buttons, Inputs, etc.)
-├── features/       # Feature-specific modules (Jobs, Auth, etc.)
-│   └── jobs/
-│       ├── components/  # Components specific to this feature
-│       ├── hooks/       # Custom hooks for this feature
-│       └── api/         # API calls for this feature
-├── lib/            # Shared utilities and helpers (axios setups, cn helper)
-├── shared/         # Shared layouts, constants, or types
-├── app/            # App-wide setup (routes, providers)
-├── App.jsx         # Root component
-└── main.jsx        # Entry point
+  app/            # route definitions, global providers
+  assets/         # static assets (images, fonts)
+  components/     # shared generic UI components (Button, Input, etc.)
+  features/       # feature modules — collocated components + hooks + api calls
+  lib/            # axios instance, cn() utility, constants
+  pages/          # page-level components (routed)
+  shared/         # shared layouts, types, guards
+  main.jsx        # entry point
 ```
 
-## 🛠️ Prerequisites
+Each feature in `src/features/` is self-contained:
 
-Ensure you have the following installed:
+```
+features/jobs/
+  components/   # UI specific to job feature
+  hooks/        # data-fetching hooks (useQuery wrappers)
+  api/          # axios calls + query key factories
+```
 
-- **Node.js** (v18 or higher recommended)
-- **pnpm** (preferred) or npm/yarn
+---
 
-## ⚙️ Installation & Setup
+## Prerequisites
 
-1.  **Clone the repository** (if not already done).
+- Node.js 18+
+- npm or pnpm
 
-2.  **Install dependencies**:
-
-    ```bash
-    pnpm install
-    # or
-    npm install
-    ```
-
-3.  **Environment Configuration**:
-    Copy the example environment file to create your local config:
-
-    ```bash
-    cp .env.example .env
-    ```
-
-    Update `.env` with your actual values if needed:
-    - `VITE_API_URL`: URL of your backend API.
-    - `VITE_APP_TITLE`: Title of the application.
-
-## 🏃‍♂️ Running the Project
-
-**Development Mode:**
-Starts the local development server with Hot Module Replacement (HMR).
+## Setup & Run
 
 ```bash
-pnpm dev
-# or
-npm run dev
+# Install dependencies
+pnpm install       # or: npm install
+
+# Copy environment file
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+Required `.env` variables:
 
-**Production Build:**
-Builds the app for production to the `dist` folder.
+```env
+VITE_API_URL=http://localhost:4000/api
+VITE_APP_TITLE=WORKLINK
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+VITE_AUTH_SOCIAL_GOOGLE_CLIENT_ID=
+VITE_PROVINCES_API_URL=https://provinces.open-api.vn/api/v2
+```
 
 ```bash
-pnpm build
-# or
-npm run build
+pnpm dev          # development server → http://localhost:3000
+pnpm build        # production build → dist/
+pnpm preview      # preview production build locally
 ```
 
-**Preview Production Build:**
-Locally preview the production build.
+## Testing
 
 ```bash
-pnpm preview
-# or
-npm run preview
+pnpm test                  # run all unit tests
+pnpm test -- --coverage    # with coverage report
 ```
 
-## 🎨 Code Quality
+Tests use **MSW** to mock API responses at the network level — no manual fetch mocking required.
 
-- **Linting:** Run `pnpm lint` to check for code issues using ESLint.
-- **Formatting:** A `.prettierrc` file is included for code formatting.
+## Running with Docker
 
-## 🤝 Contributing
+The frontend is containerized as a **multi-stage build** — React app compiled by Vite, then served by Nginx with gzip + SPA routing.
 
-1.  Create a feature branch (`git checkout -b feature/amazing-feature`).
-2.  Commit your changes (`git commit -m 'Add some amazing feature'`).
-3.  Push to the branch (`git push origin feature/amazing-feature`).
-4.  Open a Pull Request.
+```bash
+cp .env.example .env    # set VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, etc.
+
+docker compose up --build
+```
+
+Frontend available at `http://localhost:3000`.
+
+The `VITE_*` variables are **baked into the JS bundle at build time**. To point at a different backend:
+
+```bash
+docker compose build --build-arg VITE_API_URL=https://api.yourserver.com/api
+docker compose up
+```
+
+Nginx config (`nginx.conf`) includes:
+- SPA fallback: all routes → `index.html`
+- Static asset caching: `Cache-Control: public, immutable` (1 year, hashed filenames)
+- Gzip compression for JS/CSS/SVG
+
+Stop:
+
+```bash
+docker compose down
+```
+
+## Linting
+
+```bash
+pnpm lint          # ESLint check
+```
+
+---
+
+## Backend
+
+This frontend requires the [WorkLink Backend](https://github.com/minhtt22-26/sepbe_G31) for all data APIs including the AI matching engine.
