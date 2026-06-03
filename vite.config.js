@@ -7,6 +7,9 @@ export default defineConfig({
   plugins: [react(), tailwindcss()],
   server: {
     port: 3000,
+    watch: {
+      usePolling: process.env.DOCKER === 'true',
+    },
     proxy: {
       '/provinces-api': {
         target: 'https://provinces.open-api.vn/api',
