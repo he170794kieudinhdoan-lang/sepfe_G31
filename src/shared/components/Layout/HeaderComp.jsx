@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,9 +11,9 @@ import {
   Bell,
   HelpCircle,
   MessageCircle,
-  Search,
   ChevronDown,
-  User,
+  Menu,
+  X as XIcon,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/shared/contexts/AuthContext';
@@ -50,6 +50,12 @@ export const Header = () => {
   const navigate = useNavigate();
   const [avatarOpen, setAvatarOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [navigate]);
   const [notificationDetailItem, setNotificationDetailItem] = useState(null);
   const { isAuthenticated, isLoading, user, logout } = useAuth();
   const { toast } = useToast();
@@ -128,72 +134,60 @@ export const Header = () => {
     !isAuthenticated ||
     (user?.roleType !== 'ADMIN' && user?.roleType !== 'MANAGER');
 
+  const navLinks = [
+    ...TASKBAR_LINKS,
+    ...(isAuthenticated && isWorkerRole(user)
+      ? [{ to: '/job-invitations', label: 'Lời mời từ NTD', dot: hasPendingJob }]
+      : []),
+    ...(isAuthenticated && isWorkerRole(user)
+      ? [{
+          to: '/interview-invitations',
+          label: 'Quản lý phỏng vấn',
+          dot: hasPendingInterview,
+        }]
+      : []),
+  ];
+
   return (
     <>
     <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between gap-4 h-20 p-2 mx-6">
-          <div className="flex items-center gap-8">
+        <div className="flex items-center justify-between h-16 sm:h-20">
+          {/* Left: logo + desktop nav */}
+          <div className="flex items-center gap-6 min-w-0">
             <Link
               to="/"
               className="text-2xl font-extrabold text-primary shrink-0 flex items-center gap-2"
             >
-              <img src="/logo_02.png" alt="WorkLink" className=" h-12 w-auto" />
+              <img src="/logo_02.png" alt="WorkLink" className="h-10 sm:h-12 w-auto" />
             </Link>
 
             <nav className="hidden md:flex items-center gap-1">
-              {TASKBAR_LINKS.map(({ to, label }) => {
-                // Determine if this link is currently active
-                // Simple logic: if window location pathname starts with `to`
-                const isActive = window.location.pathname === to;
+              {navLinks.map(({ to, label, dot }) => {
+                const isActive = window.location.pathname === to
+                  || (to !== '/' && window.location.pathname.startsWith(to));
                 return (
                   <Link
                     key={to}
                     to={to}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      isActive 
-                        ? 'bg-amber-50 text-amber-600' 
+                    className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-amber-50 text-amber-600'
                         : 'text-gray-700 hover:bg-primary/10 hover:text-primary'
                     }`}
                   >
                     {label}
+                    {dot && (
+                      <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
+                    )}
                   </Link>
                 );
               })}
-              {isAuthenticated && isWorkerRole(user) && (
-                <Link
-                  to="/job-invitations"
-                  className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    window.location.pathname.includes('job-invitations') 
-                      ? 'bg-amber-50 text-amber-600' 
-                      : 'text-gray-700 hover:bg-primary/10 hover:text-primary'
-                  }`}
-                >
-                  Lời mời từ NTD
-                  {hasPendingJob && (
-                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-                  )}
-                </Link>
-              )}
-              {isAuthenticated && (isWorkerRole(user) || user?.roleType === 'EMPLOYER') && (
-                <Link
-                  to={isWorkerRole(user) ? '/interview-invitations' : '/employer/interviews'}
-                  className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    window.location.pathname.includes('interview') 
-                      ? 'bg-amber-50 text-amber-600' 
-                      : 'text-gray-700 hover:bg-primary/10 hover:text-primary'
-                  }`}
-                >
-                  Quản lý phỏng vấn
-                  {isWorkerRole(user) && hasPendingInterview && (
-                    <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white"></span>
-                  )}
-                </Link>
-              )}
             </nav>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          {/* Right: actions + hamburger */}
+          <div className="flex items-center gap-2 shrink-0">
             {showSupportAskLink && (
               <Button
                 variant="ghost"
@@ -351,8 +345,19 @@ export const Header = () => {
               </Button>
             )}
 
+            {/* Hamburger — mobile only */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden rounded-full text-gray-700 hover:bg-primary/10"
+              onClick={() => setMobileMenuOpen((v) => !v)}
+              aria-label="Menu"
+            >
+              {mobileMenuOpen ? <XIcon className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+
             {isLoading ? (
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2">
                 <Skeleton className="h-10 w-24 rounded-xl" />
                 <Skeleton className="h-10 w-24 rounded-xl" />
               </div>
@@ -476,6 +481,70 @@ export const Header = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile menu drawer */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 space-y-1 shadow-md">
+          {navLinks.map(({ to, label, dot }) => {
+            const isActive = window.location.pathname === to
+              || (to !== '/' && window.location.pathname.startsWith(to));
+            return (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                  isActive
+                    ? 'bg-amber-50 text-amber-600'
+                    : 'text-gray-700 hover:bg-primary/10 hover:text-primary'
+                }`}
+              >
+                {label}
+                {dot && (
+                  <span className="h-2 w-2 rounded-full bg-red-500 shrink-0" />
+                )}
+              </Link>
+            );
+          })}
+          {showSupportAskLink && (
+            <Link
+              to="/support"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-primary/10 hover:text-primary transition-colors"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Trợ giúp
+            </Link>
+          )}
+          {isAuthenticated && user?.roleType === 'EMPLOYER' && (
+            <Link
+              to="/employer"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+            >
+              Trang tuyển dụng
+            </Link>
+          )}
+          {isAuthenticated && user?.roleType === 'MANAGER' && (
+            <Link
+              to="/manager"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+            >
+              Vận hành hệ thống
+            </Link>
+          )}
+          {isAuthenticated && user?.roleType === 'ADMIN' && (
+            <Link
+              to="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors"
+            >
+              Trang quản trị
+            </Link>
+          )}
+        </div>
+      )}
     </header>
     <NotificationDetailDialog
       item={notificationDetailItem}

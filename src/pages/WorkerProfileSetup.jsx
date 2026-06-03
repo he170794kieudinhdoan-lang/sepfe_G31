@@ -143,8 +143,26 @@ export const WorkerProfileSetup = () => {
     }
   }, [sectorId, setValue]);
 
+  const [sectorTouched, setSectorTouched] = useState(false);
+  const sectorError = sectorTouched && !sectorId;
+
+  const FIELD_LABELS = {
+    occupationId: 'Nghề cụ thể',
+    shift: 'Ca làm việc mong muốn',
+    province: 'Tỉnh/Thành phố',
+    ward: 'Phường/Xã',
+    gender: 'Giới tính',
+    birthYear: 'Năm sinh',
+    expectedSalary: 'Mức lương mong muốn',
+  };
+
   const onSubmit = (data) => {
-    // Clean up empty values
+    if (!sectorId) {
+      setSectorTouched(true);
+      toast('Vui lòng chọn Ngành nghề trước khi hoàn tất.', 'error');
+      return;
+    }
+
     const payload = Object.entries(data).reduce((acc, [key, value]) => {
       if (value !== '' && value !== null && value !== undefined) {
         acc[key] = value;
@@ -152,15 +170,9 @@ export const WorkerProfileSetup = () => {
       return acc;
     }, {});
 
-    // Add sectorId from the selected sector
-    if (sectorId) {
-      const sector = occupationsData?.find((s) => s.id.toString() === sectorId);
-      if (sector) {
-        payload.sectorId = sector.id;
-      }
-    }
+    const sector = occupationsData?.find((s) => s.id.toString() === sectorId);
+    if (sector) payload.sectorId = sector.id;
 
-    // Determine if creating or updating (in this case, always creating for setup)
     createProfile(payload, {
       onSuccess: () => {
         toast(MSG.MSG_WORKER_PROFILE_CREATE_SUCCESS);
@@ -172,6 +184,23 @@ export const WorkerProfileSetup = () => {
         toast(message, 'error');
       },
     });
+  };
+
+  const onInvalid = (formErrors) => {
+    setSectorTouched(true);
+
+    const missing = [];
+    if (!sectorId) missing.push('Ngành nghề');
+    Object.entries(formErrors).forEach(([key]) => {
+      const label = FIELD_LABELS[key];
+      if (label && !missing.includes(label)) missing.push(label);
+    });
+
+    const message =
+      missing.length > 0
+        ? `Vui lòng điền đầy đủ thông tin: ${missing.join(', ')}.`
+        : 'Vui lòng kiểm tra lại thông tin trước khi hoàn tất.';
+    toast(message, 'error');
   };
 
   const isLoading = isCreating;
@@ -190,7 +219,7 @@ export const WorkerProfileSetup = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Sector Selection */}
               <div className="space-y-2">
@@ -199,10 +228,13 @@ export const WorkerProfileSetup = () => {
                 </Label>
                 <Select
                   value={sectorId}
-                  onValueChange={setSectorId}
+                  onValueChange={(val) => {
+                    setSectorId(val);
+                    setSectorTouched(true);
+                  }}
                   disabled={occupationsLoading}
                 >
-                  <SelectTrigger className="w-full h-11! rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors">
+                  <SelectTrigger className={`w-full h-11! rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors ${sectorError ? 'border-destructive' : ''}`}>
                     <SelectValue placeholder="Chọn ngành nghề" />
                   </SelectTrigger>
                   <SelectContent>
@@ -213,9 +245,9 @@ export const WorkerProfileSetup = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                {!sectorId && errors.occupationId && (
+                {sectorError && (
                   <p className="text-xs text-destructive">
-                    Vui lòng chọn ngành nghề trước
+                    Vui lòng chọn ngành nghề
                   </p>
                 )}
               </div>
@@ -485,7 +517,7 @@ export const WorkerProfileSetup = () => {
               {/* Shift */}
               <div className="space-y-3 pt-2">
                 <Label className="text-sm font-medium">
-                  Ca làm việc mong muốn
+                  Ca làm việc mong muốn <span className="text-destructive">*</span>
                 </Label>
                 <Controller
                   name="shift"
@@ -516,11 +548,16 @@ export const WorkerProfileSetup = () => {
                     </RadioGroup>
                   )}
                 />
+                {errors.shift && (
+                  <p className="text-xs text-destructive">{errors.shift.message}</p>
+                )}
               </div>
 
               {/* Gender */}
               <div className="space-y-2">
-                <Label className="text-sm font-medium">Giới tính</Label>
+                <Label className="text-sm font-medium">
+                  Giới tính <span className="text-destructive">*</span>
+                </Label>
                 <Controller
                   name="gender"
                   control={control}
@@ -550,6 +587,9 @@ export const WorkerProfileSetup = () => {
                     </RadioGroup>
                   )}
                 />
+                {errors.gender && (
+                  <p className="text-xs text-destructive">{errors.gender.message}</p>
+                )}
               </div>
             </div>
 

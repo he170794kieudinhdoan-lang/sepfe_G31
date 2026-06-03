@@ -191,28 +191,23 @@ const StatusBadge = ({ status }) => {
   const statusConfig = {
     PUBLISHED: {
       color: 'bg-green-100 text-green-800 border-green-200',
-      label: 'Hiển thị',
+      label: 'Đang hiển thị',
       title: 'Tin tuyển dụng đang được công khai',
     },
-    PENDING: {
-      color: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      label: 'Chờ duyệt',
-      title: 'Tin tuyển dụng đang chờ quản trị viên phê duyệt',
+    WARNING: {
+      color: 'bg-orange-100 text-orange-800 border-orange-200',
+      label: 'Chờ thanh toán',
+      title: 'Tin đã tạo nhưng chưa thanh toán nên chưa được xuất bản',
     },
     EXPIRED: {
       color: 'bg-red-100 text-red-800 border-red-200',
       label: 'Hết hạn',
       title: 'Tin tuyển dụng đã vượt quá ngày hết hạn',
     },
-    REJECTED: {
-      color: 'bg-gray-100 text-gray-800 border-gray-200',
-      label: 'Bị từ chối',
-      title: 'Tin bị hệ thống từ chối do phát hiện Spam hoặc vi phạm',
-    },
-    WARNING: {
-      color: 'bg-orange-100 text-orange-800 border-orange-200',
-      label: 'Chờ thanh toán',
-      title: 'Tin đã tạo nhưng chưa thanh toán nên chưa được xuất bản',
+    DELETED: {
+      color: 'bg-gray-100 text-gray-500 border-gray-200',
+      label: 'Đã xóa',
+      title: 'Tin tuyển dụng đã bị xóa',
     },
   };
 
@@ -2633,6 +2628,9 @@ export const EmployerDashboard = () => {
 
   // Filtering states
   const [jobSearchText, setJobSearchText] = useState('');
+  const [jobStatusFilter, setJobStatusFilter] = useState('');
+  const [jobDateFrom, setJobDateFrom] = useState('');
+  const [jobDateTo, setJobDateTo] = useState('');
   const [selectedJobIdFilter, setSelectedJobIdFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [applicantsTabPage, setApplicantsTabPage] = useState(1);
@@ -2675,7 +2673,7 @@ export const EmployerDashboard = () => {
 
   const { data: overview, isLoading: loadingOverview } = useEmployerOverview();
   const { data: searchResult, isLoading: loadingJobs } = useJobsForEmployer({
-    allStatus: true,
+    ...(jobStatusFilter ? { status: jobStatusFilter } : {}),
     page: jobPage,
     limit: 10,
   });
@@ -3365,7 +3363,7 @@ export const EmployerDashboard = () => {
                   <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-200">
                     <AlertCircle size={16} className="text-red-700" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="font-semibold text-red-800">
                       Hồ sơ đã bị từ chối
                     </p>
@@ -3373,6 +3371,16 @@ export const EmployerDashboard = () => {
                       Quản trị viên đã từ chối hồ sơ doanh nghiệp của bạn. Vui
                       lòng chỉnh sửa thông tin và gửi lại để được xét duyệt.
                     </p>
+                    {company?.rejectionReason && (
+                      <div className="mt-2.5 rounded-xl border border-red-200 bg-white/70 px-3.5 py-2.5">
+                        <p className="text-xs font-semibold text-red-600 uppercase tracking-wide mb-1">
+                          Lý do từ chối
+                        </p>
+                        <p className="text-sm text-red-800 whitespace-pre-wrap">
+                          {company.rejectionReason}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -3672,24 +3680,80 @@ export const EmployerDashboard = () => {
 
                     <div className="p-4 sm:p-5">
                       {/* Toolbar */}
-                      <div className="flex flex-col sm:flex-row justify-between gap-4 mb-4">
-                        <div className="relative flex-1 max-w-md">
-                          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                          <Input
-                            placeholder="Tìm theo tiêu đề tin..."
-                            className="pl-9 rounded-lg border-slate-200 bg-white focus-visible:ring-primary/25"
-                            value={jobSearchText}
-                            onChange={(e) => setJobSearchText(e.target.value)}
-                          />
+                      <div className="flex flex-col gap-3 mb-4">
+                        <div className="flex flex-col sm:flex-row justify-between gap-3">
+                          <div className="flex flex-col sm:flex-row gap-2 flex-1 flex-wrap">
+                            <div className="relative flex-1 min-w-[180px] max-w-sm">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                              <Input
+                                placeholder="Tìm theo tiêu đề tin..."
+                                className="pl-9 rounded-lg border-slate-200 bg-white focus-visible:ring-primary/25"
+                                value={jobSearchText}
+                                onChange={(e) => setJobSearchText(e.target.value)}
+                              />
+                            </div>
+                            <select
+                              className="rounded-lg border border-slate-200 h-10 px-3 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/25 text-slate-700 min-w-[160px]"
+                              value={jobStatusFilter}
+                              onChange={(e) => {
+                                setJobStatusFilter(e.target.value);
+                                setJobPage(1);
+                              }}
+                            >
+                              <option value="">Tất cả trạng thái</option>
+                              <option value="PUBLISHED">Đang hiển thị</option>
+                              <option value="WARNING">Chờ thanh toán</option>
+                              <option value="EXPIRED">Hết hạn</option>
+                            </select>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="date"
+                                className="rounded-lg border border-slate-200 h-10 px-3 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/25 text-slate-700"
+                                value={jobDateFrom}
+                                max={jobDateTo || undefined}
+                                onChange={(e) => {
+                                  setJobDateFrom(e.target.value);
+                                  setJobPage(1);
+                                }}
+                                title="Từ ngày"
+                              />
+                              <span className="text-slate-400 text-sm shrink-0">—</span>
+                              <input
+                                type="date"
+                                className="rounded-lg border border-slate-200 h-10 px-3 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/25 text-slate-700"
+                                value={jobDateTo}
+                                min={jobDateFrom || undefined}
+                                onChange={(e) => {
+                                  setJobDateTo(e.target.value);
+                                  setJobPage(1);
+                                }}
+                                title="Đến ngày"
+                              />
+                              {(jobDateFrom || jobDateTo) && (
+                                <button
+                                  type="button"
+                                  className="h-10 w-10 flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
+                                  onClick={() => {
+                                    setJobDateFrom('');
+                                    setJobDateTo('');
+                                    setJobPage(1);
+                                  }}
+                                  title="Xóa bộ lọc ngày"
+                                >
+                                  <X size={14} />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          {isApproved && (
+                            <Button
+                              className="rounded-lg gap-2 shadow-sm w-full sm:w-auto font-semibold px-5 shrink-0"
+                              onClick={() => setIsCreateJobOpen(true)}
+                            >
+                              <Plus size={18} /> Tạo tin mới
+                            </Button>
+                          )}
                         </div>
-                        {isApproved && (
-                          <Button
-                            className="rounded-lg gap-2 shadow-sm w-full sm:w-auto font-semibold px-5"
-                            onClick={() => setIsCreateJobOpen(true)}
-                          >
-                            <Plus size={18} /> Tạo tin mới
-                          </Button>
-                        )}
                       </div>
 
                       <div className="overflow-x-auto rounded-lg border border-slate-200">
@@ -3726,11 +3790,12 @@ export const EmployerDashboard = () => {
                                   <Loader2 className="animate-spin mx-auto text-primary" />
                                 </td>
                               </tr>
-                            ) : jobs.filter((j) =>
-                              j.title
-                                .toLowerCase()
-                                .includes(jobSearchText.toLowerCase()),
-                            ).length === 0 ? (
+                            ) : jobs.filter((j) => {
+                                if (!j.title.toLowerCase().includes(jobSearchText.toLowerCase())) return false;
+                                if (jobDateFrom && new Date(j.createdAt) < new Date(jobDateFrom)) return false;
+                                if (jobDateTo && new Date(j.createdAt) > new Date(jobDateTo + 'T23:59:59')) return false;
+                                return true;
+                              }).length === 0 ? (
                               <tr>
                                 <td
                                   colSpan="6"
@@ -3744,11 +3809,12 @@ export const EmployerDashboard = () => {
                               </tr>
                             ) : (
                               jobs
-                                .filter((j) =>
-                                  j.title
-                                    .toLowerCase()
-                                    .includes(jobSearchText.toLowerCase()),
-                                )
+                                .filter((j) => {
+                                  if (!j.title.toLowerCase().includes(jobSearchText.toLowerCase())) return false;
+                                  if (jobDateFrom && new Date(j.createdAt) < new Date(jobDateFrom)) return false;
+                                  if (jobDateTo && new Date(j.createdAt) > new Date(jobDateTo + 'T23:59:59')) return false;
+                                  return true;
+                                })
                                 .map((job) => {
                                   const boostExpiredAt = job.boostExpiredAt
                                     ? new Date(job.boostExpiredAt)

@@ -34,13 +34,13 @@ export const WishlistPage = () => {
   const remove = (jobId) => {
     unsaveJobMutation.mutate(jobId, {
       onSuccess: () => {
-        toast('Đã bỏ lưu công việc.');
+        toast('Đã bỏ lưu công việc.', 'success');
         if (list.length === 1 && page > 1) {
           setPage((p) => p - 1);
         }
       },
       onError: (error) => {
-        toast('Xóa thất bại. Vui lòng thử lại.');
+        toast('Xóa thất bại. Vui lòng thử lại.', 'error');
         console.error(error);
       },
     });

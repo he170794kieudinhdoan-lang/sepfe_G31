@@ -119,11 +119,11 @@ export const SupportTicketBoard = () => {
         status: draft.status,
         internalNote: draft.internalNote,
       });
-      toast('Đã cập nhật yêu cầu hỗ trợ.');
+      toast('Đã cập nhật yêu cầu hỗ trợ.', 'success');
       setSelectedTicket(null);
     } catch (error) {
-        error.response?.data?.message || 'Không thể cập nhật yêu cầu.';
-      toast(message, 'error');
+      const msg = error?.response?.data?.message || 'Không thể cập nhật yêu cầu.';
+      toast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
     }
   };
 

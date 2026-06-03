@@ -214,7 +214,7 @@ export const JobCard = memo(({
                   NỔI BẬT
                 </Badge>
               )}
-              {user && (
+              {user && isWorker && (
                 <Button
                   variant="ghost"
                   size="icon"

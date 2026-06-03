@@ -15,6 +15,7 @@ import {
   Layers,
   FileText,
   Briefcase,
+  Search,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -106,6 +107,7 @@ export const AdminDashboard = () => {
     status: '',
     fromDate: '',
     toDate: '',
+    search: '',
   };
 
   const [userFilters, setUserFilters] = useState(initialUserFilters);
@@ -1424,6 +1426,27 @@ export const AdminDashboard = () => {
       {active === 'users' && (isLoadingUsers ? renderUsersLoading() : (
         <div className="space-y-6">
           <Card className="p-4 flex flex-wrap gap-3 items-center">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" />
+              <Input
+                placeholder="Tìm theo tên hoặc email..."
+                className="rounded-full pl-9 pr-4 py-2 text-sm bg-white min-w-[220px]"
+                value={userFiltersInput.search}
+                onChange={(e) =>
+                  setUserFiltersInput({
+                    ...userFiltersInput,
+                    search: e.target.value,
+                  })
+                }
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const newFilters = { ...userFiltersInput, page: 1 };
+                    setUserFilters(newFilters);
+                    setUserFiltersInput(newFilters);
+                  }
+                }}
+              />
+            </div>
             <select
               className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
               value={userFiltersInput.role}

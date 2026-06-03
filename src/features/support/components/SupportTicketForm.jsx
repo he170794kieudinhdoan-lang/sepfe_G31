@@ -42,15 +42,15 @@ export const SupportTicketForm = () => {
         description: form.description.trim(),
       });
 
-      toast('Yêu cầu đã được gửi. Đội ngũ hỗ trợ sẽ xử lý sớm nhất.');
+      toast('Yêu cầu đã được gửi. Đội ngũ hỗ trợ sẽ xử lý sớm nhất.', 'success');
       setForm((current) => ({
         ...current,
         subject: '',
         description: '',
       }));
     } catch (error) {
-        error.response?.data?.message || 'Gửi yêu cầu thất bại.';
-      toast(message, 'error');
+      const msg = error?.response?.data?.message || 'Gửi yêu cầu thất bại. Vui lòng thử lại.';
+      toast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
     }
   };
 

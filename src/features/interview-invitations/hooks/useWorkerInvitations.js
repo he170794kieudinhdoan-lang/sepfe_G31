@@ -8,6 +8,9 @@ export const useWorkerInvitations = (page = 1, limit = 10, type = null) => {
     queryKey: ['worker-invitations', page, limit, type],
     queryFn: () => getMyInvitations(page, limit, type),
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000,
   })
 }
 
