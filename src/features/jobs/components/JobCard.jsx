@@ -154,8 +154,6 @@ export const JobCard = memo(({
           ? 'border-amber-200/50 bg-gradient-to-b from-amber-50/30 to-white shadow-[0_4px_16px_-4px_rgba(251,191,36,0.15)] hover:shadow-[0_20px_40px_-8px_rgba(251,191,36,0.3)] hover:-translate-y-1.5'
           : 'border-slate-200/60 bg-white shadow-[0_4px_16px_-4px_rgba(0,0,0,0.05)] hover:shadow-[0_20px_40px_-8px_rgba(0,0,0,0.12)] hover:-translate-y-1.5 hover:border-slate-300/60',
       )}
-      onMouseEnter={popoverHover?.onMouseEnter}
-      onMouseLeave={popoverHover?.onMouseLeave}
     >
       <div className={cn('flex items-start', compact ? 'gap-3.5' : 'gap-4')}>
         {/* Logo Section */}
@@ -185,8 +183,11 @@ export const JobCard = memo(({
                 className={cn(
                   'font-bold text-slate-800 line-clamp-1 group-hover:text-primary transition-colors relative z-20',
                   compact ? 'text-[14px] leading-tight mb-0.5' : 'text-[16px] leading-tight mb-1.5',
+                  popoverHover && 'cursor-pointer'
                 )}
                 title={job.title}
+                onMouseEnter={popoverHover?.onMouseEnter}
+                onMouseLeave={popoverHover?.onMouseLeave}
               >
                 <Link to={`/job/${job.id}`}>{job.title}</Link>
               </h3>

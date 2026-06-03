@@ -13,6 +13,7 @@ import {
   searchJobs,
   getJobsForEmployer,
   getBoostedJobsApi,
+  getNewestJobsApi,
   getBoostPackagesApi,
   createBoostCheckoutApi,
   createPostingCheckoutApi,
@@ -88,6 +89,17 @@ export const useBoostedJobs = (params = {}, options = {}) => {
     staleTime: 0,
     retry: 1,
     keepPreviousData: true,
+    ...options,
+  });
+};
+
+export const useNewestJobs = (params = {}, options = {}) => {
+  return useQuery({
+    queryKey: ['newest-jobs', params],
+    queryFn: () => getNewestJobsApi(params),
+    staleTime: 0,
+    retry: 1,
+    placeholderData: keepPreviousData,
     ...options,
   });
 };

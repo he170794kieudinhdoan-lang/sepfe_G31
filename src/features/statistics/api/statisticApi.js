@@ -4,12 +4,12 @@ export const getEmployerOverviewApi = async () => {
   return await apiClient.get('/statistics/employer/overview');
 };
 
-export const getDashboardStatsApi = (params) => {
-  return apiClient.get('/statistics/employer/dashboard-stats', { params });
+export const getJobEngagementStatisticApi = (params) => {
+  return apiClient.get('/statistics/employer/job-engagement', { params });
 };
 
-export const getJobFunnelApi = (jobId) => {
-  return apiClient.get(`/statistics/employer/jobs/${jobId}/funnel`);
+export const getJobStatisticApi = (jobId) => {
+  return apiClient.get(`/statistics/employer/jobs/${jobId}/statistic`);
 };
 
 export const getEmployerPaymentsApi = async (params) => {

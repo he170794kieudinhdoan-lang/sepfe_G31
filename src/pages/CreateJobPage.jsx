@@ -522,7 +522,7 @@ export const CreateJobPage = ({
                         ).toLocaleString('vi-VN')}{' '}
                         điểm
                       </strong>{' '}
-                      (tin đầu tiên được miễn phí theo chính sách hệ thống).
+                      (tin đầu tiên bạn sẽ được đăng miễn phí).
                     </p>
                   </div>
 
