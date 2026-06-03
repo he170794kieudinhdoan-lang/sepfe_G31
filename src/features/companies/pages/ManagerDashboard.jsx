@@ -154,6 +154,7 @@ export const ManagerDashboard = () => {
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const COMPANY_PAGE_SIZE = 10;
+  const REPORT_PAGE_SIZE = 10;
 
   // --- STATE MANAGEMENT ---
   const [currentTab, setCurrentTab] = useState('companies');
@@ -171,6 +172,7 @@ export const ManagerDashboard = () => {
   const [rejectionReasonError, setRejectionReasonError] = useState('');
 
   const [reportStatus, setReportStatus] = useState('ALL');
+  const [jobReportPage, setJobReportPage] = useState(1);
   const [viewingReportId, setViewingReportId] = useState(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isApproveReportModalOpen, setIsApproveReportModalOpen] =
@@ -183,6 +185,7 @@ export const ManagerDashboard = () => {
 
   // Review reports (UC 2.14.6 / 2.14.7)
   const [reviewReportStatus, setReviewReportStatus] = useState('ALL');
+  const [reviewReportPage, setReviewReportPage] = useState(1);
   const [viewingReviewReportId, setViewingReviewReportId] = useState(null);
   const [isReviewReportModalOpen, setIsReviewReportModalOpen] = useState(false);
   const [isApproveReviewReportModalOpen, setIsApproveReviewReportModalOpen] =
@@ -203,11 +206,11 @@ export const ManagerDashboard = () => {
     useGetCompanyUpdateRequest(viewingCompanyId);
   const reviewCompanyMutation = useReviewCompany();
 
-  const { data: listReportsData = [], isLoading: loadingReports } =
+  const { data: listReportsData, isLoading: loadingReports } =
     useGetAllJobReports(
       reportStatus,
-      1,
-      50,
+      jobReportPage,
+      REPORT_PAGE_SIZE,
       reportCompanyName,
       reportReporterName,
       reportFromDate,
@@ -219,8 +222,12 @@ export const ManagerDashboard = () => {
   const { data: listReviewReportsData, isLoading: loadingReviewReports } =
     useGetReviewReports(
       reviewReportStatus === 'ALL' ? undefined : reviewReportStatus,
-      1,
-      50,
+      reviewReportPage,
+      REPORT_PAGE_SIZE,
+      reviewReportCompanyName,
+      reviewReportReporterName,
+      reviewReportFromDate,
+      reviewReportToDate,
     );
   const updateReviewReportMutation = useUpdateReviewReportStatus();
   const hideReviewMutation = useHideCompanyReview();
@@ -368,7 +375,56 @@ export const ManagerDashboard = () => {
     setUpdatePage(1);
   }, [searchKeyword, companyStatusFilter, companyFromDate, companyToDate]);
 
+  const jobReportTotalPages = Math.max(
+    1,
+    Math.ceil((listReportsData?.total || 0) / REPORT_PAGE_SIZE),
+  );
+  const reviewReportTotalPages = Math.max(
+    1,
+    listReviewReportsData?.totalPages ||
+      Math.ceil((listReviewReportsData?.total || 0) / REPORT_PAGE_SIZE),
+  );
+
+  useEffect(() => {
+    setJobReportPage(1);
+  }, [
+    reportStatus,
+    reportCompanyName,
+    reportReporterName,
+    reportFromDate,
+    reportToDate,
+  ]);
+
+  useEffect(() => {
+    setReviewReportPage(1);
+  }, [
+    reviewReportStatus,
+    reviewReportCompanyName,
+    reviewReportReporterName,
+    reviewReportFromDate,
+    reviewReportToDate,
+  ]);
+
+  useEffect(() => {
+    if (jobReportPage > jobReportTotalPages) {
+      setJobReportPage(jobReportTotalPages);
+    }
+  }, [jobReportPage, jobReportTotalPages]);
+
+  useEffect(() => {
+    if (reviewReportPage > reviewReportTotalPages) {
+      setReviewReportPage(reviewReportTotalPages);
+    }
+  }, [reviewReportPage, reviewReportTotalPages]);
+
   // --- HANDLERS ---
+  const getApiErrorMessage = (error, fallback) => {
+    const raw = error?.response?.data?.message;
+    if (Array.isArray(raw)) return raw.join(', ');
+    if (typeof raw === 'string' && raw.trim()) return raw;
+    return fallback;
+  };
+
   const handleReviewCompany = async (newStatus) => {
     if (newStatus === 'REJECTED' && !rejectionReason.trim()) {
       setRejectionReasonError('Vui lòng nhập lý do từ chối.');
@@ -403,7 +459,10 @@ export const ManagerDashboard = () => {
       setRejectionReasonError('');
       setViewingCompanyId(null);
     } catch (error) {
-      toast(MSG.MSG54, 'error');
+      toast(
+        getApiErrorMessage(error, MSG.MSG_COMPANY_STATUS_UPDATE_FAIL),
+        'error',
+      );
     }
   };
 
@@ -819,7 +878,10 @@ export const ManagerDashboard = () => {
                 <Button
                   variant="outline"
                   className="w-full h-11 rounded-lg border-red-100 text-red-600 hover:bg-red-50 font-semibold"
-                  onClick={() => setIsRejectModalOpen(true)}
+                  onClick={() => {
+                    setRejectionReason('');
+                    setIsRejectModalOpen(true);
+                  }}
                 >
                   {companyDetails.status === 'UPDATING'
                     ? 'Từ chối hồ sơ cập nhật'
@@ -890,6 +952,7 @@ export const ManagerDashboard = () => {
                 setReportReporterName('');
                 setReportFromDate('');
                 setReportToDate('');
+                setJobReportPage(1);
               }}
             >
               Đặt lại
@@ -898,7 +961,7 @@ export const ManagerDashboard = () => {
           <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
             Tổng cộng:{' '}
             <span className="text-blue-600 font-bold">
-              {listReportsData?.data?.length || 0}
+              {listReportsData?.total || 0}
             </span>{' '}
             báo cáo
           </p>
@@ -982,6 +1045,15 @@ export const ManagerDashboard = () => {
             </table>
           </div>
         </Card>
+        {(listReportsData?.total || 0) > 0 && (
+          <Card className="p-3 border border-slate-200 shadow-sm bg-white">
+            <AppPagination
+              page={jobReportPage}
+              totalPage={jobReportTotalPages}
+              onPageChange={setJobReportPage}
+            />
+          </Card>
+        )}
       </div>
     );
   };
@@ -990,31 +1062,7 @@ export const ManagerDashboard = () => {
   // VIEW 3: REVIEW REPORTS LIST (UC 2.14.6 / 2.14.7)
   // ==========================================================
   const renderReviewReports = () => {
-    let list = listReviewReportsData?.data || [];
-
-    // Client-side filtering
-    if (reviewReportCompanyName) {
-      list = list.filter((r) =>
-        r.review?.company?.name
-          ?.toLowerCase()
-          .includes(reviewReportCompanyName.toLowerCase()),
-      );
-    }
-    if (reviewReportReporterName) {
-      list = list.filter((r) =>
-        r.reporter?.fullName
-          ?.toLowerCase()
-          .includes(reviewReportReporterName.toLowerCase()),
-      );
-    }
-    if (reviewReportFromDate) {
-      const from = new Date(`${reviewReportFromDate}T00:00:00`);
-      list = list.filter((r) => new Date(r.createdAt) >= from);
-    }
-    if (reviewReportToDate) {
-      const to = new Date(`${reviewReportToDate}T23:59:59`);
-      list = list.filter((r) => new Date(r.createdAt) <= to);
-    }
+    const list = listReviewReportsData?.data || [];
 
     return (
       <div className="space-y-4">
@@ -1069,6 +1117,7 @@ export const ManagerDashboard = () => {
                 setReviewReportReporterName('');
                 setReviewReportFromDate('');
                 setReviewReportToDate('');
+                setReviewReportPage(1);
               }}
             >
               Đặt lại
@@ -1076,8 +1125,10 @@ export const ManagerDashboard = () => {
           </div>
           <p className="text-sm text-slate-500 px-2 font-medium shrink-0">
             Tổng cộng:{' '}
-            <span className="text-blue-600 font-bold">{list.length}</span> báo
-            cáo
+            <span className="text-blue-600 font-bold">
+              {listReviewReportsData?.total || 0}
+            </span>{' '}
+            báo cáo
           </p>
         </div>
 
@@ -1178,6 +1229,15 @@ export const ManagerDashboard = () => {
             </table>
           </div>
         </Card>
+        {(listReviewReportsData?.total || 0) > 0 && (
+          <Card className="p-3 border border-slate-200 shadow-sm bg-white">
+            <AppPagination
+              page={reviewReportPage}
+              totalPage={reviewReportTotalPages}
+              onPageChange={setReviewReportPage}
+            />
+          </Card>
+        )}
       </div>
     );
   };

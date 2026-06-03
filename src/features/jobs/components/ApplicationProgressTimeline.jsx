@@ -42,7 +42,7 @@ export function ApplicationProgressTimeline({ status, updatedAt }) {
                   className={cn(
                     'h-[3px] min-h-[3px] min-w-0 flex-1 rounded-full',
                     steps[i - 1].state === 'done'
-                      ? 'bg-amber-400'
+                      ? 'bg-primary'
                       : 'bg-slate-200',
                   )}
                   aria-hidden
@@ -53,9 +53,9 @@ export function ApplicationProgressTimeline({ status, updatedAt }) {
                   className={cn(
                     'flex h-6 w-6 items-center justify-center rounded-full transition-colors',
                     step.state === 'done' &&
-                      'bg-amber-500 text-white shadow-sm shadow-amber-500/20',
+                      'bg-primary text-primary-foreground shadow-sm shadow-primary/25',
                     step.state === 'current' &&
-                      'box-border border-[3px] border-amber-500 bg-white shadow-[0_0_0_4px_rgba(245,158,11,0.15)]',
+                      'box-border border-[3px] border-primary bg-white shadow-[0_0_0_4px] shadow-primary/20',
                     step.state === 'pending' &&
                       'border-2 border-slate-200 bg-white',
                     step.state === 'error' &&
@@ -67,7 +67,7 @@ export function ApplicationProgressTimeline({ status, updatedAt }) {
                   ) : step.state === 'error' ? (
                     <X className="h-3.5 w-3.5" strokeWidth={3} />
                   ) : step.state === 'current' ? (
-                    <span className="h-2 w-2 rounded-full bg-amber-500" />
+                    <span className="h-2 w-2 rounded-full bg-primary" />
                   ) : (
                     <span className="h-1.5 w-1.5 rounded-full bg-slate-200" />
                   )}
@@ -80,7 +80,7 @@ export function ApplicationProgressTimeline({ status, updatedAt }) {
                   className={cn(
                     'h-[3px] min-h-[3px] min-w-0 flex-1 rounded-full',
                     step.state === 'done'
-                      ? 'bg-amber-400'
+                      ? 'bg-primary'
                       : 'bg-slate-200',
                   )}
                   aria-hidden
@@ -92,8 +92,8 @@ export function ApplicationProgressTimeline({ status, updatedAt }) {
                 className={cn(
                   'text-[11px] leading-snug sm:text-xs',
                   step.state === 'current' &&
-                    'font-bold text-amber-700',
-                  step.state === 'done' && 'text-amber-600 font-semibold',
+                    'font-bold text-primary',
+                  step.state === 'done' && 'font-semibold text-primary/90',
                   step.state === 'error' && 'text-rose-600 font-semibold',
                   step.state === 'pending' && 'text-slate-400',
                 )}

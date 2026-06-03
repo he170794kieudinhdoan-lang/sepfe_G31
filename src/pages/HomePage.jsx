@@ -44,7 +44,12 @@ import {
   useGetWards,
   useBoostedJobs,
   useNewestJobs,
+  useGetSectorsWithOccupations,
 } from '@/features/jobs/api/useJobs';
+import {
+  OccupationSectorPickerPanel,
+  findSectorOccupationLabels,
+} from '@/features/jobs/components/OccupationSectorPickerPanel';
 import { useSearchCompanies } from '@/features/companies/api/useGetCompanies';
 import {
   useWishlist,
@@ -369,6 +374,12 @@ function SearchBarPopover({
   setWards,
   setWardsName,
   wardsName,
+  sectorId,
+  setSectorId,
+  occupationId,
+  setOccupationId,
+  sectorName,
+  occupationName,
 }) {
   function normalizeLocationName(name) {
     if (!name) return '';
@@ -381,12 +392,19 @@ function SearchBarPopover({
   }
   const { data: provincess } = useGetProvinces();
   const { data: wardss } = useGetWards(wards);
+  const { data: sectors = [] } = useGetSectorsWithOccupations();
   const nav = useNavigate();
   const handleSearch = (overrideKeyword) => {
     const finalKeyword =
       typeof overrideKeyword === 'string' ? overrideKeyword : keyword;
     const trimmedKeyword = finalKeyword.trim();
-    if (trimmedKeyword === '' && !province && !wardsName) {
+    if (
+      trimmedKeyword === '' &&
+      !province &&
+      !wardsName &&
+      !sectorId &&
+      !occupationId
+    ) {
       return;
     }
 
@@ -394,6 +412,8 @@ function SearchBarPopover({
     if (trimmedKeyword) params.append('query', trimmedKeyword);
     if (province) params.append('province', normalizeLocationName(province));
     if (wardsName) params.append('district', normalizeLocationName(wardsName));
+    if (sectorId) params.append('sectorId', sectorId);
+    if (occupationId) params.append('occupationId', occupationId);
 
     nav(`/search?${params.toString()}`);
   };
@@ -438,6 +458,42 @@ function SearchBarPopover({
             </button>
           </Badge>
         )}
+        {occupationName && (
+          <Badge
+            variant="secondary"
+            className="h-7 pl-2 pr-1 rounded-lg bg-white/40 text-slate-700 font-medium hover:bg-white/60 border-0 flex items-center gap-1 max-w-[10rem]"
+          >
+            <span className="truncate">{occupationName}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOccupationId('');
+                setSectorId('');
+              }}
+              className="p-0.5 hover:bg-slate-200 rounded-md transition-colors shrink-0"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
+        {!occupationName && sectorName && (
+          <Badge
+            variant="secondary"
+            className="h-7 pl-2 pr-1 rounded-lg bg-white/40 text-slate-700 font-medium hover:bg-white/60 border-0 flex items-center gap-1 max-w-[10rem]"
+          >
+            <span className="truncate">{sectorName}</span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSectorId('');
+                setOccupationId('');
+              }}
+              className="p-0.5 hover:bg-slate-200 rounded-md transition-colors shrink-0"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </Badge>
+        )}
       </div>
 
       <div className="flex-1 min-w-0 ">
@@ -453,6 +509,39 @@ function SearchBarPopover({
           className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-12 text-base flex-1 min-w-0 font-medium placeholder:text-slate-400"
         />
       </div>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            title="Chọn ngành nghề / nghề nghiệp"
+            size="lg"
+            className="rounded-xl shrink-0 border h-12 w-12 p-0 bg-slate-50 hover:bg-slate-100 transition-colors"
+          >
+            <Briefcase className="h-6 w-6 text-primary" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[520px] p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl">
+          <OccupationSectorPickerPanel
+            sectors={sectors}
+            sectorId={sectorId}
+            onSectorChange={(id) => {
+              if (String(sectorId) === String(id)) {
+                setSectorId('');
+                setOccupationId('');
+              } else {
+                setSectorId(String(id));
+                setOccupationId('');
+              }
+            }}
+            occupationId={occupationId}
+            onOccupationChange={(id) => {
+              setOccupationId(
+                String(occupationId) === String(id) ? '' : String(id),
+              );
+            }}
+          />
+        </PopoverContent>
+      </Popover>
       <Popover>
         <PopoverTrigger asChild>
           <Button
@@ -556,8 +645,19 @@ export function HomePage() {
   const [keyword, setKeyword] = useState('');
   const [wards, setWards] = useState('');
   const [province, setProvince] = useState('');
+  const [sectorId, setSectorId] = useState('');
+  const [occupationId, setOccupationId] = useState('');
   const [searchMode, setSearchMode] = useState('both');
   const [wardsName, setWardsName] = useState('');
+  const { data: sectorsForSearch = [] } = useGetSectorsWithOccupations();
+  const { sectorName, occupationName } = useMemo(
+    () =>
+      findSectorOccupationLabels(sectorsForSearch, {
+        sectorId,
+        occupationId,
+      }),
+    [sectorsForSearch, sectorId, occupationId],
+  );
   const [activePreviewKey, setActivePreviewKey] = useState(null);
   const [isBoostedHovered, setIsBoostedHovered] = useState(false);
   const [isHeroHovered, setIsHeroHovered] = useState(false);

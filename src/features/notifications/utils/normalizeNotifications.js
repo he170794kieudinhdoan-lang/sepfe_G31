@@ -1,10 +1,18 @@
+import { localizeNotificationText } from './localizeNotificationText';
+
 const getId = (item) => item?.id ?? item?._id ?? item?.notificationId;
 
 /** Tách title / message để list hiển thị 2 tầng, gọn và dễ đọc */
 const buildDisplay = (item) => {
-    const rawTitle = typeof item?.title === 'string' ? item.title.trim() : '';
-    const rawMessage = typeof item?.message === 'string' ? item.message.trim() : '';
-    const legacy = item?.content != null ? String(item.content).trim() : '';
+    const rawTitle = localizeNotificationText(
+      typeof item?.title === 'string' ? item.title.trim() : '',
+    );
+    const rawMessage = localizeNotificationText(
+      typeof item?.message === 'string' ? item.message.trim() : '',
+    );
+    const legacy = localizeNotificationText(
+      item?.content != null ? String(item.content).trim() : '',
+    );
 
     if (rawTitle && rawMessage) {
         return {

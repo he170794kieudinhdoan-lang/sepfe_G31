@@ -72,6 +72,7 @@ export const MSG = {
   MSG_COMPANY_NOT_FOUND: 'Không tìm thấy công ty phù hợp.',
   MSG_COMPANY_REGISTER_EMPTY: 'Chưa có đơn đăng ký công ty nào.',
   MSG_COMPANY_STATUS_UPDATE_FAIL: 'Cập nhật trạng thái công ty thất bại.',
+  MSG_COMPANY_REJECT_REASON_REQUIRED: 'Vui lòng nhập lý do từ chối.',
   MSG_COMPANY_APPROVE_SUCCESS: 'Duyệt công ty thành công.',
   MSG_REVIEW_EMPTY: 'Chưa có đánh giá nào.',
 

@@ -6,7 +6,9 @@ export const extractApiErrorMessage = (error, fallback = '') => {
 export const isInsufficientPointError = (error) => {
   const normalized = extractApiErrorMessage(error).toLowerCase();
   return (
+    normalized.includes('số dư điểm không đủ') ||
     normalized.includes('số dư point không đủ') ||
+    normalized.includes('so du diem khong du') ||
     normalized.includes('so du point khong du') ||
     normalized.includes('insufficient point') ||
     normalized.includes('insufficient balance')

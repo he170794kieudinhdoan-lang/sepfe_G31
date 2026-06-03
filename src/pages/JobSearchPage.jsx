@@ -1,10 +1,17 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   useSearchJobs,
   useGetProvinces,
   useGetWards,
+  useGetSectorsWithOccupations,
 } from '@/features/jobs/api/useJobs';
+import {
+  findSectorOccupationLabels,
+  getOccupationSummary,
+} from '@/features/jobs/components/OccupationSectorPickerPanel';
+import { getLocationSummary } from '@/features/jobs/components/LocationPickerPanel';
+import { JobSearchFilterPanel } from '@/features/jobs/components/JobSearchFilterPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -293,16 +300,6 @@ const FilterChip = ({ label, onRemove }) => (
 // ========================
 
 export const JobSearchPage = () => {
-  const normalizeLocationName = (name) => {
-    if (!name) return '';
-    return name
-      .replace(
-        /^(Tỉnh|Thành phố|TP\.?|Tp\.?|tp\.?|Quận|Huyện|Thị xã|Phường|Xã|Thị trấn)\s*/i,
-        '',
-      )
-      .trim();
-  };
-
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Init state from URL params
@@ -313,6 +310,7 @@ export const JobSearchPage = () => {
   const [workingShift, setWorkingShift] = useState(
     searchParams.get('workingShift') || '',
   );
+  const [sectorId, setSectorId] = useState(searchParams.get('sectorId') || '');
   const [occupationId, setOccupationId] = useState(
     searchParams.get('occupationId') || '',
   );
@@ -331,7 +329,39 @@ export const JobSearchPage = () => {
   const limit = 12;
 
   const { data: provincesData } = useGetProvinces();
-  const { data: communesData } = useGetWards(provinceCode);
+  const { data: appliedCommunesData } = useGetWards(provinceCode);
+  const { data: sectorsData = [] } = useGetSectorsWithOccupations();
+  const filterPanelMountKey = useRef(0);
+
+  const { sectorName, occupationName } = findSectorOccupationLabels(
+    sectorsData,
+    { sectorId, occupationId },
+  );
+  const occupationSummary = getOccupationSummary({ sectorName, occupationName });
+  const locationSummary = useMemo(
+    () =>
+      getLocationSummary({
+        provinces: provincesData?.provinces || [],
+        communes: appliedCommunesData?.communes || [],
+        provinceCode,
+        province,
+        district,
+      }),
+    [provincesData, appliedCommunesData, provinceCode, province, district],
+  );
+
+  useEffect(() => {
+    if (!occupationId || sectorId || !sectorsData.length) return;
+    for (const sector of sectorsData) {
+      const match = sector.occupations?.some(
+        (o) => String(o.id) === String(occupationId),
+      );
+      if (match) {
+        setSectorId(String(sector.id));
+        break;
+      }
+    }
+  }, [occupationId, sectorId, sectorsData]);
 
   const [debouncedKeyword, setDebouncedKeyword] = useState(keyword);
   useEffect(() => {
@@ -349,7 +379,11 @@ export const JobSearchPage = () => {
     if (province) filters.province = province;
     if (district) filters.district = district;
     if (workingShift) filters.workingShift = workingShift;
-    if (occupationId) filters.occupationId = Number(occupationId);
+    if (occupationId) {
+      filters.occupationId = Number(occupationId);
+    } else if (sectorId) {
+      filters.sectorId = Number(sectorId);
+    }
     if (companyId) filters.companyId = Number(companyId);
     if (genderRequirement) filters.genderRequirement = genderRequirement;
     return filters;
@@ -358,6 +392,7 @@ export const JobSearchPage = () => {
     province,
     district,
     workingShift,
+    sectorId,
     occupationId,
     companyId,
     genderRequirement,
@@ -374,6 +409,7 @@ export const JobSearchPage = () => {
     if (keyword) params.keyword = keyword;
     if (province) params.province = province;
     if (workingShift) params.workingShift = workingShift;
+    if (sectorId) params.sectorId = sectorId;
     if (occupationId) params.occupationId = occupationId;
     if (companyId) params.companyId = companyId;
     if (genderRequirement) params.genderRequirement = genderRequirement;
@@ -385,6 +421,7 @@ export const JobSearchPage = () => {
     keyword,
     province,
     workingShift,
+    sectorId,
     occupationId,
     companyId,
     genderRequirement,
@@ -418,12 +455,40 @@ export const JobSearchPage = () => {
     province,
     district,
     workingShift,
+    sectorId,
     occupationId,
     companyId,
     genderRequirement,
     salaryRange,
     sortBy,
   ]);
+
+  const clearOccupationFilter = useCallback(() => {
+    setSectorId('');
+    setOccupationId('');
+  }, []);
+
+  const clearLocationFilter = useCallback(() => {
+    setProvince('');
+    setProvinceCode('');
+    setDistrict('');
+  }, []);
+
+  const handleApplyOccupation = useCallback(({ sectorId: nextSectorId, occupationId: nextOccupationId }) => {
+    setSectorId(nextSectorId || '');
+    setOccupationId(nextOccupationId || '');
+    setPage(1);
+  }, []);
+
+  const handleApplyLocation = useCallback(
+    ({ province: nextProvince, provinceCode: nextProvinceCode, district: nextDistrict }) => {
+      setProvince(nextProvince || '');
+      setProvinceCode(nextProvinceCode || '');
+      setDistrict(nextDistrict || '');
+      setPage(1);
+    },
+    [],
+  );
 
   const activeFilters = [];
   if (workingShift)
@@ -438,11 +503,11 @@ export const JobSearchPage = () => {
       label: `Giới tính: ${genderLabel(genderRequirement)}`,
       clear: () => setGenderRequirement(''),
     });
-  if (occupationId)
+  if (occupationSummary)
     activeFilters.push({
       key: 'occupation',
-      label: `Ngành nghề: #${occupationId}`,
-      clear: () => setOccupationId(''),
+      label: occupationSummary,
+      clear: clearOccupationFilter,
     });
   if (companyId)
     activeFilters.push({
@@ -450,21 +515,11 @@ export const JobSearchPage = () => {
       label: `Công ty: #${companyId}`,
       clear: () => setCompanyId(''),
     });
-  if (province)
+  if (locationSummary)
     activeFilters.push({
-      key: 'province',
-      label: `Khu vực: ${province}`,
-      clear: () => {
-        setProvince('');
-        setProvinceCode('');
-        setDistrict('');
-      },
-    });
-  if (district)
-    activeFilters.push({
-      key: 'district',
-      label: `Phường/Xã: ${district}`,
-      clear: () => setDistrict(''),
+      key: 'location',
+      label: `Khu vực: ${locationSummary}`,
+      clear: clearLocationFilter,
     });
   if (salaryRange)
     activeFilters.push({
@@ -479,196 +534,37 @@ export const JobSearchPage = () => {
     setDistrict('');
     setProvinceCode('');
     setWorkingShift('');
+    setSectorId('');
     setOccupationId('');
     setCompanyId('');
+    filterPanelMountKey.current += 1;
     setGenderRequirement('');
     setSalaryRange('');
     setSortBy('newest');
     setPage(1);
   };
 
-  // ========================
-  // FILTER PANEL
-  // ========================
-  const FilterPanel = ({ isMobile = false }) => (
-    <div className="space-y-5">
-      {/* Ca làm việc */}
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-          <Timer className="h-3.5 w-3.5" /> Ca làm việc
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {WORKING_SHIFTS.map((s) => (
-            <button
-              key={s.value}
-              onClick={() =>
-                setWorkingShift(workingShift === s.value ? '' : s.value)
-              }
-              className={`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 border ${
-                workingShift === s.value
-                  ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-primary-hover hover:bg-primary-muted'
-              }`}
-            >
-              {s.icon} {s.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Mức lương */}
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-          <Wallet className="h-3.5 w-3.5" /> Mức lương
-        </label>
-        <div className="space-y-1.5">
-          {SALARY_RANGES.map((r) => (
-            <button
-              key={r.value}
-              onClick={() =>
-                setSalaryRange(salaryRange === r.value ? '' : r.value)
-              }
-              className={`w-full text-left px-3 py-2.5 rounded-xl text-sm transition-all duration-200 ${
-                salaryRange === r.value
-                  ? 'bg-primary text-primary-foreground font-medium shadow-md shadow-primary/20'
-                  : 'text-gray-600 hover:bg-primary-muted'
-              }`}
-            >
-              {r.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Giới tính */}
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-          <Users className="h-3.5 w-3.5" /> Giới tính yêu cầu
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {GENDER_OPTIONS.map((g) => (
-            <button
-              key={g.value}
-              onClick={() =>
-                setGenderRequirement(
-                  genderRequirement === g.value ? '' : g.value,
-                )
-              }
-              className={`px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 border ${
-                genderRequirement === g.value
-                  ? 'bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20'
-                  : 'bg-white text-gray-600 border-gray-200 hover:border-primary-hover hover:bg-primary-muted'
-              }`}
-            >
-              {g.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Ngành nghề (nhập ID) */}
-      {/* <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-                    <Briefcase className="h-3.5 w-3.5" /> Ngành nghề (ID)
-                </label>
-                <Input
-                    type="number"
-                    placeholder="VD: 1, 2, 3..."
-                    min={1}
-                    value={occupationId}
-                    onChange={(e) => setOccupationId(e.target.value)}
-                    className="rounded-xl border-gray-200 focus:border-amber-400 focus:ring-amber-200"
-                />
-            </div> */}
-
-      {/* Công ty (nhập ID) */}
-      {/* <div>
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-                    <Building2 className="h-3.5 w-3.5" /> Công ty (ID)
-                </label>
-                <Input
-                    type="number"
-                    placeholder="VD: 1, 2, 3..."
-                    min={1}
-                    value={companyId}
-                    onChange={(e) => setCompanyId(e.target.value)}
-                    className="rounded-xl border-gray-200 focus:border-amber-400 focus:ring-amber-200"
-                />
-            </div> */}
-
-      {/* Khu vực - Tỉnh/Thành phố */}
-      <div>
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-          <MapPin className="h-3.5 w-3.5" /> Tỉnh/Thành phố
-        </label>
-        <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-white">
-          {provincesData?.provinces?.map((p) => (
-            <button
-              key={p.code}
-              onClick={() => {
-                const normalized = normalizeLocationName(p.name);
-                if (province === normalized) {
-                  setProvince('');
-                  setProvinceCode('');
-                  setDistrict('');
-                } else {
-                  setProvince(normalized);
-                  setProvinceCode(p.code);
-                  setDistrict('');
-                }
-              }}
-              className={`w-full text-left px-3 py-2 text-sm transition-all duration-200 ${
-                province === normalizeLocationName(p.name)
-                  ? 'bg-primary text-primary-foreground font-medium'
-                  : 'text-gray-600 hover:bg-primary-muted'
-              }`}
-            >
-              {p.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Khu vực - Phường/Xã */}
-      {provinceCode && (
-        <div>
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 mb-2.5">
-            <MapPin className="h-3.5 w-3.5" /> Phường/Xã
-          </label>
-          <div className="max-h-48 overflow-y-auto rounded-xl border border-gray-200 bg-white">
-            {communesData?.communes?.map((c) => (
-              <button
-                key={c.code}
-                onClick={() => {
-                  const normalized = normalizeLocationName(c.name);
-                  setDistrict(district === normalized ? '' : normalized);
-                }}
-                className={`w-full text-left px-3 py-2 text-sm transition-all duration-200 ${
-                  district === normalizeLocationName(c.name)
-                    ? 'bg-primary text-primary-foreground font-medium'
-                    : 'text-gray-600 hover:bg-primary-muted'
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Clear All */}
-      {activeFilters.length > 0 && (
-        <Button
-          variant="ghost"
-          className="w-full rounded-xl text-sm text-muted-foreground hover:text-destructive"
-          onClick={clearAllFilters}
-        >
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Xóa tất cả bộ lọc
-        </Button>
-      )}
-    </div>
-  );
+  const filterPanelProps = {
+    occupationSummary,
+    locationSummary,
+    appliedSectorId: sectorId,
+    appliedOccupationId: occupationId,
+    appliedProvince: province,
+    appliedProvinceCode: provinceCode,
+    appliedDistrict: district,
+    onApplyOccupation: handleApplyOccupation,
+    onApplyLocation: handleApplyLocation,
+    onClearOccupation: clearOccupationFilter,
+    onClearLocation: clearLocationFilter,
+    workingShift,
+    onWorkingShiftChange: setWorkingShift,
+    salaryRange,
+    onSalaryRangeChange: setSalaryRange,
+    genderRequirement,
+    onGenderRequirementChange: setGenderRequirement,
+    hasActiveFilters: activeFilters.length > 0,
+    onClearAll: clearAllFilters,
+  };
 
   // ========================
   // PAGINATION
@@ -875,7 +771,7 @@ export const JobSearchPage = () => {
                     <SlidersHorizontal className="h-4 w-4 text-primary" />
                     Bộ lọc tìm kiếm
                   </h3>
-                  <FilterPanel />
+                  <JobSearchFilterPanel key={`filters-desktop-${filterPanelMountKey.current}`} {...filterPanelProps} />
                 </Card>
               </div>
             </aside>
@@ -942,7 +838,7 @@ export const JobSearchPage = () => {
             className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-200"
             onClick={() => setDrawerOpen(false)}
           />
-          <div className="fixed left-0 top-0 bottom-0 w-80 bg-white/95 backdrop-blur-md p-5 z-50 shadow-2xl lg:hidden overflow-y-auto animate-in slide-in-from-left duration-300">
+          <div className="fixed left-0 top-0 bottom-0 w-[min(100vw,22rem)] bg-white/95 backdrop-blur-md p-5 z-50 shadow-2xl lg:hidden overflow-y-auto animate-in slide-in-from-left duration-300">
             <div className="flex justify-between items-center mb-5">
               <h3 className="font-bold text-sm flex items-center gap-2">
                 <SlidersHorizontal className="h-4 w-4 text-amber-500" />
@@ -957,7 +853,11 @@ export const JobSearchPage = () => {
                 <X className="h-4 w-4" />
               </Button>
             </div>
-            <FilterPanel isMobile />
+            <JobSearchFilterPanel
+              key={`filters-mobile-${filterPanelMountKey.current}`}
+              isMobile
+              {...filterPanelProps}
+            />
           </div>
         </>
       )}

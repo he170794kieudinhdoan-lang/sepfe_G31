@@ -93,6 +93,16 @@ const toCurrencyInput = (value, fallback = 0) => {
   return formatCommaNumber(Math.max(0, Math.floor(numeric)));
 };
 
+const ADMIN_USER_ROLE_OPTIONS = [
+  { value: 'WORKER', label: 'Người lao động' },
+  { value: 'EMPLOYER', label: 'Nhà tuyển dụng' },
+  { value: 'MANAGER', label: 'Quản lý' },
+];
+
+const ADMIN_USER_ROLE_LABEL = Object.fromEntries(
+  ADMIN_USER_ROLE_OPTIONS.map(({ value, label }) => [value, label]),
+);
+
 export const AdminDashboard = () => {
   const { toast } = useToast();
   const [active, setActive] = useState('overview');
@@ -907,12 +917,12 @@ export const AdminDashboard = () => {
         !boostModalData.isActive &&
         activeBoostCount <= 1
       ) {
-        toast('Hệ thống cần tối thiểu 1 gói boost đang mở', 'error');
+        toast('Hệ thống cần tối thiểu 1 gói đẩy tin đang mở', 'error');
         return;
       }
     } else {
       if (!boostModalData.isActive && activeBoostPackages.length === 0) {
-        toast('Hệ thống cần tối thiểu 1 gói boost đang mở', 'error');
+        toast('Hệ thống cần tối thiểu 1 gói đẩy tin đang mở', 'error');
         return;
       }
     }
@@ -960,7 +970,7 @@ export const AdminDashboard = () => {
         ? payload.isActive
         : Boolean(pkg?.isActive);
     if (pkg?.isActive && !nextIsActive && activeBoostPackages.length <= 1) {
-      toast('Hệ thống cần tối thiểu 1 gói boost đang mở', 'error');
+      toast('Hệ thống cần tối thiểu 1 gói đẩy tin đang mở', 'error');
       return;
     }
 
@@ -1458,9 +1468,11 @@ export const AdminDashboard = () => {
               }
             >
               <option value="">Vai trò</option>
-              <option value="WORKER">Người lao động</option>
-              <option value="EMPLOYER">Nhà tuyển dụng</option>
-              <option value="MANAGER">Quản lý</option>
+              {ADMIN_USER_ROLE_OPTIONS.map(({ value, label }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
             </select>
             <select
               className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
@@ -1549,8 +1561,8 @@ export const AdminDashboard = () => {
                           {user.name}
                         </td>
                         <td className="text-slate-600">{user.email}</td>
-                        <td className="capitalize text-slate-600">
-                          {user.role?.toLowerCase() || ''}
+                        <td className="text-slate-600">
+                          {ADMIN_USER_ROLE_LABEL[user.role] || user.role || ''}
                         </td>
                         <td>
                           <Badge

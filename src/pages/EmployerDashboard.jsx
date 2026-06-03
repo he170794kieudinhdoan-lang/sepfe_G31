@@ -518,7 +518,7 @@ const JobApplicantsPanel = ({
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
     useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
-    'Số dư point không đủ để gửi lời mời.',
+    'Số dư điểm không đủ để gửi lời mời.',
   );
   const [confirmStatusOpen, setConfirmStatusOpen] = useState(false);
   const [pendingStatus, setPendingStatus] = useState('');
@@ -2604,7 +2604,7 @@ export const EmployerDashboard = () => {
   const [insufficientPointModalOpen, setInsufficientPointModalOpen] =
     useState(false);
   const [insufficientPointMessage, setInsufficientPointMessage] = useState(
-    'Số dư point không đủ để thanh toán tính năng.',
+    'Số dư điểm không đủ để thanh toán tính năng.',
   );
   const [restoredInviteState, setRestoredInviteState] = useState(null);
   const [matchedJobId, setMatchedJobId] = useState(null);
@@ -3039,7 +3039,7 @@ export const EmployerDashboard = () => {
 
   const handleBoostCheckout = async () => {
     if (!selectedBoostJob?.id) {
-      toast('Không xác định được job cần boost', 'error');
+      toast('Không xác định được tin cần đẩy nổi bật', 'error');
       return;
     }
 
@@ -3058,13 +3058,13 @@ export const EmployerDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
       queryClient.invalidateQueries({ queryKey: ['boosted-jobs'] });
       toast(
-        `Boost thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} point.`,
+        `Đẩy tin nổi bật thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} điểm.`,
         'success',
       );
     } catch (error) {
       const normalizedMessage = extractApiErrorMessage(
         error,
-        'Thanh toán boost thất bại',
+        'Đẩy tin nổi bật thất bại',
       );
       if (isInsufficientPointError(error)) {
         setInsufficientPointMessage(normalizedMessage);
@@ -3100,7 +3100,7 @@ export const EmployerDashboard = () => {
       const checkout = checkoutRes?.data || checkoutRes;
       queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
       toast(
-        `Thanh toán đăng tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} point.`,
+        `Thanh toán đăng tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} điểm.`,
         'success',
       );
     } catch (error) {
@@ -3773,7 +3773,7 @@ export const EmployerDashboard = () => {
                                 Ngày đăng
                               </th>
                               <th className="px-4 whitespace-nowrap text-center">
-                                Tính năng
+                                Nổi bật
                               </th>
                               <th className="px-4 rounded-tr-lg whitespace-nowrap text-center">
                                 Tùy chọn
@@ -3833,22 +3833,6 @@ export const EmployerDashboard = () => {
                                         <p className="font-semibold text-slate-800">
                                           {job.title}
                                         </p>
-                                        <div className="flex flex-wrap gap-2 mt-2 text-xs">
-                                          <span className="inline-flex items-center gap-1 text-slate-600 bg-slate-100 border border-slate-200/80 px-2 py-0.5 rounded-md">
-                                            <MapPin
-                                              size={12}
-                                              className="text-slate-400"
-                                            />
-                                            {job.province || 'Toàn quốc'}
-                                          </span>
-                                          <span className="inline-flex items-center text-primary bg-primary/10 border border-primary/15 px-2 py-0.5 rounded-md font-medium">
-                                            {formatSalary(
-                                              job.salaryMin,
-                                              job.salaryMax,
-                                              'vndCompact',
-                                            )}
-                                          </span>
-                                        </div>
                                       </td>
                                       <td className="px-4 text-center">
                                         <StatusBadge status={job.status} />
@@ -3974,23 +3958,45 @@ export const EmployerDashboard = () => {
                                                 </Button>
 
                                                 {job.status === 'PUBLISHED' && (
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="justify-start gap-2 hover:bg-primary/10 hover:text-primary rounded-lg font-medium text-slate-700 h-9"
-                                                    onClick={() => {
-                                                      setJobOptionsPopoverOpenId(
-                                                        null,
-                                                      );
-                                                      setMatchedJobId(job.id);
-                                                      setMatchedJobTitle(
-                                                        job.title,
-                                                      );
-                                                    }}
-                                                  >
-                                                    <Sparkles size={14} /> Đề
-                                                    xuất ứng viên
-                                                  </Button>
+                                                  <>
+                                                    <Button
+                                                      variant="ghost"
+                                                      size="sm"
+                                                      className="justify-start gap-2 hover:bg-primary/10 hover:text-primary rounded-lg font-medium text-slate-700 h-9"
+                                                      onClick={() => {
+                                                        setJobOptionsPopoverOpenId(
+                                                          null,
+                                                        );
+                                                        setMatchedJobId(job.id);
+                                                        setMatchedJobTitle(
+                                                          job.title,
+                                                        );
+                                                      }}
+                                                    >
+                                                      <Sparkles size={14} /> Đề
+                                                      xuất ứng viên
+                                                    </Button>
+                                                    {!isBoostedActive && (
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="justify-start gap-2 hover:bg-primary/10 hover:text-primary rounded-lg font-medium text-slate-700 h-9"
+                                                        onClick={() => {
+                                                          setJobOptionsPopoverOpenId(
+                                                            null,
+                                                          );
+                                                          setSelectedBoostJob(job);
+                                                          setSelectedBoostPackageDays(
+                                                            configuredBoostDays,
+                                                          );
+                                                          setBoostModalOpen(true);
+                                                        }}
+                                                      >
+                                                        <Zap size={14} /> Đẩy tin
+                                                        nổi bật
+                                                      </Button>
+                                                    )}
+                                                  </>
                                                 )}
 
                                                 {job.status === 'WARNING' && (
@@ -4351,6 +4357,7 @@ export const EmployerDashboard = () => {
         }
         cancelLabel="Hủy"
         confirmDisabled={createBoostCheckoutMutation.isPending}
+        contentClassName="max-w-xl"
       >
         <div className="space-y-5 -mt-2">
           {/* Header with gradient */}
@@ -4369,6 +4376,7 @@ export const EmployerDashboard = () => {
                 Đưa tin lên vị trí ưu tiên, tăng lượt xem và thu hút nhiều ứng viên chất lượng hơn.
               </p>
             </div>
+
           </div>
 
           {/* Package Selection */}
@@ -4437,6 +4445,7 @@ export const EmployerDashboard = () => {
           {/* Summary */}
           <div className="rounded-2xl bg-gradient-to-br from-slate-50 to-white border border-slate-200 p-4 space-y-3">
             <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Tóm tắt</p>
+
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-600">Thời gian nổi bật</span>
               <span className="text-sm font-bold text-slate-900">

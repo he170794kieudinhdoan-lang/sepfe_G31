@@ -198,10 +198,36 @@ export const useReportCompanyReview = () => {
 
 // ===== MANAGER: REVIEW REPORTS =====
 
-export const useGetReviewReports = (status, page = 1, limit = 50) => {
+export const useGetReviewReports = (
+  status,
+  page = 1,
+  limit = 10,
+  companyName,
+  reporterName,
+  fromDate,
+  toDate,
+) => {
   return useQuery({
-    queryKey: ['review-reports', status, page, limit],
-    queryFn: () => getReviewReports({ status, page, limit }),
+    queryKey: [
+      'review-reports',
+      status,
+      page,
+      limit,
+      companyName,
+      reporterName,
+      fromDate,
+      toDate,
+    ],
+    queryFn: () =>
+      getReviewReports({
+        status,
+        page,
+        limit,
+        companyName,
+        reporterName,
+        fromDate,
+        toDate,
+      }),
     staleTime: 0,
     placeholderData: keepPreviousData,
   });

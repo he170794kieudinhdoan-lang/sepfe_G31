@@ -76,6 +76,7 @@ function getNotificationVisual(item, isUnread) {
   }
   if (
     title.includes('đẩy tin') ||
+    title.includes('nổi bật') ||
     title.includes('thanh toán') ||
     title.includes('boost')
   ) {

@@ -28,8 +28,9 @@ export const useRespondToInvitationMutation = () => {
   return useMutation({
     mutationFn: ({ invitationId, payload }) => respondToInvitation(invitationId, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['worker-invitations'] })
-      queryClient.invalidateQueries({ queryKey: ['pending-invitations-status'] })
+      // Không await — tránh chặn UI trong lúc refetch toàn bộ danh sách
+      void queryClient.invalidateQueries({ queryKey: ['worker-invitations'] })
+      void queryClient.invalidateQueries({ queryKey: ['pending-invitations-status'] })
     },
   })
 }

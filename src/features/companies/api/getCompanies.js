@@ -26,10 +26,12 @@ export const getCompanyUpdateRequest = async (companyId) => {
 };
 
 export const reviewCompany = async (id, { status, rejectionReason }) => {
-  const response = await apiClient.patch(`/company/review/${id}`, {
-    status,
-    rejectionReason,
-  });
+  const payload = { status };
+  if (status === 'REJECTED') {
+    payload.rejectionReason =
+      typeof rejectionReason === 'string' ? rejectionReason.trim() : '';
+  }
+  const response = await apiClient.patch(`/company/review/${id}`, payload);
   return response;
 };
 
@@ -96,9 +98,23 @@ export const reportCompanyReview = async (reviewId, payload) => {
 // ===== MANAGER: REVIEW REPORT MODERATION =====
 
 // Lấy danh sách báo cáo review (manager)
-export const getReviewReports = async ({ status, page = 1, limit = 50 } = {}) => {
+export const getReviewReports = async ({
+  status,
+  page = 1,
+  limit = 10,
+  companyName,
+  reporterName,
+  fromDate,
+  toDate,
+} = {}) => {
+  const params = { page, limit };
+  if (status) params.status = status;
+  if (companyName) params.companyName = companyName;
+  if (reporterName) params.reporterName = reporterName;
+  if (fromDate) params.fromDate = fromDate;
+  if (toDate) params.toDate = toDate;
   const response = await apiClient.get('/company/reviews/reports/all', {
-    params: { status, page, limit },
+    params,
   });
   return response;
 };

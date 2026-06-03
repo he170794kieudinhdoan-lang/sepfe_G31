@@ -1310,17 +1310,19 @@ export const EmployerInterviewSchedulePage = () => {
                                 </p>
                               </div>
 
-                              <div className="mt-4 flex flex-wrap gap-2">
-                                <Button
-                                  variant="outline"
-                                  className="rounded-xl"
-                                  onClick={() =>
-                                    openDetail(slot.campaignId, slot.id)
-                                  }
-                                >
-                                  Xem ứng viên của ca
-                                </Button>
-                              </div>
+                              {(slot.bookedCount || 0) > 0 && (
+                                <div className="mt-4 flex flex-wrap gap-2">
+                                  <Button
+                                    variant="outline"
+                                    className="rounded-xl"
+                                    onClick={() =>
+                                      openDetail(slot.campaignId, slot.id)
+                                    }
+                                  >
+                                    Xem ứng viên của ca
+                                  </Button>
+                                </div>
+                              )}
                             </Card>
                           );
                         })}
