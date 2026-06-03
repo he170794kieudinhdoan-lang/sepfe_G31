@@ -77,81 +77,52 @@ features/jobs/
 
 ---
 
-## Prerequisites
+## Quick Start — Local Development
 
-- Node.js 18+
-- npm or pnpm
-
-## Setup & Run
+> `.env` đã có sẵn credentials. Chỉ cần install và chạy.
 
 ```bash
-# Install dependencies
-pnpm install       # or: npm install
-
-# Copy environment file
-cp .env.example .env
+npm install
+npm run dev
 ```
 
-Required `.env` variables:
+Frontend: `http://localhost:3000` — tự reload khi sửa file (Vite HMR).
 
-```env
-VITE_API_URL=http://localhost:4000/api
-VITE_APP_TITLE=WORKLINK
-VITE_SUPABASE_URL=
-VITE_SUPABASE_ANON_KEY=
-VITE_AUTH_SOCIAL_GOOGLE_CLIENT_ID=
-VITE_PROVINCES_API_URL=https://provinces.open-api.vn/api/v2
-```
+Backend phải đang chạy ở `http://localhost:4000/api` (xem `sepbe_G31`).
+
+---
+
+## Docker
+
+### Dev (hot reload)
 
 ```bash
-pnpm dev          # development server → http://localhost:3000
-pnpm build        # production build → dist/
-pnpm preview      # preview production build locally
+docker compose -f docker-compose.dev.yml up -d
+docker compose -f docker-compose.dev.yml logs -f frontend
 ```
 
-## Testing
+### Production-like (Nginx + built bundle)
 
 ```bash
-pnpm test                  # run all unit tests
-pnpm test -- --coverage    # with coverage report
-```
-
-Tests use **MSW** to mock API responses at the network level — no manual fetch mocking required.
-
-## Running with Docker
-
-The frontend is containerized as a **multi-stage build** — React app compiled by Vite, then served by Nginx with gzip + SPA routing.
-
-```bash
-cp .env.example .env    # set VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, etc.
-
 docker compose up --build
 ```
 
-Frontend available at `http://localhost:3000`.
-
-The `VITE_*` variables are **baked into the JS bundle at build time**. To point at a different backend:
-
-```bash
-docker compose build --build-arg VITE_API_URL=https://api.yourserver.com/api
-docker compose up
-```
-
-Nginx config (`nginx.conf`) includes:
-- SPA fallback: all routes → `index.html`
-- Static asset caching: `Cache-Control: public, immutable` (1 year, hashed filenames)
-- Gzip compression for JS/CSS/SVG
-
-Stop:
+Frontend: `http://localhost:3000`
 
 ```bash
 docker compose down
 ```
 
-## Linting
+---
+
+## Scripts
 
 ```bash
-pnpm lint          # ESLint check
+npm run dev        # dev server với HMR → http://localhost:3000
+npm run build      # production build → dist/
+npm run preview    # preview build locally
+npm run lint       # ESLint
+npm run test       # unit tests (Vitest)
 ```
 
 ---
