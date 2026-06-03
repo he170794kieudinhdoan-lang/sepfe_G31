@@ -7,11 +7,11 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-export const AppPagination = ({ page, totalPage, onPageChange }) => {
+export const AppPagination = ({ page, totalPage, onPageChange, className }) => {
   if (totalPage <= 1) return null;
 
   return (
-    <Pagination className="justify-center mt-8">
+    <Pagination className={className ?? 'justify-center mt-8'}>
       <PaginationContent>
         {/* Previous Button */}
         <PaginationItem>

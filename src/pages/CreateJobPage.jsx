@@ -41,17 +41,36 @@ import {
   X,
 } from 'lucide-react';
 
+const isEmptyInput = (value) =>
+  value === undefined ||
+  value === null ||
+  value === '' ||
+  (typeof value === 'number' && Number.isNaN(value));
+
+const requiredNumberField = (emptyMessage) =>
+  z.preprocess(
+    (val) => {
+      if (isEmptyInput(val)) return undefined;
+      const n = Number(val);
+      return Number.isNaN(n) ? val : n;
+    },
+    z.coerce
+      .number({
+        error: (iss) =>
+          isEmptyInput(iss.input) ? emptyMessage : 'Vui lòng nhập số hợp lệ',
+      })
+      .int('Phải là số nguyên')
+      .min(1, emptyMessage),
+  );
+
 const schema = z
   .object({
     // Step 1: Lĩnh vực & Thông tin chung
     sectorId: z.string().min(1, 'Vui lòng chọn lĩnh vực'),
-    occupationId: z.number({ required_error: 'Vui lòng chọn ngành nghề' }),
+    occupationId: requiredNumberField('Vui lòng chọn ngành nghề'),
     title: z.string().min(5, 'Tiêu đề phải có ít nhất 5 ký tự'),
     description: z.string().min(20, 'Mô tả phải có ít nhất 20 ký tự'),
-    quantity: z
-      .number({ required_error: 'Vui lòng nhập số lượng' })
-      .int('Số lượng phải là số nguyên')
-      .min(1, 'Số lượng phải lớn hơn 0'),
+    quantity: requiredNumberField('Vui lòng nhập số lượng tuyển'),
     genderRequirement: z.string().optional(),
 
     // Tuổi
@@ -63,7 +82,12 @@ const schema = z
         return isNaN(n) ? val : n;
       },
       z
-        .number({ invalid_type_error: 'Vui lòng nhập số hợp lệ' })
+        .number({
+          error: (iss) =>
+            isEmptyInput(iss.input)
+              ? 'Vui lòng nhập số hợp lệ'
+              : 'Vui lòng nhập số hợp lệ',
+        })
         .int('Tuổi phải là số nguyên')
         .min(15, 'Tuổi phải từ 15 trở lên')
         .max(60, 'Tuổi tối đa là 60')
@@ -77,7 +101,12 @@ const schema = z
         return isNaN(n) ? val : n;
       },
       z
-        .number({ invalid_type_error: 'Vui lòng nhập số hợp lệ' })
+        .number({
+          error: (iss) =>
+            isEmptyInput(iss.input)
+              ? 'Vui lòng nhập số hợp lệ'
+              : 'Vui lòng nhập số hợp lệ',
+        })
         .int('Tuổi phải là số nguyên')
         .min(15, 'Tuổi phải từ 15 trở lên')
         .max(60, 'Tuổi tối đa là 60')
@@ -94,7 +123,12 @@ const schema = z
         return isNaN(n) ? val : n;
       },
       z
-        .number({ invalid_type_error: 'Vui lòng nhập số hợp lệ' })
+        .number({
+          error: (iss) =>
+            isEmptyInput(iss.input)
+              ? 'Vui lòng nhập số hợp lệ'
+              : 'Vui lòng nhập số hợp lệ',
+        })
         .int('Lương phải là số nguyên')
         .min(0, 'Lương không được âm')
         .max(2000000000, 'Lương quá lớn, tối đa 2.000.000.000 VND')
@@ -109,7 +143,12 @@ const schema = z
         return isNaN(n) ? val : n;
       },
       z
-        .number({ invalid_type_error: 'Vui lòng nhập số hợp lệ' })
+        .number({
+          error: (iss) =>
+            isEmptyInput(iss.input)
+              ? 'Vui lòng nhập số hợp lệ'
+              : 'Vui lòng nhập số hợp lệ',
+        })
         .int('Lương phải là số nguyên')
         .min(0, 'Lương không được âm')
         .max(2000000000, 'Lương quá lớn, tối đa 2.000.000.000 VND')
@@ -413,8 +452,12 @@ export const CreateJobPage = ({
 
   const FieldError = ({ error }) => {
     if (!error) return null;
+    const message =
+      error.message === 'Invalid input'
+        ? 'Vui lòng điền thông tin hợp lệ'
+        : error.message;
     return (
-      <p className="text-red-500 text-xs mt-1.5 font-medium">{error.message}</p>
+      <p className="text-red-500 text-xs mt-1.5 font-medium">{message}</p>
     );
   };
 
@@ -638,7 +681,7 @@ export const CreateJobPage = ({
                       </Label>
                       <Input
                         type="number"
-                        {...register('quantity', { valueAsNumber: true })}
+                        {...register('quantity')}
                         className={`h-12 rounded-xl bg-gray-50 border-gray-200 ${errors.quantity ? 'border-red-500' : ''}`}
                         placeholder="VD: 5"
                       />

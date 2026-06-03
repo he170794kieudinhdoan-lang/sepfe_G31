@@ -81,7 +81,7 @@ export const EmployerPaymentsWidget = () => {
   };
 
   const getOrderTypeLabel = (orderType) => {
-    if (orderType === 'BOOST_JOB') return 'Boost tin';
+    if (orderType === 'BOOST_JOB') return 'Đẩy tin nổi bật';
     if (orderType === 'FEATURE_LISTING') return 'Dang tin';
     if (orderType === 'PREMIUM_SUBSCRIPTION') return 'Premium';
     return orderType || '-';

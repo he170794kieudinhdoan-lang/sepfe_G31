@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useWorkerInvitations, useRespondToInvitationMutation } from '../hooks'
+import { useGetOrCreateConversation } from '@/features/chat/api/useChat'
+import { useToast } from '@/shared/contexts/ToastContext'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { AppLoadingScene } from '@/shared/components/AppLoadingScene'
+import { AppPagination } from '@/shared/components/AppPagination'
 import { EmptyState } from '@/shared/components/EmptyState'
 import { Modal } from '@/shared/components/Modal'
+import { Loader2 } from 'lucide-react'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 5
 
 const STATUS_META = {
   PENDING: {
@@ -46,23 +50,59 @@ const formatDateTime = (value) => {
   })
 }
 
+const isCampaignExpired = (expiresAt) => {
+  if (!expiresAt) return false
+  const deadline = new Date(expiresAt)
+  return !Number.isNaN(deadline.getTime()) && deadline < new Date()
+}
+
+const getDisplayStatus = (invitation) => {
+  if (
+    invitation.status === 'PENDING' &&
+    isCampaignExpired(invitation.campaign?.expiresAt)
+  ) {
+    return 'EXPIRED'
+  }
+  return invitation.status
+}
+
 const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
   const navigate = useNavigate()
+  const { toast } = useToast()
+  const { mutate: openCompanyChat, isPending: isOpeningChat } =
+    useGetOrCreateConversation()
   const [page, setPage] = useState(1)
   const [searchParams, setSearchParams] = useSearchParams()
-  const { data: invitationsData, isLoading: loading, error } = useWorkerInvitations(
-    page,
-    PAGE_SIZE,
-    type
-  )
+  const {
+    data: invitationsData,
+    isLoading: loading,
+    isFetching,
+    isPlaceholderData,
+    error,
+  } = useWorkerInvitations(page, PAGE_SIZE, type)
   const invitations = invitationsData?.data || []
   const pagination = {
     total: invitationsData?.total || 0,
     page: invitationsData?.page || page,
     limit: invitationsData?.limit || PAGE_SIZE,
   }
+  const totalPages =
+    invitationsData?.totalPages ??
+    Math.max(1, Math.ceil(pagination.total / PAGE_SIZE))
+  const isPageTransition = isFetching && isPlaceholderData
+
+  useEffect(() => {
+    setPage(1)
+  }, [type])
+
+  useEffect(() => {
+    if (loading) return
+    if (page > totalPages) {
+      setPage(totalPages)
+    }
+  }, [loading, page, totalPages])
   const { mutateAsync: respond } = useRespondToInvitationMutation()
-  const [respondingId, setRespondingId] = useState(null)
+  const [pendingAction, setPendingAction] = useState(null)
   const [selectedSlotByInvitation, setSelectedSlotByInvitation] = useState({})
   const [rejectReasonByInvitation, setRejectReasonByInvitation] = useState({})
   const [expandedId, setExpandedId] = useState(null)
@@ -90,56 +130,75 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
   const [successMessage, setSuccessMessage] = useState(null)
   const [confirmRespond, setConfirmRespond] = useState(null)
 
-  const selectedInvitation = useMemo(
-    () => invitations.find((item) => item.id === respondingId) || null,
-    [invitations, respondingId],
-  )
+  const handleMessageCompany = (ownerId) => {
+    if (!ownerId) {
+      toast('Không tìm thấy thông tin nhà tuyển dụng để nhắn tin', 'error')
+      return
+    }
+    openCompanyChat({ participantId: ownerId })
+  }
 
-  const selectedRejectReason = selectedInvitation
-    ? rejectReasonByInvitation[selectedInvitation.id] || ''
-    : ''
+  const isInvitationBusy = (invitationId) =>
+    pendingAction?.invitationId === invitationId
+
+  const isSlotBusy = (invitationId, slotId) =>
+    pendingAction?.invitationId === invitationId &&
+    pendingAction?.type === 'slot' &&
+    pendingAction?.slotId === slotId
+
+  const isRejectBusy = (invitationId) =>
+    pendingAction?.invitationId === invitationId &&
+    pendingAction?.type === 'reject'
 
   const handleSlotClick = async (invitationId, slotId, isCurrentlySelected) => {
-    if (respondingId) return
-    if (isCurrentlySelected) return // Do nothing if already selected, user must click "Cannot attend" to cancel
-    
-    setRespondingId(invitationId)
+    if (pendingAction) return
+    if (isCurrentlySelected) return
+
+    setPendingAction({ invitationId, type: 'slot', slotId })
     try {
       await respond({
         invitationId,
-        payload: { status: 'ACCEPTED', selectedSlotId: slotId }
+        payload: { status: 'ACCEPTED', selectedSlotId: slotId },
       })
       setSuccessMessage('Đã nhận ca phỏng vấn.')
       setTimeout(() => setSuccessMessage(null), 3000)
     } catch (err) {
-      console.error('Error changing slot:', err)
+      const message =
+        err?.response?.data?.message || 'Không thể chọn ca phỏng vấn. Vui lòng thử lại.'
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error')
     } finally {
-      setRespondingId(null)
+      setPendingAction(null)
     }
   }
 
-  const handleJobInvitationRespond = async (invitationId, status) => {
+  const handleInvitationRespond = async (invitationId, payload) => {
+    const isReject = payload.status === 'REJECTED'
+    setPendingAction({
+      invitationId,
+      type: isReject ? 'reject' : 'slot',
+      slotId: payload.selectedSlotId,
+    })
     try {
-      setRespondingId(invitationId)
-      await respond({
-        invitationId,
-        payload: { status }
-      })
-      if (status === 'ACCEPTED') {
-        setSuccessMessage('Bạn đã đồng ý ứng tuyển! Hồ sơ của bạn đã được chuyển đến nhà tuyển dụng.')
+      await respond({ invitationId, payload })
+      if (payload.status === 'ACCEPTED') {
+        setSuccessMessage(
+          payload.selectedSlotId
+            ? 'Đã nhận ca phỏng vấn.'
+            : 'Bạn đã đồng ý ứng tuyển! Hồ sơ của bạn đã được chuyển đến nhà tuyển dụng.',
+        )
       } else {
-        setSuccessMessage('Đã từ chối lời mời ứng tuyển.')
+        setSuccessMessage(
+          'Đã ghi nhận bạn không tham gia được. Bạn vẫn có thể chọn ca khác nếu sắp xếp được.',
+        )
       }
-      setTimeout(() => setSuccessMessage(null), 3000)
+      setTimeout(() => setSuccessMessage(null), 4000)
     } catch (err) {
-      console.error('Error responding to invitation:', err)
+      const message =
+        err?.response?.data?.message || 'Không thể gửi phản hồi. Vui lòng thử lại.'
+      toast(Array.isArray(message) ? message.join(', ') : message, 'error')
     } finally {
-      setRespondingId(null)
+      setPendingAction(null)
     }
-  }
-
-  if (loading) {
-    return <AppLoadingScene />
   }
 
   return (
@@ -176,23 +235,64 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
         </Card>
       )}
 
-      {invitations.length === 0 ? (
-        <EmptyState 
-          title={type === 'job' ? 'Chưa có lời mời ứng tuyển' : 'Chưa có lời mời phỏng vấn'} 
-          description="Quay lại sau." 
-        />
+      {loading ? (
+        <AppLoadingScene />
+      ) : invitations.length === 0 ? (
+        <div className="space-y-4">
+          <EmptyState
+            title={
+              pagination.total > 0 && page > 1
+                ? 'Trang này không có lời mời'
+                : type === 'job'
+                  ? 'Chưa có lời mời ứng tuyển'
+                  : 'Chưa có lời mời phỏng vấn'
+            }
+            description={
+              pagination.total > 0 && page > 1
+                ? 'Vui lòng quay lại trang trước.'
+                : 'Quay lại sau.'
+            }
+          />
+          {pagination.total > 0 && page > 1 && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => setPage(1)}
+              >
+                Về trang 1
+              </Button>
+            </div>
+          )}
+          {totalPages > 1 && (
+            <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-center text-sm text-slate-500 sm:text-left">
+                Trang {page}/{totalPages} · Tổng {pagination.total} lời mời
+              </p>
+              <AppPagination
+                page={page}
+                totalPage={totalPages}
+                onPageChange={setPage}
+                className="justify-center mt-0"
+              />
+            </div>
+          )}
+        </div>
       ) : (
         <>
-          <div className="space-y-5">
+          <div
+            className={`space-y-5 transition-opacity ${isPageTransition ? 'pointer-events-none opacity-50' : ''}`}
+          >
             {invitations.map((invitation) => {
-              const statusBadge = STATUS_META[invitation.status] || {
-                label: invitation.status,
+              const displayStatus = getDisplayStatus(invitation)
+              const statusBadge = STATUS_META[displayStatus] || {
+                label: displayStatus,
                 className: 'bg-slate-100 text-slate-600 border-slate-200',
               }
 
-              const isRescheduleExpired =
-                invitation.campaign.expiresAt &&
-                new Date(invitation.campaign.expiresAt) < new Date()
+              const isRescheduleExpired = isCampaignExpired(
+                invitation.campaign?.expiresAt,
+              )
 
               const currentSelectedSlotId = invitation.selectedSlot?.id || null
 
@@ -224,7 +324,7 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                     className={`px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors cursor-pointer ${isExpanded ? 'bg-slate-50/60 border-b border-slate-100' : 'hover:bg-slate-50/50'}`}
                     onClick={() => setExpandedId(isExpanded ? null : invitation.id)}
                   >
-                    <div className="flex items-center gap-4">
+                    <div className="flex min-w-0 flex-1 items-center gap-4">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[10px] border border-slate-200 bg-white shadow-sm overflow-hidden group-hover:scale-105 transition-transform">
                         {invitation.company?.logoUrl ? (
                           <img
@@ -248,8 +348,10 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-3 self-start sm:self-auto ml-16 sm:ml-0">
-                      <span className={`px-2.5 py-1 rounded-md text-[11px] font-bold border ${statusBadge.className}`}>
+                    <div className="ml-16 flex shrink-0 items-center gap-2 self-start sm:ml-0 sm:gap-3 sm:self-auto">
+                      <span
+                        className={`shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-bold leading-none ${statusBadge.className}`}
+                      >
                         {statusBadge.label}
                       </span>
                       <span className="text-[12px] font-medium text-slate-400 whitespace-nowrap">
@@ -351,7 +453,7 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                             <div className="grid gap-3">
                               <button
                                 type="button"
-                                disabled={respondingId === invitation.id || invitation.status !== 'PENDING'}
+                                disabled={isInvitationBusy(invitation.id) || invitation.status !== 'PENDING'}
                                 onClick={() => setConfirmRespond({ invitationId: invitation.id, payload: { status: 'ACCEPTED' }, title: 'Xác nhận đồng ý ứng tuyển', desc: 'Bạn có chắc chắn muốn đồng ý ứng tuyển? Lựa chọn này chỉ được thực hiện một lần duy nhất và không thể thay đổi sau đó.' })}
                                 className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
                                   invitation.status === 'ACCEPTED'
@@ -379,7 +481,7 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
 
                               <button
                                 type="button"
-                                disabled={respondingId === invitation.id || invitation.status !== 'PENDING'}
+                                disabled={isInvitationBusy(invitation.id) || invitation.status !== 'PENDING'}
                                 onClick={() => setConfirmRespond({ invitationId: invitation.id, payload: { status: 'REJECTED' }, title: 'Xác nhận từ chối ứng tuyển', desc: 'Bạn có chắc chắn muốn từ chối ứng tuyển? Lựa chọn này chỉ được thực hiện một lần duy nhất và không thể thay đổi sau đó.', tone: 'danger' })}
                                 className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
                                   invitation.status === 'REJECTED'
@@ -419,6 +521,11 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                         )
                       ) : (
                         <div className="flex flex-col gap-3">
+                          {invitation.status === 'REJECTED' && canChooseOrChangeSlot && (
+                            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm leading-relaxed text-amber-900">
+                              Bạn đã báo không tham gia được. Nếu sắp xếp lại được, hãy chọn ca phỏng vấn bên dưới.
+                            </div>
+                          )}
                           <div className="grid gap-3">
                             {(invitation.campaign.slots || []).map((slot) => {
                               const remainingSeats =
@@ -426,7 +533,11 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                                 Math.max(0, slot.capacity - (slot.bookedCount || 0))
                               const isCurrentSelected = slot.id === currentSelectedSlotId
                               const isFull = remainingSeats <= 0 && !isCurrentSelected
-                              const isDisabled = isFull || respondingId === invitation.id || !canChooseOrChangeSlot
+                              const slotLoading = isSlotBusy(invitation.id, slot.id)
+                              const isDisabled =
+                                isFull ||
+                                isInvitationBusy(invitation.id) ||
+                                !canChooseOrChangeSlot
 
                               return (
                                 <button
@@ -451,13 +562,24 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                                       </p>
                                     </div>
                                     <span
-                                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                        isFull && !isCurrentSelected
-                                          ? 'bg-rose-100 text-rose-700'
-                                          : 'bg-emerald-100 text-emerald-700'
+                                      className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                                        slotLoading
+                                          ? 'bg-slate-100 text-slate-600'
+                                          : isFull && !isCurrentSelected
+                                            ? 'bg-rose-100 text-rose-700'
+                                            : 'bg-emerald-100 text-emerald-700'
                                       }`}
                                     >
-                                      {isFull && !isCurrentSelected ? 'Hết chỗ' : `Còn ${remainingSeats} chỗ / ${slot.capacity}`}
+                                      {slotLoading ? (
+                                        <>
+                                          <Loader2 className="h-3 w-3 animate-spin" />
+                                          Đang lưu…
+                                        </>
+                                      ) : isFull && !isCurrentSelected ? (
+                                        'Hết chỗ'
+                                      ) : (
+                                        `Còn ${remainingSeats} chỗ / ${slot.capacity}`
+                                      )}
                                     </span>
                                   </div>
                                   {isCurrentSelected ? (
@@ -477,34 +599,47 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
 
                             <button
                               type="button"
-                              disabled={respondingId === invitation.id || !canChooseOrChangeSlot}
+                              disabled={isInvitationBusy(invitation.id) || !canChooseOrChangeSlot}
                               onClick={() => {
-                                if (canChooseOrChangeSlot && invitation.status !== 'REJECTED') {
-                                  if (respondingId) return
-                                  setConfirmRespond({ invitationId: invitation.id, payload: { status: 'REJECTED' }, title: 'Xác nhận từ chối', desc: 'Bạn có chắc chắn không tham gia buổi phỏng vấn này? Lựa chọn này chỉ được thực hiện một lần duy nhất và không thể thay đổi sau đó.', tone: 'danger' })
-                                }
+                                if (!canChooseOrChangeSlot || isInvitationBusy(invitation.id)) return
+                                setConfirmRespond({
+                                  invitationId: invitation.id,
+                                  payload: { status: 'REJECTED' },
+                                  title: 'Xác nhận không tham gia được',
+                                  desc: 'Bạn xác nhận không tham gia được lúc này? Sau đó bạn vẫn có thể chọn ca phỏng vấn khác nếu sắp xếp được.',
+                                  tone: 'danger',
+                                })
                               }}
                               className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
                                 invitation.status === 'REJECTED'
-                                  ? 'border-rose-400 bg-rose-50 shadow-[0_10px_24px_-18px_rgba(244,63,94,0.65)] ring-1 ring-rose-200'
+                                  ? 'border-rose-300/80 bg-rose-50/80'
                                   : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-rose-200 hover:shadow-sm'
-                              } ${(!canChooseOrChangeSlot && invitation.status !== 'REJECTED') ? 'cursor-not-allowed opacity-60' : (!canChooseOrChangeSlot && invitation.status === 'REJECTED') ? 'cursor-not-allowed opacity-90' : ''}`}
+                              } ${!canChooseOrChangeSlot ? 'cursor-not-allowed opacity-60' : ''}`}
                             >
                               <div className="flex items-start justify-between gap-3">
                                 <div>
-                                  <p className={`text-sm font-semibold ${invitation.status === 'REJECTED' ? 'text-rose-700' : 'text-slate-700'}`}>
+                                  <p
+                                    className={`text-sm font-semibold ${
+                                      invitation.status === 'REJECTED'
+                                        ? 'text-rose-700'
+                                        : 'text-slate-700'
+                                    }`}
+                                  >
                                     Tôi không tham gia được
                                   </p>
                                 </div>
+                                {isRejectBusy(invitation.id) && (
+                                  <Loader2 className="h-4 w-4 shrink-0 animate-spin text-rose-600" />
+                                )}
                               </div>
                               {invitation.status === 'REJECTED' ? (
                                 <p className="mt-2 text-xs font-medium text-rose-600">
-                                  Đã chọn
+                                  Đã ghi nhận — vẫn có thể chọn ca bên trên
                                 </p>
                               ) : (
                                 canChooseOrChangeSlot && (
-                                  <p className="mt-2 text-xs font-medium text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    Bấm để chọn
+                                  <p className="mt-2 text-xs font-medium text-slate-500 opacity-0 transition-opacity group-hover:opacity-100">
+                                    Bấm nếu bạn bận toàn bộ các ca
                                   </p>
                                 )
                               )}
@@ -518,14 +653,14 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                           )}
                           {!canChooseOrChangeSlot && (
                             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                              {invitation.status === 'ACCEPTED'
-                                ? isRescheduleExpired
-                                  ? 'Đã quá hạn đổi lịch. Lịch đã chốt.'
-                                  : 'Lịch đã lưu.'
-                                : invitation.status === 'REJECTED'
-                                  ? 'Đã từ chối.'
-                                  : isRescheduleExpired
-                                    ? 'Đã quá hạn phản hồi hoặc chọn giờ.'
+                              {displayStatus === 'EXPIRED'
+                                ? 'Đã quá hạn phản hồi hoặc chọn giờ.'
+                                : invitation.status === 'ACCEPTED'
+                                  ? isRescheduleExpired
+                                    ? 'Đã quá hạn đổi lịch. Lịch đã chốt.'
+                                    : 'Lịch đã lưu.'
+                                  : invitation.status === 'REJECTED'
+                                    ? 'Đã báo không tham gia được.'
                                     : 'Không chọn giờ ở đây.'}
                             </div>
                           )}
@@ -545,7 +680,10 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                         <Button
                           variant="outline"
                           className="rounded-full border-slate-200 px-5 shadow-sm"
-                          onClick={() => navigate('/chat')}
+                          disabled={isOpeningChat}
+                          onClick={() =>
+                            handleMessageCompany(invitation.company?.ownerId)
+                          }
                         >
                           Nhắn công ty
                         </Button>
@@ -565,29 +703,17 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
             })}
           </div>
 
-          {pagination.total > PAGE_SIZE && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full border-slate-200 px-4"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-              >
-                Trang trước
-              </Button>
-              <span className="text-sm font-medium text-slate-600">
-                Trang {page} / {Math.ceil(pagination.total / PAGE_SIZE)}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                className="rounded-full border-slate-200 px-4"
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page >= Math.ceil(pagination.total / PAGE_SIZE)}
-              >
-                Trang sau
-              </Button>
+          {totalPages > 1 && (
+            <div className="flex flex-col gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-center text-sm text-slate-500 sm:text-left">
+                Trang {page}/{totalPages} · Tổng {pagination.total} lời mời
+              </p>
+              <AppPagination
+                page={page}
+                totalPage={totalPages}
+                onPageChange={setPage}
+                className="justify-center mt-0"
+              />
             </div>
           )}
         </>
@@ -601,10 +727,11 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
         tone={confirmRespond?.tone || 'default'}
         confirmLabel="Xác nhận"
         cancelLabel="Hủy"
-        onConfirm={() => {
-          if (!confirmRespond) return;
-          handleJobInvitationRespond(confirmRespond.invitationId, confirmRespond.payload.status);
-          setConfirmRespond(null);
+        onConfirm={async () => {
+          if (!confirmRespond) return
+          const { invitationId, payload } = confirmRespond
+          setConfirmRespond(null)
+          await handleInvitationRespond(invitationId, payload)
         }}
       />
     </div>

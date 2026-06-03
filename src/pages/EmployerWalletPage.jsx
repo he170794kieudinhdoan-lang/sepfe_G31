@@ -56,8 +56,8 @@ const formatTransactionType = (type) => {
     TOPUP: 'Nạp điểm ví',
     POST_JOB: 'Phí đăng tin',
     BOOST_JOB: 'Phí đẩy tin',
-    AI_INVITE: 'Mời ứng viên AI',
-    INVITE_AI: 'Mời ứng viên AI',
+    AI_INVITE: 'Sử dụng tính năng đề xuất ứng viên',
+    INVITE_AI: 'Sử dụng tính năng đề xuất ứng viên',
     JOB_POST: 'Phí đăng tin',
     JOB_BOOST: 'Phí đẩy tin',
   };
@@ -214,10 +214,12 @@ export const EmployerWalletPage = () => {
       const message =
         typeof notification.message === 'string' ? notification.message : '';
       const isTopupSuccess =
+        title.toLowerCase().includes('nạp điểm thành công') ||
         title.toLowerCase().includes('nạp point thành công') ||
         link.includes('walletTopupSuccess=1') ||
         (message.toLowerCase().includes('đã cộng') &&
-          message.toLowerCase().includes('point'));
+          (message.toLowerCase().includes('điểm') ||
+            message.toLowerCase().includes('point')));
 
       if (isTopupSuccess) {
         handleCheckoutSuccess();
@@ -242,12 +244,18 @@ export const EmployerWalletPage = () => {
   const orderStatus = orderStatusRes?.data || orderStatusRes;
 
   const amountNumber = useMemo(() => parseNumber(topupAmount), [topupAmount]);
-  const isBelowBoostThreshold =
-    amountNumber > 0 && amountNumber < Number(minBoostPrice || 0);
   const isTopupAmountValid =
     Number.isInteger(amountNumber) &&
     amountNumber >= TOPUP_MIN_AMOUNT &&
     amountNumber <= TOPUP_MAX_AMOUNT;
+
+  const currentBalance = Number(wallet?.balancePoint || 0);
+  const boostMinPoints = Number(minBoostPrice || configuredBoostPointCost || 0);
+  const boostTopupShortfall = Math.max(0, boostMinPoints - currentBalance);
+  const showBoostTopupHint =
+    currentBalance < boostMinPoints &&
+    isTopupAmountValid &&
+    currentBalance + amountNumber < boostMinPoints;
 
   const closeCheckoutModal = () => {
     handledOrderIdRef.current = null;
@@ -274,7 +282,7 @@ export const EmployerWalletPage = () => {
       setCheckoutData(data);
       setOrderId(data.paymentOrderId);
       handledOrderIdRef.current = null;
-      toast('Đã tạo QR nạp point thành công', 'success');
+      toast('Đã tạo QR nạp điểm thành công', 'success');
     } catch (error) {
       const message =
         error?.response?.data?.message || 'Không thể tạo QR nạp điểm';
@@ -676,7 +684,7 @@ export const EmployerWalletPage = () => {
                 </div>
 
                 <div className="mt-auto pt-2">
-                  {(!isTopupAmountValid || isBelowBoostThreshold) && (
+                  {(!isTopupAmountValid || showBoostTopupHint) && (
                     <div
                       className={cn(
                         'mb-5 flex items-start gap-2 rounded-lg px-4 py-3 text-sm font-medium',
@@ -691,7 +699,7 @@ export const EmployerWalletPage = () => {
                       <div>
                         {!isTopupAmountValid
                           ? 'Số tiền nạp không hợp lệ.'
-                          : `Cần tối thiểu ${formatNumber(Number(minBoostPrice || configuredBoostPointCost))} điểm để dùng dịch vụ đẩy tin.`}
+                          : `Cần tối thiểu ${formatNumber(boostMinPoints)} điểm để dùng dịch vụ đẩy tin. Bạn cần nạp thêm ít nhất ${formatNumber(boostTopupShortfall)} điểm nữa.`}
                       </div>
                     </div>
                   )}

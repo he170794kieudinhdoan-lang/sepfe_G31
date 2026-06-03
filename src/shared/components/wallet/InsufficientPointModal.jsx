@@ -5,15 +5,15 @@ export const InsufficientPointModal = ({
   open,
   onClose,
   onGoTopup,
-  message = 'Số dư point không đủ để thực hiện thao tác này.',
+  message = 'Số dư điểm không đủ để thực hiện thao tác này.',
 }) => {
   return (
     <Modal
       open={open}
       onClose={onClose}
       variant="custom"
-      title="Số dư point không đủ"
-      description="Bạn cần nạp thêm point để tiếp tục thanh toán tính năng."
+      title="Số dư điểm không đủ"
+      description="Bạn cần nạp thêm điểm để tiếp tục thanh toán tính năng."
       bodyClassName="space-y-4"
     >
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
@@ -24,7 +24,7 @@ export const InsufficientPointModal = ({
           Để sau
         </Button>
         <Button type="button" onClick={onGoTopup}>
-          Đi tới trang nạp point
+          Đi tới trang nạp điểm
         </Button>
       </div>
     </Modal>
