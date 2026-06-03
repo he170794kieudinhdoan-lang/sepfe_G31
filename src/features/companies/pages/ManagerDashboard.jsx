@@ -168,6 +168,7 @@ export const ManagerDashboard = () => {
   const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [rejectionReasonError, setRejectionReasonError] = useState('');
 
   const [reportStatus, setReportStatus] = useState('ALL');
   const [viewingReportId, setViewingReportId] = useState(null);
@@ -369,11 +370,16 @@ export const ManagerDashboard = () => {
 
   // --- HANDLERS ---
   const handleReviewCompany = async (newStatus) => {
+    if (newStatus === 'REJECTED' && !rejectionReason.trim()) {
+      setRejectionReasonError('Vui lòng nhập lý do từ chối.');
+      return;
+    }
+    setRejectionReasonError('');
     try {
       await reviewCompanyMutation.mutateAsync({
         id: viewingCompanyId,
         status: newStatus,
-        rejectionReason: newStatus === 'REJECTED' ? rejectionReason : null,
+        rejectionReason: newStatus === 'REJECTED' ? rejectionReason.trim() : null,
       });
 
       if (companyDetails?.status === 'UPDATING') {
@@ -394,6 +400,7 @@ export const ManagerDashboard = () => {
       setIsApproveModalOpen(false);
       setIsRejectModalOpen(false);
       setRejectionReason('');
+      setRejectionReasonError('');
       setViewingCompanyId(null);
     } catch (error) {
       toast(MSG.MSG54, 'error');
@@ -553,11 +560,30 @@ export const ManagerDashboard = () => {
 
     const renderCompareValue = (value, key) => {
       if (!value) return <span className="text-slate-400">—</span>;
-      if (
-        key === 'website' ||
-        key === 'logoUrl' ||
-        key === 'businessLicenseUrl'
-      ) {
+      if (key === 'logoUrl') {
+        return (
+          <a href={String(value)} target="_blank" rel="noreferrer">
+            <img
+              src={String(value)}
+              alt="Logo"
+              className="h-20 w-20 object-contain rounded-lg border border-slate-200 bg-slate-50 hover:opacity-80 transition-opacity"
+            />
+          </a>
+        );
+      }
+      if (key === 'businessLicenseUrl') {
+        return (
+          <a href={String(value)} target="_blank" rel="noreferrer" className="block">
+            <img
+              src={String(value)}
+              alt="Giấy phép kinh doanh"
+              className="max-h-48 max-w-full object-contain rounded-lg border border-slate-200 bg-slate-50 hover:opacity-80 transition-opacity"
+            />
+            <span className="mt-1 text-xs text-blue-500 hover:underline block">Xem ảnh gốc</span>
+          </a>
+        );
+      }
+      if (key === 'website') {
         return (
           <a
             href={String(value)}
@@ -1545,14 +1571,32 @@ export const ManagerDashboard = () => {
         confirmLabel="Gửi thông báo"
         tone="danger"
         onConfirm={() => handleReviewCompany('REJECTED')}
-        onClose={() => setIsRejectModalOpen(false)}
+        onClose={() => {
+          setIsRejectModalOpen(false);
+          setRejectionReason('');
+          setRejectionReasonError('');
+        }}
       >
-        <textarea
-          className="w-full min-h-25 p-3 rounded-lg border border-slate-200 focus:border-red-400 outline-none text-sm bg-white"
-          placeholder="Nhập lý do từ chối (ví dụ: Thiếu giấy phép kinh doanh...)"
-          value={rejectionReason}
-          onChange={(e) => setRejectionReason(e.target.value)}
-        />
+        <div className="space-y-1.5">
+          <textarea
+            className={`w-full min-h-25 p-3 rounded-lg border outline-none text-sm bg-white transition-colors ${
+              rejectionReasonError
+                ? 'border-red-400 focus:border-red-500 bg-red-50/30'
+                : 'border-slate-200 focus:border-red-400'
+            }`}
+            placeholder="Nhập lý do từ chối (ví dụ: Thiếu giấy phép kinh doanh...)"
+            value={rejectionReason}
+            onChange={(e) => {
+              setRejectionReason(e.target.value);
+              if (e.target.value.trim()) setRejectionReasonError('');
+            }}
+          />
+          {rejectionReasonError && (
+            <p className="text-xs text-red-500 flex items-center gap-1">
+              <span>⚠</span> {rejectionReasonError}
+            </p>
+          )}
+        </div>
       </Modal>
 
       {/* --- MODAL CHI TIẾT BÁO CÁO --- */}

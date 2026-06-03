@@ -14,6 +14,7 @@ const PUBLIC_ENDPOINTS = [
   '/user/sign-up',
   '/user/forgot-password',
   '/user/reset-password',
+  '/support-tickets',
 ];
 
 const isPublicEndpoint = (url) =>

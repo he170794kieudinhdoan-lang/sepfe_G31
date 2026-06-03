@@ -711,10 +711,10 @@ export const CompanyRegisterPage = ({ isModal = false, onSuccess, onBack }) => {
 
       if (isEdit) {
         await updateCompanyMutate({ companyId, formData: fd });
-        toast('Đã gửi cập nhật thông tin công ty, vui lòng chờ quản lý duyệt lại');
+        toast('Đã gửi cập nhật thông tin công ty, vui lòng chờ quản lý duyệt lại', 'success');
       } else {
         await createCompanyMutate(fd);
-        toast('Gửi đăng ký công ty thành công');
+        toast('Gửi đăng ký công ty thành công', 'success');
       }
 
       if (isModal && onSuccess) {

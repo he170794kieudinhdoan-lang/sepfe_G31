@@ -274,11 +274,12 @@ export const EmployerInterviewSchedulePage = () => {
       .forEach((campaign) => {
         const allSlots = (campaign?.slots || []);
         if (!allSlots.length) return;
-        // Check if the LAST slot (by endAt) is still in the future
-        const lastSlotEndAt = Math.max(
-          ...allSlots.map((slot) => new Date(slot.endAt).getTime()).filter((t) => !Number.isNaN(t)),
-        );
-        if (lastSlotEndAt < now) return; // All slots have ended, skip for upcoming
+        // Only include slots whose endAt is still in the future
+        const futureSlots = allSlots.filter((slot) => {
+          const endAt = new Date(slot.endAt).getTime();
+          return !Number.isNaN(endAt) && endAt >= now;
+        });
+        if (!futureSlots.length) return; // No future slots, skip for upcoming
         const jobId = campaign?.jobId ?? `campaign-${campaign.id}`;
         const key = String(jobId);
         const matchedJob = allJobs.find(
@@ -302,7 +303,7 @@ export const EmployerInterviewSchedulePage = () => {
         }
         current.campaigns.push(campaign);
         current.slots.push(
-          ...allSlots.map((slot) => ({
+          ...futureSlots.map((slot) => ({
             ...slot,
             campaignId: campaign.id,
             campaignTitle: campaign.title,
@@ -342,11 +343,12 @@ export const EmployerInterviewSchedulePage = () => {
       .forEach((campaign) => {
         const allSlots = (campaign?.slots || []);
         if (!allSlots.length) return;
-        // Check if the LAST slot (by endAt) has already passed
-        const lastSlotEndAt = Math.max(
-          ...allSlots.map((slot) => new Date(slot.endAt).getTime()).filter((t) => !Number.isNaN(t)),
-        );
-        if (lastSlotEndAt >= now) return; // Still has active slots, skip for past
+        // Only include slots whose endAt has already passed
+        const expiredSlots = allSlots.filter((slot) => {
+          const endAt = new Date(slot.endAt).getTime();
+          return !Number.isNaN(endAt) && endAt < now;
+        });
+        if (!expiredSlots.length) return; // No expired slots, skip for past
         const jobId = campaign?.jobId ?? `campaign-${campaign.id}`;
         const key = String(jobId);
         const matchedJob = allJobs.find(
@@ -370,7 +372,7 @@ export const EmployerInterviewSchedulePage = () => {
         }
         current.campaigns.push(campaign);
         current.slots.push(
-          ...allSlots.map((slot) => ({
+          ...expiredSlots.map((slot) => ({
             ...slot,
             campaignId: campaign.id,
             campaignTitle: campaign.title,
@@ -764,6 +766,7 @@ export const EmployerInterviewSchedulePage = () => {
       toast('Vui lòng chọn tin tuyển dụng.', 'error');
       return;
     }
+
     const suitableWorkerIds = Array.from(
       new Set(
         applicants
@@ -773,7 +776,8 @@ export const EmployerInterviewSchedulePage = () => {
       ),
     );
 
-    if (!suitableWorkerIds.length) {
+    // Chỉ bắt buộc có ứng viên phù hợp khi tạo mới, không khi chỉnh sửa ca
+    if (!isEditMode && !suitableWorkerIds.length) {
       toast(
         'Không có ứng viên phù hợp để tạo lịch phỏng vấn cho job này.',
         'error',
