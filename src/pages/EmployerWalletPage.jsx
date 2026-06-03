@@ -176,7 +176,7 @@ export const EmployerWalletPage = () => {
 
     handledOrderIdRef.current = orderId;
     refetchWallet();
-    toast('Thanh toán thành công! Point đã được cộng vào ví.', 'success');
+    toast('Thanh toán thành công! Điểm đã được cộng vào ví.', 'success');
 
     const returnTo = searchParams.get('returnTo');
     const resumeKey = searchParams.get('resumeKey');
