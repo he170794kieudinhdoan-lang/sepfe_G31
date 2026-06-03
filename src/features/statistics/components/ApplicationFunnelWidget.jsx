@@ -16,8 +16,8 @@ import {
 import { format, subDays, subMonths, parseISO } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import {
-  useDashboardStats,
-  useJobFunnel,
+  useJobEngagementStatistic,
+  useJobStatistic,
   useJobStatus,
 } from '../api/useStatistics';
 import {
@@ -129,7 +129,7 @@ const CustomTooltip = ({ active, payload, label }) => {
           </div>
           <div className="pt-2 mt-1 border-t border-slate-100 flex items-center justify-between gap-4">
             <span className="text-xs font-medium text-slate-500 italic">
-              Hiệu quả (CVR):
+              Tỷ lệ ứng tuyển:
             </span>
             <span className="text-xs font-bold text-primary">{rate}%</span>
           </div>
@@ -140,51 +140,106 @@ const CustomTooltip = ({ active, payload, label }) => {
   return null;
 };
 
+// ─── FUNNEL BAR SUBCOMPONENT ─────────────────────────────────────────────────
+const FUNNEL_SEGMENTS = [
+  { key: 'applied',    label: 'Chờ duyệt', bar: 'bg-amber-400',   dot: 'bg-amber-500',   text: 'text-amber-700',   ring: 'ring-amber-200'   },
+  { key: 'viewed',     label: 'Đã xem',    bar: 'bg-blue-400',    dot: 'bg-blue-500',    text: 'text-blue-700',    ring: 'ring-blue-200'    },
+  { key: 'suitable',   label: 'Phù hợp',   bar: 'bg-emerald-400', dot: 'bg-emerald-500', text: 'text-emerald-700', ring: 'ring-emerald-200' },
+  { key: 'unsuitable', label: 'Từ chối',   bar: 'bg-rose-400',    dot: 'bg-rose-500',    text: 'text-rose-700',    ring: 'ring-rose-200'    },
+  { key: 'cancelled',  label: 'Đã hủy',    bar: 'bg-slate-300',   dot: 'bg-slate-400',   text: 'text-slate-600',   ring: 'ring-slate-200'   },
+];
+
+const FunnelBar = ({ funnelData, funnelLoading }) => {
+  const [hoveredKey, setHoveredKey] = useState(null);
+
+  const counts = FUNNEL_SEGMENTS.reduce((acc, s) => {
+    acc[s.key] = funnelData?.[s.key] ?? 0;
+    return acc;
+  }, {});
+  const total = Object.values(counts).reduce((a, b) => a + b, 0);
+
+  const activeSegment = hoveredKey
+    ? FUNNEL_SEGMENTS.find((s) => s.key === hoveredKey)
+    : null;
+
+  return (
+    <div className={`w-full min-w-[200px] max-w-[240px] mx-auto select-none ${funnelLoading ? 'animate-pulse opacity-50' : ''}`}>
+      {/* Summary line */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+          Hồ sơ
+        </span>
+        <span className={`text-[11px] font-bold tabular-nums transition-all duration-200 ${
+          activeSegment ? activeSegment.text : 'text-slate-700'
+        }`}>
+          {activeSegment
+            ? `${activeSegment.label}: ${counts[activeSegment.key]}`
+            : `${total} tổng`}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2 w-full flex rounded-full overflow-hidden bg-slate-100 shadow-inner border border-slate-200/60 gap-[1px]">
+        {total === 0 ? (
+          <div className="bg-slate-200 h-full w-full rounded-full" />
+        ) : (
+          FUNNEL_SEGMENTS.map((seg) => {
+            const count = counts[seg.key];
+            if (count === 0) return null;
+            const pct = (count / total) * 100;
+            const isHovered = hoveredKey === seg.key;
+            return (
+              <div
+                key={seg.key}
+                style={{ width: `${pct}%` }}
+                className={`h-full transition-all duration-200 cursor-pointer ${seg.bar} ${isHovered ? 'brightness-110 scale-y-125 origin-center' : ''}`}
+                onMouseEnter={() => setHoveredKey(seg.key)}
+                onMouseLeave={() => setHoveredKey(null)}
+              />
+            );
+          })
+        )}
+      </div>
+
+      {/* Legend dots */}
+      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 mt-2.5">
+        {FUNNEL_SEGMENTS.map((seg) => {
+          const count = counts[seg.key];
+          const isHovered = hoveredKey === seg.key;
+          return (
+            <div
+              key={seg.key}
+              className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md transition-all duration-150 cursor-default ${
+                isHovered ? `ring-1 ${seg.ring} bg-white shadow-sm` : ''
+              }`}
+              onMouseEnter={() => setHoveredKey(seg.key)}
+              onMouseLeave={() => setHoveredKey(null)}
+            >
+              <div className={`w-1.5 h-1.5 rounded-full ${seg.dot} shrink-0`} />
+              <span className={`text-[10px] font-semibold tabular-nums transition-colors duration-150 ${
+                isHovered ? seg.text : 'text-slate-500'
+              }`}>
+                {count}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 // ─── JOB FUNNEL ROW ──────────────────────────────────────────────────────────
 const JobFunnelRow = ({ job }) => {
-  const { data: funnelData, isLoading: funnelLoading } = useJobFunnel(job.id);
+  const { data: funnelData, isLoading: funnelLoading } = useJobStatistic(job.id);
 
   const views = job.viewCount || 0;
   const apps = job._count?.applications || 0;
   const rate = views > 0 ? (apps / views) * 100 : 0;
 
-  const STEPS = [
-    {
-      key: 'applied',
-      label: 'Chờ thanh toán',
-      color: 'text-amber-600',
-      dot: 'bg-amber-500',
-    },
-    {
-      key: 'viewed',
-      label: 'Đã xem',
-      color: 'text-blue-600',
-      dot: 'bg-blue-500',
-    },
-    {
-      key: 'suitable',
-      label: 'Phù hợp',
-      color: 'text-emerald-600',
-      dot: 'bg-emerald-500',
-    },
-    { isDivider: true },
-    {
-      key: 'unsuitable',
-      label: 'Từ chối',
-      color: 'text-rose-600',
-      dot: 'bg-rose-500',
-    },
-    {
-      key: 'cancelled',
-      label: 'Đã hủy',
-      color: 'text-slate-500',
-      dot: 'bg-slate-400',
-    },
-  ];
-
   return (
     <tr className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
-      <td className="py-4 px-6 align-top">
+      <td className="py-4 px-6 align-middle">
         <p className="font-bold text-slate-800 text-sm whitespace-normal min-w-[180px] line-clamp-2">
           {job.title}
         </p>
@@ -193,70 +248,35 @@ const JobFunnelRow = ({ job }) => {
         </p>
       </td>
 
-      <td className="py-4 px-6 align-top pt-5">
+      <td className="py-4 px-6 align-middle">
         <StatusBadge status={job.status} />
       </td>
 
-      <td className="py-4 px-6 text-center align-top pt-5">
+      <td className="py-4 px-6 text-center align-middle">
         <span className="text-slate-600 font-bold tabular-nums">
           {views.toLocaleString('vi-VN')}
         </span>
       </td>
 
-      <td className="py-4 px-6 text-center align-top pt-5">
+      <td className="py-4 px-6 text-center align-middle">
         <span className="text-blue-600 font-bold tabular-nums">
           {apps.toLocaleString('vi-VN')}
         </span>
       </td>
 
-      <td className="py-4 px-6 text-center align-top pt-5">
+      <td className="py-4 px-6 text-center align-middle">
         <span className="text-sm font-bold text-slate-700">
           {rate.toFixed(1)}%
         </span>
       </td>
 
-      <td className="py-4 px-6 align-top">
-        <div className="flex items-center justify-center gap-0 w-full">
-          {STEPS.map((step, idx) => {
-            if (step.isDivider) {
-              return (
-                <div
-                  key={`div-${idx}`}
-                  className="w-[1px] h-6 bg-slate-200 mx-3 mt-2"
-                />
-              );
-            }
-            const count = funnelData?.[step.key] ?? 0;
-            return (
-              <React.Fragment key={step.key}>
-                <div className="flex flex-col items-center min-w-[70px]">
-                  <div className="flex items-center gap-1 mb-0.5">
-                    <div
-                      className={`w-1.5 h-1.5 rounded-full ${step.dot} shadow-sm`}
-                    />
-                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-tight">
-                      {step.label}
-                    </span>
-                  </div>
-                  <span className="text-xs font-black text-slate-900">
-                    {count}
-                  </span>
-                </div>
-                {idx < STEPS.length - 1 &&
-                  !STEPS[idx + 1].isDivider &&
-                  !step.isDivider && (
-                    <div className="w-[1px] h-3 bg-slate-100 mt-2 mx-2" />
-                  )}
-              </React.Fragment>
-            );
-          })}
-        </div>
+      <td className="py-4 px-6 align-middle">
+        <FunnelBar funnelData={funnelData} funnelLoading={funnelLoading} />
       </td>
     </tr>
   );
 };
 
-// ─── MAIN WIDGET ──────────────────────────────────────────────────────────────
 export const ApplicationFunnelWidget = ({ jobs = [] }) => {
   const [filter, setFilter] = useState('ALL');
   const [page, setPage] = useState(1);
@@ -300,12 +320,10 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
     }
   }, [dateRange]);
 
-  // Aggregate timeline (Dashboard Overview)
-  const { data: dashboardRes, isLoading } = useDashboardStats({
+  const { data: dashboardRes, isLoading } = useJobEngagementStatistic({
     from: dateRange.from || undefined,
     to: dateRange.to || undefined,
   });
-  // Job status stats (Pie Chart data)
   const { data: jobStatusRes, isLoading: jobStatusLoading } = useJobStatus();
 
   const formattedTimeline = useMemo(() => {
@@ -328,7 +346,6 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
     });
   }, [dashboardRes?.timeline]);
 
-  // Block 2: Job list with filter & pagination
   const filteredJobs = useMemo(() => {
     let list = jobs.filter((j) => j.status !== 'DELETED');
     if (filter === 'PUBLISHED')
@@ -617,7 +634,7 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
                     Ứng tuyển
                   </th>
                   <th className="py-4 px-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Hiệu quả (CVR)
+                    Tỷ lệ ứng tuyển
                   </th>
                   <th className="py-4 px-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Tiến trình hồ sơ

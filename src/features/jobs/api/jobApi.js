@@ -84,6 +84,16 @@ export const getBoostedJobsApi = async (params = {}) => {
   return await apiClient.get('/job/boosted', { params: cleanParams });
 };
 
+export const getNewestJobsApi = async (params = {}) => {
+  const cleanParams = {};
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      cleanParams[key] = value;
+    }
+  });
+  return await apiClient.get('/job/newest', { params: cleanParams });
+};
+
 export const getBoostPackagesApi = async () => {
   return await apiClient.get('/job/boost/packages');
 };

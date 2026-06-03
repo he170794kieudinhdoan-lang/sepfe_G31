@@ -30,7 +30,6 @@ export const JobDetailHeader = ({ job, onApply, onSave, hasApplied }) => {
       <Card className="flex flex-col gap-6 border-0 p-6 shadow-sm rounded-xl">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-bold lg:text-3xl">{job.title}</h1>
-          <Badge className="rounded-lg">{job.status}</Badge>
         </div>
 
         <div className="flex flex-wrap gap-x-10 gap-y-4 justify-between">

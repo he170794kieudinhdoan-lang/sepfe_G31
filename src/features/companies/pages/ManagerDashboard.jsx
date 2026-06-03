@@ -79,15 +79,15 @@ const TAB_HEADERS = {
 
 const STATUS_COLORS = {
   APPROVED: {
-    label: 'Hợp lệ',
+    label: 'Đã duyệt',
     color: 'bg-green-50 text-green-700 border-green-100',
   },
   PENDING: {
-    label: 'Chờ xử lý',
+    label: 'Chờ duyệt',
     color: 'bg-blue-50 text-blue-700 border-blue-100',
   },
   REJECTED: {
-    label: 'Từ chối',
+    label: 'Đã từ chối',
     color: 'bg-red-50 text-red-700 border-red-100',
   },
   UPDATING: {
@@ -923,13 +923,15 @@ export const ManagerDashboard = () => {
                       <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
                         {formatManagerDateTime(r.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-red-600 font-medium">
-                        {REPORT_REASON_LABELS[r.reason] || r.reason}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">
+                          {REPORT_REASON_LABELS[r.reason] || r.reason}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
                         <Badge
                           variant="outline"
-                          className={REPORT_STATUS_COLORS[r.status] || ''}
+                          className={`whitespace-nowrap px-2.5 py-1 rounded-full font-semibold ${REPORT_STATUS_COLORS[r.status] || ''}`}
                         >
                           {REPORT_STATUS_LABELS[r.status] || r.status}
                         </Badge>
@@ -1117,13 +1119,15 @@ export const ManagerDashboard = () => {
                       <td className="px-6 py-4 text-slate-600 whitespace-nowrap">
                         {formatManagerDateTime(r.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-red-600 font-medium">
-                        {REPORT_REASON_LABELS[r.reason] || r.reason}
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-red-50 text-red-700 border border-red-100 whitespace-nowrap">
+                          {REPORT_REASON_LABELS[r.reason] || r.reason}
+                        </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-6 py-4 text-center whitespace-nowrap">
                         <Badge
                           variant="outline"
-                          className={REPORT_STATUS_COLORS[r.status] || ''}
+                          className={`whitespace-nowrap px-2.5 py-1 rounded-full font-semibold ${REPORT_STATUS_COLORS[r.status] || ''}`}
                         >
                           {REPORT_STATUS_LABELS[r.status] || r.status}
                         </Badge>
@@ -1308,7 +1312,7 @@ export const ManagerDashboard = () => {
             </table>
           </div>
         </Card>
-        {!isLoadingData && filteredCompanies.length > 0 && (
+        {!isLoadingData && filteredCompanies.length > 0 && companyTotalPages > 1 && (
           <Card className="p-3 border border-slate-200 shadow-sm bg-white">
             <AppPagination
               page={companyPage}
@@ -1463,7 +1467,7 @@ export const ManagerDashboard = () => {
             </table>
           </div>
         </Card>
-        {!isLoadingData && filteredUpdateQueue.length > 0 && (
+        {!isLoadingData && filteredUpdateQueue.length > 0 && updateTotalPages > 1 && (
           <Card className="p-3 border border-slate-200 shadow-sm bg-white">
             <AppPagination
               page={updatePage}

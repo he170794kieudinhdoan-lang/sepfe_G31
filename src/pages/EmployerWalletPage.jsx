@@ -92,12 +92,14 @@ export const EmployerWalletPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [topupAmount, setTopupAmount] = useState('100000');
+  const [isTopupFocused, setIsTopupFocused] = useState(false);
   const [checkoutData, setCheckoutData] = useState(null);
   const [orderId, setOrderId] = useState(null);
   const [txPage, setTxPage] = useState(1);
   const handledOrderIdRef = useRef(null);
   const txLimit = 10;
   const [selectedSlide, setSelectedSlide] = useState(0);
+  const [isCarouselPaused, setIsCarouselPaused] = useState(false);
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
 
   const { data: walletRes, refetch: refetchWallet } = useMyWallet();
@@ -331,6 +333,12 @@ export const EmployerWalletPage = () => {
     };
   }, [emblaApi]);
 
+  useEffect(() => {
+    if (!emblaApi || isCarouselPaused) return;
+    const id = setInterval(() => emblaApi.scrollNext(), 4000);
+    return () => clearInterval(id);
+  }, [emblaApi, isCarouselPaused]);
+
   const handlePrevSlide = () => emblaApi?.scrollPrev();
   const handleNextSlide = () => emblaApi?.scrollNext();
 
@@ -349,7 +357,11 @@ export const EmployerWalletPage = () => {
           <div className="xl:col-span-7 flex flex-col gap-6">
             {/* BĂNG CHUYỀN BANNER (Thay thế cả Banner độc lập) */}
             <Card className="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-md aspect-[21/9]">
-              <div className="group relative flex-1 bg-slate-100">
+              <div
+                className="group relative flex-1 bg-slate-100"
+                onMouseEnter={() => setIsCarouselPaused(true)}
+                onMouseLeave={() => setIsCarouselPaused(false)}
+              >
                 <div className="h-full overflow-hidden" ref={emblaRef}>
                   <div className="flex h-full">
                     {PROMO_SLIDES.map((slide) => (
@@ -641,7 +653,9 @@ export const EmployerWalletPage = () => {
                   <div className="relative">
                     <Input
                       type="text"
-                      value={formatCommaNumber(topupAmount)}
+                      value={isTopupFocused ? topupAmount : formatCommaNumber(topupAmount)}
+                      onFocus={() => setIsTopupFocused(true)}
+                      onBlur={() => setIsTopupFocused(false)}
                       onChange={(e) =>
                         setTopupAmount(
                           String(e.target.value || '').replace(/\D/g, ''),

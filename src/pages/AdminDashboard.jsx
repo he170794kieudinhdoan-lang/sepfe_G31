@@ -19,6 +19,13 @@ import {
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { EmptyState } from '@/shared/components/EmptyState';
 import { Modal } from '@/shared/components/Modal';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
@@ -1004,19 +1011,21 @@ export const AdminDashboard = () => {
               </h3>
               <div className="flex items-center gap-2 text-sm font-medium">
                 Năm:
-                <input
-                  type="number"
-                  value={selectedYear}
-                  onChange={(e) =>
-                    setSelectedYear(
-                      Number(e.target.value) || new Date().getFullYear(),
-                    )
-                  }
-                  className="border border-slate-300 focus:outline-blue-500 rounded-md px-3 py-1.5 w-24 text-center font-bold"
-                  placeholder="2026"
-                  min="2000"
-                  max="2100"
-                />
+                <Select
+                  value={String(selectedYear)}
+                  onValueChange={(val) => setSelectedYear(Number(val))}
+                >
+                  <SelectTrigger className="w-[100px] font-bold bg-white justify-between px-3">
+                    <SelectValue placeholder="Năm" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    {Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                      <SelectItem key={y} value={String(y)}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid lg:grid-cols-2 gap-8">
@@ -1199,7 +1208,19 @@ export const AdminDashboard = () => {
                       inputMode="numeric"
                       placeholder="50,000"
                       value={pointPricingForm.JOB_POST_POINT_COST}
+                      onFocus={(e) =>
+                        setPointPricingForm((prev) => ({
+                          ...prev,
+                          JOB_POST_POINT_COST: e.target.value.replace(/\D/g, ''),
+                        }))
+                      }
                       onChange={(e) =>
+                        setPointPricingForm((prev) => ({
+                          ...prev,
+                          JOB_POST_POINT_COST: e.target.value.replace(/\D/g, ''),
+                        }))
+                      }
+                      onBlur={(e) =>
                         setPointPricingForm((prev) => ({
                           ...prev,
                           JOB_POST_POINT_COST: formatCommaNumber(e.target.value),
@@ -1230,12 +1251,22 @@ export const AdminDashboard = () => {
                       inputMode="numeric"
                       placeholder="1,000"
                       value={pointPricingForm.AI_INVITE_POINT_COST_PER_WORKER}
+                      onFocus={(e) =>
+                        setPointPricingForm((prev) => ({
+                          ...prev,
+                          AI_INVITE_POINT_COST_PER_WORKER: e.target.value.replace(/\D/g, ''),
+                        }))
+                      }
                       onChange={(e) =>
                         setPointPricingForm((prev) => ({
                           ...prev,
-                          AI_INVITE_POINT_COST_PER_WORKER: formatCommaNumber(
-                            e.target.value,
-                          ),
+                          AI_INVITE_POINT_COST_PER_WORKER: e.target.value.replace(/\D/g, ''),
+                        }))
+                      }
+                      onBlur={(e) =>
+                        setPointPricingForm((prev) => ({
+                          ...prev,
+                          AI_INVITE_POINT_COST_PER_WORKER: formatCommaNumber(e.target.value),
                         }))
                       }
                       className="font-semibold text-slate-900"
@@ -2060,7 +2091,19 @@ export const AdminDashboard = () => {
                 inputMode="numeric"
                 placeholder="VD: 50,000"
                 value={boostModalData.price}
+                onFocus={(e) =>
+                  setBoostModalData((prev) => ({
+                    ...prev,
+                    price: e.target.value.replace(/\D/g, ''),
+                  }))
+                }
                 onChange={(e) =>
+                  setBoostModalData((prev) => ({
+                    ...prev,
+                    price: e.target.value.replace(/\D/g, ''),
+                  }))
+                }
+                onBlur={(e) =>
                   setBoostModalData((prev) => ({
                     ...prev,
                     price: formatCommaNumber(e.target.value),

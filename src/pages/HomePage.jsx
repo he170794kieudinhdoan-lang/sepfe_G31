@@ -42,8 +42,8 @@ import { MatchedJobs } from '@/features/jobs/components/MatchedJobs';
 import {
   useGetProvinces,
   useGetWards,
-  useSearchJobs,
   useBoostedJobs,
+  useNewestJobs,
 } from '@/features/jobs/api/useJobs';
 import { useSearchCompanies } from '@/features/companies/api/useGetCompanies';
 import {
@@ -65,26 +65,17 @@ import useEmblaCarousel from 'embla-carousel-react';
 const POPOVER_CHIP =
   'inline-flex max-w-full items-center gap-0.5 rounded-md border border-slate-200/90 bg-slate-50 px-1.5 py-0.5 text-[11px] font-medium leading-tight text-slate-700';
 
-const PROMO_SLIDES = [{ image: '/banner_1.png' }, { image: '/banner_2.png' }];
-
-const POPULAR_KEYWORDS = [
-  'công nhân sản xuất',
-  'công nhân may mặc',
-  'công nhân lắp ráp điện tử',
-  'lao động phổ thông',
-  'nhân viên kho',
-  'phụ kho - bốc xếp',
-];
-
 function TopEmployers() {
   const { data, isLoading } = useSearchCompanies({ limit: 12 });
   const companies = data?.items || [];
-  
+
   if (!isLoading && companies.length === 0) return null;
 
   return (
     <div className="py-10 border-t border-slate-100 bg-slate-50/50 overflow-hidden relative">
-      <style dangerouslySetInnerHTML={{__html: `
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
         @keyframes custom-marquee {
           0% { transform: translateX(0); }
           100% { transform: translateX(-50%); }
@@ -96,30 +87,49 @@ function TopEmployers() {
         .marquee-container:hover .animate-custom-marquee {
           animation-play-state: paused;
         }
-      `}} />
+      `,
+        }}
+      />
       <Container>
         <div className="text-center mb-8">
-          <h3 className="text-[11px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">ĐỐI TÁC CỦA CHÚNG TÔI</h3>
-          <h2 className="text-2xl font-black text-slate-900">Doanh Nghiệp Hàng Đầu</h2>
+          <h3 className="text-[11px] font-black text-amber-500 uppercase tracking-[0.2em] mb-1">
+            ĐỐI TÁC CỦA CHÚNG TÔI
+          </h3>
+          <h2 className="text-2xl font-black text-slate-900">
+            Doanh Nghiệp Hàng Đầu
+          </h2>
         </div>
       </Container>
-      
+
       <div className="relative flex overflow-hidden marquee-container max-w-full">
         {/* Gradient overlays for smooth entry/exit effect */}
         <div className="absolute left-0 top-0 w-16 md:w-32 h-full bg-gradient-to-r from-slate-50/50 to-transparent z-10 pointer-events-none" />
         <div className="absolute right-0 top-0 w-16 md:w-32 h-full bg-gradient-to-l from-slate-50/50 to-transparent z-10 pointer-events-none" />
-        
+
         <div className="flex animate-custom-marquee">
           {isLoading ? (
             <div className="flex gap-12 px-6 items-center">
-              {Array.from({ length: 12 }).map((_, i) => <Skeleton key={i} className="w-16 h-16 md:w-20 md:h-20 rounded-lg shrink-0" />)}
+              {Array.from({ length: 12 }).map((_, i) => (
+                <Skeleton
+                  key={i}
+                  className="w-16 h-16 md:w-20 md:h-20 rounded-lg shrink-0"
+                />
+              ))}
             </div>
           ) : (
             <div className="flex gap-12 px-6 items-center">
               {[...companies, ...companies].map((c, idx) => (
-                <Link to={`/company/${c.id}`} key={`${c.id}-${idx}`} className="block shrink-0">
+                <Link
+                  to={`/company/${c.id}`}
+                  key={`${c.id}-${idx}`}
+                  className="block shrink-0"
+                >
                   <div className="w-16 h-16 md:w-20 md:h-20 relative grayscale opacity-50 hover:grayscale-0 hover:opacity-100 transition-all duration-300 hover:scale-105">
-                    <ImageWithFallback src={c.logoUrl} alt={c.name} className="absolute inset-0 w-full h-full object-contain" />
+                    <ImageWithFallback
+                      src={c.logoUrl}
+                      alt={c.name}
+                      className="absolute inset-0 w-full h-full object-contain"
+                    />
                   </div>
                 </Link>
               ))}
@@ -128,10 +138,8 @@ function TopEmployers() {
         </div>
       </div>
     </div>
-  )
+  );
 }
-
-
 
 function JobCardSkeleton() {
   return (
@@ -602,10 +610,9 @@ export function HomePage() {
     }, 200);
   }, []);
 
-  const { data: newestJobs, isLoading } = useSearchJobs({
+  const { data: newestJobs, isLoading } = useNewestJobs({
     limit: 12,
     page: 1,
-    sortBy: 'newest',
   });
   const { data: boostedJobs, isLoading: isBoostedLoading } = useBoostedJobs({
     page: 1,
@@ -641,7 +648,11 @@ export function HomePage() {
       <section className="relative w-full overflow-hidden bg-slate-50 pt-32 pb-48 md:pt-40 md:pb-56">
         {/* Dynamic Background Elements */}
         <div className="absolute inset-0 z-0">
-          <img src="/banner_0.png" alt="hero" className="w-full h-full object-cover" />
+          <img
+            src="/banner_0.png"
+            alt="hero"
+            className="w-full h-full object-cover"
+          />
           <div className="absolute inset-0 bg-slate-900/40" />
         </div>
 
@@ -653,78 +664,77 @@ export function HomePage() {
 
         <Container className="relative z-10">
           <div className="max-w-4xl mx-auto text-center space-y-8">
-             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 backdrop-blur-md mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
-                <span className="text-[11px] font-black text-amber-400 uppercase tracking-[0.2em]">
-                  Worklink - Nền tảng tuyển dụng hàng đầu
-                </span>
-             </div>
-             
-             <h1 className="text-4xl md:text-5xl lg:text-[56px] font-black text-white leading-[1.25] tracking-tight mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 drop-shadow-sm">
-               Tìm tin{' '}
-               <span className="text-amber-400 relative inline-block">
-                 dễ dàng
-                 <svg
-                   className="absolute -bottom-1 left-0 w-full h-2 text-amber-400/40"
-                   viewBox="0 0 100 20"
-                   preserveAspectRatio="none"
-                 >
-                   <path
-                     d="M0,10 Q50,20 100,10"
-                     stroke="currentColor"
-                     strokeWidth="4"
-                     fill="transparent"
-                   />
-                 </svg>
-               </span>
-               , <br className="hidden md:block" />
-               thông tin{' '}
-               <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">
-                 rõ ràng
-               </span>
-               , <br className="hidden md:block" />
-               cơ hội tốt hơn cùng <br />
-               <span className="text-amber-400 inline-block mt-4 text-5xl md:text-6xl lg:text-[72px]">
-                 <Typewriter
-                   onInit={(typewriter) => {
-                     typewriter
-                       .typeString('Worklink')
-                       .pauseFor(3000)
-                       .deleteAll()
-                       .start();
-                   }}
-                   options={{ loop: true, autoStart: true }}
-                 />
-               </span>
-             </h1>
-             
-             <p className="text-lg md:text-xl text-slate-300 font-medium max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
-               Hơn 10.000+ cơ hội việc làm đang chờ đón bạn. Khám phá ngay các vị trí tốt nhất từ những nhà tuyển dụng uy tín hàng đầu.
-             </p>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500/10 border border-amber-500/20 backdrop-blur-md mb-2 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <span className="flex h-2 w-2 rounded-full bg-amber-400 animate-pulse" />
+              <span className="text-[11px] font-black text-amber-400 uppercase tracking-[0.2em]">
+                Worklink - Nền tảng tuyển dụng hàng đầu
+              </span>
+            </div>
 
-             {/* Search Box */}
-             <div className="w-full max-w-4xl mx-auto pt-8 animate-in fade-in zoom-in-95 duration-1000 delay-300">
-                <SearchBarPopover
-                  keyword={keyword}
-                  setKeyword={setKeyword}
-                  open={openSuggest}
-                  setOpen={setOpenSuggest}
-                  searchMode={searchMode}
-                  setSearchMode={setSearchMode}
-                  jobs={newestJobs?.items}
-                  province={province}
-                  setProvince={setProvince}
-                  setWards={setWards}
-                  wards={wards}
-                  wardsName={wardsName}
-                  setWardsName={setWardsName}
+            <h1 className="text-4xl md:text-5xl lg:text-[56px] font-black text-white leading-[1.25] tracking-tight mb-8 animate-in fade-in slide-in-from-bottom-6 duration-1000 drop-shadow-sm">
+              Tìm tin{' '}
+              <span className="text-amber-400 relative inline-block">
+                dễ dàng
+                <svg
+                  className="absolute -bottom-1 left-0 w-full h-2 text-amber-400/40"
+                  viewBox="0 0 100 20"
+                  preserveAspectRatio="none"
+                >
+                  <path
+                    d="M0,10 Q50,20 100,10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                    fill="transparent"
+                  />
+                </svg>
+              </span>
+              , <br className="hidden md:block" />
+              thông tin{' '}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 to-amber-500">
+                rõ ràng
+              </span>
+              , <br className="hidden md:block" />
+              cơ hội tốt hơn cùng <br />
+              <span className="text-amber-400 inline-block mt-4 text-5xl md:text-6xl lg:text-[72px]">
+                <Typewriter
+                  onInit={(typewriter) => {
+                    typewriter
+                      .typeString('Worklink')
+                      .pauseFor(3000)
+                      .deleteAll()
+                      .start();
+                  }}
+                  options={{ loop: true, autoStart: true }}
                 />
-             </div>
+              </span>
+            </h1>
+
+            <p className="text-lg md:text-xl text-slate-300 font-medium max-w-2xl mx-auto leading-relaxed animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-150">
+              Hơn 10.000+ cơ hội việc làm đang chờ đón bạn. Khám phá ngay các vị
+              trí tốt nhất từ những nhà tuyển dụng uy tín hàng đầu.
+            </p>
+
+            {/* Search Box */}
+            <div className="w-full max-w-4xl mx-auto pt-8 animate-in fade-in zoom-in-95 duration-1000 delay-300">
+              <SearchBarPopover
+                keyword={keyword}
+                setKeyword={setKeyword}
+                open={openSuggest}
+                setOpen={setOpenSuggest}
+                searchMode={searchMode}
+                setSearchMode={setSearchMode}
+                jobs={newestJobs?.items}
+                province={province}
+                setProvince={setProvince}
+                setWards={setWards}
+                wards={wards}
+                wardsName={wardsName}
+                setWardsName={setWardsName}
+              />
+            </div>
           </div>
         </Container>
       </section>
-
-
 
       {/* 3. BOOSTED JOBS SECTION */}
       {(isBoostedLoading || displayedBoostedJobs.length > 0) && (
@@ -757,7 +767,7 @@ export function HomePage() {
               </p>
             </div>
 
-            <div 
+            <div
               className="relative px-1"
               onMouseEnter={() => setIsBoostedHovered(true)}
               onMouseLeave={() => setIsBoostedHovered(false)}
@@ -788,11 +798,13 @@ export function HomePage() {
                             {col.map((job) => (
                               <div
                                 key={`boosted-${job.id}`}
-                                className="transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl rounded-2xl flex-1"
+                                className="flex-1"
                               >
                                 <JobCardHoverPreview
                                   job={job}
-                                  isOpen={activePreviewKey === `boosted-${job.id}`}
+                                  isOpen={
+                                    activePreviewKey === `boosted-${job.id}`
+                                  }
                                   previewKey={`boosted-${job.id}`}
                                   handleMouseEnter={handlePreviewMouseEnter}
                                   handleMouseLeave={handlePreviewMouseLeave}
@@ -858,7 +870,6 @@ export function HomePage() {
               : newestJobs?.items?.slice(0, 6).map((job) => (
                   <div
                     key={`newest-${job.id}`}
-                    className="transform transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl rounded-2xl"
                   >
                     <JobCardHoverPreview
                       job={job}
@@ -888,8 +899,6 @@ export function HomePage() {
 
       {/* 5. TOP EMPLOYERS */}
       <TopEmployers />
-
-
 
       {/* 7. SUPPORT TICKET SECTION */}
       <section className="bg-amber-50 py-20 relative overflow-hidden text-slate-900 border-t border-amber-100">

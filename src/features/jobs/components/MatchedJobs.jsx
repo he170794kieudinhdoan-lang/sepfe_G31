@@ -88,6 +88,7 @@ export const MatchedJobs = () => {
   });
   const [openId, setOpenId] = useState(null);
   const timeoutRef = useRef(null);
+  const [isHovered, setIsHovered] = useState(false);
 
   const handleMouseEnter = (id) => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -128,7 +129,7 @@ export const MatchedJobs = () => {
 
   // Native autoplay for Embla
   useEffect(() => {
-    if (!api) return;
+    if (!api || isHovered) return;
     const autoplay = setInterval(() => {
       if (api.canScrollNext()) {
         api.scrollNext();
@@ -137,7 +138,7 @@ export const MatchedJobs = () => {
       }
     }, 5000);
     return () => clearInterval(autoplay);
-  }, [api]);
+  }, [api, isHovered]);
 
   const matcheItems = Array.isArray(matchedData) ? matchedData : [];
 
@@ -172,6 +173,8 @@ export const MatchedJobs = () => {
             loop: true,
           }}
           className="w-full relative group/carousel"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
           <CarouselContent className="-ml-4 py-4">
             {isLoading

@@ -2715,6 +2715,7 @@ export const EmployerDashboard = () => {
   );
   const createBoostCheckoutMutation = useCreateBoostCheckout();
   const createPostingCheckoutMutation = useCreatePostingCheckout();
+  const [pendingPostingJobId, setPendingPostingJobId] = useState(null);
   const { data: walletPricingRes } = useWalletPricing();
   const { data: boostPackagesRes } = useBoostPackages();
   const walletPricing = walletPricingRes?.data || walletPricingRes || {};
@@ -3093,6 +3094,7 @@ export const EmployerDashboard = () => {
 
   const handleContinuePostingPayment = async (job) => {
     if (!job?.id) return;
+    setPendingPostingJobId(job.id);
     try {
       const checkoutRes = await createPostingCheckoutMutation.mutateAsync({
         jobId: job.id,
@@ -3114,6 +3116,8 @@ export const EmployerDashboard = () => {
       } else {
         toast(normalizedMessage, 'error');
       }
+    } finally {
+      setPendingPostingJobId(null);
     }
   };
 
@@ -3589,29 +3593,41 @@ export const EmployerDashboard = () => {
                   </div>
                   <div className="p-5 flex-1 flex flex-col">
                     <div className="space-y-3 flex-1">
-                      {applicantsList.slice(0, 4).map((app) => (
-                        <div
-                          key={app.id}
-                          className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2"
-                        >
-                          <img
-                            src={
-                              app.user?.avatar ||
-                              `https://ui-avatars.com/api/?name=${encodeURIComponent(app.user?.fullName || 'User')}&background=fef9e6&color=92400e`
-                            }
-                            alt="avatar"
-                            className="w-10 h-10 rounded-full border border-slate-200 object-cover shrink-0"
-                          />
-                          <div className="flex-1 overflow-hidden min-w-0">
-                            <p className="font-medium text-sm text-slate-900 truncate">
-                              {app.user?.fullName || 'Ứng viên'}
-                            </p>
-                            <p className="text-xs text-slate-500 truncate">
-                              {app.job?.title}
-                            </p>
-                          </div>
+                      {applicantsList.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-10 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50 p-4">
+                          <Users className="h-8 w-8 text-slate-400 mb-2" />
+                          <p className="font-semibold text-sm text-slate-800">
+                            Chưa có ứng viên ứng tuyển
+                          </p>
+                          <p className="text-xs text-slate-500 max-w-xs mt-1">
+                            Hồ sơ ứng tuyển mới nhất sẽ xuất hiện ở đây.
+                          </p>
                         </div>
-                      ))}
+                      ) : (
+                        applicantsList.slice(0, 4).map((app) => (
+                          <div
+                            key={app.id}
+                            className="flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50/50 px-3 py-2"
+                          >
+                            <img
+                              src={
+                                app.user?.avatar ||
+                                `https://ui-avatars.com/api/?name=${encodeURIComponent(app.user?.fullName || 'User')}&background=fef9e6&color=92400e`
+                              }
+                              alt="avatar"
+                              className="w-10 h-10 rounded-full border border-slate-200 object-cover shrink-0"
+                            />
+                            <div className="flex-1 overflow-hidden min-w-0">
+                              <p className="font-medium text-sm text-slate-900 truncate">
+                                {app.user?.fullName || 'Ứng viên'}
+                              </p>
+                              <p className="text-xs text-slate-500 truncate">
+                                {app.job?.title}
+                              </p>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                     <Button
                       variant="outline"
@@ -3798,10 +3814,10 @@ export const EmployerDashboard = () => {
                                               handleContinuePostingPayment(job)
                                             }
                                             disabled={
-                                              createPostingCheckoutMutation.isPending
+                                              pendingPostingJobId === job.id
                                             }
                                           >
-                                            {createPostingCheckoutMutation.isPending
+                                            {pendingPostingJobId === job.id
                                               ? 'Đang xử lý...'
                                               : 'Tiếp tục thanh toán'}
                                           </Button>
@@ -3925,7 +3941,7 @@ export const EmployerDashboard = () => {
                                                       );
                                                     }}
                                                     disabled={
-                                                      createPostingCheckoutMutation.isPending
+                                                      pendingPostingJobId === job.id
                                                     }
                                                   >
                                                     <Wallet size={14} /> Tiếp
