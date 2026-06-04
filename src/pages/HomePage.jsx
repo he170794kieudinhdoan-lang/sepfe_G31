@@ -374,13 +374,15 @@ function SearchBarPopover({
   setWards,
   setWardsName,
   wardsName,
-  sectorId,
+  sectorId = '',
   setSectorId,
-  occupationId,
+  occupationId = '',
   setOccupationId,
-  sectorName,
-  occupationName,
+  sectorName = '',
+  occupationName = '',
+  sectors: sectorsProp,
 }) {
+  const [occPopoverOpen, setOccPopoverOpen] = useState(false);
   function normalizeLocationName(name) {
     if (!name) return '';
     return name
@@ -392,7 +394,12 @@ function SearchBarPopover({
   }
   const { data: provincess } = useGetProvinces();
   const { data: wardss } = useGetWards(wards);
-  const { data: sectors = [] } = useGetSectorsWithOccupations();
+  const { data: sectorsQuery } = useGetSectorsWithOccupations();
+  const sectors = useMemo(() => {
+    if (Array.isArray(sectorsProp)) return sectorsProp;
+    if (Array.isArray(sectorsQuery)) return sectorsQuery;
+    return [];
+  }, [sectorsProp, sectorsQuery]);
   const nav = useNavigate();
   const handleSearch = (overrideKeyword) => {
     const finalKeyword =
@@ -509,9 +516,10 @@ function SearchBarPopover({
           className="border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 h-12 text-base flex-1 min-w-0 font-medium placeholder:text-slate-400"
         />
       </div>
-      <Popover>
+      <Popover open={occPopoverOpen} onOpenChange={setOccPopoverOpen}>
         <PopoverTrigger asChild>
           <Button
+            type="button"
             variant="outline"
             title="Chọn ngành nghề / nghề nghiệp"
             size="lg"
@@ -520,11 +528,18 @@ function SearchBarPopover({
             <Briefcase className="h-6 w-6 text-primary" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[520px] p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl">
+        <PopoverContent
+          align="end"
+          side="bottom"
+          sideOffset={8}
+          className="w-[min(520px,calc(100vw-2rem))] p-0 overflow-hidden rounded-2xl border-slate-200 shadow-2xl z-[200]"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <OccupationSectorPickerPanel
             sectors={sectors}
             sectorId={sectorId}
             onSectorChange={(id) => {
+              if (!setSectorId || !setOccupationId) return;
               if (String(sectorId) === String(id)) {
                 setSectorId('');
                 setOccupationId('');
@@ -535,9 +550,11 @@ function SearchBarPopover({
             }}
             occupationId={occupationId}
             onOccupationChange={(id) => {
-              setOccupationId(
-                String(occupationId) === String(id) ? '' : String(id),
-              );
+              if (!setOccupationId) return;
+              const nextId =
+                String(occupationId) === String(id) ? '' : String(id);
+              setOccupationId(nextId);
+              if (nextId) setOccPopoverOpen(false);
             }}
           />
         </PopoverContent>
@@ -830,6 +847,13 @@ export function HomePage() {
                 wards={wards}
                 wardsName={wardsName}
                 setWardsName={setWardsName}
+                sectorId={sectorId}
+                setSectorId={setSectorId}
+                occupationId={occupationId}
+                setOccupationId={setOccupationId}
+                sectorName={sectorName}
+                occupationName={occupationName}
+                sectors={sectorsForSearch}
               />
             </div>
           </div>

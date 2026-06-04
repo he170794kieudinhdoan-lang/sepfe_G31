@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { User, Mail, Phone, FileText } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -8,29 +9,24 @@ import { EmptyState } from '@/shared/components/EmptyState';
 import { Modal } from '@/shared/components/Modal';
 import { useToast } from '@/shared/contexts/ToastContext';
 import {
+  DashboardFilterBar,
+  DashboardFilterRow,
+  DashboardFilterSearch,
+  DashboardFilterSelect,
+  DashboardFilterClearAll,
+  DashboardFilterChip,
+} from '@/shared/components/DashboardFilters';
+import {
   useSupportTickets,
   useUpdateSupportTicket,
 } from '../api/useSupport';
 
 const SUPPORT_STATUS_OPTIONS = [
+  { value: '__all__', label: 'Tất cả trạng thái' },
   { value: 'NEW', label: 'Chưa xử lý' },
   { value: 'IN_PROGRESS', label: 'Đang xử lý' },
   { value: 'WAITING_CUSTOMER', label: 'Đang chờ phản hồi' },
   { value: 'RESOLVED', label: 'Đã hoàn tất' },
-];
-
-const SUPPORT_PRIORITY_OPTIONS = [
-  { value: 'LOW', label: 'Thấp' },
-  { value: 'MEDIUM', label: 'Trung bình' },
-  { value: 'HIGH', label: 'Cao' },
-  { value: 'URGENT', label: 'Khẩn cấp' },
-];
-
-const SUPPORT_CHANNEL_OPTIONS = [
-  { value: 'CHAT', label: 'Chat' },
-  { value: 'EMAIL', label: 'Email' },
-  { value: 'PHONE', label: 'Điện thoại' },
-  { value: 'OTHER', label: 'Khác' },
 ];
 
 const getLabel = (options, value) =>
@@ -43,11 +39,54 @@ const getStatusClassName = (status) => {
   return 'bg-amber-50 text-amber-700 border-amber-200';
 };
 
-const getPriorityClassName = (priority) => {
-  if (priority === 'URGENT') return 'bg-rose-50 text-rose-700 border-rose-200';
-  if (priority === 'HIGH') return 'bg-amber-50 text-amber-700 border-amber-200';
-  return 'bg-slate-50 text-slate-700 border-slate-200';
-};
+function SupportTicketContactCard({ ticket }) {
+  const contact = ticket?.contact?.trim() || '';
+  const isEmail = contact.includes('@');
+
+  return (
+    <div className="rounded-xl border-2 border-primary/25 bg-gradient-to-br from-primary/8 via-white to-amber-50/50 p-4 shadow-sm">
+      <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary mb-3">
+        Thông tin liên hệ
+      </p>
+      <div className="flex items-start gap-3">
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 ring-2 ring-primary/20">
+          <User className="h-6 w-6 text-primary" />
+        </div>
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-lg font-bold text-slate-900 leading-tight">
+            {ticket?.customerName || '—'}
+          </p>
+          {contact ? (
+            <div className="inline-flex max-w-full items-center gap-2 rounded-lg bg-white/90 border border-slate-200/80 px-3 py-2 text-sm font-semibold text-slate-800">
+              {isEmail ? (
+                <Mail className="h-4 w-4 shrink-0 text-primary" />
+              ) : (
+                <Phone className="h-4 w-4 shrink-0 text-primary" />
+              )}
+              {isEmail ? (
+                <a
+                  href={`mailto:${contact}`}
+                  className="break-all hover:text-primary hover:underline"
+                >
+                  {contact}
+                </a>
+              ) : (
+                <a
+                  href={`tel:${contact.replace(/\s/g, '')}`}
+                  className="break-all hover:text-primary hover:underline"
+                >
+                  {contact}
+                </a>
+              )}
+            </div>
+          ) : (
+            <p className="text-sm font-medium text-slate-400">Chưa có thông tin liên hệ</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const formatDateTime = (value) => {
   if (!value) return '—';
@@ -67,8 +106,6 @@ export const SupportTicketBoard = () => {
   const [filters, setFilters] = useState({
     keyword: '',
     status: '',
-    priority: '',
-    channel: '',
     page: 1,
     limit: 10,
   });
@@ -84,13 +121,12 @@ export const SupportTicketBoard = () => {
       limit: filters.limit,
       keyword: filters.keyword,
       status: filters.status,
-      priority: filters.priority,
-      channel: filters.channel,
     }),
     [filters],
   );
 
-  const { data, isLoading, isFetching } = useSupportTickets(queryParams);
+  const { data, isLoading, isFetching, isPlaceholderData } =
+    useSupportTickets(queryParams);
   const updateSupportTicketMutation = useUpdateSupportTicket();
 
   const tickets = data?.items || [];
@@ -101,6 +137,15 @@ export const SupportTicketBoard = () => {
     WAITING_CUSTOMER: 0,
     RESOLVED: 0,
   };
+
+  const hasActiveFilters = Boolean(filters.keyword.trim() || filters.status);
+  const statusFilterLabel = getLabel(
+    SUPPORT_STATUS_OPTIONS,
+    filters.status || '__all__',
+  );
+
+  const showInitialLoading = isLoading && !data;
+  const showTableRefreshing = isFetching && !isLoading && isPlaceholderData;
 
   const openTicket = (ticket) => {
     setSelectedTicket(ticket);
@@ -127,6 +172,15 @@ export const SupportTicketBoard = () => {
     }
   };
 
+  const resetFilters = () => {
+    setFilters({
+      keyword: '',
+      status: '',
+      page: 1,
+      limit: 10,
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-4">
@@ -148,77 +202,62 @@ export const SupportTicketBoard = () => {
         </Card>
       </div>
 
-      <Card className="flex flex-wrap gap-3 p-4">
-        <Input
-          className="max-w-72 rounded-full"
-          placeholder="Tìm theo mã, tên, liên hệ, chủ đề"
-          value={filters.keyword}
-          onChange={(event) =>
-            setFilters({ ...filters, keyword: event.target.value, page: 1 })
-          }
-        />
-        <select
-          className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
-          value={filters.status}
-          onChange={(event) =>
-            setFilters({ ...filters, status: event.target.value, page: 1 })
-          }
-        >
-          <option value="">Trạng thái</option>
-          {SUPPORT_STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
-          value={filters.priority}
-          onChange={(event) =>
-            setFilters({ ...filters, priority: event.target.value, page: 1 })
-          }
-        >
-          <option value="">Mức ưu tiên</option>
-          {SUPPORT_PRIORITY_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <select
-          className="rounded-full border px-4 py-2 text-sm bg-white outline-none"
-          value={filters.channel}
-          onChange={(event) =>
-            setFilters({ ...filters, channel: event.target.value, page: 1 })
-          }
-        >
-          <option value="">Kênh tiếp nhận</option>
-          {SUPPORT_CHANNEL_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <Button
-          variant="outline"
-          className="rounded-full px-6"
-          onClick={() =>
-            setFilters({
-              keyword: '',
-              status: '',
-              priority: '',
-              channel: '',
-              page: 1,
-              limit: 10,
-            })
-          }
-        >
-          Đặt lại
-        </Button>
-      </Card>
+      <DashboardFilterBar>
+        <DashboardFilterRow>
+          <DashboardFilterSearch
+            placeholder="Tìm theo mã, tên, liên hệ, chủ đề"
+            value={filters.keyword}
+            onChange={(event) =>
+              setFilters({ ...filters, keyword: event.target.value, page: 1 })
+            }
+            className="flex-1 min-w-[220px] max-w-md"
+          />
+          <DashboardFilterSelect
+            label="Trạng thái"
+            value={filters.status || '__all__'}
+            onValueChange={(val) =>
+              setFilters({
+                ...filters,
+                status: val === '__all__' ? '' : val,
+                page: 1,
+              })
+            }
+            options={SUPPORT_STATUS_OPTIONS}
+            placeholder="Trạng thái"
+          />
+          <Button
+            variant="outline"
+            className="h-10 rounded-xl shrink-0"
+            onClick={resetFilters}
+            disabled={!hasActiveFilters}
+          >
+            Đặt lại
+          </Button>
+        </DashboardFilterRow>
+        {hasActiveFilters ? (
+          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/80">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">
+              Đang lọc
+            </span>
+            {filters.keyword.trim() ? (
+              <DashboardFilterChip
+                label={`Từ khóa: "${filters.keyword.trim()}"`}
+                onRemove={() => setFilters({ ...filters, keyword: '', page: 1 })}
+              />
+            ) : null}
+            {filters.status ? (
+              <DashboardFilterChip
+                label={`Trạng thái: ${statusFilterLabel}`}
+                onRemove={() => setFilters({ ...filters, status: '', page: 1 })}
+              />
+            ) : null}
+            <DashboardFilterClearAll onClick={resetFilters} />
+          </div>
+        ) : null}
+      </DashboardFilterBar>
 
       <Card className="p-4">
-        {isLoading || isFetching ? (
+        {showInitialLoading ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
             Đang tải dữ liệu yêu cầu...
           </div>
@@ -228,60 +267,70 @@ export const SupportTicketBoard = () => {
             description="Không tìm thấy yêu cầu nào phù hợp với bộ lọc."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-muted-foreground">
-                <tr className="border-b">
-                  <th className="py-2 font-medium">Mã số</th>
-                  <th className="font-medium">Khách hàng</th>
-                  <th className="font-medium">Chủ đề</th>
-                  <th className="font-medium">Kênh</th>
-                  <th className="font-medium">Ưu tiên</th>
-                  <th className="font-medium">Trạng thái</th>
-                  <th className="font-medium">Phụ trách</th>
-                  <th className="font-medium">Tiếp nhận</th>
-                  <th className="font-medium">Hành động</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tickets.map((ticket) => (
-                  <tr key={ticket.id} className="border-b last:border-b-0 hover:bg-slate-50/50">
-                    <td className="py-3 font-semibold text-slate-700">{ticket.ticketCode}</td>
-                    <td>
-                      <div className="font-medium text-slate-800">{ticket.customerName}</div>
-                      <div className="text-xs text-slate-500">{ticket.contact}</div>
-                    </td>
-                    <td className="max-w-[320px]">
-                      <p className="line-clamp-2 text-slate-700">{ticket.subject}</p>
-                    </td>
-                    <td>{getLabel(SUPPORT_CHANNEL_OPTIONS, ticket.channel)}</td>
-                    <td>
-                      <Badge variant="outline" className={getPriorityClassName(ticket.priority)}>
-                        {getLabel(SUPPORT_PRIORITY_OPTIONS, ticket.priority)}
-                      </Badge>
-                    </td>
-                    <td>
-                      <Badge variant="outline" className={getStatusClassName(ticket.status)}>
-                        {getLabel(SUPPORT_STATUS_OPTIONS, ticket.status)}
-                      </Badge>
-                    </td>
-                    <td>{ticket.assigneeName || 'Chưa phân công'}</td>
-                    <td className="text-slate-600">{formatDateTime(ticket.createdAt)}</td>
-                    <td>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="rounded-full"
-                        onClick={() => openTicket(ticket)}
-                      >
-                        Xử lý
-                      </Button>
-                    </td>
+          <>
+            {showTableRefreshing ? (
+              <p className="mb-3 text-xs text-slate-500">Đang cập nhật danh sách...</p>
+            ) : null}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-left text-muted-foreground">
+                  <tr className="border-b">
+                    <th className="py-2 font-medium">Mã số</th>
+                    <th className="font-medium">Khách hàng</th>
+                    <th className="font-medium">Chủ đề</th>
+                    <th className="font-medium">Trạng thái</th>
+                    <th className="font-medium">Tiếp nhận</th>
+                    <th className="font-medium text-right">Hành động</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {tickets.map((ticket) => (
+                    <tr
+                      key={ticket.id}
+                      className="border-b last:border-b-0 hover:bg-slate-50/50"
+                    >
+                      <td className="py-3 font-semibold text-slate-700">
+                        {ticket.ticketCode}
+                      </td>
+                      <td>
+                        <div className="font-medium text-slate-800">
+                          {ticket.customerName}
+                        </div>
+                        <div className="text-xs text-slate-500">{ticket.contact}</div>
+                      </td>
+                      <td className="max-w-[360px]">
+                        <p className="line-clamp-2 text-slate-700">{ticket.subject}</p>
+                      </td>
+                      <td>
+                        <Badge
+                          variant="outline"
+                          className={getStatusClassName(ticket.status)}
+                        >
+                          {getLabel(
+                            SUPPORT_STATUS_OPTIONS.filter((o) => o.value !== '__all__'),
+                            ticket.status,
+                          )}
+                        </Badge>
+                      </td>
+                      <td className="text-slate-600 whitespace-nowrap">
+                        {formatDateTime(ticket.createdAt)}
+                      </td>
+                      <td className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="rounded-full"
+                          onClick={() => openTicket(ticket)}
+                        >
+                          Xử lý
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </Card>
 
@@ -295,16 +344,16 @@ export const SupportTicketBoard = () => {
         confirmDisabled={updateSupportTicketMutation.isPending}
       >
         <div className="space-y-4">
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Khách hàng</p>
-              <p className="font-semibold text-slate-800">{selectedTicket?.customerName}</p>
-              <p className="text-sm text-slate-500">{selectedTicket?.contact}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-xs text-muted-foreground">Chủ đề</p>
-              <p className="text-sm text-slate-700">{selectedTicket?.subject}</p>
-            </div>
+          <SupportTicketContactCard ticket={selectedTicket} />
+
+          <div className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-slate-500 flex items-center gap-1.5">
+              <FileText className="h-3.5 w-3.5" />
+              Chủ đề yêu cầu
+            </p>
+            <p className="mt-1.5 text-sm font-medium text-slate-800">
+              {selectedTicket?.subject || '—'}
+            </p>
           </div>
 
           {selectedTicket?.description ? (
@@ -317,20 +366,18 @@ export const SupportTicketBoard = () => {
           ) : null}
 
           <div className="space-y-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-700">Trạng thái</label>
-              <select
-                className="w-full rounded-xl border px-4 py-2 text-sm bg-white outline-none"
-                value={draft.status}
-                onChange={(event) => setDraft({ ...draft, status: event.target.value })}
-              >
-                {SUPPORT_STATUS_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <label className="text-sm font-medium text-slate-700">Trạng thái</label>
+            <select
+              className="w-full rounded-xl border px-4 py-2 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/25"
+              value={draft.status}
+              onChange={(event) => setDraft({ ...draft, status: event.target.value })}
+            >
+              {SUPPORT_STATUS_OPTIONS.filter((o) => o.value !== '__all__').map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-2">

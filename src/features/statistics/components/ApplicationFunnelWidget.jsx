@@ -394,7 +394,7 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
     if (!jobStatusRes) return [];
     return [
       {
-        name: 'Đang hiển thị',
+        name: 'Hiển thị',
         value: jobStatusRes.published,
         fill: '#3b82f6', // Light Blue as in image
       },

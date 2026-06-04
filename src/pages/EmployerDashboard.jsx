@@ -19,6 +19,17 @@ import {
 import { EmptyState } from '@/shared/components/EmptyState';
 import { AppLoadingScene } from '@/shared/components/AppLoadingScene';
 import { Modal } from '@/shared/components/Modal';
+import {
+  DashboardFilterBar,
+  DashboardFilterRow,
+  DashboardFilterSearch,
+  DashboardFilterSelect,
+  DashboardFilterDateRange,
+  DashboardFilterChip,
+  DashboardFilterClearAll,
+  EMPLOYER_JOB_STATUS_FILTER_OPTIONS,
+  APPLICANT_STATUS_FILTER_OPTIONS,
+} from '@/shared/components/DashboardFilters';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -37,7 +48,6 @@ import {
   Eye,
   Plus,
   Search,
-  Filter,
   Download,
   Building,
   TrendingUp,
@@ -191,7 +201,7 @@ const StatusBadge = ({ status }) => {
   const statusConfig = {
     PUBLISHED: {
       color: 'bg-green-100 text-green-800 border-green-200',
-      label: 'Đang hiển thị',
+      label: 'Hiển thị',
       title: 'Tin tuyển dụng đang được công khai',
     },
     WARNING: {
@@ -1383,44 +1393,40 @@ const JobApplicantsPanel = ({
         {/* Left: Candidate List */}
         <div className="w-[40%] shrink-0 border-r border-slate-100 flex flex-col overflow-hidden bg-slate-50/30">
           <div className="p-3.5 border-b border-slate-100 px-5 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <Input
-                  placeholder="Tìm theo tên..."
+            <DashboardFilterBar className="bg-white border-slate-100">
+              <DashboardFilterRow className="items-end">
+                <DashboardFilterSearch
+                  placeholder="Tìm theo tên ứng viên..."
                   value={searchText}
                   onChange={(e) => {
                     setSearchText(e.target.value);
                     setPage(1);
                   }}
-                  className="pl-9 h-9 text-sm rounded-xl border-slate-200 bg-white focus:bg-white"
+                  className="flex-1 min-w-[200px]"
                 />
-              </div>
-              <select
-                className="rounded-xl border border-slate-200 h-9 px-3 text-sm bg-white outline-none cursor-pointer"
-                value={statusFilter}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value);
-                  setPage(1);
-                }}
-              >
-                <option value="">Cần xử lý</option>
-                <option value="ALL">Tất cả trạng thái</option>
-                <option value="APPLIED">Chờ xử lý</option>
-                <option value="VIEWED">Đã xem</option>
-                <option value="SUITABLE">Phù hợp</option>
-                <option value="UNSUITABLE">Không phù hợp</option>
-              </select>
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-9 rounded-xl gap-2 bg-white border-slate-200 hover:bg-slate-50 text-slate-700"
-                onClick={handleExport}
-                disabled={filteredApplicants.length === 0}
-              >
-                <Download size={14} />
-              </Button>
-            </div>
+                <DashboardFilterSelect
+                  label="Trạng thái"
+                  value={statusFilter === '' ? 'NEEDS_ACTION' : statusFilter || 'NEEDS_ACTION'}
+                  onValueChange={(val) => {
+                    setStatusFilter(val === 'NEEDS_ACTION' ? '' : val);
+                    setPage(1);
+                  }}
+                  options={APPLICANT_STATUS_FILTER_OPTIONS}
+                  placeholder="Trạng thái"
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-10 rounded-xl gap-2 bg-white border-slate-200 hover:bg-slate-50 text-slate-700 shrink-0"
+                  onClick={handleExport}
+                  disabled={filteredApplicants.length === 0}
+                  title="Xuất danh sách"
+                >
+                  <Download size={14} />
+                  Xuất file
+                </Button>
+              </DashboardFilterRow>
+            </DashboardFilterBar>
             <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
                 {`Danh sách (${filteredApplicants.length})`}
@@ -2637,6 +2643,13 @@ export const EmployerDashboard = () => {
   const [jobStatusFilter, setJobStatusFilter] = useState('');
   const [jobDateFrom, setJobDateFrom] = useState('');
   const [jobDateTo, setJobDateTo] = useState('');
+  const hasJobListFilters = Boolean(
+    jobSearchText.trim() || jobStatusFilter || jobDateFrom || jobDateTo,
+  );
+  const jobStatusFilterLabel =
+    EMPLOYER_JOB_STATUS_FILTER_OPTIONS.find(
+      (o) => o.value === (jobStatusFilter || '__all__'),
+    )?.label ?? 'Tất cả trạng thái';
   const [selectedJobIdFilter, setSelectedJobIdFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [applicantsTabPage, setApplicantsTabPage] = useState(1);
@@ -3755,98 +3768,117 @@ export const EmployerDashboard = () => {
                     {/* Tab Inner Header removed to avoid redundancy with main header */}
 
                     <div className="p-4 sm:p-5">
-                      {/* Toolbar */}
-                      <div className="flex flex-col gap-3 mb-4">
-                        <div className="flex flex-col sm:flex-row justify-between gap-3">
-                          <div className="flex flex-col sm:flex-row gap-2 flex-1 flex-wrap">
-                            <div className="relative flex-1 min-w-[180px] max-w-sm">
-                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-                              <Input
-                                placeholder="Tìm theo tiêu đề tin..."
-                                className="pl-9 rounded-lg border-slate-200 bg-white focus-visible:ring-primary/25"
-                                value={jobSearchText}
-                                onChange={(e) => setJobSearchText(e.target.value)}
-                              />
-                            </div>
-                            <select
-                              className="rounded-lg border border-slate-200 h-10 px-3 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/25 text-slate-700 min-w-[160px]"
-                              value={jobStatusFilter}
+                      <DashboardFilterBar className="mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                          <DashboardFilterRow className="flex-1 lg:items-end">
+                            <DashboardFilterSearch
+                              placeholder="Tìm theo tiêu đề tin..."
+                              value={jobSearchText}
                               onChange={(e) => {
-                                setJobStatusFilter(e.target.value);
+                                setJobSearchText(e.target.value);
                                 setJobPage(1);
                               }}
-                            >
-                              <option value="">Tất cả trạng thái</option>
-                              <option value="PUBLISHED">Đang hiển thị</option>
-                              <option value="WARNING">Chờ thanh toán</option>
-                              <option value="EXPIRED">Hết hạn</option>
-                            </select>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="date"
-                                className="rounded-lg border border-slate-200 h-10 px-3 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/25 text-slate-700"
-                                value={jobDateFrom}
-                                max={jobDateTo || undefined}
-                                onChange={(e) => {
-                                  setJobDateFrom(e.target.value);
-                                  setJobPage(1);
-                                }}
-                                title="Từ ngày"
-                              />
-                              <span className="text-slate-400 text-sm shrink-0">—</span>
-                              <input
-                                type="date"
-                                className="rounded-lg border border-slate-200 h-10 px-3 text-sm bg-white outline-none focus:ring-2 focus:ring-primary/25 text-slate-700"
-                                value={jobDateTo}
-                                min={jobDateFrom || undefined}
-                                onChange={(e) => {
-                                  setJobDateTo(e.target.value);
-                                  setJobPage(1);
-                                }}
-                                title="Đến ngày"
-                              />
-                              {(jobDateFrom || jobDateTo) && (
-                                <button
-                                  type="button"
-                                  className="h-10 w-10 flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-400 hover:text-slate-600 transition-colors"
-                                  onClick={() => {
-                                    setJobDateFrom('');
-                                    setJobDateTo('');
-                                    setJobPage(1);
-                                  }}
-                                  title="Xóa bộ lọc ngày"
-                                >
-                                  <X size={14} />
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                          {isApproved && (
+                              className="flex-1 min-w-[200px] max-w-md"
+                            />
+                            <DashboardFilterSelect
+                              label="Trạng thái tin"
+                              value={jobStatusFilter || '__all__'}
+                              onValueChange={(val) => {
+                                setJobStatusFilter(val === '__all__' ? '' : val);
+                                setJobPage(1);
+                              }}
+                              options={EMPLOYER_JOB_STATUS_FILTER_OPTIONS}
+                              placeholder="Trạng thái"
+                            />
+                            <DashboardFilterDateRange
+                              dateFrom={jobDateFrom}
+                              dateTo={jobDateTo}
+                              onDateFromChange={(e) => {
+                                setJobDateFrom(e.target.value);
+                                setJobPage(1);
+                              }}
+                              onDateToChange={(e) => {
+                                setJobDateTo(e.target.value);
+                                setJobPage(1);
+                              }}
+                              onClear={() => {
+                                setJobDateFrom('');
+                                setJobDateTo('');
+                                setJobPage(1);
+                              }}
+                            />
+                          </DashboardFilterRow>
+                          <div className="flex flex-wrap items-center gap-2 shrink-0">
+                            {isApproved && (
+                              <Button
+                                className="rounded-xl gap-2 shadow-sm font-semibold px-5 h-10"
+                                onClick={() => setIsCreateJobOpen(true)}
+                              >
+                                <Plus size={18} /> Tạo tin mới
+                              </Button>
+                            )}
                             <Button
-                              className="rounded-lg gap-2 shadow-sm w-full sm:w-auto font-semibold px-5 shrink-0"
-                              onClick={() => setIsCreateJobOpen(true)}
+                              variant="destructive"
+                              className="rounded-xl gap-2 font-semibold h-10 px-4 disabled:pointer-events-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                              onClick={() =>
+                                setDeleteConfirm({
+                                  id: 'BULK',
+                                  title: `${selectedJobIds.length} tin tuyển dụng đã chọn`,
+                                })
+                              }
+                              disabled={selectedJobIds.length === 0}
                             >
-                              <Plus size={18} /> Tạo tin mới
+                              <Trash2 size={16} />
+                              Xóa {selectedJobIds.length > 0 ? `(${selectedJobIds.length})` : ''}
                             </Button>
-                          )}
-                           <Button
-                            variant="destructive"
-                            className="rounded-lg gap-2 font-semibold shadow-xs transition-all h-10 w-full sm:w-auto px-4 disabled:pointer-events-auto disabled:opacity-50 disabled:cursor-not-allowed"
-                            onClick={() =>
-                              setDeleteConfirm({
-                                id: 'BULK',
-                                title: `${selectedJobIds.length} tin tuyển dụng đã chọn`,
-                              })
-                            }
-                            disabled={selectedJobIds.length === 0}
-                          >
-                            <Trash2 size={16} />
-                            Xóa {selectedJobIds.length > 0 ? `(${selectedJobIds.length})` : ''}
-                          </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                        </div>
-                      </div>
+                        {hasJobListFilters ? (
+                          <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-200/80">
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mr-1">
+                              Đang lọc
+                            </span>
+                            {jobSearchText.trim() ? (
+                              <DashboardFilterChip
+                                label={`Tiêu đề: "${jobSearchText.trim()}"`}
+                                onRemove={() => {
+                                  setJobSearchText('');
+                                  setJobPage(1);
+                                }}
+                              />
+                            ) : null}
+                            {jobStatusFilter ? (
+                              <DashboardFilterChip
+                                label={`Trạng thái: ${jobStatusFilterLabel}`}
+                                onRemove={() => {
+                                  setJobStatusFilter('');
+                                  setJobPage(1);
+                                }}
+                              />
+                            ) : null}
+                            {jobDateFrom || jobDateTo ? (
+                              <DashboardFilterChip
+                                label={`Ngày: ${jobDateFrom || '...'} → ${jobDateTo || '...'}`}
+                                onRemove={() => {
+                                  setJobDateFrom('');
+                                  setJobDateTo('');
+                                  setJobPage(1);
+                                }}
+                              />
+                            ) : null}
+                            <DashboardFilterClearAll
+                              disabled={!hasJobListFilters}
+                              onClick={() => {
+                                setJobSearchText('');
+                                setJobStatusFilter('');
+                                setJobDateFrom('');
+                                setJobDateTo('');
+                                setJobPage(1);
+                              }}
+                            />
+                          </div>
+                        ) : null}
+                      </DashboardFilterBar>
 
                       <div className="overflow-x-auto rounded-lg border border-slate-200">
                         <table className="w-full text-sm text-left min-w-[950px]">

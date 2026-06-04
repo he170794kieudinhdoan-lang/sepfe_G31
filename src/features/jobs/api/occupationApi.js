@@ -1,3 +1,5 @@
+import { apiClient } from '@/shared/api/apiClient';
+
 export const getSectorsWithOccupations = async () => {
   return await apiClient.get('/occupations/grouped-by-sector');
 };
