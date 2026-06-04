@@ -77,7 +77,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useGetMyCompany } from '@/features/companies/api/useGetCompanies';
-import { SuitableCandidatesModal } from '@/features/jobs/components/SuitableCandidatesModal';
+
 import {
   useJobsForEmployer,
   useEmployerApplications,
@@ -2623,7 +2623,7 @@ export const EmployerDashboard = () => {
   const [matchedJobId, setMatchedJobId] = useState(null);
   const [matchedJobTitle, setMatchedJobTitle] = useState('');
   const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
-  const [suitableModal, setSuitableModal] = useState({ open: false, jobId: null, jobTitle: '' });
+
   const [jobOptionsPopoverOpenId, setJobOptionsPopoverOpenId] = useState(null);
   const [campaignDetailOpen, setCampaignDetailOpen] = useState(false);
   const [campaignDetailLoading, setCampaignDetailLoading] = useState(false);
@@ -3786,7 +3786,6 @@ export const EmployerDashboard = () => {
                               className="flex-1 min-w-[200px] max-w-md"
                             />
                             <DashboardFilterSelect
-                              label="Trạng thái tin"
                               value={jobStatusFilter || '__all__'}
                               onValueChange={(val) => {
                                 setJobStatusFilter(val === '__all__' ? '' : val);
@@ -3886,7 +3885,7 @@ export const EmployerDashboard = () => {
                       </DashboardFilterBar>
 
                       <div className="overflow-x-auto rounded-lg border border-slate-200">
-                        <table className="w-full text-sm text-left min-w-[950px]">
+                        <table className="w-full text-sm text-left min-w-[1400px]">
                           <thead className="bg-slate-50/90 text-slate-700 font-semibold border-b border-slate-200">
                             <tr>
                               <th className="py-3.5 px-4 text-center w-12 rounded-tl-lg">
@@ -3905,25 +3904,28 @@ export const EmployerDashboard = () => {
                               <th className="py-3.5 px-4 whitespace-nowrap text-center w-20">
                                 ID
                               </th>
-                              <th className="py-3.5 px-4 whitespace-nowrap">
+                              <th className="py-3.5 px-4 whitespace-nowrap min-w-[240px]">
                                 Tiêu đề công việc
                               </th>
-                              <th className="px-4 whitespace-nowrap text-center">
+                              <th className="px-4 whitespace-nowrap text-center w-44 min-w-[160px]">
                                 Trạng thái
                               </th>
-                              <th className="px-4 whitespace-nowrap text-center">
+                              <th className="px-4 whitespace-nowrap text-center w-36 min-w-[130px]">
                                 Số lượng tuyển
                               </th>
-                              <th className="px-4 whitespace-nowrap text-center">
+                              <th className="px-4 whitespace-nowrap text-center w-36 min-w-[140px]">
+                                Ứng tuyển
+                              </th>
+                              <th className="px-4 whitespace-nowrap text-center w-36 min-w-[140px]">
                                 Phù hợp
                               </th>
-                              <th className="px-4 whitespace-nowrap text-center">
+                              <th className="px-4 whitespace-nowrap text-center w-40 min-w-[140px]">
                                 Ngày đăng
                               </th>
-                              <th className="px-4 whitespace-nowrap text-center">
+                              <th className="px-4 whitespace-nowrap text-center w-56 min-w-[200px]">
                                 Nổi bật
                               </th>
-                              <th className="px-4 rounded-tr-lg whitespace-nowrap text-center">
+                              <th className="px-4 rounded-tr-lg whitespace-nowrap text-center w-24 min-w-[80px] sticky right-0 bg-slate-50/95 z-10 shadow-[-6px_0_6px_-4px_rgba(0,0,0,0.08)]">
                                 Tùy chọn
                               </th>
                             </tr>
@@ -3932,7 +3934,7 @@ export const EmployerDashboard = () => {
                             {loadingJobs ? (
                               <tr>
                                 <td
-                                  colSpan="9"
+                                  colSpan="10"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <Loader2 className="animate-spin mx-auto text-primary" />
@@ -3946,7 +3948,7 @@ export const EmployerDashboard = () => {
                               }).length === 0 ? (
                               <tr>
                                 <td
-                                  colSpan="9"
+                                  colSpan="10"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <div className="flex flex-col items-center gap-2">
@@ -3972,14 +3974,10 @@ export const EmployerDashboard = () => {
                                     !Number.isNaN(boostExpiredAt.getTime()) &&
                                     boostExpiredAt > new Date();
 
-                                  const applicantsCount =
-                                    job?.suitableCount ??
-                                    0;
-
                                   return (
                                     <tr
                                       key={job.id}
-                                      className={`border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors ${
+                                      className={`group border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors ${
                                         selectedJobIds.includes(job.id)
                                           ? 'bg-primary/5 hover:bg-primary/5'
                                           : ''
@@ -4011,20 +4009,11 @@ export const EmployerDashboard = () => {
                                       <td className="px-4 font-medium text-slate-700 text-center">
                                         {job.quantity}
                                       </td>
-                                      <td className="px-4 text-center">
-                                        {applicantsCount > 0 ? (
-                                          <span
-                                            role="button"
-                                            onClick={() => setSuitableModal({ open: true, jobId: job.id, jobTitle: job.title })}
-                                            className="text-slate-700 hover:text-primary hover:underline font-semibold cursor-pointer text-sm"
-                                          >
-                                            {applicantsCount} người
-                                          </span>
-                                        ) : (
-                                          <span className="text-slate-400 font-medium text-sm">
-                                            0
-                                          </span>
-                                        )}
+                                      <td className="px-4 font-medium text-slate-700 text-center text-sm">
+                                        {job.applicantsCount ?? 0} người
+                                      </td>
+                                      <td className="px-4 font-medium text-slate-700 text-center text-sm">
+                                        {job.suitableCount ?? 0} người
                                       </td>
                                       <td className="px-4 text-center">
                                         <span className="flex items-center justify-center gap-2 text-slate-600">
@@ -4090,7 +4079,11 @@ export const EmployerDashboard = () => {
                                         )}
                                       </td>
                                       <td
-                                        className="px-4 text-center"
+                                        className={`px-4 text-center sticky right-0 z-10 shadow-[-6px_0_6px_-4px_rgba(0,0,0,0.08)] transition-colors ${
+                                          selectedJobIds.includes(job.id)
+                                            ? 'bg-[#fdf9ee] group-hover:bg-[#faf3e3]'
+                                            : 'bg-white group-hover:bg-slate-50'
+                                        }`}
                                         onClick={(e) => e.stopPropagation()}
                                       >
                                         <div className="flex justify-center w-full">
@@ -5251,12 +5244,7 @@ export const EmployerDashboard = () => {
           </div>
         </div>
       )}
-      <SuitableCandidatesModal
-        isOpen={suitableModal.open}
-        onClose={() => setSuitableModal({ open: false, jobId: null, jobTitle: '' })}
-        jobId={suitableModal.jobId}
-        jobTitle={suitableModal.jobTitle}
-      />
+
     </DashboardLayout>
   );
 };

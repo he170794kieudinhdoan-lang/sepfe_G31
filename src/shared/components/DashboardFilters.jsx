@@ -58,7 +58,7 @@ export function DashboardFilterSearch({
   className,
 }) {
   return (
-    <DashboardFilterField label="Tìm kiếm" icon={Search} className={cn('sm:min-w-[200px] sm:max-w-xs flex-1', className)}>
+    <DashboardFilterField  icon={Search} className={cn('sm:min-w-[200px] sm:max-w-xs flex-1', className)}>
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
         <Input
@@ -116,7 +116,6 @@ export function DashboardFilterDateRange({
 
   return (
     <DashboardFilterField
-      label="Ngày đăng"
       icon={Calendar}
       className={cn('sm:min-w-0', fieldClassName)}
     >
