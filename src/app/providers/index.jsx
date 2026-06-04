@@ -2,7 +2,7 @@ import { lazy, Suspense } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ToastProvider } from '@/shared/contexts/ToastContext';
 import { AuthProvider } from '@/shared/contexts/AuthContext';
-import { LogoOrbitLoader } from '@/shared/components/LogoOrbitLoader';
+import { AppLoadingScene } from '@/shared/components/AppLoadingScene';
 
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,11 +32,7 @@ const ReactQueryDevtools = import.meta.env.DEV
 export const AppProvider = ({ children }) => {
   return (
     <Suspense
-      fallback={
-        <div className="flex h-screen w-screen items-center justify-center bg-transparent">
-          <LogoOrbitLoader size={80} />
-        </div>
-      }
+      fallback={<AppLoadingScene bgClassName="bg-white" />}
     >
       <QueryClientProvider client={queryClient}>
         <ToastProvider>

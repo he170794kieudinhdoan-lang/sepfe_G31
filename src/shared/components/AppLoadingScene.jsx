@@ -9,14 +9,14 @@ import { LogoOrbitLoader } from '@/shared/components/LogoOrbitLoader';
 export const AppLoadingScene = ({
   title: _title,
   subtitle: _subtitle,
-  compact = false,
+  bgClassName = 'bg-slate-900/20 backdrop-blur-sm',
   className = '',
 }) => {
   const content = (
     <div
       className={cn(
         'fixed inset-0 z-[100] flex items-center justify-center p-4',
-        'bg-slate-900/20 backdrop-blur-sm',
+        bgClassName,
         'pointer-events-auto',
         className,
       )}
@@ -24,7 +24,7 @@ export const AppLoadingScene = ({
       aria-live="polite"
     >
       <span className="sr-only">Đang tải</span>
-      <LogoOrbitLoader size={compact ? 40 : 72} className="shrink-0" />
+      <LogoOrbitLoader size={64} className="shrink-0" />
     </div>
   );
 

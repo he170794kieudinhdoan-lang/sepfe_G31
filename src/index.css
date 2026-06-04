@@ -218,7 +218,8 @@
 } */
 
 *::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
+  height: 6px;
 }
 
 *::-webkit-scrollbar-track {
@@ -232,6 +233,10 @@
 
 *::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .company-editor-shell {

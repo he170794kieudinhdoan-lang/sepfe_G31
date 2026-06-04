@@ -1,13 +1,9 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { getUserRole } from '@/shared/utils/userRole';
-import { LogoOrbitLoader } from '@/shared/components/LogoOrbitLoader';
+import { AppLoadingScene } from '@/shared/components/AppLoadingScene';
 
-const Loading = () => (
-  <div className="min-h-[60vh] flex items-center justify-center bg-transparent">
-    <LogoOrbitLoader size={72} />
-  </div>
-);
+const Loading = () => <AppLoadingScene bgClassName="bg-white" />;
 
 /**
  * Chỉ render children khi đã đăng nhập và role nằm trong danh sách cho phép.

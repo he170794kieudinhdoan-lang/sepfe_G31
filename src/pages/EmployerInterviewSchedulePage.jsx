@@ -927,7 +927,7 @@ export const EmployerInterviewSchedulePage = () => {
       topbarBell={<NotificationBellPopover />}
     >
       {!hasCompany ? (
-        <Card className="rounded-2xl border border-slate-200 bg-white p-8 text-center">
+        <div className="rounded-xl border border-slate-200 bg-white p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10">
             <Building2 className="h-7 w-7 text-primary" />
           </div>
@@ -941,11 +941,11 @@ export const EmployerInterviewSchedulePage = () => {
           <Button className="mt-5" onClick={() => navigate('/employer')}>
             Về trang tuyển dụng
           </Button>
-        </Card>
+        </div>
       ) : (
         <div className="space-y-6">
           {companyStatus !== 'APPROVED' && (
-            <Card className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
               <div className="flex items-start gap-3 text-amber-800">
                 <AlertCircle className="mt-0.5 h-5 w-5" />
                 <div>
@@ -958,10 +958,10 @@ export const EmployerInterviewSchedulePage = () => {
                   </p>
                 </div>
               </div>
-            </Card>
+            </div>
           )}
 
-          <Card className="rounded-2xl border border-slate-200 bg-white p-5 min-h-[600px]">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 min-h-[600px]">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
               {!detailData && (
               <div className="flex space-x-1 rounded-xl bg-slate-100 p-1">
@@ -1012,12 +1012,12 @@ export const EmployerInterviewSchedulePage = () => {
               {detailLoading || detailError || detailData ? (
                 <div
                   ref={slotApplicantPanelRef}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:p-5"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-4 sm:p-5"
                 >
                   <div className="mb-4">
                     <Button
                       variant="ghost"
-                      className="rounded-xl px-2 text-slate-700 hover:bg-white"
+                      className="rounded-lg px-3 text-slate-700 hover:bg-white"
                       onClick={() => {
                         setDetailData(null);
                         setDetailError('');
@@ -1027,7 +1027,7 @@ export const EmployerInterviewSchedulePage = () => {
                       ← Quay lại
                     </Button>
                   </div>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+                  <div className="mt-2">
                     <h3 className="text-lg font-semibold text-slate-900">
                       Ứng viên theo từng ca phỏng vấn
                     </h3>
@@ -1041,7 +1041,7 @@ export const EmployerInterviewSchedulePage = () => {
                           <Loader2 className="h-7 w-7 animate-spin text-primary" />
                         </div>
                       ) : detailError ? (
-                        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                        <div className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
                           {detailError}
                         </div>
                       ) : !detailData ? null : (
@@ -1049,11 +1049,11 @@ export const EmployerInterviewSchedulePage = () => {
 
 
                           {(detailData.slots || []).length === 0 ? (
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+                            <div className="rounded-lg border border-slate-200 bg-slate-100 p-4 text-sm text-slate-600">
                               Chiến dịch chưa có ca phỏng vấn.
                             </div>
                           ) : (
-                            <Card className="rounded-2xl border border-slate-200 p-4">
+                            <div className="mt-4 border-t border-slate-200 pt-4">
                               {!selectedDetailSlot ? (
                                 <p className="text-sm text-slate-500">
                                   Không tìm thấy thông tin ca đã chọn.
@@ -1077,7 +1077,7 @@ export const EmployerInterviewSchedulePage = () => {
                                     </div>
                                     <Badge
                                       variant="outline"
-                                      className="border-slate-300 text-slate-700"
+                                      className="border-slate-300 text-slate-700 bg-white"
                                     >
                                       {selectedDetailSlotInvitations.length} ứng
                                       viên
@@ -1094,7 +1094,7 @@ export const EmployerInterviewSchedulePage = () => {
                                     </p>
                                   ) : null}
 
-                                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                                  <div className="mt-6 border-t border-slate-200 pt-4">
                                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
                                       <div>
                                         <p className="text-sm font-semibold text-slate-800">
@@ -1119,11 +1119,11 @@ export const EmployerInterviewSchedulePage = () => {
                                     </div>
 
                                     {selectedDetailSlotInvitations.length === 0 ? (
-                                      <p className="mt-2 text-sm text-slate-500 text-center py-4 bg-white rounded-lg border border-slate-200 border-dashed">
+                                      <p className="mt-2 text-sm text-slate-500 text-center py-6 bg-white rounded-lg border border-slate-200 border-dashed">
                                         Chưa có ứng viên chọn ca này.
                                       </p>
                                     ) : paginatedDetailSlotInvitations.length === 0 ? (
-                                      <p className="mt-2 text-sm text-slate-500 text-center py-4 bg-white rounded-lg border border-slate-200 border-dashed">
+                                      <p className="mt-2 text-sm text-slate-500 text-center py-6 bg-white rounded-lg border border-slate-200 border-dashed">
                                         Không tìm thấy ứng viên phù hợp.
                                       </p>
                                     ) : (
@@ -1133,7 +1133,7 @@ export const EmployerInterviewSchedulePage = () => {
                                             (invitation) => (
                                               <div
                                                 key={invitation.id}
-                                                className="rounded-lg border border-slate-200 bg-white px-3 py-2 flex items-center justify-between cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
+                                                className="rounded-lg border border-slate-200 bg-white px-4 py-3 flex items-center justify-between cursor-pointer hover:border-primary/45 hover:bg-primary/5 transition-all shadow-sm"
                                                 onClick={() => setSelectedWorkerProfile({ worker: invitation?.worker, invitation })}
                                               >
                                                 <div>
@@ -1201,7 +1201,7 @@ export const EmployerInterviewSchedulePage = () => {
                                   </div>
                                 </div>
                               )}
-                            </Card>
+                            </div>
                           )}
                         </div>
                       )}
@@ -1240,7 +1240,7 @@ export const EmployerInterviewSchedulePage = () => {
                             onClick={() =>
                               setDisplayedSelectedJobKey(jobGroup.key)
                             }
-                            className={`w-full rounded-xl border px-3 py-3 text-left transition ${isActive
+                            className={`w-full rounded-lg border px-3 py-3 text-left transition ${isActive
                                 ? 'border-primary bg-primary/10'
                                 : 'border-slate-200 bg-slate-50 hover:bg-slate-100'
                               }`}
@@ -1258,7 +1258,7 @@ export const EmployerInterviewSchedulePage = () => {
                   <div className="space-y-4 min-h-[600px]">
                     {!displayedSelectedJob ? null : (
                       <>
-                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 rounded-xl border border-slate-150 bg-white p-5 shadow-sm">
                           <div className="flex-1 min-w-0">
                             <h3 className="text-lg font-bold text-slate-900 break-words">{displayedSelectedJob.jobTitle}</h3>
                             <p className="mt-1 text-sm text-slate-500">Quản lý lịch phỏng vấn chung cho tin tuyển dụng này</p>
@@ -1266,7 +1266,7 @@ export const EmployerInterviewSchedulePage = () => {
                           <div className="flex flex-wrap items-center gap-2 shrink-0">
                             <Button
                               variant="outline"
-                              className="rounded-xl border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
+                              className="rounded-lg border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800"
                               onClick={() => {
                                 navigate(`/employer/interviews/candidates/${displayedSelectedJob.jobId}`, {
                                   state: {
@@ -1281,7 +1281,7 @@ export const EmployerInterviewSchedulePage = () => {
                             {displayedSelectedJob.campaigns[0] && (
                               <Button
                                 variant="outline"
-                                className="rounded-xl border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
+                                className="rounded-lg border-sky-200 bg-sky-50 text-sky-700 hover:bg-sky-100 hover:text-sky-800"
                                 onClick={() => handleEditClick(displayedSelectedJob.campaigns[0]?.id)}
                               >
                                 Sửa lịch phỏng vấn
@@ -1296,7 +1296,7 @@ export const EmployerInterviewSchedulePage = () => {
                           return (
                             <Card
                               key={`${slot.campaignId}-${slot.id}`}
-                              className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                              className="rounded-xl border border-slate-150 bg-white p-5 shadow-sm"
                             >
                               <div className="flex flex-wrap items-start justify-between gap-3">
                                 <div>
@@ -1330,7 +1330,7 @@ export const EmployerInterviewSchedulePage = () => {
                                 <div className="mt-4 flex flex-wrap gap-2">
                                   <Button
                                     variant="outline"
-                                    className="rounded-xl"
+                                    className="rounded-lg"
                                     onClick={() =>
                                       openDetail(slot.campaignId, slot.id)
                                     }
@@ -1348,7 +1348,7 @@ export const EmployerInterviewSchedulePage = () => {
                 </div>
               )}
             </div>
-          </Card>
+          </div>
         </div>
       )}
 
