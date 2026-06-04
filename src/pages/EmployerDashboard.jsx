@@ -540,8 +540,11 @@ const JobApplicantsPanel = ({
   const applicantsList = applicationsResult?.data || [];
 
   const filteredApplicants = applicantsList.filter((a) => {
-    if (!['APPLIED', 'VIEWED'].includes(a.status)) return false;
-    if (statusFilter && a.status !== statusFilter) return false;
+    if (statusFilter === '') {
+      if (!['APPLIED', 'VIEWED'].includes(a.status)) return false;
+    } else if (statusFilter !== 'ALL') {
+      if (a.status !== statusFilter) return false;
+    }
     if (
       searchText &&
       !(a.user?.fullName || '').toLowerCase().includes(searchText.toLowerCase())
@@ -1394,16 +1397,19 @@ const JobApplicantsPanel = ({
                 />
               </div>
               <select
-                className="rounded-xl border border-slate-200 h-9 px-3 text-sm bg-white outline-none"
+                className="rounded-xl border border-slate-200 h-9 px-3 text-sm bg-white outline-none cursor-pointer"
                 value={statusFilter}
                 onChange={(e) => {
                   setStatusFilter(e.target.value);
                   setPage(1);
                 }}
               >
-                <option value="">Tất cả TT</option>
+                <option value="">Cần xử lý</option>
+                <option value="ALL">Tất cả trạng thái</option>
                 <option value="APPLIED">Chờ xử lý</option>
                 <option value="VIEWED">Đã xem</option>
+                <option value="SUITABLE">Phù hợp</option>
+                <option value="UNSUITABLE">Không phù hợp</option>
               </select>
               <Button
                 variant="outline"
@@ -2714,6 +2720,31 @@ export const EmployerDashboard = () => {
   const createBoostCheckoutMutation = useCreateBoostCheckout();
   const createPostingCheckoutMutation = useCreatePostingCheckout();
   const [pendingPostingJobId, setPendingPostingJobId] = useState(null);
+  const [selectedJobIds, setSelectedJobIds] = useState([]);
+
+  const handleSelectAllJobs = (e) => {
+    if (e.target.checked) {
+      const currentPageJobIds = jobs.map((job) => job.id);
+      setSelectedJobIds((prev) => {
+        const union = new Set([...prev, ...currentPageJobIds]);
+        return Array.from(union);
+      });
+    } else {
+      const currentPageJobIds = jobs.map((job) => job.id);
+      setSelectedJobIds((prev) =>
+        prev.filter((id) => !currentPageJobIds.includes(id)),
+      );
+    }
+  };
+
+  const handleSelectJob = (jobId) => {
+    setSelectedJobIds((prev) =>
+      prev.includes(jobId)
+        ? prev.filter((id) => id !== jobId)
+        : [...prev, jobId],
+    );
+  };
+
   const { data: walletPricingRes } = useWalletPricing();
   const { data: boostPackagesRes } = useBoostPackages();
   const walletPricing = walletPricingRes?.data || walletPricingRes || {};
@@ -3020,21 +3051,64 @@ export const EmployerDashboard = () => {
     }
   }, [company, loadingCompany]);
 
-  const handleDeleteJob = () => {
+  const handleDeleteJob = async () => {
     if (!deleteConfirm || !company?.id) return;
-    deleteJob(
-      { companyId: company.id, jobId: deleteConfirm.id },
-      {
-        onSuccess: () => {
-          toast('Xóa tin tuyển dụng thành công', 'success');
-          setDeleteConfirm(null);
+
+    if (deleteConfirm.id === 'BULK') {
+      if (selectedJobIds.length === 0) return;
+      const idsToDelete = [...selectedJobIds];
+      setDeleteConfirm(null);
+
+      const deletePromises = idsToDelete.map((id) => {
+        return new Promise((resolve) => {
+          deleteJob(
+            { companyId: company.id, jobId: id },
+            {
+              onSuccess: () => resolve(true),
+              onError: () => resolve(false),
+            },
+          );
+        });
+      });
+
+      const results = await Promise.all(deletePromises);
+      const successCount = results.filter(Boolean).length;
+      const failCount = results.length - successCount;
+
+      // Ép buộc React Query refetch danh sách mới nhất sau khi tất cả các job đã được xóa ở backend
+      queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
+
+      if (successCount > 0) {
+        toast(`Đã xóa thành công ${successCount} tin tuyển dụng.`, 'success');
+      }
+      if (failCount > 0) {
+        toast(`Xóa thất bại ${failCount} tin tuyển dụng.`, 'error');
+      }
+      setSelectedJobIds([]);
+    } else {
+      deleteJob(
+        { companyId: company.id, jobId: deleteConfirm.id },
+        {
+          onSuccess: () => {
+            toast('Xóa tin tuyển dụng thành công', 'success');
+            setDeleteConfirm(null);
+            setSelectedJobIds((prev) =>
+              prev.filter((id) => id !== deleteConfirm.id),
+            );
+            // Ép buộc refetch lại danh sách
+            queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
+          },
+          onError: (error) => {
+            const message =
+              error?.response?.data?.message || 'Xóa tin thất bại';
+            toast(
+              Array.isArray(message) ? message.join(', ') : message,
+              'error',
+            );
+          },
         },
-        onError: (error) => {
-          const message = error?.response?.data?.message || 'Xóa tin thất bại';
-          toast(Array.isArray(message) ? message.join(', ') : message, 'error');
-        },
-      },
-    );
+      );
+    }
   };
 
   const handleBoostCheckout = async () => {
@@ -3058,7 +3132,7 @@ export const EmployerDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
       queryClient.invalidateQueries({ queryKey: ['boosted-jobs'] });
       toast(
-        `Đẩy tin nổi bật thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} điểm.`,
+        `Đẩy tin thành công. Đã trừ ${Number(checkout?.pointCost || 0).toLocaleString('vi-VN')} điểm.`,
         'success',
       );
     } catch (error) {
@@ -3439,11 +3513,13 @@ export const EmployerDashboard = () => {
                   : buildKpiItems(overview).map((item, idx) => {
                     const isPositive = item.change > 0;
                     const isNegative = item.change < 0;
-                    const trendColor = isPositive
-                      ? 'text-emerald-600'
-                      : isNegative
-                        ? 'text-rose-600'
-                        : 'text-slate-500';
+                    const trendColor = item.isCountTrend
+                      ? 'text-slate-500'
+                      : isPositive
+                        ? 'text-emerald-600'
+                        : isNegative
+                          ? 'text-rose-600'
+                          : 'text-slate-500';
 
                     return (
                       <Card
@@ -3462,17 +3538,17 @@ export const EmployerDashboard = () => {
                             <div
                               className={`mt-4 flex items-center gap-1.5 text-[13px] font-bold ${trendColor}`}
                             >
-                              {isPositive ? (
+                              {item.isCountTrend ? (
+                                <span className="flex items-center gap-0.5 font-medium">
+                                  {item.change > 0 ? `+${item.change}` : item.change} tin mới tuần này
+                                </span>
+                              ) : isPositive ? (
                                 <span className="flex items-center gap-0.5">
-                                  ▲{' '}
-                                  {item.isCountTrend
-                                    ? `${item.change} tin mới tuần này`
-                                    : `${Math.abs(item.change)}% so với tháng trước`}
+                                  ▲ {Math.abs(item.change)}% so với tháng trước
                                 </span>
                               ) : isNegative ? (
                                 <span className="flex items-center gap-0.5">
-                                  ▼ {Math.abs(item.change)}% so với tháng
-                                  trước
+                                  ▼ {Math.abs(item.change)}% so với tháng trước
                                 </span>
                               ) : (
                                 <span className="text-slate-400">
@@ -3753,21 +3829,56 @@ export const EmployerDashboard = () => {
                               <Plus size={18} /> Tạo tin mới
                             </Button>
                           )}
+                           <Button
+                            variant="destructive"
+                            className="rounded-lg gap-2 font-semibold shadow-xs transition-all h-10 w-full sm:w-auto px-4 disabled:pointer-events-auto disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() =>
+                              setDeleteConfirm({
+                                id: 'BULK',
+                                title: `${selectedJobIds.length} tin tuyển dụng đã chọn`,
+                              })
+                            }
+                            disabled={selectedJobIds.length === 0}
+                          >
+                            <Trash2 size={16} />
+                            Xóa {selectedJobIds.length > 0 ? `(${selectedJobIds.length})` : ''}
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2.5 w-full sm:w-auto">
                         </div>
                       </div>
 
                       <div className="overflow-x-auto rounded-lg border border-slate-200">
-                        <table className="w-full text-sm text-left">
+                        <table className="w-full text-sm text-left min-w-[950px]">
                           <thead className="bg-slate-50/90 text-slate-700 font-semibold border-b border-slate-200">
                             <tr>
-                              <th className="py-3.5 px-4 whitespace-nowrap rounded-tl-lg">
+                              <th className="py-3.5 px-4 text-center w-12 rounded-tl-lg">
+                                <input
+                                  type="checkbox"
+                                  className="rounded border-slate-350 text-primary focus:ring-primary w-4.5 h-4.5 cursor-pointer"
+                                  checked={
+                                    jobs.length > 0 &&
+                                    jobs.every((job) =>
+                                      selectedJobIds.includes(job.id),
+                                    )
+                                  }
+                                  onChange={handleSelectAllJobs}
+                                />
+                              </th>
+                              <th className="py-3.5 px-4 whitespace-nowrap text-center w-20">
+                                ID
+                              </th>
+                              <th className="py-3.5 px-4 whitespace-nowrap">
                                 Tiêu đề công việc
                               </th>
                               <th className="px-4 whitespace-nowrap text-center">
                                 Trạng thái
                               </th>
                               <th className="px-4 whitespace-nowrap text-center">
-                                Số lượng
+                                Số lượng tuyển
+                              </th>
+                              <th className="px-4 whitespace-nowrap text-center">
+                                Đã ứng tuyển
                               </th>
                               <th className="px-4 whitespace-nowrap text-center">
                                 Ngày đăng
@@ -3784,7 +3895,7 @@ export const EmployerDashboard = () => {
                             {loadingJobs ? (
                               <tr>
                                 <td
-                                  colSpan="6"
+                                  colSpan="9"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <Loader2 className="animate-spin mx-auto text-primary" />
@@ -3798,7 +3909,7 @@ export const EmployerDashboard = () => {
                               }).length === 0 ? (
                               <tr>
                                 <td
-                                  colSpan="6"
+                                  colSpan="9"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <div className="flex flex-col items-center gap-2">
@@ -3824,11 +3935,35 @@ export const EmployerDashboard = () => {
                                     !Number.isNaN(boostExpiredAt.getTime()) &&
                                     boostExpiredAt > new Date();
 
+                                  const applicantsCount =
+                                    job?._count?.applications ??
+                                    job?.applications?.length ??
+                                    0;
+
                                   return (
                                     <tr
                                       key={job.id}
-                                      className="border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors"
+                                      className={`border-b border-slate-50 last:border-b-0 hover:bg-slate-50/50 transition-colors ${
+                                        selectedJobIds.includes(job.id)
+                                          ? 'bg-primary/5 hover:bg-primary/5'
+                                          : ''
+                                      }`}
                                     >
+                                      <td className="py-4 px-4 text-center">
+                                        <input
+                                          type="checkbox"
+                                          className="rounded border-slate-300 text-primary focus:ring-primary w-4.5 h-4.5 cursor-pointer"
+                                          checked={selectedJobIds.includes(
+                                            job.id,
+                                          )}
+                                          onChange={() =>
+                                            handleSelectJob(job.id)
+                                          }
+                                        />
+                                      </td>
+                                      <td className="py-4 px-4 text-center font-mono text-xs text-slate-500">
+                                        #{job.id}
+                                      </td>
                                       <td className="py-4 px-4">
                                         <p className="font-semibold text-slate-800">
                                           {job.title}
@@ -3839,6 +3974,23 @@ export const EmployerDashboard = () => {
                                       </td>
                                       <td className="px-4 font-medium text-slate-700 text-center">
                                         {job.quantity}
+                                      </td>
+                                      <td className="px-4 text-center">
+                                        {applicantsCount > 0 ? (
+                                          <span
+                                            role="button"
+                                            onClick={() =>
+                                              setApplicantsModalJobId(job.id)
+                                            }
+                                            className="text-slate-700 hover:text-primary hover:underline font-semibold cursor-pointer text-sm"
+                                          >
+                                            {applicantsCount} người
+                                          </span>
+                                        ) : (
+                                          <span className="text-slate-400 font-medium text-sm">
+                                            0
+                                          </span>
+                                        )}
                                       </td>
                                       <td className="px-4 text-center">
                                         <span className="flex items-center justify-center gap-2 text-slate-600">
@@ -4037,19 +4189,7 @@ export const EmployerDashboard = () => {
                                                   </Button>
                                                 )}
 
-                                                <Button
-                                                  variant="ghost"
-                                                  size="sm"
-                                                  className="justify-start gap-2 hover:bg-red-50 hover:text-red-600 rounded-lg font-medium h-9 text-slate-700"
-                                                  onClick={() => {
-                                                    setJobOptionsPopoverOpenId(
-                                                      null,
-                                                    );
-                                                    setDeleteConfirm(job);
-                                                  }}
-                                                >
-                                                  <Trash2 size={14} /> Xóa tin
-                                                </Button>
+
                                               </div>
                                             </PopoverContent>
                                           </Popover>
@@ -4333,7 +4473,11 @@ export const EmployerDashboard = () => {
       <Modal
         open={!!deleteConfirm}
         title="Xóa tin tuyển dụng"
-        description="Bạn có chắc chắn muốn xóa tin này không? Dữ liệu không thể khôi phục."
+        description={
+          deleteConfirm?.id === 'BULK'
+            ? 'Bạn có chắc chắn muốn xóa các tin tuyển dụng đã chọn không? Dữ liệu không thể khôi phục.'
+            : 'Bạn có chắc chắn muốn xóa tin này không? Dữ liệu không thể khôi phục.'
+        }
         onClose={() => setDeleteConfirm(null)}
         onConfirm={handleDeleteJob}
         confirmLabel="Vâng, Xóa ngay"
