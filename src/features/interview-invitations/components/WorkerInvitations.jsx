@@ -307,9 +307,17 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
 
               const isSlotLess = (invitation.campaign.slots || []).length === 0
 
+              const allSlotsPast =
+                !isSlotLess &&
+                (invitation.campaign.slots || []).length > 0 &&
+                (invitation.campaign.slots || []).every(
+                  (slot) => new Date(slot.startAt) <= new Date(),
+                )
+
               const canChooseOrChangeSlot =
                 (invitation.status === 'PENDING' || invitation.status === 'ACCEPTED' || invitation.status === 'REJECTED') &&
-                !isRescheduleExpired
+                !isRescheduleExpired &&
+                !allSlotsPast
 
               const isExpanded = expandedId === invitation.id
 
@@ -528,6 +536,7 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                           )}
                           <div className="grid gap-3">
                             {(invitation.campaign.slots || []).map((slot) => {
+                              const isPast = new Date(slot.startAt) <= new Date()
                               const remainingSeats =
                                 slot.remainingSeats ??
                                 Math.max(0, slot.capacity - (slot.bookedCount || 0))
@@ -535,6 +544,7 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                               const isFull = remainingSeats <= 0 && !isCurrentSelected
                               const slotLoading = isSlotBusy(invitation.id, slot.id)
                               const isDisabled =
+                                isPast ||
                                 isFull ||
                                 isInvitationBusy(invitation.id) ||
                                 !canChooseOrChangeSlot
@@ -545,32 +555,36 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                                   type="button"
                                   disabled={isDisabled}
                                   onClick={() => {
-                                    if (canChooseOrChangeSlot) {
+                                    if (canChooseOrChangeSlot && !isPast) {
                                       handleSlotClick(invitation.id, slot.id, isCurrentSelected)
                                     }
                                   }}
                                   className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
                                     isCurrentSelected
                                       ? 'border-primary/60 bg-primary/8 shadow-[0_10px_24px_-18px_rgba(245,158,11,0.65)] ring-1 ring-primary/30'
-                                      : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm'
-                                  } ${isDisabled ? 'cursor-not-allowed opacity-60' : ''}`}
+                                      : isPast
+                                        ? 'border-slate-200 bg-slate-50'
+                                        : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-sm'
+                                  } ${isDisabled ? 'cursor-not-allowed opacity-50' : ''}`}
                                 >
                                   <div className="flex items-start justify-between gap-3">
                                     <div>
-                                      <p className="text-sm font-semibold text-slate-950">
+                                      <p className={`text-sm font-semibold ${isPast ? 'text-slate-400' : 'text-slate-950'}`}>
                                         {formatDateTime(slot.startAt)} - {formatDateTime(slot.endAt)}
                                       </p>
                                     </div>
                                     <span
                                       className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                                        slotLoading
-                                          ? 'bg-slate-100 text-slate-600'
-                                          : isFull && !isCurrentSelected
-                                            ? 'bg-rose-100 text-rose-700'
-                                            : 'bg-emerald-100 text-emerald-700'
+                                        isPast
+                                          ? 'bg-slate-100 text-slate-500'
+                                          : slotLoading
+                                            ? 'bg-slate-100 text-slate-600'
+                                            : isFull && !isCurrentSelected
+                                              ? 'bg-rose-100 text-rose-700'
+                                              : 'bg-emerald-100 text-emerald-700'
                                       }`}
                                     >
-                                      {slotLoading ? (
+                                      {isPast ? 'Đã qua' : slotLoading ? (
                                         <>
                                           <Loader2 className="h-3 w-3 animate-spin" />
                                           Đang lưu…
@@ -582,7 +596,11 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                                       )}
                                     </span>
                                   </div>
-                                  {isCurrentSelected ? (
+                                  {isPast ? (
+                                    <p className="mt-2 text-xs font-medium text-slate-400">
+                                      Ca này đã diễn ra rồi
+                                    </p>
+                                  ) : isCurrentSelected ? (
                                     <p className="mt-2 text-xs font-medium text-primary">
                                       Đã chọn
                                     </p>
@@ -602,13 +620,7 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                               disabled={isInvitationBusy(invitation.id) || !canChooseOrChangeSlot}
                               onClick={() => {
                                 if (!canChooseOrChangeSlot || isInvitationBusy(invitation.id)) return
-                                setConfirmRespond({
-                                  invitationId: invitation.id,
-                                  payload: { status: 'REJECTED' },
-                                  title: 'Xác nhận không tham gia được',
-                                  desc: 'Bạn xác nhận không tham gia được lúc này? Sau đó bạn vẫn có thể chọn ca phỏng vấn khác nếu sắp xếp được.',
-                                  tone: 'danger',
-                                })
+                                handleInvitationRespond(invitation.id, { status: 'REJECTED' })
                               }}
                               className={`group rounded-2xl border p-4 text-left transition-all duration-200 ${
                                 invitation.status === 'REJECTED'
@@ -632,17 +644,9 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                                   <Loader2 className="h-4 w-4 shrink-0 animate-spin text-rose-600" />
                                 )}
                               </div>
-                              {invitation.status === 'REJECTED' ? (
-                                <p className="mt-2 text-xs font-medium text-rose-600">
-                                  Đã ghi nhận — vẫn có thể chọn ca bên trên
-                                </p>
-                              ) : (
-                                canChooseOrChangeSlot && (
                                   <p className="mt-2 text-xs font-medium text-slate-500 opacity-0 transition-opacity group-hover:opacity-100">
                                     Bấm nếu bạn bận toàn bộ các ca
                                   </p>
-                                )
-                              )}
                             </button>
                           </div>
 
@@ -653,15 +657,19 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                           )}
                           {!canChooseOrChangeSlot && (
                             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                              {displayStatus === 'EXPIRED'
-                                ? 'Đã quá hạn phản hồi hoặc chọn giờ.'
-                                : invitation.status === 'ACCEPTED'
-                                  ? isRescheduleExpired
-                                    ? 'Đã quá hạn đổi lịch. Lịch đã chốt.'
-                                    : 'Lịch đã lưu.'
-                                  : invitation.status === 'REJECTED'
-                                    ? 'Đã báo không tham gia được.'
-                                    : 'Không chọn giờ ở đây.'}
+                              {allSlotsPast && isRescheduleExpired
+                                ? 'Các ca phỏng vấn đã qua và đã quá hạn chọn lịch. Vui lòng liên hệ nhà tuyển dụng để sắp xếp lại.'
+                                : allSlotsPast
+                                  ? 'Các ca phỏng vấn đã qua. Vui lòng liên hệ nhà tuyển dụng để sắp xếp lại.'
+                                  : displayStatus === 'EXPIRED'
+                                    ? 'Đã quá hạn chọn lịch phỏng vấn. Vui lòng liên hệ nhà tuyển dụng để sắp xếp lại.'
+                                    : invitation.status === 'ACCEPTED'
+                                      ? isRescheduleExpired
+                                        ? 'Đã quá hạn đổi lịch. Lịch đã chốt.'
+                                        : 'Lịch đã lưu.'
+                                      : invitation.status === 'REJECTED'
+                                        ? 'Đã báo không tham gia được.'
+                                        : 'Không chọn giờ ở đây.'}
                             </div>
                           )}
                         </div>

@@ -67,6 +67,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { useGetMyCompany } from '@/features/companies/api/useGetCompanies';
+import { SuitableCandidatesModal } from '@/features/jobs/components/SuitableCandidatesModal';
 import {
   useJobsForEmployer,
   useEmployerApplications,
@@ -2616,6 +2617,7 @@ export const EmployerDashboard = () => {
   const [matchedJobId, setMatchedJobId] = useState(null);
   const [matchedJobTitle, setMatchedJobTitle] = useState('');
   const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
+  const [suitableModal, setSuitableModal] = useState({ open: false, jobId: null, jobTitle: '' });
   const [jobOptionsPopoverOpenId, setJobOptionsPopoverOpenId] = useState(null);
   const [campaignDetailOpen, setCampaignDetailOpen] = useState(false);
   const [campaignDetailLoading, setCampaignDetailLoading] = useState(false);
@@ -3064,16 +3066,19 @@ export const EmployerDashboard = () => {
           deleteJob(
             { companyId: company.id, jobId: id },
             {
-              onSuccess: () => resolve(true),
-              onError: () => resolve(false),
+              onSuccess: () => resolve({ success: true }),
+              onError: (error) => {
+                const msg = error?.response?.data?.message || 'Xóa thất bại';
+                resolve({ success: false, message: Array.isArray(msg) ? msg.join(', ') : msg });
+              },
             },
           );
         });
       });
 
       const results = await Promise.all(deletePromises);
-      const successCount = results.filter(Boolean).length;
-      const failCount = results.length - successCount;
+      const successCount = results.filter((r) => r.success).length;
+      const failedResults = results.filter((r) => !r.success);
 
       // Ép buộc React Query refetch danh sách mới nhất sau khi tất cả các job đã được xóa ở backend
       queryClient.invalidateQueries({ queryKey: ['jobs-for-employer'] });
@@ -3081,8 +3086,8 @@ export const EmployerDashboard = () => {
       if (successCount > 0) {
         toast(`Đã xóa thành công ${successCount} tin tuyển dụng.`, 'success');
       }
-      if (failCount > 0) {
-        toast(`Xóa thất bại ${failCount} tin tuyển dụng.`, 'error');
+      for (const failed of failedResults) {
+        toast(failed.message, 'error');
       }
       setSelectedJobIds([]);
     } else {
@@ -3878,7 +3883,7 @@ export const EmployerDashboard = () => {
                                 Số lượng tuyển
                               </th>
                               <th className="px-4 whitespace-nowrap text-center">
-                                Đã ứng tuyển
+                                Phù hợp
                               </th>
                               <th className="px-4 whitespace-nowrap text-center">
                                 Ngày đăng
@@ -3936,8 +3941,7 @@ export const EmployerDashboard = () => {
                                     boostExpiredAt > new Date();
 
                                   const applicantsCount =
-                                    job?._count?.applications ??
-                                    job?.applications?.length ??
+                                    job?.suitableCount ??
                                     0;
 
                                   return (
@@ -3979,9 +3983,7 @@ export const EmployerDashboard = () => {
                                         {applicantsCount > 0 ? (
                                           <span
                                             role="button"
-                                            onClick={() =>
-                                              setApplicantsModalJobId(job.id)
-                                            }
+                                            onClick={() => setSuitableModal({ open: true, jobId: job.id, jobTitle: job.title })}
                                             className="text-slate-700 hover:text-primary hover:underline font-semibold cursor-pointer text-sm"
                                           >
                                             {applicantsCount} người
@@ -5217,6 +5219,12 @@ export const EmployerDashboard = () => {
           </div>
         </div>
       )}
+      <SuitableCandidatesModal
+        isOpen={suitableModal.open}
+        onClose={() => setSuitableModal({ open: false, jobId: null, jobTitle: '' })}
+        jobId={suitableModal.jobId}
+        jobTitle={suitableModal.jobTitle}
+      />
     </DashboardLayout>
   );
 };

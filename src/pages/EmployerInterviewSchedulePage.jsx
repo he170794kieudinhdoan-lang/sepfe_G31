@@ -461,14 +461,13 @@ export const EmployerInterviewSchedulePage = () => {
   }, [availableJobs, form.jobId, isEditMode]);
 
   const resetForm = () => {
-    const defaultSlot = createDefaultSlot();
     setForm({
       jobId: '',
       expiresAt: '',
       workerIds: [],
-      slots: [defaultSlot],
+      slots: [],
     });
-    setSelectedSlotId(defaultSlot.localId);
+    setSelectedSlotId(null);
     setIsEditMode(false);
     setEditingCampaignId(null);
   };
@@ -482,7 +481,7 @@ export const EmployerInterviewSchedulePage = () => {
 
     setForm({
       jobId: effectiveJobId,
-      expiresAt: campaign.expiresAt ? new Date(campaign.expiresAt).toISOString().slice(0, 16) : '',
+      expiresAt: campaign.expiresAt ? toDateTimeLocalValue(new Date(campaign.expiresAt)) : '',
       workerIds: [],
       slots: (campaign.slots || []).map((slot) => ({
         id: slot.id,
@@ -706,14 +705,27 @@ export const EmployerInterviewSchedulePage = () => {
     () => (earliestSlotStartMs === null ? null : new Date(earliestSlotStartMs)),
     [earliestSlotStartMs],
   );
+
+  // Chỉ xét ca chưa kết thúc để validate hạn đổi lịch
+  const earliestFutureSlotStartMs = useMemo(() => {
+    if (!form.slots.length) return null;
+    const now = Date.now();
+    const startTimes = form.slots
+      .filter((slot) => new Date(slot.endAt).getTime() > now)
+      .map((slot) => new Date(slot.startAt).getTime())
+      .filter((value) => !Number.isNaN(value));
+    if (!startTimes.length) return null;
+    return Math.min(...startTimes);
+  }, [form.slots]);
+
   const minDeadlineLocalValue = useMemo(
     () => toDateTimeLocalValue(new Date()),
     [],
   );
   const maxDeadlineLocalValue = useMemo(() => {
-    if (earliestSlotStartMs === null) return '';
-    return toDateTimeLocalValue(new Date(earliestSlotStartMs - 60 * 1000));
-  }, [earliestSlotStartMs]);
+    if (earliestFutureSlotStartMs === null) return '';
+    return toDateTimeLocalValue(new Date(earliestFutureSlotStartMs - 60 * 1000));
+  }, [earliestFutureSlotStartMs]);
 
   const deadlineValidationMessage = useMemo(() => {
     if (!form.expiresAt) return '';
@@ -721,11 +733,11 @@ export const EmployerInterviewSchedulePage = () => {
     if (Number.isNaN(deadlineMs)) {
       return 'Hạn đổi lịch không hợp lệ.';
     }
-    if (earliestSlotStartMs !== null && deadlineMs >= earliestSlotStartMs) {
-      return 'Hạn đổi lịch phải trước ca phỏng vấn sớm nhất.';
+    if (earliestFutureSlotStartMs !== null && deadlineMs >= earliestFutureSlotStartMs) {
+      return 'Hạn đổi lịch phải trước ca phỏng vấn sớm nhất chưa diễn ra.';
     }
     return '';
-  }, [form.expiresAt, earliestSlotStartMs]);
+  }, [form.expiresAt, earliestFutureSlotStartMs]);
   const selectedDetailSlot = useMemo(
     () =>
       (detailData?.slots || []).find(
@@ -786,6 +798,10 @@ export const EmployerInterviewSchedulePage = () => {
     }
     if (!form.slots.length) {
       toast('Vui lòng tạo ít nhất 1 ca phỏng vấn.', 'error');
+      return;
+    }
+    if (!form.expiresAt) {
+      toast('Vui lòng đặt hạn đổi lịch.', 'error');
       return;
     }
     if (deadlineValidationMessage) {
@@ -1118,7 +1134,7 @@ export const EmployerInterviewSchedulePage = () => {
                                               <div
                                                 key={invitation.id}
                                                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 flex items-center justify-between cursor-pointer hover:border-primary/40 hover:bg-primary/5 transition-all"
-                                                onClick={() => setSelectedWorkerProfile(invitation?.worker)}
+                                                onClick={() => setSelectedWorkerProfile({ worker: invitation?.worker, invitation })}
                                               >
                                                 <div>
                                                   <p className="text-sm font-medium text-slate-900">
@@ -1419,7 +1435,7 @@ export const EmployerInterviewSchedulePage = () => {
                   dayMaxEvents
                   eventOverlap={false}
                   selectOverlap={false}
-                  validRange={{ start: new Date() }}
+                  validRange={{ start: (() => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(0,0,0,0); return d; })() }}
                   dayCellClassNames={(arg) => {
                     const dayStart = new Date(arg.date);
                     dayStart.setHours(0, 0, 0, 0);
@@ -1444,30 +1460,9 @@ export const EmployerInterviewSchedulePage = () => {
               </div>
             </div>
 
-            <div>
-              <p className="mb-2 text-sm font-medium text-slate-700">
-                Hạn đổi lịch
-              </p>
-              <div className="mb-2 grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[11px] text-slate-500">Ca sớm nhất</p>
-                  <p className="text-xs font-semibold text-slate-800">
-                    {earliestSlotStartDate
-                      ? formatDateTime(earliestSlotStartDate)
-                      : '--'}
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                  <p className="text-[11px] text-slate-500">
-                    Ứng viên sẽ được đổi lịch đến
-                  </p>
-                  <p className="text-xs font-semibold text-slate-800">
-                    {form.expiresAt
-                      ? formatDateTime(form.expiresAt)
-                      : 'Tự động theo hệ thống'}
-                  </p>
-                </div>
-              </div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+              <p className="text-sm font-semibold text-slate-800">Hạn đổi lịch</p>
+              <p className="text-xs text-slate-500 -mt-1">Ứng viên chỉ được thay đổi ca phỏng vấn trước thời điểm này.</p>
               <Input
                 type="datetime-local"
                 value={form.expiresAt}
@@ -1482,134 +1477,110 @@ export const EmployerInterviewSchedulePage = () => {
                 min={minDeadlineLocalValue}
                 max={maxDeadlineLocalValue || undefined}
               />
-              {deadlineValidationMessage ? (
-                <p className="mt-1 text-xs text-rose-600">
-                  {deadlineValidationMessage}
-                </p>
-              ) : (
-                <p className="mt-1 text-xs text-slate-500">
-                  Để trống nếu muốn hệ thống tự đặt hạn trước ca sớm nhất 1
-                  ngày.
-                </p>
+              {deadlineValidationMessage && (
+                <p className="text-xs text-rose-600">{deadlineValidationMessage}</p>
+              )}
+              {form.expiresAt && !deadlineValidationMessage && (
+                <div className="flex items-center gap-2 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
+                  <p className="text-xs font-medium text-emerald-700">
+                    Ứng viên đổi lịch được đến: <span className="font-semibold">{formatDateTime(form.expiresAt)}</span>
+                  </p>
+                </div>
+              )}
+              {earliestSlotStartDate && (
+                <p className="text-[11px] text-slate-400">Ca sớm nhất: {formatDateTime(earliestSlotStartDate)}</p>
               )}
             </div>
           </div>
 
           <div className="space-y-4">
             {selectedSlot ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-3 space-y-3">
+              <div className="rounded-2xl border border-primary/30 bg-white shadow-sm p-4 space-y-4">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-slate-800">
-                    Chỉnh sửa ca đã chọn
-                  </p>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-800">Chỉnh sửa ca đã chọn</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {formatDateTime(selectedSlot.startAt)} — {formatDateTime(selectedSlot.endAt)}
+                    </p>
+                  </div>
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="text-rose-600 hover:text-rose-700"
+                    className="text-rose-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
                     onClick={() => removeSlot(selectedSlot.localId)}
                     disabled={form.slots.length === 1}
                   >
-                    Xóa
+                    Xóa ca
                   </Button>
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-600 space-y-1">
-                  <p>
-                    Bắt đầu:{' '}
-                    <span className="font-medium text-slate-800">
-                      {formatDateTime(selectedSlot.startAt)}
-                    </span>
-                  </p>
-                  <p>
-                    Kết thúc:{' '}
-                    <span className="font-medium text-slate-800">
-                      {formatDateTime(selectedSlot.endAt)}
-                    </span>
-                  </p>
-                </div>
-
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500">Số lượng phỏng vấn</p>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={selectedSlot.capacity}
-                    onChange={(e) =>
-                      handleSlotChange(
-                        selectedSlot.localId,
-                        'capacity',
-                        e.target.value,
-                      )
-                    }
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <p className="text-xs text-slate-500">Địa điểm</p>
+                  <p className="text-xs font-medium text-slate-600">Địa điểm</p>
                   <Input
                     placeholder="VD: Phòng HR tầng 2"
                     value={selectedSlot.location}
                     onChange={(e) =>
-                      handleSlotChange(
-                        selectedSlot.localId,
-                        'location',
-                        e.target.value,
-                      )
+                      handleSlotChange(selectedSlot.localId, 'location', e.target.value)
                     }
                   />
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-xs text-slate-500">
-                    Ghi chú ca (tuỳ chọn)
-                  </p>
+                  <p className="text-xs font-medium text-slate-600">Ghi chú <span className="text-slate-400 font-normal">(tuỳ chọn)</span></p>
                   <Input
                     placeholder="VD: Mang theo CCCD bản gốc"
                     value={selectedSlot.note}
                     onChange={(e) =>
-                      handleSlotChange(
-                        selectedSlot.localId,
-                        'note',
-                        e.target.value,
-                      )
+                      handleSlotChange(selectedSlot.localId, 'note', e.target.value)
                     }
                   />
                 </div>
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white/90 p-4 text-sm text-slate-500">
-                Chọn một ca trên lịch để chỉnh sửa thông tin.
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 p-5 text-center">
+                <p className="text-sm text-slate-400">Nhấn vào một ca trên lịch để chỉnh sửa địa điểm và ghi chú.</p>
               </div>
             )}
 
-            <div className="rounded-2xl border border-slate-200 bg-white p-3">
-              <p className="mb-2 text-sm font-semibold text-slate-800">
-                Danh sách ca
-              </p>
-              <div className="max-h-75 overflow-y-auto space-y-2 pr-1">
-                {sortedSlots.map((slot, index) => {
-                  const active = slot.localId === selectedSlotId;
-                  return (
-                    <button
-                      key={slot.localId}
-                      type="button"
-                      onClick={() => setSelectedSlotId(slot.localId)}
-                      className={`w-full rounded-xl border px-3 py-2 text-left transition-colors ${active
-                        ? 'border-primary bg-primary/10 text-primary'
-                        : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
-                        }`}
-                    >
-                      <p className="text-xs font-semibold">Ca #{index + 1}</p>
-                      <p className="mt-1 text-xs">
-                        {formatDateTime(slot.startAt)} -{' '}
-                        {formatDateTime(slot.endAt)}
-                      </p>
-                      <p className="mt-1 text-xs">Sức chứa: {slot.capacity}</p>
-                    </button>
-                  );
-                })}
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-sm font-semibold text-slate-800">Danh sách ca</p>
+                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">{form.slots.length} ca</span>
               </div>
+              {form.slots.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-4">Chưa có ca nào. Kéo chọn trên lịch để tạo ca.</p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                  {sortedSlots.map((slot, index) => {
+                    const active = slot.localId === selectedSlotId;
+                    return (
+                      <button
+                        key={slot.localId}
+                        type="button"
+                        onClick={() => setSelectedSlotId(slot.localId)}
+                        className={`w-full rounded-xl border px-3 py-2.5 text-left transition-all ${active
+                          ? 'border-primary bg-primary/10 shadow-sm'
+                          : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
+                          }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`text-xs font-semibold ${active ? 'text-primary' : 'text-slate-700'}`}>
+                            Ca #{index + 1}
+                          </p>
+                          {slot.location && (
+                            <p className="truncate text-[11px] text-slate-400 max-w-[120px]">{slot.location}</p>
+                          )}
+                        </div>
+                        <p className={`mt-1 text-xs ${active ? 'text-primary/80' : 'text-slate-500'}`}>
+                          {formatDateTime(slot.startAt)} — {formatDateTime(slot.endAt)}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1632,139 +1603,128 @@ export const EmployerInterviewSchedulePage = () => {
       </Modal>
 
       {/* Worker Profile Popup */}
-      {selectedWorkerProfile && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setSelectedWorkerProfile(null)}>
-          <div
-            className="relative w-full max-w-lg mx-4 bg-white rounded-2xl shadow-2xl max-h-[85vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-primary/10 to-blue-50 rounded-t-2xl px-6 py-5 border-b border-slate-100">
-              <button
-                onClick={() => setSelectedWorkerProfile(null)}
-                className="absolute top-4 right-4 rounded-full p-1.5 hover:bg-white/70 transition-colors"
-              >
-                <X className="h-5 w-5 text-slate-500" />
-              </button>
-              <div className="flex items-center gap-4">
-                <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center text-primary text-2xl font-bold shrink-0">
-                  {selectedWorkerProfile.fullName?.charAt(0)?.toUpperCase() || 'U'}
+      <Modal
+        open={!!selectedWorkerProfile}
+        onClose={() => setSelectedWorkerProfile(null)}
+        title="Thông tin ứng viên"
+        variant="custom"
+        contentClassName="max-w-xl"
+      >
+        {selectedWorkerProfile && (() => {
+          const user = selectedWorkerProfile.worker;
+          const inv = selectedWorkerProfile.invitation;
+          const wp = user?.workerProfile;
+          const location = [wp?.ward, wp?.province].filter(Boolean).join(', ');
+          const shiftMap = { MORNING: 'Ca sáng', AFTERNOON: 'Ca chiều', EVENING: 'Ca tối', FULL_DAY: 'Cả ngày', FLEXIBLE: 'Linh hoạt' };
+          const genderMap = { MALE: 'Nam', FEMALE: 'Nữ' };
+          const invStatusMap = {
+            PENDING: { label: 'Chưa phản hồi', className: 'bg-amber-50 text-amber-700 border-amber-200' },
+            ACCEPTED: { label: inv?.selectedSlot ? `Ca ${new Date(inv.selectedSlot.startAt).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}` : 'Đã chấp nhận', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+            REJECTED: { label: 'Không tham gia', className: 'bg-rose-50 text-rose-700 border-rose-200' },
+            CANCELLED: { label: 'Đã hủy', className: 'bg-slate-100 text-slate-600 border-slate-200' },
+          };
+          const invStatus = invStatusMap[inv?.status];
+          return (
+            <div className="space-y-4">
+              {/* Header */}
+              <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
+                  {user?.avatar ? (
+                    <img src={user.avatar} alt={user.fullName} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-2xl font-bold text-slate-400">
+                      {user?.fullName?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                  )}
                 </div>
-                <div className="min-w-0">
-                  <h3 className="text-xl font-bold text-slate-900 truncate">
-                    {selectedWorkerProfile.fullName || 'Chưa cập nhật tên'}
-                  </h3>
-                  <p className="text-sm text-slate-600 mt-0.5">
-                    {selectedWorkerProfile.workerProfile?.occupation?.name || 'Chưa cập nhật nghề nghiệp'}
-                  </p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-xl font-bold text-slate-900">{user?.fullName || 'Chưa cập nhật'}</h3>
+                  {wp?.occupation?.name && <p className="text-sm text-primary font-medium mt-0.5">{wp.occupation.name}</p>}
                 </div>
               </div>
-            </div>
 
-            {/* Content */}
-            <div className="px-6 py-5 space-y-5">
-              {/* Contact Info */}
-              <div>
-                <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                  <User className="h-4 w-4 text-primary" />
-                  Thông tin liên hệ
-                </h4>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 border border-slate-100">
-                    <Phone className="h-4 w-4 text-slate-400 shrink-0" />
-                    <span className="text-sm text-slate-700 truncate">{selectedWorkerProfile.phone || 'Chưa cập nhật'}</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 border border-slate-100">
+              {/* Contact */}
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Liên hệ</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
                     <Mail className="h-4 w-4 text-slate-400 shrink-0" />
-                    <span className="text-sm text-slate-700 truncate">{selectedWorkerProfile.email || 'Chưa cập nhật'}</span>
+                    <span className="truncate">{user?.email || 'Chưa cập nhật'}</span>
                   </div>
-                  {selectedWorkerProfile.workerProfile?.dateOfBirth && (
-                    <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 border border-slate-100">
-                      <Calendar className="h-4 w-4 text-slate-400 shrink-0" />
-                      <span className="text-sm text-slate-700">
-                        {new Date(selectedWorkerProfile.workerProfile.dateOfBirth).toLocaleDateString('vi-VN')}
-                      </span>
-                    </div>
-                  )}
-                  {selectedWorkerProfile.workerProfile?.address && (
-                    <div className="flex items-center gap-2.5 rounded-lg bg-slate-50 px-3 py-2.5 border border-slate-100">
-                      <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
-                      <span className="text-sm text-slate-700 truncate">{selectedWorkerProfile.workerProfile.address}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 text-sm text-slate-700">
+                    <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                    <span>{user?.phone || 'Chưa cập nhật'}</span>
+                  </div>
                 </div>
               </div>
 
-              {/* Work Info */}
-              <div>
-                <h4 className="text-sm font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                  <Briefcase className="h-4 w-4 text-primary" />
-                  Thông tin nghề nghiệp
-                </h4>
-                <div className="space-y-2.5">
-                  {selectedWorkerProfile.workerProfile?.yearsOfExperience != null && (
-                    <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-slate-50 border border-slate-100">
-                      <span className="text-sm text-slate-600">Kinh nghiệm</span>
-                      <span className="text-sm font-semibold text-slate-800">{selectedWorkerProfile.workerProfile.yearsOfExperience} năm</span>
-                    </div>
-                  )}
-                  {selectedWorkerProfile.workerProfile?.educationLevel && (
-                    <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-slate-50 border border-slate-100">
-                      <span className="text-sm text-slate-600">Trình độ học vấn</span>
-                      <span className="text-sm font-semibold text-slate-800">{selectedWorkerProfile.workerProfile.educationLevel}</span>
-                    </div>
-                  )}
-                  {selectedWorkerProfile.workerProfile?.desiredSalary != null && (
-                    <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-slate-50 border border-slate-100">
-                      <span className="text-sm text-slate-600">Mức lương mong muốn</span>
-                      <span className="text-sm font-semibold text-amber-600">
-                        {Number(selectedWorkerProfile.workerProfile.desiredSalary).toLocaleString('vi-VN')}đ
-                      </span>
-                    </div>
-                  )}
-                  {selectedWorkerProfile.workerProfile?.desiredLocation && (
-                    <div className="flex justify-between items-center py-2 px-3 rounded-lg bg-slate-50 border border-slate-100">
-                      <span className="text-sm text-slate-600">Khu vực mong muốn</span>
-                      <span className="text-sm font-semibold text-slate-800">{selectedWorkerProfile.workerProfile.desiredLocation}</span>
-                    </div>
-                  )}
+              {/* Personal info */}
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Thông tin cá nhân</p>
+                <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                  <div>
+                    <p className="text-xs text-slate-400">Giới tính</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">{genderMap[wp?.gender] || 'Chưa cập nhật'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Năm sinh</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">{wp?.birthYear || 'Chưa cập nhật'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Khu vực</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5 flex items-center gap-1">
+                      <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                      {location || 'Chưa cập nhật'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Kinh nghiệm</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">{wp?.experienceYear != null ? `${wp.experienceYear} năm` : 'Chưa cập nhật'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Lương mong muốn</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">{wp?.expectedSalary != null ? `${Number(wp.expectedSalary).toLocaleString('vi-VN')}đ` : 'Chưa cập nhật'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-slate-400">Ca làm mong muốn</p>
+                    <p className="text-sm font-medium text-slate-800 mt-0.5">{shiftMap[wp?.shift] || wp?.shift || 'Chưa cập nhật'}</p>
+                  </div>
                 </div>
               </div>
 
-              {/* Skills */}
-              {selectedWorkerProfile.workerProfile?.skills && (
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-800 mb-3">Kỹ năng</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedWorkerProfile.workerProfile.skills.split(',').map((skill, idx) => (
-                      <span key={idx} className="inline-flex items-center rounded-full bg-primary/10 text-primary px-3 py-1 text-xs font-medium">
-                        {skill.trim()}
-                      </span>
-                    ))}
-                  </div>
+              {/* Bio & Desired */}
+              {(wp?.bio || wp?.desiredJobText) && (
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Mô tả bản thân</p>
+                  {wp?.bio && (
+                    <div>
+                      <p className="text-xs text-slate-400 mb-1">Giới thiệu</p>
+                      <p className="text-sm text-slate-700 leading-relaxed">{wp.bio}</p>
+                    </div>
+                  )}
+                  {wp?.desiredJobText && (
+                    <div className={wp?.bio ? 'pt-3 border-t border-slate-200' : ''}>
+                      <p className="text-xs text-slate-400 mb-1">Mong muốn công việc</p>
+                      <p className="text-sm text-slate-700 leading-relaxed">{wp.desiredJobText}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {/* Bio */}
-              {selectedWorkerProfile.workerProfile?.bio && (
-                <div>
-                  <h4 className="text-sm font-semibold text-slate-800 mb-2">Giới thiệu bản thân</h4>
-                  <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 rounded-lg p-3 border border-slate-100">
-                    {selectedWorkerProfile.workerProfile.bio}
-                  </p>
+              {/* Interview status */}
+              {invStatus && (
+                <div className="flex items-center justify-between rounded-xl bg-primary/5 border border-primary/10 px-4 py-3">
+                  <span className="text-sm text-slate-600">Trạng thái phỏng vấn</span>
+                  <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${invStatus.className}`}>
+                    <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                    {invStatus.label}
+                  </span>
                 </div>
               )}
             </div>
-
-            {/* Footer */}
-            <div className="sticky bottom-0 bg-white border-t border-slate-100 px-6 py-3 rounded-b-2xl">
-              <Button variant="outline" className="w-full" onClick={() => setSelectedWorkerProfile(null)}>
-                Đóng
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+          );
+        })()}
+      </Modal>
 
     </DashboardLayout>
   );

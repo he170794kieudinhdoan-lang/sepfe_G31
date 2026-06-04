@@ -268,12 +268,13 @@ export const EmployerInterviewCandidatesPage = () => {
             const profile = user.workerProfile;
             const invitation = user.interviewInvitations?.[0];
             const genderMap = { MALE: 'Nam', FEMALE: 'Nữ', OTHER: 'Khác' };
-            const shiftMap = { DAY: 'Ca ngày', NIGHT: 'Ca đêm', FLEXIBLE: 'Linh hoạt' };
+            const shiftMap = { MORNING: 'Ca sáng', AFTERNOON: 'Ca chiều', EVENING: 'Ca tối', FULL_DAY: 'Cả ngày', FLEXIBLE: 'Linh hoạt' };
+            const location = [profile?.ward, profile?.province].filter(Boolean).join(', ');
             return (
-              <div className="space-y-5">
+              <div className="space-y-4">
                 {/* Avatar + Name */}
-                <div className="flex items-center gap-4">
-                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-full border-2 border-slate-200 bg-slate-100">
+                <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+                  <div className="h-16 w-16 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100">
                     {user.avatar ? (
                       <img src={user.avatar} alt={user.fullName} className="h-full w-full object-cover" />
                     ) : (
@@ -282,79 +283,85 @@ export const EmployerInterviewCandidatesPage = () => {
                       </div>
                     )}
                   </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-slate-900">{user.fullName}</h3>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-xl font-bold text-slate-900">{user.fullName}</h3>
                     {profile?.occupation?.name && (
-                      <p className="text-sm text-primary font-medium">{profile.occupation.name}</p>
+                      <p className="text-sm text-primary font-medium mt-0.5">{profile.occupation.name}</p>
                     )}
                   </div>
                 </div>
 
                 {/* Contact Info */}
-                <div className="rounded-lg bg-slate-50 p-4 space-y-2.5">
-                  <div className="flex items-center gap-2.5 text-sm">
-                    <Mail className="h-4 w-4 text-slate-400 shrink-0" />
-                    <span className="text-slate-700">{user.email || 'Chưa cập nhật'}</span>
-                  </div>
-                  <div className="flex items-center gap-2.5 text-sm">
-                    <Phone className="h-4 w-4 text-slate-400 shrink-0" />
-                    <span className="text-slate-700">{user.phone || 'Chưa có SĐT'}</span>
-                  </div>
-                  {profile?.province && (
-                    <div className="flex items-center gap-2.5 text-sm">
-                      <MapPin className="h-4 w-4 text-slate-400 shrink-0" />
-                      <span className="text-slate-700">{profile.province}</span>
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Liên hệ</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <Mail className="h-4 w-4 text-slate-400 shrink-0" />
+                      <span className="truncate">{user.email || 'Chưa cập nhật'}</span>
                     </div>
-                  )}
+                    <div className="flex items-center gap-2 text-sm text-slate-700">
+                      <Phone className="h-4 w-4 text-slate-400 shrink-0" />
+                      <span>{user.phone || 'Chưa có SĐT'}</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Profile Details */}
-                {profile && (
-                  <div className="grid grid-cols-2 gap-3">
-                    {profile.gender && (
-                      <div className="rounded-lg border border-slate-200 p-3">
-                        <p className="text-xs text-slate-400 mb-0.5">Giới tính</p>
-                        <p className="text-sm font-medium text-slate-800">{genderMap[profile.gender] || profile.gender}</p>
-                      </div>
-                    )}
-                    {profile.birthYear && (
-                      <div className="rounded-lg border border-slate-200 p-3">
-                        <p className="text-xs text-slate-400 mb-0.5">Năm sinh</p>
-                        <p className="text-sm font-medium text-slate-800">{profile.birthYear}</p>
-                      </div>
-                    )}
-                    {profile.experienceYear != null && (
-                      <div className="rounded-lg border border-slate-200 p-3">
-                        <p className="text-xs text-slate-400 mb-0.5">Kinh nghiệm</p>
-                        <p className="text-sm font-medium text-slate-800">{profile.experienceYear} năm</p>
-                      </div>
-                    )}
-                    {profile.expectedSalary != null && (
-                      <div className="rounded-lg border border-slate-200 p-3">
-                        <p className="text-xs text-slate-400 mb-0.5">Lương mong muốn</p>
-                        <p className="text-sm font-medium text-slate-800">{Number(profile.expectedSalary).toLocaleString('vi-VN')}đ</p>
-                      </div>
-                    )}
-                    {profile.shift && (
-                      <div className="rounded-lg border border-slate-200 p-3 col-span-2">
-                        <p className="text-xs text-slate-400 mb-0.5">Ca làm việc</p>
-                        <p className="text-sm font-medium text-slate-800">{shiftMap[profile.shift] || profile.shift}</p>
-                      </div>
-                    )}
+                <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Thông tin cá nhân</p>
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                    <div>
+                      <p className="text-xs text-slate-400">Giới tính</p>
+                      <p className="text-sm font-medium text-slate-800 mt-0.5">{genderMap[profile?.gender] || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Năm sinh</p>
+                      <p className="text-sm font-medium text-slate-800 mt-0.5">{profile?.birthYear || 'Chưa cập nhật'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Khu vực</p>
+                      <p className="text-sm font-medium text-slate-800 mt-0.5 flex items-center gap-1">
+                        <MapPin className="h-3 w-3 text-slate-400 shrink-0" />
+                        {location || 'Chưa cập nhật'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Kinh nghiệm</p>
+                      <p className="text-sm font-medium text-slate-800 mt-0.5">{profile?.experienceYear != null ? `${profile.experienceYear} năm` : 'Chưa cập nhật'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Lương mong muốn</p>
+                      <p className="text-sm font-medium text-slate-800 mt-0.5">{profile?.expectedSalary != null ? `${Number(profile.expectedSalary).toLocaleString('vi-VN')}đ` : 'Chưa cập nhật'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-slate-400">Ca làm mong muốn</p>
+                      <p className="text-sm font-medium text-slate-800 mt-0.5">{shiftMap[profile?.shift] || profile?.shift || 'Chưa cập nhật'}</p>
+                    </div>
                   </div>
-                )}
+                </div>
 
-                {/* Bio */}
-                {profile?.bio && (
-                  <div className="rounded-lg border border-slate-200 p-3">
-                    <p className="text-xs text-slate-400 mb-1">Giới thiệu bản thân</p>
-                    <p className="text-sm text-slate-700 whitespace-pre-line">{profile.bio}</p>
+                {/* Bio & Desired job */}
+                {(profile?.bio || profile?.desiredJobText) && (
+                  <div className="rounded-xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+                    <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">Mô tả bản thân</p>
+                    {profile?.bio && (
+                      <div>
+                        <p className="text-xs text-slate-400 mb-1">Giới thiệu</p>
+                        <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{profile.bio}</p>
+                      </div>
+                    )}
+                    {profile?.desiredJobText && (
+                      <div className={profile?.bio ? 'pt-3 border-t border-slate-200' : ''}>
+                        <p className="text-xs text-slate-400 mb-1">Mong muốn công việc</p>
+                        <p className="text-sm text-slate-700 leading-relaxed">{profile.desiredJobText}</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Interview Status */}
                 {invitation && (
-                  <div className="flex items-center justify-between rounded-lg bg-primary/5 border border-primary/10 p-3">
+                  <div className="flex items-center justify-between rounded-xl bg-primary/5 border border-primary/10 px-4 py-3">
                     <span className="text-sm text-slate-600">Trạng thái phỏng vấn</span>
                     {renderStatusBadge(invitation)}
                   </div>
