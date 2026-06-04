@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { MSG } from '@/shared/constants/messages';
@@ -12,10 +12,14 @@ import { JobDetailContent } from '@/features/jobs/components/JobDetailContent';
 import { Card } from '@/components/ui/card';
 import { JobDetailSkeleton } from '@/features/jobs/components/JobDetailSkeleton';
 import { JobCardHorizontalSkeleton } from '@/features/jobs/components/JobCardHorizontalSkeleton';
-import { SearchX, ArrowLeft, ClipboardList } from 'lucide-react';
+import { SearchX, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useGetOrCreateConversation } from '@/features/chat/api/useChat';
 import { useAuth } from '@/shared/contexts/AuthContext';
 import { useGetWorkerProfile } from '@/features/users/api/useUser';
+import {
+  getApplyEligibilityIssues,
+  canWorkerApply,
+} from '@/shared/utils/workerApplyEligibility';
 import {
   Dialog,
   DialogContent,
@@ -24,18 +28,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-
-// Các trường bắt buộc để coi profile là "đầy đủ"
-const isWorkerProfileComplete = (profile) => {
-  if (!profile) return false;
-  return !!(
-    profile.occupationId &&
-    profile.shift &&
-    profile.province &&
-    profile.ward &&
-    profile.gender
-  );
-};
 
 export const JobDetailPage = () => {
   const { id } = useParams();
@@ -50,7 +42,8 @@ export const JobDetailPage = () => {
   const { mutate: createConversation } = useGetOrCreateConversation();
   const { isAuthenticated, user } = useAuth();
 
-  const isWorker = user?.role === 'WORKER';
+  const isWorker =
+    user?.roleType === 'WORKER' || user?.role === 'WORKER';
 
   // Chỉ fetch worker profile khi user đã đăng nhập và là WORKER
   const { data: workerProfile } = useGetWorkerProfile({
@@ -63,7 +56,15 @@ export const JobDetailPage = () => {
     Array.isArray(myApplications) &&
     myApplications.some((app) => String(app.jobId) === String(id));
 
-  const profileComplete = isWorkerProfileComplete(workerProfile);
+  const applyEligibilityIssues = useMemo(
+    () =>
+      isWorker
+        ? getApplyEligibilityIssues({ user, workerProfile })
+        : [],
+    [isWorker, user, workerProfile],
+  );
+
+  const canApply = isWorker && canWorkerApply({ user, workerProfile });
 
   const [applyOpen, setApplyOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
@@ -82,8 +83,8 @@ export const JobDetailPage = () => {
     }
     // Đã đăng nhập nhưng không phải WORKER → không làm gì (nút đã bị ẩn ở JobActions)
     if (!isWorker) return;
-    // Là WORKER nhưng profile chưa đầy đủ → nhắc hoàn thiện profile
-    if (!profileComplete) {
+    // Thiếu SĐT hoặc hồ sơ lao động → hiện chi tiết mục còn thiếu
+    if (!canApply) {
       setIncompleteProfileOpen(true);
       return;
     }
@@ -197,35 +198,58 @@ export const JobDetailPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Popup: profile chưa đầy đủ */}
+      {/* Popup: thiếu thông tin trước khi ứng tuyển */}
       <Dialog open={incompleteProfileOpen} onOpenChange={setIncompleteProfileOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <div className="flex items-center gap-3 mb-1">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-orange-100">
-                <ClipboardList className="h-5 w-5 text-orange-500" />
+                <AlertCircle className="h-5 w-5 text-orange-500" />
               </div>
-              <DialogTitle>Hồ sơ chưa đầy đủ</DialogTitle>
+              <DialogTitle>Chưa thể ứng tuyển</DialogTitle>
             </div>
-            <DialogDescription className="pt-1">
-              Bạn cần hoàn thiện hồ sơ cá nhân trước khi ứng tuyển. Vui lòng điền đầy đủ các thông tin:{' '}
-              <span className="font-medium text-foreground">
-                nghề nghiệp, ca làm việc, tỉnh/thành, phường/xã và giới tính
-              </span>.
+            <DialogDescription asChild>
+              <div className="pt-2 space-y-4 text-sm text-muted-foreground">
+                <p>
+                  Vui lòng bổ sung các thông tin sau trước khi ứng tuyển công việc
+                  này:
+                </p>
+                {applyEligibilityIssues.map((issue) => (
+                  <div
+                    key={issue.type}
+                    className="rounded-lg border border-orange-100 bg-orange-50/50 px-3 py-3 space-y-2"
+                  >
+                    <p className="font-semibold text-foreground text-sm">
+                      {issue.title}
+                    </p>
+                    <p className="text-slate-600 leading-relaxed">{issue.message}</p>
+                    {issue.missingFields?.length > 0 && (
+                      <ul className="list-disc list-inside space-y-1 text-slate-700">
+                        {issue.missingFields.map((label) => (
+                          <li key={label}>{label}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                ))}
+              </div>
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="mt-4 gap-2">
+          <DialogFooter className="mt-2 flex-col gap-2 sm:flex-col sm:space-x-0">
             <Button variant="outline" onClick={() => setIncompleteProfileOpen(false)}>
               Để sau
             </Button>
-            <Button
-              onClick={() => {
-                setIncompleteProfileOpen(false);
-                navigate(workerProfile ? '/profile' : '/worker/setup-profile');
-              }}
-            >
-              Hoàn thiện hồ sơ ngay
-            </Button>
+            {applyEligibilityIssues.map((issue) => (
+              <Button
+                key={issue.type}
+                onClick={() => {
+                  setIncompleteProfileOpen(false);
+                  navigate(issue.actionPath);
+                }}
+              >
+                {issue.actionLabel}
+              </Button>
+            ))}
           </DialogFooter>
         </DialogContent>
       </Dialog>
