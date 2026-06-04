@@ -167,7 +167,7 @@ const FunnelBar = ({ funnelData, funnelLoading }) => {
       {/* Summary line */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-          Hồ sơ
+          {/* Hồ sơ */}
         </span>
         <span className={`text-[11px] font-bold tabular-nums transition-all duration-200 ${
           activeSegment ? activeSegment.text : 'text-slate-700'
@@ -235,7 +235,14 @@ const JobFunnelRow = ({ job }) => {
 
   const views = job.viewCount || 0;
   const apps = job._count?.applications || 0;
-  const rate = views > 0 ? (apps / views) * 100 : 0;
+
+  const directTotal = funnelData?.direct?.total ?? 0;
+  const directSuitable = funnelData?.direct?.suitable ?? 0;
+  const directRate = directTotal > 0 ? (directSuitable / directTotal) * 100 : 0;
+
+  const aiSent = funnelData?.ai?.sent ?? 0;
+  const aiAccepted = funnelData?.ai?.accepted ?? 0;
+  const aiRate = aiSent > 0 ? (aiAccepted / aiSent) * 100 : 0;
 
   return (
     <tr className="border-b border-slate-50 last:border-0 hover:bg-slate-50/50 transition-colors">
@@ -265,13 +272,30 @@ const JobFunnelRow = ({ job }) => {
       </td>
 
       <td className="py-4 px-6 text-center align-middle">
-        <span className="text-sm font-bold text-slate-700">
-          {rate.toFixed(1)}%
-        </span>
+        {funnelLoading ? (
+          <span className="text-xs text-slate-400 animate-pulse">Đang tải...</span>
+        ) : (
+          <div className="flex items-center justify-center gap-3.5 text-xs select-none">
+            {/* Tin đăng */}
+            <div className="text-center min-w-[55px]">
+              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Tin đăng</p>
+              <p className="font-extrabold text-slate-700 text-sm leading-tight">{directRate.toFixed(0)}%</p>
+              <p className="text-[10px] text-slate-400 font-medium mt-0.5">({directSuitable}/{directTotal})</p>
+            </div>
+            {/* Divider */}
+            <div className="h-8 w-[1px] bg-slate-200" />
+            {/* AI Matching */}
+            <div className="text-center min-w-[55px]">
+              <p className="text-[9px] font-bold text-primary uppercase tracking-wider mb-0.5">Gợi ý AI</p>
+              <p className="font-extrabold text-primary text-sm leading-tight">{aiRate.toFixed(0)}%</p>
+              <p className="text-[10px] text-primary/70 font-medium mt-0.5">({aiAccepted}/{aiSent})</p>
+            </div>
+          </div>
+        )}
       </td>
 
       <td className="py-4 px-6 align-middle">
-        <FunnelBar funnelData={funnelData} funnelLoading={funnelLoading} />
+        <FunnelBar funnelData={funnelData?.direct} funnelLoading={funnelLoading} />
       </td>
     </tr>
   );
@@ -634,7 +658,7 @@ export const ApplicationFunnelWidget = ({ jobs = [] }) => {
                     Ứng tuyển
                   </th>
                   <th className="py-4 px-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                    Tỷ lệ ứng tuyển
+                    Tỉ lệ phản hồi
                   </th>
                   <th className="py-4 px-6 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Tiến trình hồ sơ

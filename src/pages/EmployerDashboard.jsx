@@ -3513,11 +3513,13 @@ export const EmployerDashboard = () => {
                   : buildKpiItems(overview).map((item, idx) => {
                     const isPositive = item.change > 0;
                     const isNegative = item.change < 0;
-                    const trendColor = isPositive
-                      ? 'text-emerald-600'
-                      : isNegative
-                        ? 'text-rose-600'
-                        : 'text-slate-500';
+                    const trendColor = item.isCountTrend
+                      ? 'text-slate-500'
+                      : isPositive
+                        ? 'text-emerald-600'
+                        : isNegative
+                          ? 'text-rose-600'
+                          : 'text-slate-500';
 
                     return (
                       <Card
@@ -3536,17 +3538,17 @@ export const EmployerDashboard = () => {
                             <div
                               className={`mt-4 flex items-center gap-1.5 text-[13px] font-bold ${trendColor}`}
                             >
-                              {isPositive ? (
+                              {item.isCountTrend ? (
+                                <span className="flex items-center gap-0.5 font-medium">
+                                  {item.change > 0 ? `+${item.change}` : item.change} tin mới tuần này
+                                </span>
+                              ) : isPositive ? (
                                 <span className="flex items-center gap-0.5">
-                                  ▲{' '}
-                                  {item.isCountTrend
-                                    ? `${item.change} tin mới tuần này`
-                                    : `${Math.abs(item.change)}% so với tháng trước`}
+                                  ▲ {Math.abs(item.change)}% so với tháng trước
                                 </span>
                               ) : isNegative ? (
                                 <span className="flex items-center gap-0.5">
-                                  ▼ {Math.abs(item.change)}% so với tháng
-                                  trước
+                                  ▼ {Math.abs(item.change)}% so với tháng trước
                                 </span>
                               ) : (
                                 <span className="text-slate-400">
