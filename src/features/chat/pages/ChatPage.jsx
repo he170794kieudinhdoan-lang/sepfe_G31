@@ -194,7 +194,7 @@ export const MessageThread = ({
 
   const lastMsg = Array.isArray(messages) ? messages[0] : null;
   const isSeen =
-    lastMsg && lastMsg.senderId === user.id && lastMsg.status === 'READ';
+    lastMsg && lastMsg.senderId === user?.id && lastMsg.status === 'READ';
 
   useEffect(() => {
     if (containerRef.current) {
@@ -221,11 +221,11 @@ export const MessageThread = ({
         ?.map((m) => (
           <div
             key={m.id}
-            className={`flex ${m.senderId === user.id ? 'justify-end' : 'justify-start'}`}
+            className={`flex ${m.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
           >
             <div
               className={`max-w-[75%] rounded-2xl px-4 py-2 [&_mark]:rounded [&_mark]:px-0.5 ${
-                m.senderId === user.id
+                m.senderId === user?.id
                   ? 'bg-primary text-primary-foreground [&_mark]:bg-white/35 [&_mark]:text-white'
                   : 'bg-gray-100 [&_mark]:bg-amber-200/95 [&_mark]:text-slate-900'
               }`}
@@ -320,7 +320,7 @@ export const ChatPage = () => {
   const { mutate: sendMessage } = useSendMessage();
   const { mutate: markAsRead } = useMarkAsRead();
 
-  useChatRealtime(conversationId, user.id);
+  useChatRealtime(conversationId, user?.id);
 
   const { socketRef, sendTyping } = useChatSocket(conversationId ? Number(conversationId) : null, user?.id)
 

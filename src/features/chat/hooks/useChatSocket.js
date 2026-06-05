@@ -18,7 +18,13 @@ export const useChatSocket = (conversationId, userId) => {
     })
 
     socket.on('new_message', () => {
-      queryClient.invalidateQueries({ queryKey: ['messages', String(conversationId)] })
+      // Khớp mọi query messages của conversation hiện tại bất kể kiểu id (số/chuỗi)
+      // và bất kể tham số phân trang ở phần tử thứ 3 của queryKey.
+      queryClient.invalidateQueries({
+        predicate: (query) =>
+          query.queryKey[0] === 'messages' &&
+          String(query.queryKey[1]) === String(conversationId),
+      })
       queryClient.invalidateQueries({ queryKey: ['conversations'] })
     })
 

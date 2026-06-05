@@ -2,6 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import * as chatApi from './chatApi';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/shared/contexts/AuthContext';
+
+// Khớp mọi query messages của 1 conversation, bất kể kiểu (số/chuỗi) của id
+// và bất kể tham số phân trang/limit ở phần tử thứ 3 của queryKey.
+const isMessagesQueryFor = (id) => (query) =>
+  query.queryKey[0] === 'messages' &&
+  String(query.queryKey[1]) === String(id);
 
 export const useGetOrCreateConversation = () => {
   const { toast } = useToast();
@@ -31,15 +38,45 @@ export const useGetUserConversations = () => {
 export const useSendMessage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: ({ id, content }) => chatApi.sendMessage(id, content),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['messages'] });
-      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    // Optimistic: chèn tin của mình vào ngay để UI phản hồi tức thì,
+    // không phải chờ POST -> invalidate -> refetch mới hiện.
+    onMutate: async ({ id, content }) => {
+      await queryClient.cancelQueries({ queryKey: ['messages'] });
+      const previous = queryClient.getQueriesData({ queryKey: ['messages'] });
+
+      const optimisticMessage = {
+        id: `temp-${Date.now()}`,
+        content,
+        senderId: user?.id,
+        status: 'SENT',
+        createdAt: new Date().toISOString(),
+        _optimistic: true,
+      };
+
+      queryClient.setQueriesData(
+        {
+          predicate: (query) =>
+            isMessagesQueryFor(id)(query) && !query.queryKey[2]?.search,
+        },
+        (old) => (Array.isArray(old) ? [optimisticMessage, ...old] : old),
+      );
+
+      return { previous };
     },
-    onError: (e) => {
+    onError: (e, _variables, context) => {
+      context?.previous?.forEach(([key, data]) => {
+        queryClient.setQueryData(key, data);
+      });
       toast(e.message || 'Gửi tin nhắn thất bại', 'error');
+    },
+    onSuccess: (_, variables) => {
+      // Chỉ làm mới đúng cuộc trò chuyện vừa gửi, không động vào các thread khác.
+      queryClient.invalidateQueries({ predicate: isMessagesQueryFor(variables.id) });
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
   });
 };
