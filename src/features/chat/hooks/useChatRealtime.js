@@ -50,21 +50,15 @@ export const useChatRealtime = (conversationId, userId) => {
             !conversationId ||
             String(payloadConvId) === String(conversationId)
           ) {
-            // Invalidate broad keys
-            queryClient.invalidateQueries({ queryKey: ['messages'] });
+            // Chỉ invalidate đúng thread của conversation vừa thay đổi.
+            // staleTime:0 đã tự refetch query active -> không cần refetchQueries thủ công.
+            queryClient.invalidateQueries({
+              predicate: (query) =>
+                query.queryKey[0] === 'messages' &&
+                (payloadConvId == null ||
+                  String(query.queryKey[1]) === String(payloadConvId)),
+            });
             queryClient.invalidateQueries({ queryKey: ['conversations'] });
-
-            // Force refetch active queries
-            setTimeout(() => {
-              queryClient.refetchQueries({
-                queryKey: ['messages'],
-                type: 'active',
-              });
-              queryClient.refetchQueries({
-                queryKey: ['conversations'],
-                type: 'active',
-              });
-            }, 100);
           }
         },
       )
@@ -93,11 +87,8 @@ export const useChatRealtime = (conversationId, userId) => {
           const u2 = getProp(payload.new, 'user2Id');
 
           if (Number(u1) === currentUserId || Number(u2) === currentUserId) {
+            // invalidate đã tự refetch query active (staleTime:0).
             queryClient.invalidateQueries({ queryKey: ['conversations'] });
-            queryClient.refetchQueries({
-              queryKey: ['conversations'],
-              type: 'active',
-            });
           }
         },
       )
