@@ -764,11 +764,7 @@ export const EmployerWalletPage = () => {
                     {checkoutData.paymentCode}
                   </h4>
                 </div>
-                <div className="rounded-none bg-emerald-100 px-3 py-1.5 text-xs font-semibold text-emerald-700">
-                  {isOrderRealtimeSubscribed
-                    ? 'Đang theo dõi realtime'
-                    : 'Đang chờ thanh toán'}
-                </div>
+               
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">

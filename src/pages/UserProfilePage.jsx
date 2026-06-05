@@ -105,6 +105,7 @@ export const UserProfilePage = () => {
   const [historyPage, setHistoryPage] = useState(1);
   const [historyFilter, setHistoryFilter] = useState('ALL');
   const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [editFieldErrors, setEditFieldErrors] = useState({});
 
   const { mutate: changePassword, isPending: isChangingPassword } =
     useChangePassword();
@@ -218,7 +219,7 @@ export const UserProfilePage = () => {
   };
 
   // Khởi tạo editForm khi user data load xong
-  useState(() => {
+  useEffect(() => {
     if (user) {
       setEditForm({
         fullName: user.fullName || '',
@@ -226,7 +227,7 @@ export const UserProfilePage = () => {
         email: user.email || '',
       });
     }
-  });
+  }, [user]);
 
   if (isLoading) {
     return (
@@ -260,25 +261,41 @@ export const UserProfilePage = () => {
   const profile = user;
 
   const handleSaveProfile = () => {
-    if (!editForm.fullName?.trim() || !editForm.email?.trim()) {
-      toast(MSG.MSG_PROFILE_REQUIRED, 'error');
+    setEditFieldErrors({});
+
+    if (!editForm.fullName?.trim()) {
+      toast('Vui lòng điền họ tên.', 'error');
+      return;
+    }
+    if (!editForm.phone?.trim()) {
+      setEditFieldErrors({ phone: 'Số điện thoại không được để trống.' });
       return;
     }
 
     const formData = new FormData();
     if (editForm.fullName) formData.append('fullName', editForm.fullName);
     if (editForm.phone) formData.append('phone', editForm.phone);
-    if (editForm.email) formData.append('email', editForm.email);
+    // Luôn gửi email (kể cả chuỗi rỗng) để cho phép xoá email về trống
+    formData.append('email', editForm.email ?? '');
 
     updateProfile(formData, {
       onSuccess: () => {
         toast(MSG.MSG_PROFILE_SAVE_SUCCESS, 'success');
+        setEditFieldErrors({});
         setActive('view');
       },
       onError: (err) => {
-        const msg =
-          err?.response?.data?.message || 'Có lỗi xảy ra khi cập nhật hồ sơ';
-        toast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
+        const data = err?.response?.data || {};
+        const msg = data.message || 'Có lỗi xảy ra khi cập nhật hồ sơ';
+        const field = data.field;
+
+        if (field === 'email') {
+          setEditFieldErrors({ email: msg });
+        } else if (field === 'phone') {
+          setEditFieldErrors({ phone: msg });
+        } else {
+          toast(Array.isArray(msg) ? msg.join(', ') : msg, 'error');
+        }
       },
     });
   };
@@ -489,23 +506,35 @@ export const UserProfilePage = () => {
                 <div>
                   <label className="text-sm font-medium">Số điện thoại</label>
                   <Input
-                    className="mt-1 rounded-xl"
+                    className={`mt-1 rounded-xl ${editFieldErrors.phone ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                     value={editForm.phone || ''}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, phone: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, phone: e.target.value });
+                      if (editFieldErrors.phone) setEditFieldErrors((p) => ({ ...p, phone: undefined }));
+                    }}
                   />
+                  {editFieldErrors.phone && (
+                    <p className="mt-1 text-xs text-destructive flex items-center gap-1">
+                      <span>⚠</span> {editFieldErrors.phone}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium">Email</label>
                   <Input
-                    className="mt-1 rounded-xl"
+                    className={`mt-1 rounded-xl ${editFieldErrors.email ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                     type="email"
                     value={editForm.email || ''}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, email: e.target.value })
-                    }
+                    onChange={(e) => {
+                      setEditForm({ ...editForm, email: e.target.value });
+                      if (editFieldErrors.email) setEditFieldErrors((p) => ({ ...p, email: undefined }));
+                    }}
                   />
+                  {editFieldErrors.email && (
+                    <p className="mt-1 text-xs text-destructive flex items-center gap-1">
+                      <span>⚠</span> {editFieldErrors.email}
+                    </p>
+                  )}
                 </div>
 
                 <Button
