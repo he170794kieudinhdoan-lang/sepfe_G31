@@ -35,7 +35,7 @@ import {
   getCampaigns,
   sendCampaign,
 } from '@/features/interview-invitations/api/interviewInvitationApi';
-import { useCancelCampaignMutation, useUpdateCampaignMutation } from '@/features/interview-invitations/hooks';
+import { useCancelCampaignMutation, useUpdateCampaignMutation, useResendCampaignMutation } from '@/features/interview-invitations/hooks';
 import {
   AlertCircle,
   Building2,
@@ -143,6 +143,7 @@ export const EmployerInterviewSchedulePage = () => {
   const { toast } = useToast();
   const { mutateAsync: cancelCampaignMutation } = useCancelCampaignMutation();
   const { mutateAsync: updateCampaignMutation } = useUpdateCampaignMutation();
+  const { mutateAsync: resendCampaignMutation } = useResendCampaignMutation();
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -156,6 +157,7 @@ export const EmployerInterviewSchedulePage = () => {
   const [campaignSearchQuery, setCampaignSearchQuery] = useState('');
   const [detailCurrentPage, setDetailCurrentPage] = useState(1);
   const [cancellingId, setCancellingId] = useState(null);
+  const [resendingId, setResendingId] = useState(null);
   const [selectedSlotId, setSelectedSlotId] = useState(null);
   const [selectedUpcomingJobKey, setSelectedUpcomingJobKey] = useState(null);
   const [activeTab, setActiveTab] = useState('upcoming');
@@ -898,6 +900,22 @@ export const EmployerInterviewSchedulePage = () => {
     }
   };
 
+  const handleResendCampaign = async (campaignId) => {
+    setResendingId(campaignId);
+    try {
+      const res = await resendCampaignMutation(campaignId);
+      toast(`Đã gửi lại thông báo thành công cho ${res.resentCount} ứng viên đang chờ phản hồi!`, 'success');
+      await invalidateInterviewData();
+    } catch (error) {
+      toast(
+        normalizeApiMessage(error, 'Không thể gửi lại lời mời phỏng vấn.'),
+        'error',
+      );
+    } finally {
+      setResendingId(null);
+    }
+  };
+
   const hasCompany = !!company?.id;
   const companyStatus = company?.status;
   const canCreate = hasCompany && companyStatus === 'APPROVED';
@@ -1300,6 +1318,18 @@ export const EmployerInterviewSchedulePage = () => {
                                 Sửa lịch phỏng vấn
                               </Button>
                             )}
+                            {displayedSelectedJob.campaigns[0] &&
+                              ['IN_PROGRESS', 'COMPLETED'].includes(displayedSelectedJob.campaigns[0].status) &&
+                              displayedSelectedJob.campaigns[0].pendingCount > 0 && (
+                                <Button
+                                  variant="outline"
+                                  className="rounded-lg border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 hover:text-amber-800"
+                                  disabled={resendingId === displayedSelectedJob.campaigns[0].id}
+                                  onClick={() => handleResendCampaign(displayedSelectedJob.campaigns[0].id)}
+                                >
+                                  {resendingId === displayedSelectedJob.campaigns[0].id ? 'Đang gửi...' : 'Gửi lại lời mời'}
+                                </Button>
+                              )}
                           </div>
                         </div>
                         {displayedSelectedJob.slots.map((slot, index) => {

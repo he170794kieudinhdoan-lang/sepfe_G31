@@ -454,10 +454,6 @@ const WorkerInvitations = ({ embedded = false, type = 'interview' }) => {
                       {isSlotLess ? (
                         canChooseOrChangeSlot ? (
                           <div className="flex flex-col gap-3">
-                            <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm text-primary-800">
-                              Đây là lời mời ứng tuyển trực tiếp từ nhà tuyển dụng (chưa có lịch phỏng vấn).
-                              Nếu bạn đồng ý, hồ sơ của bạn sẽ được đánh dấu Phù Hợp và chuyển đến nhà tuyển dụng để xếp lịch phỏng vấn sau.
-                            </div>
                             <div className="grid gap-3">
                               <button
                                 type="button"

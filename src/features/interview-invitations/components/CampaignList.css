@@ -197,6 +197,15 @@
   background-color: #0052a3;
 }
 
+.action-btn.resend {
+  background-color: #ff9800;
+  color: white;
+}
+
+.action-btn.resend:hover {
+  background-color: #e68a00;
+}
+
 .pagination {
   display: flex;
   justify-content: center;

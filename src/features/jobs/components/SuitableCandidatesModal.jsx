@@ -68,7 +68,7 @@ const CandidateDetailModal = ({ app, onClose }) => {
       onClose={onClose}
       title="Thông tin ứng viên"
       variant="custom"
-      contentClassName="max-w-xl"
+      contentClassName="max-w-2xl"
     >
       <div className="space-y-4">
         {/* Header */}
@@ -194,7 +194,7 @@ export const SuitableCandidatesModal = ({ isOpen, onClose, jobId, jobTitle }) =>
         onClose={handleClose}
         title={`Ứng viên phù hợp — "${jobTitle || 'Tin tuyển dụng'}"`}
         variant="custom"
-        contentClassName="max-w-2xl"
+        contentClassName="max-w-5xl"
       >
         <div className="space-y-4">
           {/* Search */}
@@ -228,48 +228,50 @@ export const SuitableCandidatesModal = ({ isOpen, onClose, jobId, jobTitle }) =>
               <p className="text-slate-500">Không tìm thấy ứng viên nào.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {applications.map((app) => (
-                <div
-                  key={app.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setSelectedApp(app)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedApp(app); } }}
-                  className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-primary/40 hover:bg-primary/5 cursor-pointer transition-colors min-w-0"
-                >
-                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
-                    {app.user?.avatar ? (
-                      <img src={app.user.avatar} alt={app.user.fullName} className="h-full w-full object-cover" />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-400">
-                        {(app.user?.fullName || 'W').charAt(0).toUpperCase()}
-                      </div>
-                    )}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                {applications.map((app) => (
+                  <div
+                    key={app.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedApp(app)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedApp(app); } }}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-primary/40 hover:bg-primary/5 cursor-pointer transition-colors min-w-0 text-left"
+                  >
+                    <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+                      {app.user?.avatar ? (
+                        <img src={app.user.avatar} alt={app.user.fullName} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm font-bold text-slate-400">
+                          {(app.user?.fullName || 'W').charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-semibold text-slate-900 text-sm">{app.user?.fullName}</p>
+                      {app.user?.phone || app.user?.email ? (
+                        <div className="mt-1 space-y-0.5">
+                          {app.user?.phone && (
+                            <p className="truncate text-xs text-slate-500 flex items-center gap-1">
+                              <Phone className="h-3 w-3 shrink-0 text-slate-400" />
+                              {app.user.phone}
+                            </p>
+                          )}
+                          {app.user?.email && (
+                            <p className="truncate text-xs text-slate-500 flex items-center gap-1">
+                              <Mail className="h-3 w-3 shrink-0 text-slate-400" />
+                              {app.user.email}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-1">Chưa có thông tin</p>
+                      )}
+                    </div>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-semibold text-slate-900 text-sm">{app.user?.fullName}</p>
-                    {app.user?.phone || app.user?.email ? (
-                      <div className="mt-0.5 space-y-0.5">
-                        {app.user?.phone && (
-                          <p className="truncate text-xs text-slate-500 flex items-center gap-1">
-                            <Phone className="h-3 w-3 shrink-0" />
-                            {app.user.phone}
-                          </p>
-                        )}
-                        {app.user?.email && (
-                          <p className="truncate text-xs text-slate-500 flex items-center gap-1">
-                            <Mail className="h-3 w-3 shrink-0" />
-                            {app.user.email}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-slate-400 mt-0.5">Chưa có thông tin</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
 
               {totalPages > 1 && (
                 <div className="pt-2 flex justify-center">

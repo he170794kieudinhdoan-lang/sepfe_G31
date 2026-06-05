@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { getCampaigns, getCampaignDetail } from '../api/interviewInvitationApi'
-import { useSendCampaignMutation } from '../hooks'
+import { useSendCampaignMutation, useResendCampaignMutation } from '../hooks'
 import { useAuth } from '@/shared/contexts/AuthContext'
+import { useToast } from '@/shared/contexts/ToastContext'
 import './CampaignList.css'
 
 const CampaignList = () => {
   const { isAuthenticated } = useAuth()
+  const { toast } = useToast()
   const [campaigns, setCampaigns] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -13,6 +15,7 @@ const CampaignList = () => {
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const { mutateAsync: sendCampaign } = useSendCampaignMutation()
+  const { mutateAsync: resendCampaign } = useResendCampaignMutation()
 
   useEffect(() => {
     if (!isAuthenticated) return
@@ -42,6 +45,20 @@ const CampaignList = () => {
       setCampaigns(result.data)
     } catch (err) {
       setError(err.message)
+    }
+  }
+
+  const handleResendCampaign = async (campaignId) => {
+    try {
+      setError(null)
+      const res = await resendCampaign(campaignId)
+      toast(`Đã gửi lại thông báo thành công cho ${res.resentCount} ứng viên đang chờ phản hồi!`, 'success')
+      // Refresh campaigns
+      const result = await getCampaigns(page, 10, selectedStatus)
+      setCampaigns(result.data)
+    } catch (err) {
+      setError(err.message || 'Có lỗi xảy ra khi gửi lại lời mời')
+      toast(err.message || 'Có lỗi xảy ra khi gửi lại lời mời', 'error')
     }
   }
 
@@ -148,6 +165,14 @@ const CampaignList = () => {
                       onClick={() => handleSendCampaign(campaign.id)}
                     >
                       Gửi Ngay
+                    </button>
+                  )}
+                  {['IN_PROGRESS', 'COMPLETED'].includes(campaign.status) && campaign.pendingCount > 0 && (
+                    <button
+                      className="action-btn resend"
+                      onClick={() => handleResendCampaign(campaign.id)}
+                    >
+                      Gửi Lại
                     </button>
                   )}
                   <button className="action-btn view">Xem Chi Tiết</button>

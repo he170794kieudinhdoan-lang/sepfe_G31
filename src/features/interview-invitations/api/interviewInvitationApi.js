@@ -35,6 +35,12 @@ export const sendCampaign = async (campaignId) => {
   )
 }
 
+export const resendCampaign = async (campaignId) => {
+  return await apiClient.post(
+    `/interview-invitations/campaigns/${campaignId}/resend`,
+  )
+}
+
 export const cancelCampaign = async (campaignId) => {
   return await apiClient.put(
     `/interview-invitations/campaigns/${campaignId}/cancel`,
