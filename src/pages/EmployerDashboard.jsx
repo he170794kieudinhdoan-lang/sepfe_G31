@@ -125,6 +125,7 @@ import {
 import { DashboardChatPanel } from '@/features/chat/components/DashboardChatPanel';
 import { CreateJobPage } from '@/pages/CreateJobPage';
 import { EditJobPage } from '@/pages/EditJobPage';
+import { SuitableCandidatesModal } from '@/features/jobs/components/SuitableCandidatesModal';
 export const EMPLOYER_MENU = [
   {
     key: 'overview',
@@ -2623,6 +2624,7 @@ export const EmployerDashboard = () => {
   const [matchedJobId, setMatchedJobId] = useState(null);
   const [matchedJobTitle, setMatchedJobTitle] = useState('');
   const [applicantsModalJobId, setApplicantsModalJobId] = useState(null);
+  const [suitablePopupJob, setSuitablePopupJob] = useState(null);
 
   const [jobOptionsPopoverOpenId, setJobOptionsPopoverOpenId] = useState(null);
   const [campaignDetailOpen, setCampaignDetailOpen] = useState(false);
@@ -3901,9 +3903,6 @@ export const EmployerDashboard = () => {
                                   onChange={handleSelectAllJobs}
                                 />
                               </th>
-                              <th className="py-3.5 px-4 whitespace-nowrap text-center w-20">
-                                ID
-                              </th>
                               <th className="py-3.5 px-4 whitespace-nowrap min-w-[240px]">
                                 Tiêu đề công việc
                               </th>
@@ -3934,7 +3933,7 @@ export const EmployerDashboard = () => {
                             {loadingJobs ? (
                               <tr>
                                 <td
-                                  colSpan="10"
+                                  colSpan="9"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <Loader2 className="animate-spin mx-auto text-primary" />
@@ -3948,7 +3947,7 @@ export const EmployerDashboard = () => {
                               }).length === 0 ? (
                               <tr>
                                 <td
-                                  colSpan="10"
+                                  colSpan="9"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <div className="flex flex-col items-center gap-2">
@@ -3995,9 +3994,6 @@ export const EmployerDashboard = () => {
                                           }
                                         />
                                       </td>
-                                      <td className="py-4 px-4 text-center font-mono text-xs text-slate-500">
-                                        #{job.id}
-                                      </td>
                                       <td className="py-4 px-4">
                                         <p className="font-semibold text-slate-800">
                                           {job.title}
@@ -4012,8 +4008,30 @@ export const EmployerDashboard = () => {
                                       <td className="px-4 font-medium text-slate-700 text-center text-sm">
                                         {job.applicantsCount ?? 0} người
                                       </td>
-                                      <td className="px-4 font-medium text-slate-700 text-center text-sm">
-                                        {job.suitableCount ?? 0} người
+                                      <td
+                                        className="px-4 text-center"
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <button
+                                          className={`text-sm font-semibold transition-colors px-2 py-0.5 rounded-lg ${
+                                            (job.suitableCount ?? 0) > 0
+                                              ? 'text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 cursor-pointer'
+                                              : 'text-slate-400 cursor-default'
+                                          }`}
+                                          disabled={(job.suitableCount ?? 0) === 0}
+                                          onClick={() => {
+                                            if ((job.suitableCount ?? 0) > 0) {
+                                              setSuitablePopupJob(job);
+                                            }
+                                          }}
+                                          title={
+                                            (job.suitableCount ?? 0) > 0
+                                              ? 'Xem danh sách ứng viên phù hợp'
+                                              : 'Chưa có ứng viên phù hợp'
+                                          }
+                                        >
+                                          {job.suitableCount ?? 0} người
+                                        </button>
                                       </td>
                                       <td className="px-4 text-center">
                                         <span className="flex items-center justify-center gap-2 text-slate-600">
@@ -5244,6 +5262,13 @@ export const EmployerDashboard = () => {
           </div>
         </div>
       )}
+
+      <SuitableCandidatesModal
+        isOpen={!!suitablePopupJob}
+        onClose={() => setSuitablePopupJob(null)}
+        jobId={suitablePopupJob?.id}
+        jobTitle={suitablePopupJob?.title}
+      />
 
     </DashboardLayout>
   );

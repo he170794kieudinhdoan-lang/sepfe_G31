@@ -39,6 +39,9 @@ import {
 } from './jobApi';
 import { useToast } from '@/shared/contexts/ToastContext';
 
+// Dữ liệu danh mục/tham chiếu ít thay đổi -> giữ "tươi" lâu để khỏi refetch.
+const STATIC_STALE_TIME = 5 * 60 * 1000;
+
 // ===== JOB DETAIL =====
 
 export const useJobDetail = (jobId, options = {}) => {
@@ -64,7 +67,6 @@ export const useSearchJobs = (filters = {}, options = {}) => {
   return useQuery({
     queryKey: ['job-search', filters],
     queryFn: () => searchJobs(filters),
-    staleTime: 0,
     retry: 1,
     keepPreviousData: true,
     ...options,
@@ -75,7 +77,6 @@ export const useJobsForEmployer = (filters = {}, options = {}) => {
   return useQuery({
     queryKey: ['jobs-for-employer', filters],
     queryFn: () => getJobsForEmployer(filters),
-    staleTime: 0,
     retry: 1,
     keepPreviousData: true,
     ...options,
@@ -86,7 +87,6 @@ export const useBoostedJobs = (params = {}, options = {}) => {
   return useQuery({
     queryKey: ['boosted-jobs', params],
     queryFn: () => getBoostedJobsApi(params),
-    staleTime: 0,
     retry: 1,
     keepPreviousData: true,
     ...options,
@@ -97,7 +97,6 @@ export const useNewestJobs = (params = {}, options = {}) => {
   return useQuery({
     queryKey: ['newest-jobs', params],
     queryFn: () => getNewestJobsApi(params),
-    staleTime: 0,
     retry: 1,
     placeholderData: keepPreviousData,
     ...options,
@@ -108,7 +107,7 @@ export const useBoostPackages = (options = {}) => {
   return useQuery({
     queryKey: ['boost-packages'],
     queryFn: getBoostPackagesApi,
-    staleTime: 0,
+    staleTime: STATIC_STALE_TIME,
     retry: 1,
     ...options,
   });
@@ -167,7 +166,32 @@ export const useUpdateApplicationStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateApplicationStatus,
-    onSuccess: () => {
+    // Cập nhật lạc quan: đổi status của ứng viên ngay trong cache list employer.
+    onMutate: async ({ applicationId, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['employer-applications'] });
+      const previous = queryClient.getQueriesData({
+        queryKey: ['employer-applications'],
+      });
+      queryClient.setQueriesData(
+        { queryKey: ['employer-applications'] },
+        (old) => {
+          if (!old || !Array.isArray(old.data)) return old;
+          return {
+            ...old,
+            data: old.data.map((a) =>
+              a?.id === applicationId ? { ...a, status } : a,
+            ),
+          };
+        },
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      context?.previous?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['employer-applications'] });
     },
   });
@@ -177,11 +201,31 @@ export const useDeleteJob = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: deleteJobApi,
-    onSuccess: () => {
-      invalidateJobQueries(queryClient);
+    // Cập nhật lạc quan: loại tin khỏi danh sách employer ngay lập tức.
+    onMutate: async ({ jobId }) => {
+      await queryClient.cancelQueries({ queryKey: ['jobs-for-employer'] });
+      const previous = queryClient.getQueriesData({
+        queryKey: ['jobs-for-employer'],
+      });
+      queryClient.setQueriesData({ queryKey: ['jobs-for-employer'] }, (old) => {
+        if (!old || !Array.isArray(old.items)) return old;
+        return {
+          ...old,
+          items: old.items.filter(
+            (j) => j?.id !== jobId && String(j?.id) !== String(jobId),
+          ),
+        };
+      });
+      return { previous };
     },
-    onError: (error) => {
+    onError: (error, _vars, context) => {
+      context?.previous?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
       console.error(error?.response?.data?.message || 'Delete job failed');
+    },
+    onSettled: () => {
+      invalidateJobQueries(queryClient);
     },
   });
 };
@@ -223,7 +267,7 @@ export const useGetSectorsWithOccupations = () => {
   return useQuery({
     queryKey: ['sectors-with-occupations'],
     queryFn: getSectorsWithOccupations,
-    staleTime: 0,
+    staleTime: STATIC_STALE_TIME,
     retry: 1,
   });
 };
@@ -233,7 +277,7 @@ export const useGetOccupationsBySector = (sectorId) => {
     queryKey: ['occupations-by-sector', sectorId],
     queryFn: () => getOccupationsBySector(sectorId),
     enabled: !!sectorId,
-    staleTime: 0,
+    staleTime: STATIC_STALE_TIME,
     retry: 1,
   });
 };
@@ -244,7 +288,7 @@ export const useGetProvinces = () => {
   return useQuery({
     queryKey: ['provinces'],
     queryFn: getProvinces,
-    staleTime: 0,
+    staleTime: STATIC_STALE_TIME,
     retry: 1,
     keepPreviousData: true,
   });
@@ -255,7 +299,7 @@ export const useGetWards = (wardsId) => {
     queryKey: ['wards', wardsId],
     queryFn: () => getWards(wardsId),
     enabled: !!wardsId,
-    staleTime: 0,
+    staleTime: STATIC_STALE_TIME,
     retry: 1,
     keepPreviousData: true,
   });
@@ -264,7 +308,6 @@ export const useJobApply = (jobId) => {
   return useQuery({
     queryKey: ['job-apply', jobId],
     queryFn: () => getJobApplyApi(jobId),
-    staleTime: 0,
     retry: 1,
     enabled: !!jobId,
   });
@@ -274,7 +317,36 @@ export const useApplyJobMutation = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: ({ jobId, payload }) => applyJobApi({ jobId, payload }),
-    onSuccess: (_, { jobId }) => {
+    // Cập nhật lạc quan: thêm ngay đơn APPLIED vào cache để nút "Ứng tuyển"
+    // chuyển sang "Đã nộp đơn" mà không cần chờ refetch.
+    onMutate: async ({ jobId }) => {
+      await queryClient.cancelQueries({ queryKey: ['my-applications'] });
+      const previous = queryClient.getQueryData(['my-applications']);
+      queryClient.setQueryData(['my-applications'], (old) => {
+        const list = Array.isArray(old) ? old : [];
+        const exists = list.some((app) => {
+          const appJobId = app?.jobId ?? app?.job?.id;
+          return appJobId === jobId || String(appJobId) === String(jobId);
+        });
+        if (exists) return old;
+        return [
+          ...list,
+          {
+            jobId,
+            job: { id: jobId },
+            status: 'APPLIED',
+            updatedAt: new Date().toISOString(),
+          },
+        ];
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['my-applications'], context.previous);
+      }
+    },
+    onSettled: (_data, _err, { jobId }) => {
       queryClient.invalidateQueries({ queryKey: ['job-apply', jobId] });
       queryClient.invalidateQueries({ queryKey: ['job-detail', jobId] });
       queryClient.invalidateQueries({ queryKey: ['my-applications'] });
@@ -286,7 +358,6 @@ export const useMyApplications = (options = {}) => {
   return useQuery({
     queryKey: ['my-applications'],
     queryFn: getMyApplicationsApi,
-    staleTime: 0,
     retry: 1,
     ...options,
   });
@@ -296,7 +367,27 @@ export const useCancelApplyJob = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (jobId) => cancelApplyJobApi(jobId),
-    onSuccess: () => {
+    // Cập nhật lạc quan: đổi trạng thái đơn sang CANCELLED ngay trong cache.
+    onMutate: async (jobId) => {
+      await queryClient.cancelQueries({ queryKey: ['my-applications'] });
+      const previous = queryClient.getQueryData(['my-applications']);
+      queryClient.setQueryData(['my-applications'], (old) => {
+        if (!Array.isArray(old)) return old;
+        return old.map((app) => {
+          const appJobId = app?.job?.id ?? app?.jobId;
+          const match =
+            appJobId === jobId || String(appJobId) === String(jobId);
+          return match ? { ...app, status: 'CANCELLED' } : app;
+        });
+      });
+      return { previous };
+    },
+    onError: (_err, _jobId, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['my-applications'], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['my-applications'] });
     },
   });
@@ -307,7 +398,6 @@ export const useMatchedJobs = (options = {}) => {
   return useQuery({
     queryKey: ['matched-jobs'],
     queryFn: () => getMatchedJobsApi(),
-    staleTime: 0,
     ...options,
   });
 };
@@ -316,7 +406,6 @@ export const useMatchedWorkers = (jobId, limit = 10, options = {}) => {
   return useQuery({
     queryKey: ['matched-workers', jobId, limit],
     queryFn: () => getMatchedWorkersApi(jobId, limit),
-    staleTime: 0,
     enabled: !!jobId,
     ...options,
   });
@@ -372,7 +461,31 @@ export const useUpdateJobStatus = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: updateJobStatusApi,
-    onSuccess: () => {
+    // Cập nhật lạc quan: đổi trạng thái tin ngay trong danh sách employer.
+    onMutate: async ({ jobId, status }) => {
+      await queryClient.cancelQueries({ queryKey: ['jobs-for-employer'] });
+      const previous = queryClient.getQueriesData({
+        queryKey: ['jobs-for-employer'],
+      });
+      queryClient.setQueriesData({ queryKey: ['jobs-for-employer'] }, (old) => {
+        if (!old || !Array.isArray(old.items)) return old;
+        return {
+          ...old,
+          items: old.items.map((j) =>
+            j?.id === jobId || String(j?.id) === String(jobId)
+              ? { ...j, status }
+              : j,
+          ),
+        };
+      });
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      context?.previous?.forEach(([queryKey, data]) => {
+        queryClient.setQueryData(queryKey, data);
+      });
+    },
+    onSettled: () => {
       invalidateJobQueries(queryClient);
     },
   });

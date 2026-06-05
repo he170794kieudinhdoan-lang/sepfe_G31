@@ -19,6 +19,7 @@ import {
   useGetOccupations,
   useCreateWorkerProfile,
 } from '@/features/users/api/useUser';
+import * as userApi from '@/features/users/api/userApi';
 import { useToast } from '@/shared/contexts/ToastContext';
 import { MSG } from '@/shared/constants/messages';
 import { SHIFTS, GENDERS } from '@/shared/constants/enums';
@@ -27,6 +28,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatVND, parseNumber } from '@/shared/utils/formatCurrency';
 
 const schema = z.object({
+  phone: z
+    .string()
+    .min(1, 'Vui lòng nhập số điện thoại')
+    .regex(/^(0|\+84)[0-9]{8,10}$/, 'Số điện thoại không hợp lệ (VD: 0912345678)'),
   occupationId: z
     .number({ required_error: 'Vui lòng chọn nghề nghiệp' })
     .min(1, 'Vui lòng chọn nghề nghiệp'),
@@ -104,6 +109,7 @@ export const WorkerProfileSetup = () => {
   } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
+      phone: '',
       occupationId: '',
       shift: '',
       province: '',
@@ -147,6 +153,7 @@ export const WorkerProfileSetup = () => {
   const sectorError = sectorTouched && !sectorId;
 
   const FIELD_LABELS = {
+    phone: 'Số điện thoại',
     occupationId: 'Nghề cụ thể',
     shift: 'Ca làm việc mong muốn',
     province: 'Tỉnh/Thành phố',
@@ -156,14 +163,28 @@ export const WorkerProfileSetup = () => {
     expectedSalary: 'Mức lương mong muốn',
   };
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     if (!sectorId) {
       setSectorTouched(true);
       toast('Vui lòng chọn Ngành nghề trước khi hoàn tất.', 'error');
       return;
     }
 
-    const payload = Object.entries(data).reduce((acc, [key, value]) => {
+    // Update phone on user account first
+    if (data.phone) {
+      try {
+        const fd = new FormData();
+        fd.append('phone', data.phone);
+        await userApi.updateUserInfo(fd);
+      } catch {
+        toast('Cập nhật số điện thoại thất bại. Vui lòng thử lại.', 'error');
+        return;
+      }
+    }
+
+    // Build worker profile payload (phone is on User, not WorkerProfile)
+    const { phone: _phone, ...rest } = data;
+    const payload = Object.entries(rest).reduce((acc, [key, value]) => {
       if (value !== '' && value !== null && value !== undefined) {
         acc[key] = value;
       }
@@ -220,6 +241,23 @@ export const WorkerProfileSetup = () => {
           </div>
 
           <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="space-y-6">
+            {/* Phone — required personal info */}
+            <div className="space-y-2">
+              <Label htmlFor="phone" className="text-sm font-medium">
+                Số điện thoại <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="VD: 0912345678"
+                className={`h-11 rounded-xl bg-gray-50/50 border-gray-200 focus:bg-white transition-colors ${errors.phone ? 'border-destructive' : ''}`}
+                {...register('phone')}
+              />
+              {errors.phone && (
+                <p className="text-xs text-destructive">{errors.phone.message}</p>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Sector Selection */}
               <div className="space-y-2">

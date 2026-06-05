@@ -13,7 +13,7 @@ export const useGetSectorsWithOccupations = () => {
   return useQuery({
     queryKey: ['sectors-with-occupations'],
     queryFn: getSectorsWithOccupations,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 };
@@ -28,7 +28,7 @@ export const useGetOccupationsBySector = (sectorId) => {
     queryKey: ['occupations-by-sector', sectorId],
     queryFn: () => getOccupationsBySector(sectorId),
     enabled: !!sectorId,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 };
