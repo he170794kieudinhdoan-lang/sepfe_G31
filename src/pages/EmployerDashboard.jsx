@@ -3903,9 +3903,6 @@ export const EmployerDashboard = () => {
                                   onChange={handleSelectAllJobs}
                                 />
                               </th>
-                              <th className="py-3.5 px-4 whitespace-nowrap text-center w-20">
-                                ID
-                              </th>
                               <th className="py-3.5 px-4 whitespace-nowrap min-w-[240px]">
                                 Tiêu đề công việc
                               </th>
@@ -3936,7 +3933,7 @@ export const EmployerDashboard = () => {
                             {loadingJobs ? (
                               <tr>
                                 <td
-                                  colSpan="10"
+                                  colSpan="9"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <Loader2 className="animate-spin mx-auto text-primary" />
@@ -3950,7 +3947,7 @@ export const EmployerDashboard = () => {
                               }).length === 0 ? (
                               <tr>
                                 <td
-                                  colSpan="10"
+                                  colSpan="9"
                                   className="py-12 text-center text-slate-500"
                                 >
                                   <div className="flex flex-col items-center gap-2">
@@ -3996,9 +3993,6 @@ export const EmployerDashboard = () => {
                                             handleSelectJob(job.id)
                                           }
                                         />
-                                      </td>
-                                      <td className="py-4 px-4 text-center font-mono text-xs text-slate-500">
-                                        #{job.id}
                                       </td>
                                       <td className="py-4 px-4">
                                         <p className="font-semibold text-slate-800">

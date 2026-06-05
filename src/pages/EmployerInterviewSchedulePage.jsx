@@ -175,7 +175,7 @@ export const EmployerInterviewSchedulePage = () => {
     jobId: '',
     expiresAt: '',
     workerIds: [],
-    slots: [createDefaultSlot()],
+    slots: [],
   });
 
   const { data: company, isLoading: loadingCompany } = useGetMyCompany();
@@ -758,7 +758,8 @@ export const EmployerInterviewSchedulePage = () => {
     return selectedDetailSlotInvitations.filter((inv) => {
       const name = inv?.worker?.fullName?.toLowerCase() || '';
       const phone = inv?.worker?.phone?.toLowerCase() || '';
-      return name.includes(lowerQuery) || phone.includes(lowerQuery);
+      const email = inv?.worker?.email?.toLowerCase() || '';
+      return name.includes(lowerQuery) || phone.includes(lowerQuery) || email.includes(lowerQuery);
     });
   }, [selectedDetailSlotInvitations, detailSearchQuery]);
 
@@ -1109,7 +1110,7 @@ export const EmployerInterviewSchedulePage = () => {
                                           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                                           <Input
                                             type="text"
-                                            placeholder="Tìm tên, SĐT..."
+                                            placeholder="Tìm theo tên, email hoặc số điện thoại..."
                                             className="w-full sm:w-[220px] h-9 pl-8 text-sm bg-white rounded-lg border-slate-200 shadow-sm"
                                             value={detailSearchQuery}
                                             onChange={(e) => setDetailSearchQuery(e.target.value)}
@@ -1141,11 +1142,23 @@ export const EmployerInterviewSchedulePage = () => {
                                                     {invitation?.worker?.fullName ||
                                                       `Worker #${invitation?.workerId}`}
                                                   </p>
-                                                  <p className="text-xs text-slate-500">
-                                                    {invitation?.worker?.phone ||
-                                                      invitation?.worker?.email ||
-                                                      'Chưa có liên hệ'}
-                                                  </p>
+                                                  <div className="mt-0.5 space-y-0.5">
+                                                    {invitation?.worker?.phone && (
+                                                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                                                        <Phone className="h-3 w-3 shrink-0" />
+                                                        {invitation.worker.phone}
+                                                      </p>
+                                                    )}
+                                                    {invitation?.worker?.email && (
+                                                      <p className="text-xs text-slate-500 flex items-center gap-1">
+                                                        <Mail className="h-3 w-3 shrink-0" />
+                                                        {invitation.worker.email}
+                                                      </p>
+                                                    )}
+                                                    {!invitation?.worker?.phone && !invitation?.worker?.email && (
+                                                      <p className="text-xs text-slate-400">Chưa có thông tin liên hệ</p>
+                                                    )}
+                                                  </div>
                                                 </div>
                                                 <span className="text-xs text-primary font-medium">Xem chi tiết →</span>
                                               </div>

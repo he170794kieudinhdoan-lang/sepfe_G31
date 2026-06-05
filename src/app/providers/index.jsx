@@ -7,9 +7,11 @@ import { AppLoadingScene } from '@/shared/components/AppLoadingScene';
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 0,
+      // Dữ liệu được coi là "tươi" trong 60s: điều hướng qua lại / chuyển tab
+      // sẽ dùng ngay cache thay vì refetch & nháy spinner -> UX nhanh hơn.
+      staleTime: 60 * 1000,
       gcTime: 10 * 60 * 1000,
-      // Bật lại: khi staleTime > 0, nếu tắt focus refetch thì quay lại tab vẫn thấy cache cũ
+      // staleTime > 0 nên quay lại tab vẫn thấy cache, chỉ refetch ngầm khi đã stale.
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,
       retry: 1,

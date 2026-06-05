@@ -206,7 +206,7 @@ export const SuitableCandidatesModal = ({ isOpen, onClose, jobId, jobTitle }) =>
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 type="text"
-                placeholder="Tìm theo tên hoặc số điện thoại..."
+                placeholder="Tìm theo tên, email hoặc số điện thoại..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="pl-9 h-10 w-full"
@@ -249,9 +249,24 @@ export const SuitableCandidatesModal = ({ isOpen, onClose, jobId, jobTitle }) =>
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-semibold text-slate-900 text-sm">{app.user?.fullName}</p>
-                    <p className="truncate text-xs text-slate-500 mt-0.5">
-                      {app.user?.phone || app.user?.email || 'Chưa có thông tin'}
-                    </p>
+                    {app.user?.phone || app.user?.email ? (
+                      <div className="mt-0.5 space-y-0.5">
+                        {app.user?.phone && (
+                          <p className="truncate text-xs text-slate-500 flex items-center gap-1">
+                            <Phone className="h-3 w-3 shrink-0" />
+                            {app.user.phone}
+                          </p>
+                        )}
+                        {app.user?.email && (
+                          <p className="truncate text-xs text-slate-500 flex items-center gap-1">
+                            <Mail className="h-3 w-3 shrink-0" />
+                            {app.user.email}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-400 mt-0.5">Chưa có thông tin</p>
+                    )}
                   </div>
                 </div>
               ))}

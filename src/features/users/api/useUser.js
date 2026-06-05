@@ -5,7 +5,6 @@ export const useGetUsers = (options = {}) => {
   return useQuery({
     queryKey: ['users', 'me'],
     queryFn: userApi.getUsers,
-    staleTime: 0,
     retry: 1,
     ...options,
   });
@@ -24,7 +23,7 @@ export const useGetOccupations = () => {
   return useQuery({
     queryKey: ['occupations'],
     queryFn: userApi.getOccupations,
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
     retry: 1,
   });
 };
@@ -33,7 +32,6 @@ export const useGetWorkerProfile = (options = {}) => {
   return useQuery({
     queryKey: ['worker-profile'],
     queryFn: userApi.getWorkerProfile,
-    staleTime: 0,
     retry: false,
     ...options,
   });
@@ -65,7 +63,30 @@ export const useUpdateUserInfo = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: userApi.updateUserInfo,
-    onSuccess: () => {
+    // Cập nhật lạc quan các field text (fullName/phone/email) vào cache ['users','me'].
+    // AuthContext suy ra `user` từ cache này nên UI đổi ngay. Avatar đã có preview riêng.
+    onMutate: async (formData) => {
+      const patch = {};
+      if (formData && typeof formData.get === 'function') {
+        ['fullName', 'phone', 'email'].forEach((key) => {
+          const v = formData.get(key);
+          if (v !== null) patch[key] = v;
+        });
+      }
+      if (Object.keys(patch).length === 0) return { previous: undefined };
+      await queryClient.cancelQueries({ queryKey: ['users', 'me'] });
+      const previous = queryClient.getQueryData(['users', 'me']);
+      queryClient.setQueryData(['users', 'me'], (old) =>
+        old ? { ...old, ...patch } : old,
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous !== undefined) {
+        queryClient.setQueryData(['users', 'me'], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['users', 'me'] });
     },
   });

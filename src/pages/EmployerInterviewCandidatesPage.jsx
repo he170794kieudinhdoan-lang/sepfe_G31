@@ -23,8 +23,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Search, Loader2, Calendar, ArrowLeft, User, Briefcase, MapPin, Clock, Mail, Phone } from 'lucide-react';
+import { Search, Loader2, Calendar, ArrowLeft, User, Briefcase, MapPin, Clock, Mail, Phone, Download } from 'lucide-react';
 import { useSuitableApplications } from '@/features/jobs/api/useJobs';
+import { getSuitableApplicationsApi } from '@/features/jobs/api/jobApi';
+import * as XLSX from 'xlsx';
 import { DashboardLayout } from '@/shared/components/Layout/DashboardLayout';
 import { EMPLOYER_MENU } from '@/pages/EmployerDashboard';
 import { NotificationBellPopover } from '@/features/notifications/components/NotificationBellPopover';
@@ -41,6 +43,7 @@ export const EmployerInterviewCandidatesPage = () => {
   const [interviewStatus, setInterviewStatus] = useState('ALL');
   const [slotId, setSlotId] = useState('ALL');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
   const limit = 10;
 
   // Debounce search
@@ -77,6 +80,82 @@ export const EmployerInterviewCandidatesPage = () => {
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
+  const GENDER_MAP = { MALE: 'Nam', FEMALE: 'Nữ', OTHER: 'Khác' };
+  const SHIFT_MAP = { MORNING: 'Ca sáng', AFTERNOON: 'Ca chiều', EVENING: 'Ca tối', FULL_DAY: 'Cả ngày', FLEXIBLE: 'Linh hoạt' };
+  const INTERVIEW_STATUS_MAP = { PENDING: 'Chưa phản hồi', ACCEPTED: 'Đã chọn ca', REJECTED: 'Không tham gia' };
+
+  const handleExport = async () => {
+    setIsExporting(true);
+    try {
+      // Lấy toàn bộ ứng viên (không phân trang) theo bộ lọc hiện tại
+      const res = await getSuitableApplicationsApi(
+        jobId ? Number(jobId) : null,
+        1,
+        9999,
+        debouncedSearch,
+        interviewStatus,
+        slotId,
+      );
+      const allApps = res?.data || [];
+
+      const rows = allApps.map((app) => {
+        const user = app.user || {};
+        const profile = user.workerProfile || {};
+        const invitation = user.interviewInvitations?.[0];
+        const location = [profile.ward, profile.province].filter(Boolean).join(', ');
+        const salaryStr = profile.expectedSalary
+          ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(profile.expectedSalary)
+          : 'Chưa cập nhật';
+
+        let interviewStatusStr = 'Chưa mời';
+        let selectedSlotStr = '';
+        if (invitation) {
+          interviewStatusStr = INTERVIEW_STATUS_MAP[invitation.status] || invitation.status;
+          if (invitation.selectedSlot) {
+            selectedSlotStr = new Date(invitation.selectedSlot.startAt).toLocaleString('vi-VN', {
+              hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric',
+            });
+          }
+        }
+
+        return {
+          'Họ và tên': user.fullName || '',
+          'Email': user.email || '',
+          'Số điện thoại': user.phone || '',
+          'Giới tính': GENDER_MAP[profile.gender] || '',
+          'Năm sinh': profile.birthYear || '',
+          'Khu vực': location || '',
+          'Nghề nghiệp': profile.occupation?.name || '',
+          'Kinh nghiệm (năm)': profile.experienceYear ?? '',
+          'Lương mong muốn': salaryStr,
+          'Ca làm mong muốn': SHIFT_MAP[profile.shift] || profile.shift || '',
+          'Giới thiệu bản thân': profile.bio || '',
+          'Mong muốn công việc': profile.desiredJobText || '',
+          'Trạng thái phỏng vấn': interviewStatusStr,
+          'Ca phỏng vấn đã chọn': selectedSlotStr,
+        };
+      });
+
+      const ws = XLSX.utils.json_to_sheet(rows);
+
+      // Tự động điều chỉnh độ rộng cột
+      const colWidths = Object.keys(rows[0] || {}).map((key) => ({
+        wch: Math.max(key.length, ...rows.map((r) => String(r[key] || '').length), 12),
+      }));
+      ws['!cols'] = colWidths;
+
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Ứng viên phỏng vấn');
+
+      const safeTitle = (jobTitle || 'ung-vien').replace(/[^a-zA-Z0-9_\-\s]/g, '').trim().replace(/\s+/g, '_');
+      XLSX.writeFile(wb, `${safeTitle}_ung_vien_phong_van.xlsx`);
+    } catch (err) {
+      console.error('Export failed:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <DashboardLayout
       title="Quản lý ứng viên phỏng vấn"
@@ -94,6 +173,19 @@ export const EmployerInterviewCandidatesPage = () => {
             className="text-slate-600"
           >
             <ArrowLeft className="mr-2 h-4 w-4" /> Quay lại
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleExport}
+            disabled={isExporting || total === 0}
+            className="gap-2"
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            {isExporting ? 'Đang xuất...' : `Xuất Excel${total > 0 ? ` (${total})` : ''}`}
           </Button>
         </div>
 
@@ -143,7 +235,7 @@ export const EmployerInterviewCandidatesPage = () => {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     type="text"
-                    placeholder="Tìm theo tên, email..."
+                    placeholder="Tìm theo tên, email hoặc số điện thoại..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-9 h-10 w-full bg-slate-50 border-slate-200"
@@ -198,9 +290,23 @@ export const EmployerInterviewCandidatesPage = () => {
                             </h4>
                             {renderStatusBadge(invitation)}
                           </div>
-                          <p className="truncate text-sm text-slate-500">
-                            {app.user?.email} • {app.user?.phone || 'Chưa có SĐT'}
-                          </p>
+                          <div className="mt-0.5 space-y-0.5">
+                            {app.user?.email && (
+                              <p className="truncate text-sm text-slate-500 flex items-center gap-1.5">
+                                <Mail className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                                {app.user.email}
+                              </p>
+                            )}
+                            {app.user?.phone && (
+                              <p className="truncate text-sm text-slate-500 flex items-center gap-1.5">
+                                <Phone className="h-3.5 w-3.5 shrink-0 text-slate-400" />
+                                {app.user.phone}
+                              </p>
+                            )}
+                            {!app.user?.email && !app.user?.phone && (
+                              <p className="text-sm text-slate-400">Chưa có thông tin liên hệ</p>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
