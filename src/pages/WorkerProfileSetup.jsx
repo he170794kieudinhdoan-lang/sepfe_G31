@@ -80,7 +80,7 @@ const schema = z.object({
       .max(80, 'Số năm kinh nghiệm không hợp lệ')
       .optional(),
   ),
-  bio: z.string().max(100, 'Mô tả bản thân tối đa 100 ký tự').optional(),
+  bio: z.string().max(1000, 'Mô tả bản thân tối đa 1000 ký tự').optional(),
   desiredJobText: z
     .string()
     .max(100, 'Mong muốn công việc tối đa 100 ký tự')
