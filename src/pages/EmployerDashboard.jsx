@@ -2237,8 +2237,8 @@ const MatchedWorkersPanel = ({
     setIsSending(true);
     try {
       const campaign = await createCampaign({
-        title: `Mời ứng tuyển AI - ${jobDetail?.title || jobTitle}`,
-        description: `Chiến dịch mời ứng tuyển AI cho vị trí #${jobId}`,
+        title: `Mời ứng tuyển  - ${jobDetail?.title || jobTitle}`,
+        description: `Chiến dịch mời ứng tuyển cho vị trí #${jobId}`,
         message: inviteMessage.trim(),
         jobId: Number(jobId),
         workerIds,
